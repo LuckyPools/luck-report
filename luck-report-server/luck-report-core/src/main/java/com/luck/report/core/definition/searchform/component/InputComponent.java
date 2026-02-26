@@ -1,0 +1,119 @@
+package com.luck.report.core.definition.searchform.component;
+
+import com.luck.report.core.definition.searchform.RenderContext;
+
+public class InputComponent extends BaseInputComponent {
+    private String placeholder;
+    private boolean clearable;
+    private boolean disabled;
+    private boolean readonly;
+    private String maxlength;
+    private boolean showWordLimit;
+    private String prepend;
+    private String append;
+    private String prefixIcon;
+    private String suffixIcon;
+    private String tagIcon;
+    private String defaultValue;
+
+    @Override
+    public String initJs(RenderContext context) {
+        return "";
+    }
+
+    public String getPlaceholder() {
+        return placeholder;
+    }
+
+    public void setPlaceholder(String placeholder) {
+        this.placeholder = placeholder;
+    }
+
+    public boolean isClearable() {
+        return clearable;
+    }
+
+    public void setClearable(boolean clearable) {
+        this.clearable = clearable;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+    }
+
+    public boolean isReadonly() {
+        return readonly;
+    }
+
+    public void setReadonly(boolean readonly) {
+        this.readonly = readonly;
+    }
+
+    public String getMaxlength() {
+        return maxlength;
+    }
+
+    public void setMaxlength(String maxlength) {
+        this.maxlength = maxlength;
+    }
+
+    public boolean isShowWordLimit() {
+        return showWordLimit;
+    }
+
+    public void setShowWordLimit(boolean showWordLimit) {
+        this.showWordLimit = showWordLimit;
+    }
+
+    public String getPrepend() {
+        return prepend;
+    }
+
+    public void setPrepend(String prepend) {
+        this.prepend = prepend;
+    }
+
+    public String getAppend() {
+        return append;
+    }
+
+    public void setAppend(String append) {
+        this.append = append;
+    }
+
+    public String getPrefixIcon() {
+        return prefixIcon;
+    }
+
+    public void setPrefixIcon(String prefixIcon) {
+        this.prefixIcon = prefixIcon;
+    }
+
+    public String getSuffixIcon() {
+        return suffixIcon;
+    }
+
+    public void setSuffixIcon(String suffixIcon) {
+        this.suffixIcon = suffixIcon;
+    }
+
+    public String getTagIcon() {
+        return tagIcon;
+    }
+
+    public void setTagIcon(String tagIcon) {
+        this.tagIcon = tagIcon;
+    }
+
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+
+    public void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+}

@@ -1,0 +1,9 @@
+server:
+  port: 8050
+
+spring:
+  application:
+    name: luck-report  # 应用名
+
+  profiles:
+    active: dev
