@@ -1,0 +1,77 @@
+package com.luck.report.core.definition.searchform.component;
+
+import com.luck.report.core.definition.searchform.Option;
+import com.luck.report.core.definition.searchform.RenderContext;
+
+import java.util.List;
+
+public class SelectComponent extends BaseInputComponent {
+    private boolean multiple;
+    private boolean clearable;
+    private boolean filterable;
+    private String placeholder;
+    private boolean disabled;
+    private List<Option> options;
+    private String defaultValue;
+
+    @Override
+    public String initJs(RenderContext context) {
+        return "";
+    }
+
+    public boolean isMultiple() {
+        return multiple;
+    }
+
+    public void setMultiple(boolean multiple) {
+        this.multiple = multiple;
+    }
+
+    public boolean isClearable() {
+        return clearable;
+    }
+
+    public void setClearable(boolean clearable) {
+        this.clearable = clearable;
+    }
+
+    public boolean isFilterable() {
+        return filterable;
+    }
+
+    public void setFilterable(boolean filterable) {
+        this.filterable = filterable;
+    }
+
+    public String getPlaceholder() {
+        return placeholder;
+    }
+
+    public void setPlaceholder(String placeholder) {
+        this.placeholder = placeholder;
+    }
+
+    public boolean getDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+    }
+
+    public List<Option> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<Option> options) {
+        this.options = options;
+    }
+
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+
+    public void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+}

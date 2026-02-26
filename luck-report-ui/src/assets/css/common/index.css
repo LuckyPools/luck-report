@@ -1,0 +1,84 @@
+.u-inline{
+    display: inline-block;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-control{
+    display: block;
+    width: 100%;
+    height: 34px;
+    padding: 6px 12px;
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+}
+
+label {
+    display: inline-block;
+    max-width: 100%;
+    margin: 0 0 5px 5px;
+}
+
+.data-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.data-table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #ddd;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+}
+
+.data-table th span, .data-table td span{
+    padding-left: 5px;
+}
+
+.data-table-btn{
+    vertical-align: middle;
+    text-align: center;
+}
+
+.u-inline {
+    display: inline-block;
+}
+
+.btn-group{
+    display: inline-block;
+}
+
+.fieldset-style {
+    padding: 10px;
+    border: solid 1px #dddddd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+.legend-style {
+    width: auto;
+    margin-bottom: 1px;
+    border-bottom: none;
+    font-size: inherit;
+    color: #4b4b4b;
+}
+
+.dialog-content {
+    padding: 15px;
+}
+

@@ -1,0 +1,157 @@
+<template>
+  <u-button
+      type="info"
+      :title="$t('mergeSplitCells')"
+      class="info-button"
+      icon="icon-merge"
+      @click="execute"
+  >
+  </u-button>
+</template>
+
+<script>
+import { undoManager, setDirty, buildNewCellDef } from '@/utils/table.js';
+import { showAlert } from '@/utils/comnon.js';
+import UButton from "@/components/button/index.vue";
+
+export default {
+  name: 'MergeTool',
+  components: {UButton},
+  props: {
+    context: {
+      type: Object,
+      required: true
+    }
+  },
+  methods: {
+    execute() {
+      const table = this.context.hot;
+      const selected = table.getSelected();
+
+      if (!selected) {
+        showAlert(this.$t('selectTargetCellFirst'));
+        return;
+      }
+
+      let mergeCells = table.getSettings().mergeCells || [];
+      let oldMergeCells = mergeCells.concat([]);
+      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+
+      // 确保startRow <= endRow和startCol <= endCol
+      let tmp = endRow;
+      if (startRow > endRow) {
+        endRow = startRow;
+        startRow = tmp;
+      }
+      tmp = endCol;
+      if (startCol > endCol) {
+        endCol = startCol;
+        startCol = tmp;
+      }
+
+      const _this = this;
+      this.doMergeCells(startRow, startCol, endRow, endCol, table, this.context);
+
+      undoManager.add({
+        redo: function() {
+          mergeCells = table.getSettings().mergeCells || [];
+          oldMergeCells = mergeCells.concat([]);
+          _this.doMergeCells(startRow, startCol, endRow, endCol, table, _this.context);
+          setDirty();
+        },
+        undo: function() {
+          table.updateSettings({ mergeCells: oldMergeCells });
+          setDirty();
+        }
+      });
+
+      setDirty();
+    },
+
+    doMergeCells(startRow, startCol, endRow, endCol, table, context) {
+      let doMerge = true, doSplit = false;
+      const selectCell = context.getCell(startRow, startCol);
+      const mergeCells = table.getSettings().mergeCells || [];
+
+      // 检查选中的单元格是否已经合并，如果是则拆分
+      for (let i = startRow; i <= endRow; i++) {
+        for (let j = startCol; j <= endCol; j++) {
+          let td = table.getCell(i, j);
+          if (!td) {
+            continue;
+          }
+
+          // 使用原生JavaScript替代jQuery
+          let colSpan = td.colSpan || 1;
+          let rowSpan = td.rowSpan || 1;
+
+          if (colSpan > 1 || rowSpan > 1) {
+            let index = 0;
+            doSplit = true;
+            doMerge = false;
+
+            while (index < mergeCells.length) {
+              let mergeItem = mergeCells[index];
+              let row = mergeItem.row, col = mergeItem.col;
+              if (row === i && col === j) {
+                mergeCells.splice(index, 1);
+                break;
+              }
+              index++;
+            }
+          }
+        }
+      }
+
+      if (doMerge) {
+        // 确保坐标顺序正确
+        if (endRow < startRow) {
+          let tmp = startRow;
+          startRow = endRow;
+          endRow = tmp;
+        }
+        if (endCol < startCol) {
+          let tmp = startCol;
+          startCol = endCol;
+          endCol = tmp;
+        }
+
+        let rowSpan = endRow - startRow, colSpan = endCol - startCol;
+        if (rowSpan === 0) {
+          rowSpan = 1;
+        } else {
+          rowSpan++;
+        }
+        if (colSpan === 0) {
+          colSpan = 1;
+        } else {
+          colSpan++;
+        }
+
+        const newMergeItem = { row: startRow, col: startCol, rowspan: rowSpan, colspan: colSpan };
+        mergeCells.push(newMergeItem);
+      } else {
+        if (doSplit) {
+          for (let i = startRow; i <= endRow; i++) {
+            for (let j = startCol; j <= endCol; j++) {
+              let cellDef = context.getCell(i, j);
+              if (!cellDef) {
+                cellDef = buildNewCellDef(i + 1, j + 1);
+                context.addCell(cellDef);
+              }
+            }
+          }
+        } else {
+          showAlert(this.$t('selectMultiTargetCellFirst'));
+        }
+      }
+
+      table.updateSettings({ mergeCells });
+    }
+  }
+};
+</script>
+
+<style scoped>
+/* 按钮样式继承自父组件 */
+</style>
