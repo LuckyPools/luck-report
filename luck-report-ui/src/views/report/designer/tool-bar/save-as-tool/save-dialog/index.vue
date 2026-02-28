@@ -211,7 +211,7 @@ export default {
         .then(result => {
           for (let prefix in result) {
             let providerData = result[prefix];
-            _this.reportFilesData[prefix] = providerData.reportFiles;
+            _this.reportFilesData[`${prefix}:${path}`] = providerData.reportFiles;
           }
           _this.onProviderChange();
         })
@@ -232,7 +232,8 @@ export default {
         return;
       }
 
-      this.currentReportFiles = this.reportFilesData[this.selectedProvider] || [];
+      const key = this.currentPath ? `${this.selectedProvider}:${this.currentPath}` : this.selectedProvider;
+      this.currentReportFiles = this.reportFilesData[key] || [];
       this.currentProviderPrefix = this.selectedProvider;
       console.log('设置currentReportFiles为:', this.currentReportFiles);
     },

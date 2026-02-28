@@ -1,4 +1,4 @@
-# ureport2-ui
+# luck-report-ui
 
 ## Project setup
 ```
