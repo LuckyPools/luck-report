@@ -167,7 +167,7 @@ export default {
           console.log('loadProvidersByPath result:', result);
           for (let prefix in result) {
             let providerData = result[prefix];
-            _this.reportFilesData[prefix] = providerData.reportFiles;
+            _this.reportFilesData[`${prefix}:${path}`] = providerData.reportFiles;
           }
           _this.onProviderChange();
         })
@@ -186,7 +186,8 @@ export default {
         return;
       }
 
-      this.currentFiles = this.reportFilesData[this.selectedProvider] || [];
+      const key = this.currentPath ? `${this.selectedProvider}:${this.currentPath}` : this.selectedProvider;
+      this.currentFiles = this.reportFilesData[key] || [];
     },
     handleProviderChange(value) {
       this.selectedProvider = value;
