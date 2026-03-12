@@ -12,6 +12,7 @@ import Class from '@/views/report/designer/edit-table/row-col-width-height-dialo
 import RowColNumberDialogClass from '@/views/report/designer/edit-table/row-col-number-dialog/class';
 import Handsontable from 'handsontable';
 import { showAlert } from "@/utils/comnon.js";
+import {addCell, addRowHeader, adjustDelRowHeaders, getCell, removeCell} from "@/utils/contextActions";
 
 export default function buildMenuConfigure(){
     return {
@@ -82,7 +83,7 @@ export default function buildMenuConfigure(){
                 const startRow=selected[0],endRow=selected[2];
                 const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
-                    context.addRowHeader(rowNumber,'headerrepeat');
+                    addRowHeader(rowNumber,'headerrepeat');
                 }
                 renderRowHeader(this,context);
                 setDirty();
@@ -91,7 +92,7 @@ export default function buildMenuConfigure(){
                 const startRow=selected[0],endRow=selected[2];
                 const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
-                    context.addRowHeader(rowNumber,'title');
+                    addRowHeader(rowNumber,'title');
                 }
                 renderRowHeader(this,context);
                 setDirty();
@@ -100,7 +101,7 @@ export default function buildMenuConfigure(){
                 const startRow=selected[0],endRow=selected[2];
                 const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
-                    context.addRowHeader(rowNumber,'footerrepeat');
+                    addRowHeader(rowNumber,'footerrepeat');
                 }
                 renderRowHeader(this,context);
                 setDirty();
@@ -109,7 +110,7 @@ export default function buildMenuConfigure(){
                 const startRow=selected[0],endRow=selected[2];
                 const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
-                    context.addRowHeader(rowNumber,'summary');
+                    addRowHeader(rowNumber,'summary');
                 }
                 renderRowHeader(this,context);
                 setDirty();
@@ -118,7 +119,7 @@ export default function buildMenuConfigure(){
                 const startRow=selected[0],endRow=selected[2];
                 const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
-                    context.adjustDelRowHeaders(rowNumber);
+                    adjustDelRowHeaders(rowNumber);
                 }
                 renderRowHeader(this,context);
                 setDirty();
@@ -159,7 +160,7 @@ export default function buildMenuConfigure(){
             }else if(key==='copy_style'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
-                let cell=_this.context.getCell(startRow,startCol);
+                let cell= getCell(startRow,startCol);
                 if(!cell){
                     showAlert("请先选中目标单元格！");
                     return;
@@ -259,7 +260,7 @@ export default function buildMenuConfigure(){
         let cellsMap=context.cellsMap,hot=context.hot;
         for(let i=startRow;i<=endRow;i++) {
             for (let j = startCol; j <= endCol; j++) {
-                let cell = context.getCell(i, j);
+                let cell = getCell(i, j);
                 if (!cell) {
                     continue;
                 }
@@ -286,13 +287,13 @@ export default function buildMenuConfigure(){
                     }
                     cell.cellStyle=orgStyle;
                 }else if(type==='all'){
-                    context.removeCell(cell);
+                    removeCell(cell);
                     let orgCell=removeCellsMap.get(key);
                     if(!orgCell){
                         showAlert($t('table.contextMenu.cancelClearFail'));
                         return;
                     }
-                    context.addCell(orgCell);
+                    addCell(orgCell);
                     let value=orgCell.value;
                     let valueType=value.type;
                     let text=value.value;
@@ -313,7 +314,7 @@ export default function buildMenuConfigure(){
         let cellsMap=new Map(),hot=context.hot;
         for(let i=startRow;i<=endRow;i++){
             for(let j=startCol;j<=endCol;j++){
-                let cell=context.getCell(i,j);
+                let cell=getCell(i,j);
                 if(!cell){
                     continue;
                 }
@@ -334,7 +335,7 @@ export default function buildMenuConfigure(){
         let cellsMap=new Map(),hot=context.hot;
         for(let i=startRow;i<=endRow;i++){
             for(let j=startCol;j<=endCol;j++){
-                let cell=context.getCell(i,j);
+                let cell=getCell(i,j);
                 if(!cell){
                     continue;
                 }
@@ -364,7 +365,7 @@ export default function buildMenuConfigure(){
         let removeCellsMap=new Map(),hot=context.hot;
         for(let i=startRow;i<=endRow;i++){
             for(let j=startCol;j<=endCol;j++){
-                let cell=context.getCell(i,j);
+                let cell=getCell(i,j);
                 if(!cell){
                     continue;
                 }
@@ -383,7 +384,7 @@ export default function buildMenuConfigure(){
                     removeCellsMap.set(key,cell.cellStyle);
                     cell.cellStyle={fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'};
                 }else if(type==='all'){
-                    context.removeCell(cell);
+                    removeCell(cell);
                     removeCellsMap.set(key,cell);
                     let newCell={
                         rowNumber:cell.rowNumber,
@@ -395,7 +396,7 @@ export default function buildMenuConfigure(){
                         },
                         cellStyle:{fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}
                     };
-                    context.addCell(newCell);
+                    addCell(newCell);
                     hot.setDataAtCell(i,j,'');
                 }
             }

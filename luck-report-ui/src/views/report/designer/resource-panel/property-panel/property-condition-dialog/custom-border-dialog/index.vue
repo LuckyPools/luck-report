@@ -1,6 +1,6 @@
 <template>
   <UDialog
-    title="自定义边框"
+    :title="$t('tools.border.customBorderLine')"
     width="600px"
     :visible="visible"
     :z-index="20000"
@@ -8,11 +8,11 @@
   >
     <div class="border-config-container">
       <!-- 选项卡导航 -->
-      <u-tabs v-model="activeTab" type="button">
-        <u-tab-pane label="上" index="top"></u-tab-pane>
-        <u-tab-pane label="下" index="bottom"></u-tab-pane>
-        <u-tab-pane label="左" index="left"></u-tab-pane>
-        <u-tab-pane label="右" index="right"></u-tab-pane>
+      <u-tabs v-model="activeTab">
+        <u-tab-pane :label="$t('tools.border.up')" index="top"></u-tab-pane>
+        <u-tab-pane :label="$t('tools.border.down')" index="bottom"></u-tab-pane>
+        <u-tab-pane :label="$t('tools.border.left')" index="left"></u-tab-pane>
+        <u-tab-pane :label="$t('tools.border.right')" index="right"></u-tab-pane>
       </u-tabs>
 
       <!-- 选项卡内容 -->
@@ -20,7 +20,7 @@
         <!-- 上边框配置 -->
         <div v-show="activeTab === 'top'" >
           <div class="form-group">
-            <label>线型：</label>
+            <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="topBorder.style"
@@ -36,7 +36,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>尺寸：</label>
+            <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="topBorder.width"
@@ -52,7 +52,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>颜色：</label>
+            <label>{{ $t('tools.border.color') }}：</label>
             <UColorPicker v-model="topBorder.color" />
           </div>
         </div>
@@ -60,7 +60,7 @@
         <!-- 下边框配置 -->
         <div v-show="activeTab === 'bottom'" >
           <div class="form-group">
-            <label>线型：</label>
+            <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="bottomBorder.style"
@@ -76,7 +76,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>尺寸：</label>
+            <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
                  v-model="bottomBorder.width"
@@ -92,7 +92,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>颜色：</label>
+            <label>{{ $t('tools.border.color') }}：</label>
             <UColorPicker v-model="bottomBorder.color" />
           </div>
         </div>
@@ -100,7 +100,7 @@
         <!-- 左边框配置 -->
         <div v-show="activeTab === 'left'" >
           <div class="form-group">
-            <label>线型：</label>
+            <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="leftBorder.style"
@@ -116,7 +116,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>尺寸：</label>
+            <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="leftBorder.width"
@@ -132,7 +132,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>颜色：</label>
+            <label>{{ $t('tools.border.color') }}：</label>
             <UColorPicker v-model="leftBorder.color" />
           </div>
         </div>
@@ -140,7 +140,7 @@
         <!-- 右边框配置 -->
         <div v-show="activeTab === 'right'" >
           <div class="form-group">
-            <label>线型：</label>
+            <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="rightBorder.style"
@@ -156,7 +156,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>尺寸：</label>
+            <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
                 v-model="rightBorder.width"
@@ -172,7 +172,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label>颜色：</label>
+            <label>{{ $t('tools.border.color') }}：</label>
             <UColorPicker v-model="rightBorder.color" />
           </div>
         </div>
@@ -206,11 +206,19 @@ export default {
     UTabs,
     UTabPane
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    cellStyle: {
+      type: Object,
+      default: null
+    }
+  },
   data() {
     return {
-      visible: false,
       activeTab: 'top',
-      cellStyle: null,
       // 边框配置
       topBorder: {
         style: 'solid',
@@ -234,13 +242,21 @@ export default {
       }
     };
   },
+  watch: {
+    cellStyle: {
+      handler(newVal) {
+        this.loadBorderStyle(newVal);
+      },
+      deep: true
+    }
+  },
   computed: {
     // 线型选项
     styleOptions() {
       return [
-        { value: 'solid', label: '实线' },
-        { value: 'dashed', label: '虚线' },
-        { value: 'none', label: '无' }
+        { value: 'solid', label: this.$t('tools.border.solidLine') },
+        { value: 'dashed', label: this.$t('tools.border.dashed') },
+        { value: 'none', label: this.$t('tools.border.none') }
       ];
     },
     // 尺寸选项
@@ -253,21 +269,18 @@ export default {
     }
   },
   methods: {
+    loadBorderStyle(cellStyle) {
+      if (!cellStyle) return;
 
-    show(cellStyle) {
-      this.cellStyle = cellStyle;
-
-      // 加载当前边框样式
-      if (cellStyle && cellStyle.topBorder) {
+      if (cellStyle.topBorder) {
         this.topBorder = { ...cellStyle.topBorder };
-        // 如果颜色是RGB格式，转换为十六进制
         if (typeof this.topBorder.color === 'string' && this.topBorder.color.includes(',')) {
           const rgb = this.topBorder.color.split(',');
           this.topBorder.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
         }
       }
 
-      if (cellStyle && cellStyle.bottomBorder) {
+      if (cellStyle.bottomBorder) {
         this.bottomBorder = { ...cellStyle.bottomBorder };
         if (typeof this.bottomBorder.color === 'string' && this.bottomBorder.color.includes(',')) {
           const rgb = this.bottomBorder.color.split(',');
@@ -275,7 +288,7 @@ export default {
         }
       }
 
-      if (cellStyle && cellStyle.leftBorder) {
+      if (cellStyle.leftBorder) {
         this.leftBorder = { ...cellStyle.leftBorder };
         if (typeof this.leftBorder.color === 'string' && this.leftBorder.color.includes(',')) {
           const rgb = this.leftBorder.color.split(',');
@@ -283,34 +296,32 @@ export default {
         }
       }
 
-      if (cellStyle && cellStyle.rightBorder) {
+      if (cellStyle.rightBorder) {
         this.rightBorder = { ...cellStyle.rightBorder };
         if (typeof this.rightBorder.color === 'string' && this.rightBorder.color.includes(',')) {
           const rgb = this.rightBorder.color.split(',');
           this.rightBorder.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
         }
       }
-
-      this.visible = true;
     },
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
     },
     handleOk() {
-      if (this.cellStyle) {
-        // 更新边框样式，将颜色转换为RGB格式
-        this.cellStyle.topBorder = { ...this.topBorder };
-        this.cellStyle.bottomBorder = { ...this.bottomBorder };
-        this.cellStyle.leftBorder = { ...this.leftBorder };
-        this.cellStyle.rightBorder = { ...this.rightBorder };
+      const borderData = {
+        topBorder: { ...this.topBorder },
+        bottomBorder: { ...this.bottomBorder },
+        leftBorder: { ...this.leftBorder },
+        rightBorder: { ...this.rightBorder }
+      };
 
-        // 转换颜色格式为RGB
-        this.cellStyle.topBorder.color = this.hexToRgb(this.topBorder.color);
-        this.cellStyle.bottomBorder.color = this.hexToRgb(this.bottomBorder.color);
-        this.cellStyle.leftBorder.color = this.hexToRgb(this.leftBorder.color);
-        this.cellStyle.rightBorder.color = this.hexToRgb(this.rightBorder.color);
-      }
-      this.visible = false;
+      borderData.topBorder.color = this.hexToRgb(this.topBorder.color);
+      borderData.bottomBorder.color = this.hexToRgb(this.bottomBorder.color);
+      borderData.leftBorder.color = this.hexToRgb(this.leftBorder.color);
+      borderData.rightBorder.color = this.hexToRgb(this.rightBorder.color);
+
+      this.$emit('update:visible', false);
+      this.$emit('save', borderData);
     },
     hexToRgb(hex) {
       // 如果已经是RGB格式，直接返回

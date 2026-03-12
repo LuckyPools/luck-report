@@ -7,7 +7,7 @@
           <label>{{ $t('chart.display') }}：</label>
           <div class="u-inline">
             <u-radio-group
-                v-model="localChartOptions.title.display"
+                v-model="localChartConfig.title.display"
                 @change="handleTitleDisplayChange"
             >
               <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
@@ -23,7 +23,7 @@
           <label>{{ $t('chart.position') }}：</label>
           <div class="u-inline">
             <u-select
-              :value="localChartOptions.title.position"
+              v-model="localChartConfig.title.position"
               :clearable="true"
               @change="handleTitlePositionChange"
             >
@@ -42,7 +42,7 @@
           <div class="u-inline">
             <u-input
                 style="width: 250px;"
-                v-model="localChartOptions.title.text"
+                v-model="localChartConfig.title.text"
                 @change="handleTitleTextChange"
             >
             </u-input>
@@ -51,14 +51,14 @@
       </fieldset>
 
       <!-- 图例选项 -->
-      <fieldset class="fieldset-style">
+      <fieldset class="fieldset-style" >
         <legend class="legend-style">{{ $t('chart.legendConfig') }}</legend>
 
         <div class="form-group" style="margin-bottom: 10px">
           <label>{{ $t('chart.display') }}：</label>
           <div class="u-inline">
             <u-radio-group
-                v-model="localChartOptions.legend.display"
+                v-model="localChartConfig.legend.display"
                 @change="handleLegendDisplayChange"
             >
               <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
@@ -74,7 +74,7 @@
           <label>{{ $t('chart.position') }}：</label>
           <div class="u-inline">
             <u-select
-              :value="localChartOptions.legend.position"
+              v-model="localChartConfig.legend.position"
               :clearable="true"
               @change="handleLegendPositionChange"
             >
@@ -97,7 +97,7 @@
           <label>{{ $t('chart.display') }}：</label>
           <div class="u-inline">
             <u-radio-group
-                v-model="localChartOptions.dataLabels.display"
+                v-model="localChartConfig.dataLabels.display"
                 @change="handleDataLabelsDisplayChange"
             >
               <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
@@ -118,7 +118,7 @@
           <label>{{ $t('chart.motionDelay') }}：</label>
           <div class="u-inline">
             <u-input-number
-                v-model="localChartOptions.animation.duration"
+                v-model="localChartConfig.animation.duration"
                 @change="handleAnimationDurationChange"
             />
           </div>
@@ -128,7 +128,7 @@
           <label>{{ $t('chart.effect') }}：</label>
           <div class="u-inline">
             <u-select
-              :value="localChartOptions.animation.easing"
+              v-model="localChartConfig.animation.easing"
               :clearable="true"
               @change="handleAnimationEasingChange"
             >
@@ -153,7 +153,7 @@
             <span style="margin-right: 10px;">{{ $t('chart.up') }}：</span>
             <div class="u-inline">
               <u-input-number
-                  v-model="localChartOptions.layout.top"
+                  v-model="localChartConfig.layout.top"
                   @change="handleLayoutChange"
               />
             </div>
@@ -162,7 +162,7 @@
             <span style="margin-right: 10px;">{{ $t('chart.down') }}：</span>
             <div class="u-inline">
               <u-input-number
-                  v-model="localChartOptions.layout.bottom"
+                  v-model="localChartConfig.layout.bottom"
                   @change="handleLayoutChange"
               />
             </div>
@@ -171,7 +171,7 @@
             <span style="margin-right: 10px;">{{ $t('chart.left') }}：</span>
             <div class="u-inline">
               <u-input-number
-                  v-model="localChartOptions.layout.left"
+                  v-model="localChartConfig.layout.left"
                   @change="handleLayoutChange"
               />
             </div>
@@ -180,7 +180,7 @@
             <span style="margin-right: 10px;">{{ $t('chart.right') }}：</span>
             <div class="u-inline">
               <u-input-number
-                  v-model="localChartOptions.layout.right"
+                  v-model="localChartConfig.layout.right"
                   @change="handleLayoutChange"
               />
             </div>
@@ -190,7 +190,7 @@
     </div>
 </template>
 <script>
-import { setDirty } from '@/utils/table';
+import { deepCopy } from '@/components/utils';
 import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import USelect from '@/components/select/index.vue';
@@ -209,11 +209,7 @@ export default {
     UInput
   },
   props: {
-    cellDef: {
-      type: Object,
-      default: () => ({})
-    },
-    chartOptions: {
+    chartConfig: {
       type: Object,
       required: true
     },
@@ -224,211 +220,177 @@ export default {
   },
   data() {
     return {
-      localChartOptions: {}
+      localChartConfig: {
+        title: {
+          display: true,
+          position: 'top',
+          text: ''
+        },
+        legend: {
+          display: true,
+          position: 'bottom'
+        },
+        dataLabels: {
+          display: false
+        },
+        animation: {
+          duration: 1000,
+          easing: 'linear'
+        },
+        layout: {
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0
+        }
+      }
     };
   },
-  created() {
-    // 创建chartOptions的本地副本
-    this.localChartOptions = JSON.parse(JSON.stringify(this.chartOptions));
-  },
   watch: {
-    chartOptions: {
+    chartConfig: {
       handler(newVal) {
-        // 当外部chartOptions变化时，更新本地副本
-        this.localChartOptions = JSON.parse(JSON.stringify(newVal));
+        this.localChartConfig = deepCopy(newVal);
       },
       deep: true
     }
   },
   computed: {
-    // 位置选项数组
-    positionOptions() {
-      return [
-        { value: 'top', label: this.$t('chart.up') },
-        { value: 'bottom', label: this.$t('chart.down') },
-        { value: 'left', label: this.$t('chart.left') },
-        { value: 'right', label: this.$t('chart.right') }
-      ];
-    },
-    // 动画效果选项数组
-    animationEasingOptions() {
-      return [
-        { value: 'linear', label: 'linear' },
-        { value: 'easeInQuad', label: 'easeInQuad' },
-        { value: 'easeOutQuad', label: 'easeOutQuad' },
-        { value: 'easeInOutQuad', label: 'easeInOutQuad' },
-        { value: 'easeInCubic', label: 'easeInCubic' },
-        { value: 'easeOutCubic', label: 'easeOutCubic' },
-        { value: 'easeInOutCubic', label: 'easeInOutCubic' },
-        { value: 'easeInQuart', label: 'easeInQuart' },
-        { value: 'easeOutQuart', label: 'easeOutQuart' },
-        { value: 'easeInOutQuart', label: 'easeInOutQuart' },
-        { value: 'easeInQuint', label: 'easeInQuint' },
-        { value: 'easeOutQuint', label: 'easeOutQuint' },
-        { value: 'easeInOutQuint', label: 'easeInOutQuint' },
-        { value: 'easeInSine', label: 'easeInSine' },
-        { value: 'easeOutSine', label: 'easeOutSine' },
-        { value: 'easeInOutSine', label: 'easeInOutSine' },
-        { value: 'easeInExpo', label: 'easeInExpo' },
-        { value: 'easeOutExpo', label: 'easeOutExpo' },
-        { value: 'easeInOutExpo', label: 'easeInOutExpo' },
-        { value: 'easeInCirc', label: 'easeInCirc' },
-        { value: 'easeOutCirc', label: 'easeOutCirc' },
-        { value: 'easeInOutCirc', label: 'easeInOutCirc' },
-        { value: 'easeInElastic', label: 'easeInElastic' },
-        { value: 'easeOutElastic', label: 'easeOutElastic' },
-        { value: 'easeInOutElastic', label: 'easeInOutElastic' },
-        { value: 'easeInBack', label: 'easeInBack' },
-        { value: 'easeOutBack', label: 'easeOutBack' },
-        { value: 'easeInOutBack', label: 'easeInOutBack' },
-        { value: 'easeInBounce', label: 'easeInBounce' },
-        { value: 'easeOutBounce', label: 'easeOutBounce' },
-        { value: 'easeInOutBounce', label: 'easeInOutBounce' }
-      ];
-    },
-    // 将标题显示的字符串值转换为boolean类型
-    titleDisplay() {
-      return this.localChartOptions.title.display === 'true' ? true :
-             this.localChartOptions.title.display === 'false' ? false :
-             this.localChartOptions.title.display;
-    },
-    // 将图例显示的字符串值转换为boolean类型
-    legendDisplay() {
-      return this.localChartOptions.legend.display === 'true' ? true :
-             this.localChartOptions.legend.display === 'false' ? false :
-             this.localChartOptions.legend.display;
-    },
-    // 将数据标签显示的字符串值转换为boolean类型
-    dataLabelsDisplay() {
-      return this.localChartOptions.dataLabels.display === 'true' ? true :
-             this.localChartOptions.dataLabels.display === 'false' ? false :
-             this.localChartOptions.dataLabels.display;
-    }
+      // 位置选项数组
+      positionOptions() {
+          return [
+              { value: 'top', label: this.$t('chart.up') },
+              { value: 'bottom', label: this.$t('chart.down') },
+              { value: 'left', label: this.$t('chart.left') },
+              { value: 'right', label: this.$t('chart.right') }
+          ];
+      },
+      // 动画效果选项数组
+      animationEasingOptions() {
+          return [
+              { value: 'linear', label: 'linear' },
+              { value: 'easeInQuad', label: 'easeInQuad' },
+              { value: 'easeOutQuad', label: 'easeOutQuad' },
+              { value: 'easeInOutQuad', label: 'easeInOutQuad' },
+              { value: 'easeInCubic', label: 'easeInCubic' },
+              { value: 'easeOutCubic', label: 'easeOutCubic' },
+              { value: 'easeInOutCubic', label: 'easeInOutCubic' },
+              { value: 'easeInQuart', label: 'easeInQuart' },
+              { value: 'easeOutQuart', label: 'easeOutQuart' },
+              { value: 'easeInOutQuart', label: 'easeInOutQuart' },
+              { value: 'easeInQuint', label: 'easeInQuint' },
+              { value: 'easeOutQuint', label: 'easeOutQuint' },
+              { value: 'easeInOutQuint', label: 'easeInOutQuint' },
+              { value: 'easeInSine', label: 'easeInSine' },
+              { value: 'easeOutSine', label: 'easeOutSine' },
+              { value: 'easeInOutSine', label: 'easeInOutSine' },
+              { value: 'easeInExpo', label: 'easeInExpo' },
+              { value: 'easeOutExpo', label: 'easeOutExpo' },
+              { value: 'easeInOutExpo', label: 'easeInOutExpo' },
+              { value: 'easeInCirc', label: 'easeInCirc' },
+              { value: 'easeOutCirc', label: 'easeOutCirc' },
+              { value: 'easeInOutCirc', label: 'easeInOutCirc' },
+              { value: 'easeInElastic', label: 'easeInElastic' },
+              { value: 'easeOutElastic', label: 'easeOutElastic' },
+              { value: 'easeInOutElastic', label: 'easeInOutElastic' },
+              { value: 'easeInBack', label: 'easeInBack' },
+              { value: 'easeOutBack', label: 'easeOutBack' },
+              { value: 'easeInOutBack', label: 'easeInOutBack' },
+              { value: 'easeInBounce', label: 'easeInBounce' },
+              { value: 'easeOutBounce', label: 'easeOutBounce' },
+              { value: 'easeInOutBounce', label: 'easeInOutBounce' }
+          ];
+      },
+      // 将标题显示的字符串值转换为boolean类型
+      titleDisplay() {
+          return this.localChartConfig.title.display === 'true' ? true :
+              this.localChartConfig.title.display === 'false' ? false :
+                  this.localChartConfig.title.display;
+      },
+      // 将图例显示的字符串值转换为boolean类型
+      legendDisplay() {
+          return this.localChartConfig.legend.display === 'true' ? true :
+              this.localChartConfig.legend.display === 'false' ? false :
+                  this.localChartConfig.legend.display;
+      },
+      // 将数据标签显示的字符串值转换为boolean类型
+      dataLabelsDisplay() {
+          return this.localChartConfig.dataLabels.display === 'true' ? true :
+              this.localChartConfig.dataLabels.display === 'false' ? false :
+                  this.localChartConfig.dataLabels.display;
+      },
   },
   methods: {
     /**
      * 处理标题显示变化
      */
-    handleTitleDisplayChange(value) {
-      this.localChartOptions.title.display = value;
-      this.updateChartOption('title', this.localChartOptions.title);
+    handleTitleDisplayChange() {
+      this.updateChartOption('title', this.localChartConfig.title);
     },
 
     /**
      * 处理标题位置变化
      */
-    handleTitlePositionChange(value) {
-      this.localChartOptions.title.position = value;
-      this.updateChartOption('title', this.localChartOptions.title);
+    handleTitlePositionChange() {
+      this.updateChartOption('title', this.localChartConfig.title);
     },
 
     /**
      * 处理标题文本变化
      */
     handleTitleTextChange() {
-      this.updateChartOption('title', this.localChartOptions.title);
+      this.updateChartOption('title', this.localChartConfig.title);
     },
 
     /**
      * 处理图例显示变化
      */
-    handleLegendDisplayChange(value) {
-      this.localChartOptions.legend.display = value;
-      this.updateChartOption('legend', this.localChartOptions.legend);
+    handleLegendDisplayChange() {
+      this.updateChartOption('legend', this.localChartConfig.legend);
     },
 
     /**
      * 处理图例位置变化
      */
-    handleLegendPositionChange(value) {
-      this.localChartOptions.legend.position = value;
-      this.updateChartOption('legend', this.localChartOptions.legend);
+    handleLegendPositionChange() {
+      this.updateChartOption('legend', this.localChartConfig.legend);
     },
 
     /**
      * 处理数据标签显示变化
      */
-    handleDataLabelsDisplayChange(value) {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
-        return;
-      }
-      this.localChartOptions.dataLabels.display = value;
-
-      const chart = this.cellDef.value.chart;
-      if (!chart.plugins) {
-        chart.plugins = [];
-      }
-
-      // 查找数据标签插件
-      let dataLabelPlugin = chart.plugins.find(p => p.name === 'data-labels');
-      if (dataLabelPlugin) {
-        dataLabelPlugin.display = this.localChartOptions.dataLabels.display;
-      } else {
-        chart.plugins.push({
-          name: 'data-labels',
-          display: this.localChartOptions.dataLabels.display
-        });
-      }
-
-      this.updateChart();
-      setDirty();
+    handleDataLabelsDisplayChange() {
+      this.$emit('data-labels-change', this.localChartConfig.dataLabels);
     },
 
     /**
      * 处理动画持续时间变化
      */
     handleAnimationDurationChange() {
-      this.updateChartOption('animation', this.localChartOptions.animation);
+      this.updateChartOption('animation', this.localChartConfig.animation);
     },
 
     /**
      * 处理动画缓动变化
      */
-    handleAnimationEasingChange(value) {
-      this.localChartOptions.animation.easing = value;
-      this.updateChartOption('animation', this.localChartOptions.animation);
+    handleAnimationEasingChange() {
+      this.updateChartOption('animation', this.localChartConfig.animation);
     },
 
     /**
      * 处理布局变化
      */
     handleLayoutChange() {
-      this.updateChartOption('layout', { layout: this.localChartOptions.layout });
+      this.updateChartOption('layout', { layout: this.localChartConfig.layout });
     },
 
     /**
      * 更新图表选项
      */
     updateChartOption(type, option) {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
-        return;
-      }
-
-      const chart = this.cellDef.value.chart;
-      if (!chart.options) {
-        chart.options = [];
-      }
-
-      // 查找并更新选项
-      let existingOption = chart.options.find(opt => opt.type === type);
-      if (existingOption) {
-        Object.assign(existingOption, option);
-      } else {
-        chart.options.push({ type, ...option });
-      }
-
-      this.updateChart();
-      setDirty();
+      this.$emit('chart-option-change', { type, option });
     },
 
-    /**
-     * 更新图表
-     */
-    updateChart() {
-      if (this.cellDef && this.cellDef.chartWidget && this.cellDef.chartWidget.chart) {
-        this.cellDef.chartWidget.chart.update();
-      }
-    }
+
   }
 };
 </script>

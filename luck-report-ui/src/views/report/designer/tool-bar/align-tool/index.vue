@@ -9,7 +9,10 @@
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import ButtonGroup from '@/components/button-group/index.vue';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'AlignTopTool',
@@ -17,14 +20,19 @@ export default {
     ButtonGroup
   },
   props: {
-    context: {
+    selectedCells: {
       type: Object,
-      required: true
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
     }
   },
   data() {
     return {
-      currentAlign: 'middle', // 默认垂直居中对齐
+      currentAlign: 'middle',
       menuItems: [
         {
           text: this.$t('tools.alignTop.topAlign'),
@@ -45,7 +53,10 @@ export default {
     };
   },
   computed: {
-    // 根据当前对齐方式返回对应的图标
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
     currentIcon() {
       const iconMap = {
         'top': 'iconfont icon-justify-top',
@@ -55,7 +66,18 @@ export default {
       return iconMap[this.currentAlign] || iconMap['left'];
     }
   },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
+  },
   methods: {
+
     // 检查是否有选中的单元格
     checkSelection() {
       const selected = this.context.hot.getSelected();
@@ -113,7 +135,6 @@ export default {
       const selected = this.context.hot.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -123,26 +144,27 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          let cellDef = this.context.getCell(i, j);
+          let cellDef = getCell(i, j);
           let td = this.context.hot.getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           oldAligns[i + "," + j] = cellStyle.valign || "";
 
           if (prevAligns) {
             align = prevAligns[i + "," + j];
           }
 
-          // 使用原生DOM操作替代jQuery
           if (td) {
             td.style.verticalAlign = align;
           }
 
           cellStyle.valign = align;
+          setCell( i, j, newCellDef );
         }
       }
 
@@ -150,7 +172,6 @@ export default {
     },
     // 刷新工具状态
     refresh(startRow, startCol, endRow, endCol) {
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -160,7 +181,7 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          let cellDef = this.context.getCell(i, j);
+          let cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }

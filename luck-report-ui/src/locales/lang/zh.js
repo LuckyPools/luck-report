@@ -175,7 +175,10 @@ const zh = {
             "editTip":"编辑选中的条件",
             "editConditionTip":"请先选中要编辑的条件！",
             "delTitle":"删除选中的条件",
-            "delConditionTip":"请先选中要删除的条件！"
+            "delConditionTip":"请先选中要删除的条件！",
+            "addGroup": "添加组",
+            "deleteGroup": "删除组",
+            "editGroup": "编辑组"
         },
         "datasource":{
             "title":"数据源配置",
@@ -625,7 +628,8 @@ const zh = {
             "op":"操作",
             "realValueProp":"实际值属性",
             "displayValueProp":"显示值属性",
-            "bindDatasetTip":"请先选择当前单元格要绑定的数据集"
+            "bindDatasetTip":"请先选择当前单元格要绑定的数据集",
+            "addMappping": "添加映射"
         },
         "expr":{
             "expr":"表达式",
@@ -858,6 +862,7 @@ const zh = {
         "componentProperties": "组件属性",
         "formProperties": "表单属性",
         "selectComponentType": "请选择组件类型",
+        "componentType": "组件类型",
         "fieldName": "字段名",
         "enterFieldName": "请输入字段名（v-model）",
         "componentName": "组件名",

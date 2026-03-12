@@ -43,13 +43,18 @@
     </div>
 
     <condition-content-dialog
-      ref="conditionDialog"
+      :visible="dialogVisible"
+      :dialog-fields="dialogFields"
+      :dialog-condition="dialogCondition"
+      :dialog-conditions="dialogConditions"
       @saveAfter="handleSaveAfter"
+      @close="dialogVisible = false"
     />
   </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { showAlert } from '@/utils/comnon.js';
 import { setDirty } from '@/utils/table.js';
 import { v1 as uuid } from 'uuid';
@@ -71,50 +76,59 @@ export default {
       type: Object,
       default: null
     },
-    datasources: {
-      type: Array,
-      default: () => []
-    },
     datasetName: {
       type: String,
       default: ''
+    },
+    conditions: {
+      type: Array,
+      default: () => []
+    },
+    resetSelection: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
     return {
-      conditions: [],
       selectedConditionIndex: -1,
-      // 添加一个标志来控制是否需要重置选中索引
-      shouldResetSelection: true
+      isAddingCondition: false,
+      dialogVisible: false,
+      dialogFields: [],
+      dialogCondition: null,
+      dialogConditions: []
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext || {};
+    },
+    datasources() {
+      return this.context.reportDef?.datasources || [];
+    }
+  },
   watch: {
-    selectedItem: {
+    resetSelection(newVal) {
+      if (newVal) {
+        this.selectedConditionIndex = -1;
+      }
+    },
+    conditions: {
       handler(newVal) {
-        if (newVal && newVal.conditions) {
-          this.conditions = [...newVal.conditions];
-        } else {
-          this.conditions = [];
-        }
-        // 只有在shouldResetSelection为true时才重置选中索引
-        if (this.shouldResetSelection) {
+        if (newVal) {
           this.selectedConditionIndex = -1;
         }
-        // 重置标志
-        this.shouldResetSelection = true;
       },
-      immediate: true,
-      deep: true
+      immediate: true
+    },
+    selectedItem: {
+      handler(newVal) {
+      },
+      immediate: true
     }
   },
   methods: {
-    getSelectedItemOption() {
-      // 使用父组件提供的方法获取选中的项目
-      if (typeof this.getSelectedItemOptionFn === 'function') {
-        return this.getSelectedItemOptionFn()
-      }
-      return null
-    },
     getConditionText(condition) {
       let text = condition.left + ' ' + condition.operation + ' ' + condition.right;
       if (condition.type === 'property' && (!condition.left || condition.left === '')) {
@@ -134,7 +148,11 @@ export default {
       const fields = this.buildFields();
       const conditions = this.selectedItem.conditions || [];
 
-      this.$refs.conditionDialog.show(fields, null, conditions);
+      this.isAddingCondition = true;
+      this.dialogFields = fields;
+      this.dialogCondition = null;
+      this.dialogConditions = conditions;
+      this.dialogVisible = true;
     },
     editCondition() {
       if (this.selectedConditionIndex < 0 || this.selectedConditionIndex >= this.conditions.length) {
@@ -151,7 +169,11 @@ export default {
       const condition = this.conditions[this.selectedConditionIndex];
       const conditions = this.selectedItem.conditions || [];
 
-      this.$refs.conditionDialog.show(fields, condition, conditions);
+      this.isAddingCondition = false;
+      this.dialogFields = fields;
+      this.dialogCondition = condition;
+      this.dialogConditions = conditions;
+      this.dialogVisible = true;
     },
 
     handleSaveAfter(type, left, op, right, join) {
@@ -159,29 +181,7 @@ export default {
         return;
       }
 
-      const conditions = this.selectedItem.conditions || [];
-
-      if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
-        const condition = this.conditions[this.selectedConditionIndex];
-        const updatedCondition = {
-          ...condition,
-          type,
-          left,
-          operation: op,
-          right,
-          join
-        };
-
-        // 更新条件数组中的条件
-        const index = conditions.findIndex(c => c.id === condition.id);
-        if (index !== -1) {
-          conditions.splice(index, 1, updatedCondition);
-        }
-
-        // 更新本地条件数组
-        this.conditions.splice(this.selectedConditionIndex, 1, updatedCondition);
-      } else {
-        // 添加新条件
+      if (this.isAddingCondition) {
         const newCondition = {
           type,
           left,
@@ -190,9 +190,22 @@ export default {
           join,
           id: uuid()
         };
-        conditions.push(newCondition);
-        this.conditions = [...conditions];
-        this.selectedConditionIndex = this.conditions.length - 1;
+        this.$emit('condition-added', newCondition);
+        this.isAddingCondition = false;
+      } else {
+        if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
+          const condition = this.conditions[this.selectedConditionIndex];
+          const updatedCondition = {
+            ...condition,
+            type,
+            left,
+            operation: op,
+            right,
+            join
+          };
+          this.$emit('condition-updated', updatedCondition);
+        }
+        this.isAddingCondition = false;
       }
 
       setDirty();
@@ -209,14 +222,7 @@ export default {
       }
 
       const condition = this.conditions[this.selectedConditionIndex];
-      const conditions = this.selectedItem.conditions || [];
-      const index = conditions.findIndex(c => c.id === condition.id);
-
-      if (index !== -1) {
-        conditions.splice(index, 1);
-      }
-
-      this.conditions.splice(this.selectedConditionIndex, 1);
+      this.$emit('condition-deleted', condition);
       this.selectedConditionIndex = -1;
       setDirty();
     },
@@ -240,21 +246,7 @@ export default {
       }
       return fields;
     },
-    clearConditions() {
-      this.conditions = [];
-      this.selectedConditionIndex = -1;
-    },
-    updateConditions(conditions, resetSelection = true) {
-      // 设置是否需要重置选中索引的标志
-      this.shouldResetSelection = resetSelection;
-
-      this.conditions = [...(conditions || [])];
-      if (resetSelection) {
-        this.selectedConditionIndex = -1;
-      }
-    },
     onConditionSelectChange() {
-      // 处理条件选择变化，确保UI正确更新
       this.$nextTick(() => {
         if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
           const selectedCondition = this.conditions[this.selectedConditionIndex];

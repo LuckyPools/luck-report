@@ -4,34 +4,34 @@
       <div class="file-info">
         {{ fileName }}
       </div>
-      <PreviewTool :context="context" ref="previewTool" />
-      <PreviewPageTool :context="context" ref="previewPageTool" />
-      <SaveTool :context="context" ref="saveTool" />
-      <SaveAsTool :context="context" ref="saveAsTool" />
-      <OpenTool :context="context" ref="openTool" />
-      <ImportTool :context="context" ref="importTool" />
-      <UndoTool :context="context" ref="undoTool" />
-      <RedoTool :context="context" ref="redoTool" />
-      <SearchFormSwitchTool :context="context" ref="searchFormSwitchTool" />
-      <SettingsTool :context="context" ref="settingsTool" />
+      <PreviewTool ref="previewTool" />
+      <PreviewPageTool ref="previewPageTool" />
+      <SaveTool ref="saveTool" />
+      <SaveAsTool ref="saveAsTool" />
+      <OpenTool ref="openTool" />
+      <ImportTool ref="importTool" />
+      <UndoTool ref="undoTool" />
+      <RedoTool ref="redoTool" />
+      <SearchFormSwitchTool ref="searchFormSwitchTool" />
+      <SettingsTool ref="settingsTool" />
     </div>
     <div class="ud-toolbar-content">
       <div class="toolbar-box">
-        <MergeTool :context="context" ref="mergeTool" />
-        <AlignLeftTool :context="context" ref="alignLeftTool" />
-        <AlignTopTool :context="context" ref="alignTool" />
-        <BorderTool :context="context" />
-        <FontFamilyTool :context="context" ref="fontFamilyTool" />
-        <FontSizeTool :context="context" ref="fontSizeTool" />
-        <BoldTool :context="context" ref="boldTool" />
-        <ItalicTool :context="context" ref="italicTool" />
-        <UnderlineTool :context="context" ref="underlineTool" />
-        <ForecolorTool :context="context" ref="forecolorTool" />
-        <BgcolorTool :context="context" ref="bgcolorTool" />
-        <CrosstabTool :context="context" ref="crosstabTool" />
-        <ImageTool :context="context" ref="imageTool" />
-        <ChartTool :context="context" ref="chartTool" />
-        <ZxingTool :context="context" ref="zxingTool" />
+        <MergeTool ref="mergeTool" :selectedCells="selectedCells" />
+        <AlignLeftTool ref="alignLeftTool" :selectedCells="selectedCells" />
+        <AlignTopTool ref="alignTool" :selectedCells="selectedCells" />
+        <BorderTool ref="borderTool" :selectedCells="selectedCells" />
+        <FontFamilyTool ref="fontFamilyTool" :selectedCells="selectedCells" />
+        <FontSizeTool ref="fontSizeTool" :selectedCells="selectedCells" />
+        <BoldTool ref="boldTool" :selectedCells="selectedCells" />
+        <ItalicTool ref="italicTool" :selectedCells="selectedCells" />
+        <UnderlineTool ref="underlineTool" :selectedCells="selectedCells" />
+        <ForecolorTool ref="forecolorTool" :selectedCells="selectedCells" />
+        <BgcolorTool ref="bgcolorTool" :selectedCells="selectedCells" />
+        <CrosstabTool ref="crosstabTool" :selectedCells="selectedCells" />
+        <ImageTool ref="imageTool" :selectedCells="selectedCells" />
+        <ChartTool ref="chartTool" :selectedCells="selectedCells" />
+        <ZxingTool ref="zxingTool" :selectedCells="selectedCells" />
       </div>
     </div>
   </div>
@@ -93,6 +93,17 @@ export default {
     SearchFormSwitchTool,
     SettingsTool
   },
+  props: {
+    selectedCells: {
+      type: Object,
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
+    }
+  },
   computed: {
     /**
      * 获取context
@@ -121,45 +132,6 @@ export default {
     };
   },
   methods: {
-
-    /**
-     * 刷新工具状态
-     */
-    refreshTools(rowIndex, colIndex, row2Index, col2Index) {
-      if (this.$refs.boldTool && this.$refs.boldTool.refresh) {
-        this.$refs.boldTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.italicTool && this.$refs.italicTool.refresh) {
-        this.$refs.italicTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.underlineTool && this.$refs.underlineTool.refresh) {
-        this.$refs.underlineTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.alignLeftTool && this.$refs.alignLeftTool.refresh) {
-        this.$refs.alignLeftTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.alignTool && this.$refs.alignTool.refresh) {
-        this.$refs.alignTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.fontFamilyTool && this.$refs.fontFamilyTool.refresh) {
-        this.$refs.fontFamilyTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.fontSizeTool && this.$refs.fontSizeTool.refresh) {
-        this.$refs.fontSizeTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.forecolorTool && this.$refs.forecolorTool.refresh) {
-        this.$refs.forecolorTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.bgcolorTool && this.$refs.bgcolorTool.refresh) {
-        this.$refs.bgcolorTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.crosstabTool && this.$refs.crosstabTool.refresh) {
-        this.$refs.crosstabTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-      if (this.$refs.chartTool && this.$refs.chartTool.refresh) {
-        this.$refs.chartTool.refresh(rowIndex, colIndex, row2Index, col2Index);
-      }
-    }
   }
 };
 </script>

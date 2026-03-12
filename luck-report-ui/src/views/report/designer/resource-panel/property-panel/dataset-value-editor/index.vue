@@ -5,13 +5,7 @@
         <dataset-config
             :datasets="datasets"
             :current-fields="currentFields"
-            :cell-def="cellDef"
-            :context="context"
-            :row-index="rowIndex"
-            :col-index="colIndex"
-            :row2-index="row2Index"
-            :col2-index="col2Index"
-            :datasources="datasources"
+            :group-items="groupItems"
             :selected-dataset.sync="selectedDataset"
             :selected-property.sync="selectedProperty"
             :selected-aggregate.sync="selectedAggregate"
@@ -36,6 +30,7 @@
             @fill-blank-rows-change="handleFillBlankRowsChange"
             @multiple-change="handleMultipleChange"
             @condition-property-items-change="handleConditionPropertyItemsChange"
+            @update-custom-group="handleUpdateCustomGroup"
         />
       </u-tab-pane>
 
@@ -44,15 +39,12 @@
           :selected-dataset="selectedDataset"
           :conditions.sync="conditions"
           :current-fields="currentFields"
-          :cell-def="cellDef"
-          @update-cell-def-conditions="handleUpdateCellDefConditions"
+          @update-filter-conditions="handleUpdateFilterConditions"
         />
       </u-tab-pane>
 
       <u-tab-pane :label="$t('property.dataset.mapping')" index="mapping">
         <data-mapping
-          :cell-def="cellDef"
-          :datasources="datasources"
           :datasets="datasets"
           :show-mapping-options="showMappingOptions"
           :mapping-type="mappingType"
@@ -73,11 +65,14 @@
 
 <script>
 import { setDirty } from '@/utils/table.js';
+import { deepCopy } from '@/components/utils/index.js';
 import FilterCondition from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/filter-condition/index.vue';
 import DataMapping from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/data-mapping/index.vue';
 import DatasetConfig from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'DatasetValueEditor',
@@ -89,22 +84,34 @@ export default {
     UTabPane
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
   data() {
     return {
       activeTab: 'dataset',
-      cellDef: null,
-      datasources: [],
       datasets: [],
       currentFields: [],
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
       initialized: false,
 
       // 数据集配置
@@ -136,28 +143,39 @@ export default {
 
       // 条件属性项
       conditionPropertyItems: [],
+
+      // 自定义分组项
+      groupItems: [],
     };
   },
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    },
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    }
+  },
   mounted() {
-
+    this.loadCellData();
   },
   methods: {
     /**
-     * 显示编辑器
+     * 加载单元格数据
      */
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
+    loadCellData() {
       this.initialized = false;
 
-      // 加载数据源
-      this.datasources = this.context.reportDef.datasources || [];
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+
       this.loadDatasets();
 
-      // 设置初始值
       this.loadInitialValues(cellDef);
 
       this.$nextTick(() => {
@@ -170,7 +188,8 @@ export default {
      */
     loadDatasets() {
       this.datasets = [];
-      for (let ds of this.datasources) {
+      const datasources = this.context.reportDef.datasources || [];
+      for (let ds of datasources) {
         let datasets = ds.datasets || [];
         for (let dataset of datasets) {
           this.datasets.push(dataset);
@@ -242,12 +261,19 @@ export default {
         this.conditionPropertyItems = [...cellDef.conditionPropertyItems];
       } else {
         this.conditionPropertyItems = [];
-        // 确保cellDef中有conditionPropertyItems属性
-        cellDef.conditionPropertyItems = this.conditionPropertyItems;
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.conditionPropertyItems = this.conditionPropertyItems;
+        setCell(this.rowIndex, this.colIndex, newCellDef);
       }
 
-      if (!cellDef.value.groupItems) {
-        this.cellDef.value.groupItems = [];
+      // 初始化自定义分组项
+      if (cellDef.value.groupItems) {
+        this.groupItems = [...cellDef.value.groupItems];
+      } else {
+        this.groupItems = [];
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.groupItems = this.groupItems;
+        setCell(this.rowIndex, this.colIndex, newCellDef);
       }
 
       // 触发数据集变化事件，加载字段
@@ -265,7 +291,8 @@ export default {
 
       // 加载选中数据集的字段
       if (this.selectedDataset) {
-        for (let ds of this.datasources) {
+        const datasources = this.context.reportDef.datasources || [];
+        for (let ds of datasources) {
           let datasets = ds.datasets || [];
           for (let dataset of datasets) {
             if (dataset.name === this.selectedDataset) {
@@ -343,10 +370,11 @@ export default {
      * 处理行高变化
      */
     handleLineHeightChange() {
-      if (this.cellDef && this.cellDef.cellStyle) {
-        this.cellDef.cellStyle.lineHeight = this.lineHeight;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.cellStyle) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.cellStyle.lineHeight = this.lineHeight;
 
-        // 更新表格单元格样式
         const hot = this.context.hot;
         if (hot) {
           const td = hot.getCell(this.rowIndex, this.colIndex);
@@ -360,6 +388,17 @@ export default {
           }
         }
 
+        for (let i = this.rowIndex; i <= this.row2Index; i++) {
+          for (let j = this.colIndex; j <= this.col2Index; j++) {
+            const originalCellDef = getCell(i, j);
+            if (originalCellDef) {
+              const updatedCellDef = deepCopy(originalCellDef);
+              updatedCellDef.cellStyle.lineHeight = this.lineHeight;
+              setCell(i, j, updatedCellDef );
+            }
+          }
+        }
+
         setDirty();
       }
     },
@@ -369,16 +408,19 @@ export default {
      */
     handleWrapComputeChange() {
       const wrapComputeValue = this.wrapCompute === 'default';
+      const hot = this.context.hot;
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
-          if (!cellDef.cellStyle) {
-            cellDef.cellStyle = {};
+          const newCellDef = deepCopy(cellDef);
+          if (!newCellDef.cellStyle) {
+            newCellDef.cellStyle = {};
           }
-          cellDef.cellStyle.wrapCompute = wrapComputeValue;
+          newCellDef.cellStyle.wrapCompute = wrapComputeValue;
+          setCell( i, j, newCellDef );
         }
       }
       setDirty();
@@ -388,15 +430,18 @@ export default {
      * 处理格式变化
      */
     handleFormatChange() {
+      const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
-          if (!cellDef.cellStyle) {
-            cellDef.cellStyle = {};
+          const newCellDef = deepCopy(cellDef);
+          if (!newCellDef.cellStyle) {
+            newCellDef.cellStyle = {};
           }
-          cellDef.cellStyle.format = this.format;
+          newCellDef.cellStyle.format = this.format;
+          setCell( i, j, newCellDef );
         }
       }
       setDirty();
@@ -418,10 +463,12 @@ export default {
     handleMultipleChange() {
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
-          cellDef.multiple = this.multiple;
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.multiple = this.multiple;
+          setCell( i, j, newCellDef );
         }
       }
       setDirty();
@@ -431,22 +478,54 @@ export default {
      * 处理条件属性项变化
      */
     handleConditionPropertyItemsChange(conditionPropertyItems) {
-      // 更新本地数据
       this.conditionPropertyItems = conditionPropertyItems;
 
-      if (this.cellDef) {
-        this.cellDef.conditionPropertyItems = conditionPropertyItems;
+      for (let i = this.rowIndex; i <= this.row2Index; i++) {
+        for (let j = this.colIndex; j <= this.col2Index; j++) {
+          const originalCellDef = getCell(i, j);
+          if (originalCellDef) {
+            const updatedCellDef = deepCopy(originalCellDef);
+            updatedCellDef.conditionPropertyItems = conditionPropertyItems;
+            setCell(i, j, updatedCellDef );
+          }
+        }
       }
 
       setDirty();
     },
 
     /**
-     * 处理cellDef条件更新
+     * 处理 cellDef 条件更新
      */
-    handleUpdateCellDefConditions(conditions) {
+    handleUpdateFilterConditions(conditions) {
       this.conditions = conditions;
-      this.cellDef.value.conditions = conditions;
+
+      for (let i = this.rowIndex; i <= this.row2Index; i++) {
+        for (let j = this.colIndex; j <= this.col2Index; j++) {
+          const originalCellDef = getCell(i, j);
+          if (originalCellDef) {
+            const updatedCellDef = deepCopy(originalCellDef);
+            updatedCellDef.value.conditions = conditions;
+            setCell(i, j, updatedCellDef );
+          }
+        }
+      }
+    },
+
+    /**
+     * 处理自定义分组更新
+     */
+    handleUpdateCustomGroup(groupItems) {
+      for (let i = this.rowIndex; i <= this.row2Index; i++) {
+        for (let j = this.colIndex; j <= this.col2Index; j++) {
+          const originalCellDef = getCell(i, j);
+          if (originalCellDef) {
+            const updatedCellDef = deepCopy(originalCellDef);
+            updatedCellDef.value.groupItems = groupItems;
+            setCell(i, j, updatedCellDef );
+          }
+        }
+      }
     },
 
     /**
@@ -456,7 +535,7 @@ export default {
       const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
@@ -482,13 +561,15 @@ export default {
       const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           const valueType = cellDef.value.type;
           if (valueType === 'dataset') {
-            cellDef.value.datasetName = datasetName;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.datasetName = datasetName;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -503,13 +584,15 @@ export default {
       const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           const valueType = cellDef.value.type;
           if (valueType === 'dataset') {
-            cellDef.value.property = property;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.property = property;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -525,19 +608,21 @@ export default {
       let none = false;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           const valueType = cellDef.value.type;
           if (valueType === 'dataset') {
-            cellDef.value.aggregate = aggregate;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.aggregate = aggregate;
             if (aggregate === 'sum' || aggregate === 'count' || aggregate === 'max' ||
                 aggregate === 'min' || aggregate === 'avg') {
-              cellDef.value.order = 'none';
-              cellDef.expand = 'None';
+              newCellDef.value.order = 'none';
+              newCellDef.expand = 'None';
               none = true;
             }
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -557,13 +642,15 @@ export default {
       const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           const valueType = cellDef.value.type;
           if (valueType === 'dataset') {
-            cellDef.value.order = order;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.order = order;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -574,9 +661,11 @@ export default {
      * 设置展开方向
      */
     _setExpand(expand) {
-      // 只更新当前单元格，而不是整个选区
-      if (this.cellDef) {
-        this.cellDef.expand = expand;
+      const originalCellDef = getCell(this.rowIndex, this.colIndex);
+      if (originalCellDef) {
+        const updatedCellDef = deepCopy(originalCellDef);
+        updatedCellDef.expand = expand;
+        setCell( this.rowIndex,  this.colIndex,  updatedCellDef )
       }
 
       const hot = this.context.hot;
@@ -590,14 +679,16 @@ export default {
     _setFillBlankRows(value) {
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
-          cellDef.fillBlankRows = value;
-          if (!cellDef.multiple) {
-            cellDef.multiple = 0;
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.fillBlankRows = value;
+          if (!newCellDef.multiple) {
+            newCellDef.multiple = 0;
           }
+          setCell( i, j, newCellDef );
         }
       }
       setDirty();
@@ -610,12 +701,14 @@ export default {
       this.mappingType = mappingType;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           if (cellDef.value.type === 'dataset') {
-            cellDef.value.mappingType = mappingType;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.mappingType = mappingType;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -629,12 +722,14 @@ export default {
       this.mappingItems = mappingItems;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           if (cellDef.value.type === 'dataset') {
-            cellDef.value.mappingItems = mappingItems;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.mappingItems = mappingItems;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -648,12 +743,14 @@ export default {
       this.mappingDataset = mappingDataset;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           if (cellDef.value.type === 'dataset') {
-            cellDef.value.mappingDataset = mappingDataset;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.mappingDataset = mappingDataset;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -667,12 +764,14 @@ export default {
       this.mappingKeyProperty = mappingKeyProperty;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           if (cellDef.value.type === 'dataset') {
-            cellDef.value.mappingKeyProperty = mappingKeyProperty;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.mappingKeyProperty = mappingKeyProperty;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -686,12 +785,14 @@ export default {
       this.mappingValueProperty = mappingValueProperty;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
           if (cellDef.value.type === 'dataset') {
-            cellDef.value.mappingValueProperty = mappingValueProperty;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.mappingValueProperty = mappingValueProperty;
+            setCell( i, j, newCellDef );
           }
         }
       }

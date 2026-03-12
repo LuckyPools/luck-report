@@ -93,7 +93,7 @@ export default {
     value: {
       handler(newVal) {
         this.currentValue = newVal
-        this.handleBlur()
+        this.handleBlur(false)
       },
       immediate: true,
     },
@@ -122,7 +122,7 @@ export default {
     /**
      * @description 失去焦点时，做下值类型校验
      */
-    handleBlur() {
+    handleBlur(emitEvent = true) {
       if(!this.currentValue) return;
       if (typeof this.currentValue !== 'number') {
         this.currentValue = Number(this.currentValue.replace(/[^\d.-]/g, ''))
@@ -158,9 +158,11 @@ export default {
         this.increaseForbid = false
       }
 
-      this.$emit('input', this.currentValue)
-      this.$emit('change', this.currentValue)
-      this.dispatch('UFormItem', 'form-blur', this.currentValue)
+      if (emitEvent) {
+        this.$emit('input', this.currentValue)
+        this.$emit('change', this.currentValue)
+        this.dispatch('UFormItem', 'form-blur', this.currentValue)
+      }
     },
     /**
      * @description 输入值变更

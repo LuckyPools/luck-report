@@ -37,11 +37,23 @@ export default {
     UDialog,
     UInput,
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
   data() {
     return {
-      visible: false,
       crosstabValue: ''
     };
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.crosstabValue = '';
+      }
+    }
   },
   mounted() {
     // 添加键盘事件监听
@@ -52,20 +64,13 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show() {
-      this.visible = true;
-      this.crosstabValue = '';
-    },
     handleOk() {
       this.$emit('saveAfter', this.crosstabValue);
       this.handleClose();
     },
     handleClose() {
-      this.visible = false;
-      // 清理数据，防止下次显示时保留旧值
-      setTimeout(() => {
-        this.crosstabValue = '';
-      }, 300); // 等待动画完成
+      this.$emit('close');
+      this.crosstabValue = '';
     },
     // 键盘事件处理
     handleKeydown(e) {

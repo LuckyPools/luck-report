@@ -39,7 +39,6 @@
         :datasources="datasources"
         :ds="datasource"
         ref="databaseTree"
-        :context="context"
         @remove="removeDatasource"
         @update-datasource="updateDatasource"
       />
@@ -52,7 +51,6 @@
         :datasets="datasource.datasets || []"
         :datasources="datasources"
         :bean-id="datasource.beanId"
-        :context="context"
         @remove="removeDatasource"
         @update-datasource="updateDatasource"
         @update-datasets="updateSpringDatasets(datasource, $event)"
@@ -64,8 +62,6 @@
         :key="'buildin_' + '_' + index"
         :name="datasource.name"
         :datasets="datasource.datasets || []"
-        :datasources="datasources"
-        :context="context"
         @remove="removeDatasource"
         @update-datasource="updateDatasource"
       />
@@ -75,6 +71,9 @@
     <DatasourceDialog
       ref="datasourceDialog"
       :datasources="datasources"
+      :visible="datasourceDialogVisible"
+      :datasource="currentDatasource"
+      @close="datasourceDialogVisible = false"
       @save="addJdbcDatasource"
     />
 
@@ -82,6 +81,9 @@
     <SpringDialog
       ref="springDialog"
       :datasources="datasources"
+      :visible="springDialogVisible"
+      :datasource="currentSpringDatasource"
+      @close="springDialogVisible = false"
       @save="addSpringDatasource"
     />
 
@@ -89,13 +91,15 @@
     <BuildinDatasourceSelectDialog
       ref="buildinDialog"
       :datasources="datasources"
+      :visible="buildinDialogVisible"
+      @close="buildinDialogVisible = false"
       @select="addBuildinDatasource"
     />
   </div>
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
+import { mapGetters } from 'vuex';
 import DatabaseTree from './database-tree/index.vue';
 import SpringTree from './spring-tree/index.vue';
 import BuildinTree from './buildin-tree/index.vue';
@@ -103,6 +107,8 @@ import DatasourceDialog from './datasource-dialog/index.vue';
 import SpringDialog from './spring-dialog/index.vue';
 import BuildinDatasourceSelectDialog from './buildin-datasource-select-dialog/index.vue';
 import UButton from "@/components/button/index.vue";
+import {deepCopy} from "@/components/utils";
+import { updateReportDef } from '@/utils/contextActions.js';
 
 export default {
   name: 'DatasourcePanel',
@@ -118,7 +124,12 @@ export default {
 
   data() {
     return {
-      datasources: []
+      datasources: [],
+      buildinDialogVisible: false,
+      datasourceDialogVisible: false,
+      currentDatasource: null,
+      springDialogVisible: false,
+      currentSpringDatasource: null
     };
   },
   computed: {
@@ -149,15 +160,10 @@ export default {
     }
   },
   mounted() {
-    // 设置datasourcePanel引用到context中
-    this.updateContextProperty({ property: 'datasourcePanel', value: this });
-
     // 初始化数据源
     this.initializeDatasources();
   },
   methods: {
-    ...mapActions('report', ['updateContextProperty']),
-
     /**
      * 初始化数据源
      */
@@ -169,9 +175,9 @@ export default {
       if (!reportDef) return;
 
       if (!reportDef.datasources) {
-        reportDef.datasources = [];
-        // 更新reportDef到store
-        this.updateContextProperty({ property: 'reportDef', value: reportDef });
+        const newReportDef = deepCopy(reportDef);
+        newReportDef.datasources = [];
+        updateReportDef(newReportDef);
       }
 
       this.datasources = reportDef.datasources || [];
@@ -181,21 +187,23 @@ export default {
      * 显示数据源对话框
      */
     showDatasourceDialog() {
-      this.$refs.datasourceDialog.show();
+      this.currentDatasource = null;
+      this.datasourceDialogVisible = true;
     },
 
     /**
      * 显示Spring对话框
      */
     showSpringDialog() {
-      this.$refs.springDialog.show();
+      this.currentSpringDatasource = null;
+      this.springDialogVisible = true;
     },
 
     /**
      * 显示内置数据源对话框
      */
     showBuildinDialog() {
-      this.$refs.buildinDialog.show();
+      this.buildinDialogVisible = true;
     },
 
     /**
@@ -212,13 +220,11 @@ export default {
         datasets: datasource.datasets || []
       };
 
-      // 使用Vue.set确保响应式更新
       const newIndex = this.datasources.length;
       this.$set(this.datasources, newIndex, newDatasource);
 
-      // 更新到store
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-      this.updateContextProperty({ property: 'reportDef', value: reportDef });
+      updateReportDef(reportDef);
     },
 
     /**
@@ -233,13 +239,11 @@ export default {
         datasets: datasource.datasets || []
       };
 
-      // 使用Vue.set确保响应式更新
       const newIndex = this.datasources.length;
       this.$set(this.datasources, newIndex, newDatasource);
 
-      // 更新到store
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-      this.updateContextProperty({ property: 'reportDef', value: reportDef });
+      updateReportDef(reportDef);
     },
 
     /**
@@ -253,13 +257,11 @@ export default {
         datasets: datasource.datasets || []
       };
 
-      // 使用Vue.set确保响应式更新
       const newIndex = this.datasources.length;
       this.$set(this.datasources, newIndex, newDatasource);
 
-      // 更新到store
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-      this.updateContextProperty({ property: 'reportDef', value: reportDef });
+      updateReportDef(reportDef);
     },
 
     /**
@@ -270,9 +272,8 @@ export default {
       if (index !== -1) {
         this.datasources.splice(index, 1);
 
-        // 更新到store
         const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-        this.updateContextProperty({ property: 'reportDef', value: reportDef });
+        updateReportDef(reportDef);
       }
     },
 
@@ -283,31 +284,27 @@ export default {
       // 查找并更新匹配的数据源
       const index = this.datasources.findIndex(ds => ds.name === data.oldName);
       if (index !== -1) {
-        // 使用Vue.set确保响应式更新
         this.$set(this.datasources, index, { ...this.datasources[index], ...data });
       }
 
-      // 更新到store
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-      this.updateContextProperty({ property: 'reportDef', value: reportDef });
+      updateReportDef(reportDef);
     },
 
     /**
-     * 更新Spring数据源的数据集
+     * 更新 Spring 数据源的数据集
      */
     updateSpringDatasets(datasource, datasets) {
       // 更新数据源的数据集
       datasource.datasets = datasets;
-      // 更新到store
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-      this.updateContextProperty({ property: 'reportDef', value: reportDef });
+      updateReportDef(reportDef);
     },
 
     /**
      * 构建面板（兼容旧接口）
      */
     buildPanel() {
-      // 返回一个包含当前组件的虚拟jQuery对象，以保持接口兼容性
       return [{
         appendChild: (el) => {
           if (this.$refs.treeContainer) {

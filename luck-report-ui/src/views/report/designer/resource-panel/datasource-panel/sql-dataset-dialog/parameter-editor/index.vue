@@ -2,7 +2,6 @@
   <div class="parameter-editor">
     <div class="row" style="margin:10px;">
       <ParameterTable
-        ref="parameterTable"
         :data="parameters"
         @add-parameter="handleAddParameter"
         @edit-parameter="handleEditParameter"
@@ -40,12 +39,6 @@ export default {
     },
     handleUpdate() {
       this.$emit('update');
-    },
-    refreshData() {
-      // 提供刷新数据的方法给父组件调用
-      if (this.$refs.parameterTable) {
-        this.$refs.parameterTable.refreshData();
-      }
     }
   }
 };

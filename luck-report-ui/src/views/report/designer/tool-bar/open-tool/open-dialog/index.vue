@@ -10,7 +10,7 @@
         <label>{{ $t('dialog.open.source') }}：</label>
         <div class="u-inline">
           <u-select
-            :value="selectedProvider"
+            v-model="selectedProvider"
             @change="handleProviderChange"
           >
             <u-option
@@ -102,9 +102,14 @@ export default {
     USelect,
     UOption
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
   data() {
     return {
-      visible: false,
       providers: [],
       selectedProvider: '',
       reportFilesData: {},
@@ -124,11 +129,14 @@ export default {
       return this.pathHistory.length > 0;
     }
   },
+  watch: {
+    visible(val) {
+      if (val) {
+        this.loadProviders();
+      }
+    }
+  },
   methods: {
-    show() {
-      this.visible = true;
-      this.loadProviders();
-    },
     loadProviders() {
       const _this = this;
 
@@ -189,8 +197,7 @@ export default {
       const key = this.currentPath ? `${this.selectedProvider}:${this.currentPath}` : this.selectedProvider;
       this.currentFiles = this.reportFilesData[key] || [];
     },
-    handleProviderChange(value) {
-      this.selectedProvider = value;
+    handleProviderChange() {
       this.currentPath = '';
       this.pathHistory = [];
       this.onProviderChange();
@@ -264,12 +271,9 @@ export default {
       });
     },
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
       this.currentPath = '';
       this.pathHistory = [];
-    },
-    handleOk() {
-      this.visible = false;
     }
   }
 };

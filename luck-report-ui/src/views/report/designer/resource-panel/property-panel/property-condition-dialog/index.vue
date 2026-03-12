@@ -10,23 +10,27 @@
       <fieldset class="fieldset-small">
         <legend class="legend-style">{{ $t('dialog.propCondition.config') }}</legend>
         <condition-item
-            ref="conditionItem"
             :property-conditions="localPropertyConditions"
+            :selected-item-index="selectedItemIndex"
             @item-added="onItemAdded"
             @item-updated="onItemUpdated"
             @item-deleted="onItemDeleted"
             @item-selected="onItemSelected"
+            @item-index-changed="onItemIndexChanged"
         />
       </fieldset>
 
       <fieldset class="fieldset-medium">
         <legend class="legend-style">{{ $t('dialog.propCondition.conditionConfig') }}</legend>
         <condition-content
-          ref="conditionBar"
           :property-conditions="localPropertyConditions"
           :selected-item="selectedItem"
-          :datasources="localDatasources"
           :dataset-name="localDatasetName"
+          :conditions="currentConditions"
+          :reset-selection="resetConditionSelection"
+          @condition-added="onConditionAdded"
+          @condition-updated="onConditionUpdated"
+          @condition-deleted="onConditionDeleted"
         />
       </fieldset>
 
@@ -37,7 +41,6 @@
       >
         <legend class="legend-style">{{ $t('dialog.propCondition.propConfig') }}</legend>
         <condition-config
-          ref="propertyConfig"
           :item="selectedItem"
           @property-changed="onPropertyChanged"
         />
@@ -57,6 +60,7 @@ import ConditionContent from '@/views/report/designer/resource-panel/property-pa
 import ConditionConfig from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-config/index.vue';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'ConditionBody',
@@ -68,27 +72,38 @@ export default {
     UDialog
   },
   props: {
-    propertyConditions: {
-      type: Array,
-      default: () => []
-    },
-    datasources: {
-      type: Array,
-      default: () => []
+    visible: {
+      type: Boolean,
+      default: false
     },
     datasetName: {
       type: String,
       default: ''
+    },
+    conditionPropertyItems: {
+      type: Array,
+      default: () => []
+    },
+    propertyConditions: {
+      type: Array,
+      default: () => []
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
   data() {
     return {
-      visible: false,
       selectedItem: null,
+      selectedItemIndex: -1,
       showPropertyGroup: false,
       localPropertyConditions: [],
-      localDatasources: [],
-      localDatasetName: ''
+      localDatasetName: '',
+      currentConditions: [],
+      resetConditionSelection: true
     };
   },
   watch: {
@@ -99,18 +114,20 @@ export default {
       deep: true,
       immediate: true
     },
-    datasources: {
-      handler(newVal) {
-        this.localDatasources = [...newVal];
-      },
-      deep: true,
-      immediate: true
-    },
-    datasetName: {
-      handler(newVal) {
-        this.localDatasetName = newVal;
-      },
-      immediate: true
+    visible(newVal) {
+      if (newVal) {
+        this.localDatasetName = this.datasetName;
+        this.localPropertyConditions.splice(0, this.localPropertyConditions.length);
+        this.conditionPropertyItems.forEach(item => {
+          this.localPropertyConditions.push(item);
+        });
+
+        if (this.localPropertyConditions.length > 0) {
+          this.selectFirstItem();
+        } else {
+          this.clearSelection();
+        }
+      }
     }
   },
   methods: {
@@ -136,36 +153,23 @@ export default {
     },
 
     onItemDeleted(index) {
-      // 从本地数据副本中删除项目，使用传入的索引
       if (index >= 0 && index < this.localPropertyConditions.length) {
         const deletedItem = this.localPropertyConditions[index];
         this.localPropertyConditions.splice(index, 1);
 
-        // 向上传递事件，传递索引而非item对象
         this.$emit('item-deleted', index);
 
-        // 如果删除的是当前选中的项目，需要更新选中状态
         if (this.selectedItem && this.selectedItem.id === deletedItem.id) {
-          // 如果还有其他项目，选中第一个
           if (this.localPropertyConditions.length > 0) {
-            // 延迟执行，确保DOM更新完成
             this.$nextTick(() => {
-              this.selectedItem = this.localPropertyConditions[0];
-              this.$refs.conditionItem.selectedItemIndex = 0;
-              this.$refs.conditionItem.selectedItem = this.selectedItem;
-              this.$refs.conditionItem.$emit('item-selected', this.selectedItem);
-
-              // 更新条件列表
-              if (!this.selectedItem.conditions) {
-                this.selectedItem.conditions = [];
-              }
-              this.$refs.conditionBar.updateConditions(this.selectedItem.conditions, false);
+              this.selectedItemIndex = 0;
             });
           } else {
-            // 如果没有项目了，清空选中状态
             this.selectedItem = null;
+            this.selectedItemIndex = -1;
             this.showPropertyGroup = false;
-            this.$refs.conditionBar.updateConditions([]);
+            this.currentConditions = [];
+            this.resetConditionSelection = true;
           }
         }
 
@@ -176,10 +180,10 @@ export default {
     onItemSelected(item) {
       this.selectedItem = item;
 
-      this.$refs.propertyConfig.updateConfig(item);
       if (!item) {
         this.showPropertyGroup = false;
-        this.$refs.conditionBar.updateConditions([]);
+        this.currentConditions = [];
+        this.resetConditionSelection = true;
         return;
       }
       this.showPropertyGroup = true;
@@ -187,7 +191,8 @@ export default {
       if (!item.conditions) {
         item.conditions = [];
       }
-      this.$refs.conditionBar.updateConditions(item.conditions, false);
+      this.currentConditions = [...item.conditions];
+      this.resetConditionSelection = false;
       setDirty();
     },
 
@@ -199,70 +204,72 @@ export default {
 
           this.$set(this.localPropertyConditions, index, updatedItem);
 
-          this.selectedItem = updatedItem;
-          if (this.selectedItem && !this.selectedItem.conditions) {
-            this.selectedItem.conditions = [];
-          }
-
-          // 如果conditions数组存在且不为空，则保持当前选中的条件
           if (currentConditions && currentConditions.length > 0) {
-            this.selectedItem.conditions = currentConditions;
-            // 通知condition-content组件更新条件列表，但不重置选中状态
-            if (this.$refs.conditionBar) {
-              this.$refs.conditionBar.updateConditions(currentConditions);
-            }
+            this.localPropertyConditions[index].conditions = currentConditions;
           }
         }
       }
       setDirty();
     },
 
-    // 提供给外部调用的方法
+    onConditionAdded(newCondition) {
+      if (this.selectedItem) {
+        if (!this.selectedItem.conditions) {
+          this.selectedItem.conditions = [];
+        }
+        this.selectedItem.conditions.push(newCondition);
+        this.currentConditions = [...this.selectedItem.conditions];
+      }
+      setDirty();
+    },
+
+    onConditionUpdated(updatedCondition) {
+      if (this.selectedItem && this.selectedItem.conditions) {
+        const index = this.selectedItem.conditions.findIndex(c => c.id === updatedCondition.id);
+        if (index !== -1) {
+          this.selectedItem.conditions.splice(index, 1, updatedCondition);
+          this.currentConditions = [...this.selectedItem.conditions];
+        }
+      }
+      setDirty();
+    },
+
+    onConditionDeleted(condition) {
+      if (this.selectedItem && this.selectedItem.conditions) {
+        const index = this.selectedItem.conditions.findIndex(c => c.id === condition.id);
+        if (index !== -1) {
+          this.selectedItem.conditions.splice(index, 1);
+          this.currentConditions = [...this.selectedItem.conditions];
+        }
+      }
+      setDirty();
+    },
+
+    onItemIndexChanged(index) {
+      this.selectedItemIndex = index;
+    },
+
     selectFirstItem() {
-      if (this.$refs.conditionItem) {
-        this.$refs.conditionItem.selectFirstItem();
+      if (this.localPropertyConditions.length > 0) {
+        this.selectedItemIndex = 0;
       }
     },
 
     clearSelection() {
       this.selectedItem = null;
+      this.selectedItemIndex = -1;
       this.showPropertyGroup = false;
-      if (this.$refs.conditionItem) {
-        this.$refs.conditionItem.clearSelection();
-      }
-      if(this.$refs.conditionBar){
-        this.$refs.conditionBar.updateConditions([]);
-      }
+      this.currentConditions = [];
+      this.resetConditionSelection = true;
     },
 
     // 对话框控制方法
-    show(datasources, datasetName, propertyConditions) {
-      // 更新本地数据，而不是直接修改props
-      this.localDatasources = [...datasources];
-      this.localDatasetName = datasetName;
-
-      // 清空并重新设置localPropertyConditions数组，确保响应性
-      this.localPropertyConditions.splice(0, this.localPropertyConditions.length);
-      propertyConditions.forEach(item => {
-        this.localPropertyConditions.push(item);
-      });
-
-      this.visible = true;
-
-      // 如果有条件项，默认选择第一个
-      if(propertyConditions.length > 0){
-        this.selectFirstItem();
-      } else {
-        this.clearSelection();
-      }
-    },
-
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
     },
 
     handleOk() {
-      this.visible = false;
+      this.$emit('update:visible', false);
 
       const conditionsToReturn = this.localPropertyConditions.map(item => {
         return JSON.parse(JSON.stringify(item));
@@ -295,7 +302,6 @@ export default {
   border-radius: 8px;
   width: 325px;
   display: inline-block;
-  height: 550px;
   vertical-align: top;
   margin-left: 10px;
 }
@@ -306,10 +312,8 @@ export default {
   border-radius: 8px;
   width: 550px;
   display: inline-block;
-  height: 550px;
   vertical-align: top;
   margin-left: 10px;
-  overflow-y: scroll;
 }
 
 .legend-style {

@@ -22,7 +22,7 @@ public class TransformUReportUtils {
     private static int fieldCounter = 100;
 
     public static void main(String[] args) {
-        transformXmlFolder("D:\\report\\","E:\\new_report\\");
+        transformXmlFolder("D:\\report\\","E:\\luckStudio\\IO\\report\\测试\\");
     }
 
     /**
@@ -427,6 +427,7 @@ public class TransformUReportUtils {
      * @param commonAttributes 通用属性集合
      */
     private static void transformGeneric(Element oldComponent, Element newComponent, Map<String, String> commonAttributes) {
+        newComponent.addAttribute("tagIcon", "input");
         for (Map.Entry<String, String> entry : commonAttributes.entrySet()) {
             newComponent.addAttribute(entry.getKey(), entry.getValue());
         }

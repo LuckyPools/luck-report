@@ -11,7 +11,7 @@
         <label>{{ $t('dialog.mapping.key') }}：</label>
         <div class="u-inline">
           <u-input
-            v-model="mappingItem.value"
+            v-model="localMappingItem.value"
             :placeholder="$t('dialog.mapping.keyPlaceholder')"
           />
         </div>
@@ -20,7 +20,7 @@
         <label>{{ $t('dialog.mapping.value') }}：</label>
         <div class="u-inline">
           <u-input
-            v-model="mappingItem.label"
+            v-model="localMappingItem.label"
             :placeholder="$t('dialog.mapping.valuePlaceholder')"
           />
         </div>
@@ -47,15 +47,29 @@ export default {
     UDialog,
     UInput
   },
-  data() {
-    return {
-      visible: false,
-      operation: 'add', // 'add' or 'edit'
-      mappingItem: {
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    mappingItem: {
+      type: Object,
+      default: () => ({
         value: '',
         label: ''
-      },
-      originalMappingItem: null
+      })
+    },
+    operation: {
+      type: String,
+      default: 'add'
+    }
+  },
+  data() {
+    return {
+      localMappingItem: {
+        value: '',
+        label: ''
+      }
     };
   },
   computed: {
@@ -63,45 +77,37 @@ export default {
       return this.operation === 'add' ? this.$t('dialog.mapping.add') : this.$t('dialog.mapping.edit');
     }
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.localMappingItem = {
+          value: this.mappingItem.value || '',
+          label: this.mappingItem.label || ''
+        };
+      }
+    }
+  },
   methods: {
-    show(mappingItem, op) {
-      this.visible = true;
-      this.operation = op || 'add';
-
-      // 创建映射项的副本以避免直接修改原始对象
-      this.mappingItem = {
-        value: mappingItem.value || '',
-        label: mappingItem.label || ''
-      };
-
-      // 保存原始映射项的引用，用于保存时更新
-      this.originalMappingItem = mappingItem;
-    },
     handleSave() {
-      if (this.mappingItem.value === '' || this.mappingItem.label === '') {
+      if (this.localMappingItem.value === '' || this.localMappingItem.label === '') {
         showAlert(this.$t('dialog.mapping.tip'));
         return;
       }
 
-      this.originalMappingItem.value = this.mappingItem.value;
-      this.originalMappingItem.label = this.mappingItem.label;
-
-      // 触发保存后事件
-      this.$emit('saveAfter');
+      this.$emit('save', {
+        value: this.localMappingItem.value,
+        label: this.localMappingItem.label
+      });
 
       this.handleClose();
     },
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
 
-      // 清理数据
-      setTimeout(() => {
-        this.mappingItem = {
-          value: '',
-          label: ''
-        };
-        this.originalMappingItem = null;
-      }, 300); // 等待动画完成
+      this.localMappingItem = {
+        value: '',
+        label: ''
+      };
     }
   }
 };

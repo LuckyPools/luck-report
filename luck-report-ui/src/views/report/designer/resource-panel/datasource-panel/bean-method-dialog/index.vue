@@ -36,8 +36,10 @@
 
     <!-- 方法选择对话框 -->
     <MethodSelectDialog
-      ref="methodSelectDialog"
+      :visible="methodSelectDialogVisible"
+      :beanId="beanId"
       @save="handleMethodSelect"
+      @close="methodSelectDialogVisible = false"
     />
   </div>
 </template>
@@ -70,38 +72,54 @@ export default {
     beanId: {
       type: String,
       default: ''
+    },
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    dataset: {
+      type: Object,
+      default: null
     }
   },
   data() {
     return {
-      visible: false,
       oldName: '',
       name: '',
       method: '',
-      clazz: ''
+      clazz: '',
+      methodSelectDialogVisible: false
     };
   },
-  computed: {
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.initData();
+      }
+    },
+    dataset(newVal) {
+      if (newVal) {
+        this.initData();
+      }
+    }
   },
   methods: {
-    show(dataset) {
+    initData() {
       this.name = '';
       this.method = '';
       this.clazz = '';
       this.oldName = '';
 
-      if (dataset) {
-        this.oldName = dataset.name;
-        this.name = dataset.name;
-        this.method = dataset.method;
-        this.clazz = dataset.clazz;
+      if (this.dataset) {
+        this.oldName = this.dataset.name;
+        this.name = this.dataset.name;
+        this.method = this.dataset.method;
+        this.clazz = this.dataset.clazz;
       }
-
-      this.visible = true;
     },
 
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
     },
 
     handleClose() {
@@ -113,12 +131,10 @@ export default {
     },
 
     selectMethod(event) {
-      // 阻止默认行为，防止页面刷新
       if (event) {
         event.preventDefault();
       }
-      // 使用独立的方法选择对话框
-      this.$refs.methodSelectDialog.show(this.beanId);
+      this.methodSelectDialogVisible = true;
     },
 
     handleMethodSelect(method) {

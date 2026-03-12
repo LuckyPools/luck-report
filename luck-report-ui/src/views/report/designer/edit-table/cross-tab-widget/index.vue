@@ -5,6 +5,8 @@
 <script>
 import Raphael from 'raphael';
 import saveSvgAsPng from 'save-svg-as-png';
+import {getCell, setCell} from "@/utils/contextActions";
+import {deepCopy} from "@/components/utils";
 
 export default {
   name: 'CrossTabWidget',
@@ -21,10 +23,6 @@ export default {
       type: Number,
       required: true
     },
-    cellDef: {
-      type: Object,
-      required: true
-    },
     value: {
       type: String,
       default: ''
@@ -37,10 +35,7 @@ export default {
       colSpan: 1,
       width: 0,
       height: 0,
-      paper: null,
-      // 本地存储的行列索引，避免直接修改props
-      localRowIndex: this.rowIndex,
-      localColIndex: this.colIndex
+      paper: null
     };
   },
   mounted() {
@@ -51,23 +46,10 @@ export default {
       }
     }
     
-    // 初始化本地索引
-    this.localRowIndex = this.rowIndex;
-    this.localColIndex = this.colIndex;
-    
     // 刷新单元格
-    this.refreshCell(this.cellDef);
+    this.refreshCell();
   },
   
-  // 监听props变化，更新本地数据
-  watch: {
-    rowIndex(newVal) {
-      this.localRowIndex = newVal;
-    },
-    colIndex(newVal) {
-      this.localColIndex = newVal;
-    }
-  },
   beforeDestroy() {
     // 清理Raphael实例
     if (this.paper) {
@@ -76,7 +58,8 @@ export default {
     }
   },
   methods: {
-    refreshCell(cellDef) {
+    refreshCell() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
       const td = this.getCellElement();
       
       // 获取行合并和列合并属性
@@ -87,39 +70,44 @@ export default {
       this.width = -2;
       this.height = -4;
       
-      const rowStart = this.localRowIndex;
-      const rowEnd = this.localRowIndex + this.rowSpan;
+      const rowStart = this.rowIndex;
+      const rowEnd = this.rowIndex + this.rowSpan;
       for (let i = rowStart; i < rowEnd; i++) {
-        this.height += this.hot.getRowHeight(i);
+        const rowH = this.hot.getRowHeight(i);
+        this.height += rowH;
       }
       
-      const colStart = this.localColIndex;
-      const colEnd = this.localColIndex + this.colSpan;
+      const colStart = this.colIndex;
+      const colEnd = this.colIndex + this.colSpan;
       for (let i = colStart; i < colEnd; i++) {
-        this.width += this.hot.getColWidth(i);
+        const colW = this.hot.getColWidth(i);
+        this.width += colW;
       }
-      
-      if (!cellDef) {
-        this._buildSlashes();
+
+      if (!cellDef?.value?.slashes) {
+          this._buildSlashes();
+          this.doDraw();
+      } else {
+          this.doDraw();
       }
     },
     
     getCellElement() {
       // 获取单元格DOM元素
-      return this.hot.getCell(this.localRowIndex, this.localColIndex);
+      return this.hot.getCell(this.rowIndex, this.colIndex);
     },
     
     _buildSlashes() {
-      const colStart = this.localColIndex;
-      const colEnd = this.localColIndex + this.colSpan;
+      const colStart = this.colIndex;
+      const colEnd = this.colIndex + this.colSpan;
       let colWidth = 0;
       for (let i = colStart; i < colEnd; i++) {
         colWidth += this.hot.getColWidth(i);
       }
       
       let rowHeight = 0;
-      const rowStart = this.localRowIndex;
-      const rowEnd = this.localRowIndex + this.rowSpan;
+      const rowStart = this.rowIndex;
+      const rowEnd = this.rowIndex + this.rowSpan;
       for (let i = rowStart; i < rowEnd; i++) {
         rowHeight += this.hot.getRowHeight(i);
       }
@@ -131,7 +119,7 @@ export default {
       for (let i = 0; i < this.rowSpan; i++) {
         let height = 0;
         for (let j = 0; j < i; j++) {
-          height += this.hot.getRowHeight(j);
+          height += this.hot.getRowHeight(this.rowIndex + j);
         }
         
         if (i === 0 || i + 1 < this.rowSpan) {
@@ -148,7 +136,7 @@ export default {
         }
         
         const degree = this._computeDegree(colWidth, height);
-        const width = this.hot.getColWidth(this.localColIndex + (this.colSpan - 1));
+        const width = this.hot.getColWidth(this.colIndex + (this.colSpan - 1));
         const x = parseInt(colWidth - 30);
         
         slashes.push({
@@ -171,14 +159,14 @@ export default {
         let x = colWidth;
         
         if (this.colSpan > 1) {
-          x -= this.hot.getColWidth(this.localColIndex + (this.colSpan - 1));
+          x -= this.hot.getColWidth(this.colIndex + (this.colSpan - 1));
         } else {
           x -= parseInt(x / 5);
         }
         
         let y = rowHeight;
         if (this.rowSpan > 1) {
-          y -= parseInt(this.hot.getRowHeight(this.localRowIndex + (this.rowSpan - 1)) / 2) + 5;
+          y -= parseInt(this.hot.getRowHeight(this.rowIndex + (this.rowSpan - 1)) / 2) + 5;
         } else {
           y -= parseInt(y / 2);
         }
@@ -196,7 +184,7 @@ export default {
       for (let i = 0; i < this.colSpan; i++) {
         let width = 0;
         for (let j = 0; j < i; j++) {
-          width += this.hot.getColWidth(j);
+          width += this.hot.getColWidth(this.colIndex + j);
         }
         
         let itemName = '项目' + index;
@@ -220,22 +208,18 @@ export default {
         index++;
       }
       
-      const cellDef = this.context.getCell(this.localRowIndex, this.localColIndex);
-      cellDef.value = {
+      // 更新 cellDef 中的 slashes 数据
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      const cellDefCopy = deepCopy(cellDef);
+      cellDefCopy.value = {
         slashes,
         type: 'slash'
       };
+      setCell(this.rowIndex, this.colIndex, cellDefCopy);
     },
     
-    doDraw(cellDef, rowIndex, colIndex) {
-      // 更新本地索引，而不是直接修改props
-      if (rowIndex !== null && rowIndex !== undefined) {
-        this.localRowIndex = rowIndex;
-      }
-      
-      if (colIndex !== null && colIndex !== undefined) {
-        this.localColIndex = colIndex;
-      }
+    doDraw() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
       
       const slashValue = cellDef.value;
       const cellStyle = cellDef.cellStyle;
@@ -247,13 +231,21 @@ export default {
       let index = 0;
       const container = this.$refs.container;
       
+      // 保存宽高值，防止被 Raphael 修改
+      const savedWidth = this.width;
+      const savedHeight = this.height;
+      
       // 清空容器
       while (container.firstChild) {
         container.removeChild(container.firstChild);
       }
       
-      // 创建Raphael实例
-      this.paper = Raphael(container, this.width, this.height);
+      // 设置容器尺寸，防止被 Raphael 影响
+      container.style.width = savedWidth + 'px';
+      container.style.height = savedHeight + 'px';
+      
+      // 创建 Raphael 实例
+      this.paper = Raphael(container, savedWidth, savedHeight);
       
       // 设置文字样式
       let fontStyle = cellStyle.fontSize + "pt " + (cellStyle.fontFamily ? cellStyle.fontFamily : "宋体");
@@ -277,55 +269,55 @@ export default {
         if (size > 0 && index >= size) {
           break;
         }
-        
+
         let h = 0;
         for (let j = 0; j <= i; j++) {
-          h += this.hot.getRowHeight(this.localRowIndex + j);
+          h += this.hot.getRowHeight(this.rowIndex + j);
         }
-        
-        if (size == 2) h = this.height;
-        
+
+        if (size == 2) h = savedHeight;
+
         if (index < size) {
-          this.paper.path("M0 0L" + this.width + " " + h).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
+          this.paper.path("M0 0L" + savedWidth + " " + h).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
         }
-        
+
         let slash = slashes[index];
         let text = this.paper.text(0, 0, slash.text).attr(textStyle);
         text.attr({
           transform: 'T' + slash.x + "," + slash.y + "R" + slash.degree
         });
-        
+
         index++;
       }
       
       // 绘制主斜线
       if (size === 0 || index < size) {
-        let h = this.height - (this.hot.getRowHeight(this.localRowIndex + (this.rowSpan - 1)))/3;
-        
+        let h = savedHeight - (this.hot.getRowHeight(this.rowIndex + (this.rowSpan - 1)))/3;
+
         if (index + 1 < size) {
-          if (size == 2) h = this.height;
-          this.paper.path("M0 0L" + this.width + " " + h).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
+          if (size == 2) h = savedHeight;
+          this.paper.path("M0 0L" + savedWidth + " " + h).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
         }
-        
+
         let slash = slashes[index];
         index++;
-        
+
         let text = this.paper.text(0, 0, slash.text).attr(textStyle);
         text.attr({
           transform: 'T' + slash.x + "," + slash.y + "R" + slash.degree
         });
-        
+
         if (size === 0 || index < size) {
-          let w = this.width - (this.hot.getColWidth(this.localColIndex + (this.colSpan - 1)))/3;
-          
+          let w = savedWidth - (this.hot.getColWidth(this.colIndex + (this.colSpan - 1)))/3;
+
           if (index + 1 < size) {
-            if (size == 2) w = this.width;
-            this.paper.path("M0 0L" + w + " " + this.height).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
+            if (size == 2) w = savedWidth;
+            this.paper.path("M0 0L" + w + " " + savedHeight).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
           }
-          
+
           slash = slashes[index];
           index++;
-          
+
           text = this.paper.text(0, 0, slash.text).attr(textStyle);
           text.attr({
             transform: 'T' + slash.x + "," + slash.y + "R" + slash.degree
@@ -338,36 +330,36 @@ export default {
         if (size > 0 && index >= size) {
           break;
         }
-        
+
         let w = 0;
         for (let j = 0; j <= i; j++) {
-          w += this.hot.getColWidth(this.localColIndex + j);
+          w += this.hot.getColWidth(this.colIndex + j);
         }
-        
-        if (size == 2) w = this.width;
-        
-        this.paper.path("M0 0L" + w + " " + this.height).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
-        
+
+        if (size == 2) w = savedWidth;
+
+        this.paper.path("M0 0L" + w + " " + savedHeight).attr({ stroke: this.rgbToHex(cellStyle.forecolor) });
+
         let slash = slashes[index];
         index++;
-        
+
         let text = this.paper.text(0, 0, slash.text).attr(textStyle);
         text.attr({
           transform: 'T' + slash.x + "," + slash.y + "R" + slash.degree
         });
       }
-      
+
       if (size === 0 || index < size) {
         let slash = slashes[index];
         index++;
-        
+
         let text = this.paper.text(0, 0, slash.text).attr(textStyle);
         text.attr({
           transform: 'T' + slash.x + "," + slash.y + "R" + slash.degree
         });
       }
-      
-      // 转换为PNG并保存base64数据
+
+      // 转换为 PNG 并保存 base64 数据
       const svg = container.querySelector('svg');
       if (svg) {
         saveSvgAsPng.svgAsPngUri(svg, { encoderOptions: 1 }, (base64Data) => {

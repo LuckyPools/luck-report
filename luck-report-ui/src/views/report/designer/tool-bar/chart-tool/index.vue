@@ -12,7 +12,10 @@
 import { undoManager, setDirty } from '@/utils/table.js';
 import Handsontable from 'handsontable';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import ButtonGroup from '@/components/button-group/index.vue';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'ChartTool',
@@ -20,9 +23,14 @@ export default {
     ButtonGroup
   },
   props: {
-    context: {
+    selectedCells: {
       type: Object,
-      required: true
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
     }
   },
   data() {
@@ -81,6 +89,22 @@ export default {
       ]
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
+  },
   methods: {
     // 检查是否有选中的单元格
     checkSelection() {
@@ -100,35 +124,40 @@ export default {
       const hot = this.context.hot;
       const selected = hot.getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
-      let cellDef = this.context.getCell(startRow, startCol);
-      let oldValue = cellDef.value, oldCellData = hot.getDataAtCell(startRow, startCol);
+      const cellDef = getCell(startRow, startCol);
+      const oldValue = cellDef.value;
+      const oldCellData = hot.getDataAtCell(startRow, startCol);
 
+      const newCellDef = deepCopy(cellDef);
       hot.setDataAtCell(startRow, startCol, '');
-      cellDef.value = {
+      newCellDef.value = {
         type: 'chart',
         chart: this.newChart(category)
       };
+      setCell(startRow, startCol, newCellDef );
       hot.render();
       setDirty();
       Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
 
       undoManager.add({
         redo: () => {
-          cellDef = this.context.getCell(startRow, startCol);
-          oldValue = cellDef.value;
-          oldCellData = hot.getDataAtCell(startRow, startCol);
+          const currentCellDef = getCell(startRow, startCol);
+          const redoNewCellDef = deepCopy(currentCellDef);
           hot.setDataAtCell(startRow, startCol, '');
-          cellDef.value = {
+          redoNewCellDef.value = {
             type: 'chart',
             chart: this.newChart(category)
           };
+          setCell(startRow, startCol, redoNewCellDef );
           hot.render();
           setDirty();
           Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
         },
         undo: () => {
-          cellDef = this.context.getCell(startRow, startCol);
-          cellDef.value = oldValue;
+          const undoCellDef = getCell(startRow, startCol);
+          const undoNewCellDef = deepCopy(undoCellDef);
+          undoNewCellDef.value = oldValue;
+          setCell(startRow,startCol, undoNewCellDef);
           hot.setDataAtCell(startRow, startCol, oldCellData);
           hot.render();
           setDirty();
@@ -157,14 +186,12 @@ export default {
       // 检查第一个单元格是否包含图表
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
-          // 如果单元格包含图表，可以在这里更新状态
-          // 目前图表工具没有状态需要更新，但保留此方法以保持一致性
           break;
         }
         break;

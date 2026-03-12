@@ -50,19 +50,44 @@ export default {
     UDialog,
     UInput
   },
-  emits: ['saveAfter'],
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    paramItem: {
+      type: Object,
+      default: null
+    },
+    operation: {
+      type: String,
+      default: 'add'
+    }
+  },
+  emits: ['saveAfter', 'update:visible'],
   data() {
     return {
-      visible: false,
       name: '',
       value: '',
-      operation: '',
-      paramItem: null
+      localParamItem: null
     };
   },
   computed: {
     title() {
       return this.operation === 'add' ? this.$t('dialog.paramItem.add') : this.$t('dialog.paramItem.edit');
+    }
+  },
+  watch: {
+    visible(newVal) {
+      console.log('URLParameterItemDialog visible changed:', newVal);
+      if (newVal) {
+        this.name = this.paramItem?.name || '';
+        this.value = this.paramItem?.value || '';
+        this.localParamItem = this.paramItem ? { ...this.paramItem } : null;
+        this.$nextTick(() => {
+          console.log('URLParameterItemDialog after set name/value:', this.name, this.value);
+        });
+      }
     }
   },
   mounted() {
@@ -74,41 +99,32 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show(paramItem, operation) {
-      this.visible = true;
-      this.paramItem = paramItem;
-      this.name = paramItem.name || '';
-      this.value = paramItem.value || '';
-      this.operation = operation || 'add';
-    },
     handleOk() {
       if (this.name === '' || this.value === '') {
         showAlert(this.$t('dialog.paramItem.tip'));
         return;
       }
 
-      // 更新参数项
-      if (this.paramItem) {
-        this.paramItem.name = this.name;
-        this.paramItem.value = this.value;
+      // 更新本地参数项
+      if (this.localParamItem) {
+        this.localParamItem.name = this.name;
+        this.localParamItem.value = this.value;
       }
 
       // 发出saveAfter事件
       this.$emit('saveAfter', {
-        paramItem: this.paramItem,
+        paramItem: this.localParamItem,
         operation: this.operation
       });
 
       this.handleClose();
     },
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
 
       setTimeout(() => {
         this.name = '';
         this.value = '';
-        this.operation = '';
-        this.paramItem = null;
       }, 300);
     },
     // 键盘事件处理

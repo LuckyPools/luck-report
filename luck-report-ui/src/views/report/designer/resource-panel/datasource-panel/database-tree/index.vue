@@ -67,17 +67,32 @@
     </ul>
 
     <!-- SQL数据集对话框 -->
-    <SqlDatasetDialog ref="sqlDatasetDialog" @save="handleSqlDatasetSave"/>
+    <SqlDatasetDialog
+      :visible="sqlDatasetDialogVisible"
+      :db="currentDbInfo"
+      :datasetData="currentDatasetData"
+      @save="handleSqlDatasetSave"
+      @close="sqlDatasetDialogVisible = false"
+    />
 
     <!-- 数据源对话框 -->
     <DatasourceDialog
       ref="datasourceDialogRef"
+      :visible="datasourceDialogVisible"
       :datasources="datasources"
+      :datasource="currentDatasource"
+      @close="datasourceDialogVisible = false"
       @save="handleDatasourceSave"
     />
 
     <!-- 字段名输入对话框 -->
-    <FieldNameDialog ref="fieldNameDialog" @save="handleFieldNameSave" />
+    <FieldNameDialog
+      ref="fieldNameDialog"
+      :visible="fieldNameDialogVisible"
+      :dataset="currentDataset"
+      @save="handleFieldNameSave"
+      @close="fieldNameDialogVisible = false"
+    />
 
     <!-- 右键菜单 -->
     <ContextMenu ref="contextMenu" />
@@ -85,7 +100,6 @@
 </template>
 
 <script>
-
 import uuid from 'node-uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import SqlDatasetDialog from '@/views/report/designer/resource-panel/datasource-panel/sql-dataset-dialog/index.vue';
@@ -93,6 +107,9 @@ import DatasourceDialog from '@/views/report/designer/resource-panel/datasource-
 import FieldNameDialog from '../field-name-dialog/index.vue';
 import ContextMenu from '../context-menu/index.vue';
 import { buildJdbcFields } from '@/api/designer/index.js';
+import { deepCopy } from '@/components/utils/index.js';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'DatabaseTree',
@@ -110,10 +127,12 @@ export default {
     datasources: {
       type: Array,
       required: true
-    },
-    context: {
-      type: Object,
-      required: true
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
   data() {
@@ -129,7 +148,13 @@ export default {
       datasourceExpanded: true,
       datasetExpanded: {},
       contextMenus: {},
-      currentDataset: null
+      currentDataset: null,
+      datasourceDialogVisible: false,
+      currentDatasource: null,
+      fieldNameDialogVisible: false,
+      sqlDatasetDialogVisible: false,
+      currentDbInfo: null,
+      currentDatasetData: null
     };
   },
   mounted() {
@@ -183,7 +208,6 @@ export default {
      * 显示数据源右键菜单
      */
     showDatasourceContextMenu(event) {
-      console.log('showDatasourceContextMenu called', event);
       const items = [
         { key: 'add', name: this.$t('tree.addDataset'), icon: 'add' },
         { key: 'edit', name: this.$t('tree.edit'), icon: 'edit' },
@@ -191,9 +215,7 @@ export default {
       ];
 
       if (this.$refs.contextMenu) {
-        console.log('Showing context menu with items:', items);
         this.$refs.contextMenu.show(event, items, (key) => {
-          console.log('Menu item clicked:', key);
           if (key === 'add') {
             this.addDatasetAction();
           } else if (key === 'edit') {
@@ -211,7 +233,6 @@ export default {
      * 显示数据集右键菜单
      */
     showDatasetContextMenu(event, dataset, index) {
-      console.log('showDatasetContextMenu called', event, dataset, index);
       const items = [
         { key: 'add', name: this.$t('tree.addField'), icon: 'add' },
         { key: 'edit', name: this.$t('tree.edit'), icon: 'edit' },
@@ -220,9 +241,7 @@ export default {
       ];
 
       if (this.$refs.contextMenu) {
-        console.log('Showing dataset context menu with items:', items);
         this.$refs.contextMenu.show(event, items, (key) => {
-          console.log('Dataset menu item clicked:', key);
           if (key === 'add') {
             this.addFieldAction(dataset);
           } else if (key === 'edit') {
@@ -258,22 +277,15 @@ export default {
      * 编辑数据源操作
      */
     editDatasourceAction() {
-      this.$nextTick(() => {
-        if (this.$refs.datasourceDialogRef) {
-          // 显示对话框，传递当前数据源数据
-          this.$refs.datasourceDialogRef.show({
-            name: this.name,
-            username: this.username,
-            password: this.password,
-            driver: this.driver,
-            url: this.url,
-            type: this.type,
-            datasources: this.datasources
-          });
-        } else {
-          console.warn('DatasourceDialog reference not found');
-        }
-      });
+      this.currentDatasource = {
+        name: this.name,
+        username: this.username,
+        password: this.password,
+        driver: this.driver,
+        url: this.url,
+        type: this.type
+      };
+      this.datasourceDialogVisible = true;
     },
 
     /**
@@ -304,13 +316,8 @@ export default {
      * 添加字段操作
      */
     addFieldAction(dataset) {
-      let that = this;
       this.currentDataset = dataset;
-      this.$nextTick(() => {
-        if (that.$refs.fieldNameDialog) {
-          that.$refs.fieldNameDialog.show(dataset);
-        }
-      });
+      this.fieldNameDialogVisible = true;
     },
 
     /**
@@ -339,48 +346,34 @@ export default {
      * 添加数据集操作
      */
     addDatasetAction() {
-        this.$nextTick(() => {
-            if (this.$refs.sqlDatasetDialog) {
-                // 创建包含必要数据库信息的对象，而不是传递整个组件实例
-                const dbInfo = {
-                    name: this.name,
-                    username: this.username,
-                    password: this.password,
-                    driver: this.driver,
-                    url: this.url,
-                    type: this.type,
-                    datasources: this.datasources
-                };
-                this.$refs.sqlDatasetDialog.show(
-                    dbInfo,
-                    { parameters: [] }
-                );
-            }
-        });
+      this.currentDbInfo = {
+        name: this.name,
+        username: this.username,
+        password: this.password,
+        driver: this.driver,
+        url: this.url,
+        type: this.type,
+        datasources: this.datasources
+      };
+      this.currentDatasetData = { parameters: [] };
+      this.sqlDatasetDialogVisible = true;
     },
 
     /**
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-        this.$nextTick(() => {
-            if (this.$refs.sqlDatasetDialog) {
-                // 创建包含必要数据库信息的对象，而不是传递整个组件实例
-                const dbInfo = {
-                    name: this.name,
-                    username: this.username,
-                    password: this.password,
-                    driver: this.driver,
-                    url: this.url,
-                    type: this.type,
-                    datasources: this.datasources
-                };
-                this.$refs.sqlDatasetDialog.show(
-                    dbInfo,
-                    dataset
-                );
-            }
-        });
+      this.currentDbInfo = {
+        name: this.name,
+        username: this.username,
+        password: this.password,
+        driver: this.driver,
+        url: this.url,
+        type: this.type,
+        datasources: this.datasources
+      };
+      this.currentDatasetData = dataset;
+      this.sqlDatasetDialogVisible = true;
     },
 
     /**
@@ -460,7 +453,6 @@ export default {
      * 参数 name 是数据集的 name，this.name 是数据源的 name
      */
     handleSqlDatasetSave(name, oldName, sql, parameters) {
-      // 创建新的数据源对象，避免直接修改 props
       const datasourceData = {
         name: this.name,
         oldName: this.name,
@@ -490,7 +482,7 @@ export default {
     },
 
     /**
-     * 构建点击事件（从BaseTree继承）
+     * 构建点击事件（从 BaseTree 继承）
      */
     _buildClickEvent(dataset, field, context) {
       const hot = context.hot;
@@ -504,23 +496,24 @@ export default {
 
       const rowIndex = selected[0];
       const colIndex = selected[1];
-      let cellDef = context.getCell(rowIndex, colIndex);
+      const cellDef = getCell(rowIndex, colIndex);
 
-      const oldCellDef = Object.assign({}, cellDef);
+      const oldCellDef = deepCopy(cellDef);
 
+      let newCellDef;
       if (cellDef.value.type !== 'dataset') {
-        context.removeCell(cellDef);
-        cellDef = {
+        newCellDef = {
           value: { type: 'dataset', conditions: [] },
           rowNumber: cellDef.rowNumber,
           columnNumber: cellDef.columnNumber,
           cellStyle: cellDef.cellStyle
         };
-        context.addCell(cellDef);
+      } else {
+        newCellDef = deepCopy(cellDef);
       }
 
-      cellDef.expand = 'Down';
-      const value = cellDef.value;
+      newCellDef.expand = 'Down';
+      const value = newCellDef.value;
       value.aggregate = 'group';
       value.datasetName = dataset.name;
       value.property = field.name;
@@ -529,6 +522,8 @@ export default {
       let text = value.datasetName + '.' + value.aggregate + '(';
       const prop = value.property;
       text += prop + ')';
+
+      setCell( rowIndex, colIndex, newCellDef )
       hot.setDataAtCell(rowIndex, colIndex, text);
 
       // 设置脏标记
@@ -546,38 +541,38 @@ export default {
       // 添加到撤销管理器
       if (window.undoManager) {
         window.undoManager.add({
-          redo: function() {
-            cellDef = context.getCell(rowIndex, colIndex);
-            if (cellDef.value.type !== 'dataset') {
-              context.removeCell(cellDef);
-              cellDef = {
+          redo: () => {
+            const currentCellDef = getCell(rowIndex, colIndex);
+            let redoCellDef;
+            if (currentCellDef.value.type !== 'dataset') {
+              redoCellDef = {
                 value: { type: 'dataset', conditions: [] },
-                rowNumber: cellDef.rowNumber,
-                columnNumber: cellDef.columnNumber,
-                cellStyle: cellDef.cellStyle
+                rowNumber: currentCellDef.rowNumber,
+                columnNumber: currentCellDef.columnNumber,
+                cellStyle: currentCellDef.cellStyle
               };
-              context.addCell(cellDef);
+            } else {
+              redoCellDef = deepCopy(currentCellDef);
             }
-            cellDef.expand = 'Down';
-            const value = cellDef.value;
-            value.aggregate = 'group';
-            value.datasetName = dataset.name;
-            value.property = field.name;
-            value.order = 'none';
+            redoCellDef.expand = 'Down';
+            const redoValue = redoCellDef.value;
+            redoValue.aggregate = 'group';
+            redoValue.datasetName = dataset.name;
+            redoValue.property = field.name;
+            redoValue.order = 'none';
 
-            let text = value.datasetName + '.' + value.aggregate + '(';
-            text += value.property + ')';
-            hot.setDataAtCell(rowIndex, colIndex, text);
+            let redoText = redoValue.datasetName + '.' + redoValue.aggregate + '(';
+            redoText += redoValue.property + ')';
+            setCell(rowIndex, colIndex, redoCellDef );
+            hot.setDataAtCell(rowIndex, colIndex, redoText);
             if (window.setDirty) window.setDirty();
             hot.render();
             if (window.Handsontable && window.Handsontable.hooks) {
               window.Handsontable.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
             }
           },
-          undo: function() {
-            cellDef = context.getCell(rowIndex, colIndex);
-            context.removeCell(cellDef);
-            context.addCell(oldCellDef);
+          undo: () => {
+            setCell(rowIndex, colIndex, oldCellDef);
             const value = oldCellDef.value;
             let text = value.value || '';
             if (value.type === 'dataset') {

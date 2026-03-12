@@ -23,7 +23,7 @@
           style="margin-left: -16px;"
         >
           <li
-            v-for="(dataset, index) in localDatasets"
+            v-for="(dataset, index) in datasets"
             :key="dataset.name + '_' + index"
           >
             <!-- 数据集节点 -->
@@ -67,10 +67,22 @@
     </ul>
 
     <!-- SQL数据集对话框 -->
-    <SqlDatasetDialog ref="sqlDatasetDialog" @save="handleSqlDatasetSave"/>
+    <SqlDatasetDialog
+      :visible="sqlDatasetDialogVisible"
+      :db="currentDbInfo"
+      :datasetData="currentDatasetData"
+      @save="handleSqlDatasetSave"
+      @close="sqlDatasetDialogVisible = false"
+    />
 
     <!-- 字段名输入对话框 -->
-    <FieldNameDialog ref="fieldNameDialog" @save="handleFieldNameSave" />
+    <FieldNameDialog
+      ref="fieldNameDialog"
+      :visible="fieldNameDialogVisible"
+      :dataset="currentDataset"
+      @save="handleFieldNameSave"
+      @close="fieldNameDialogVisible = false"
+    />
 
     <!-- 右键菜单 -->
     <ContextMenu ref="contextMenu" />
@@ -80,10 +92,13 @@
 <script>
 import uuid from 'node-uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import SqlDatasetDialog from '@/views/report/designer/resource-panel/datasource-panel/sql-dataset-dialog/index.vue';
 import FieldNameDialog from '../field-name-dialog/index.vue';
 import ContextMenu from '../context-menu/index.vue';
 import { buildFields } from '@/api/designer/index.js';
+import { mapGetters } from 'vuex';
+import {addCell, getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'BuildinTree',
@@ -100,14 +115,12 @@ export default {
     datasets: {
       type: Array,
       default: () => []
-    },
-    datasources: {
-      type: Array,
-      required: true
-    },
-    context: {
-      type: Object,
-      required: true
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
   data() {
@@ -115,36 +128,19 @@ export default {
         id: 'buildin_' + uuid.v1(),
         datasourceExpanded: true,
         datasetExpanded: {},
-        localDatasets: [],
-        currentDataset: null
+        currentDataset: null,
+        fieldNameDialogVisible: false,
+        sqlDatasetDialogVisible: false,
+        currentDbInfo: null,
+        currentDatasetData: null
       };
   },
   created() {
-    // 初始化本地数据集副本
-    this.localDatasets = this.datasets ? [...this.datasets] : [];
-
     // 初始化数据集展开状态
-    if (this.localDatasets && this.localDatasets.length > 0) {
-      for (let i = 0; i < this.localDatasets.length; i++) {
+    if (this.datasets && this.datasets.length > 0) {
+      for (let i = 0; i < this.datasets.length; i++) {
         this.$set(this.datasetExpanded, i, true);
       }
-    }
-  },
-  watch: {
-    datasets: {
-      handler(newVal) {
-        // 当父组件更新 datasets 时，更新本地副本
-        this.localDatasets = newVal ? [...newVal] : [];
-
-        // 更新数据集展开状态
-        this.datasetExpanded = {};
-        if (this.localDatasets && this.localDatasets.length > 0) {
-          for (let i = 0; i < this.localDatasets.length; i++) {
-            this.$set(this.datasetExpanded, i, true);
-          }
-        }
-      },
-      deep: true
     }
   },
   methods: {
@@ -192,21 +188,12 @@ export default {
      * 添加数据集操作
      */
     addDatasetAction() {
-      let that = this;
-      this.$nextTick(() => {
-        if (that.$refs.sqlDatasetDialog) {
-          // 创建包含 type 和 name 属性的对象
-          const dbInfo = {
-            type: 'buildin',
-            name: that.name
-          };
-
-          that.$refs.sqlDatasetDialog.show(
-            dbInfo,
-            { parameters: [] }
-          );
-        }
-      });
+      this.currentDbInfo = {
+        type: 'buildin',
+        name: this.name
+      };
+      this.currentDatasetData = { parameters: [] };
+      this.sqlDatasetDialogVisible = true;
     },
 
     /**
@@ -255,13 +242,8 @@ export default {
      * 添加字段操作
      */
     addFieldAction(dataset) {
-      let that = this;
       this.currentDataset = dataset;
-      this.$nextTick(() => {
-        if (that.$refs.fieldNameDialog) {
-          that.$refs.fieldNameDialog.show(dataset);
-        }
-      });
+      this.fieldNameDialogVisible = true;
     },
 
     /**
@@ -273,16 +255,25 @@ export default {
           dataset.fields = [];
         }
 
-        // 检查字段是否已存在
-        const exists = dataset.fields.some(field => field.name === fieldName);
+        const newDatasets = deepCopy(this.datasets);
+        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        if (!targetDataset.fields) {
+          targetDataset.fields = [];
+        }
+
+        const exists = targetDataset.fields.some(field => field.name === fieldName);
         if (exists) {
           showAlert(this.$t('tree.fieldExist'));
           return;
         }
 
         const field = { name: fieldName };
-        dataset.fields.push(field);
-        this.$forceUpdate();
+        targetDataset.fields.push(field);
+        this.$emit('update-datasource', {
+          name: this.name,
+          oldName: this.name,
+          datasets: newDatasets
+        });
       }
     },
 
@@ -290,21 +281,12 @@ export default {
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-        let that = this;
-      this.$nextTick(() => {
-        if (that.$refs.sqlDatasetDialog) {
-          // 创建包含 type 和 name 属性的对象
-          const dbInfo = {
-            type: 'buildin',
-            name: that.name
-          };
-
-            that.$refs.sqlDatasetDialog.show(
-                dbInfo,
-                dataset
-            );
-        }
-      });
+      this.currentDbInfo = {
+        type: 'buildin',
+        name: this.name
+      };
+      this.currentDatasetData = dataset;
+      this.sqlDatasetDialogVisible = true;
     },
 
     /**
@@ -312,8 +294,14 @@ export default {
      */
     deleteDatasetAction(dataset, index) {
       showConfirm(`${this.$t('tree.delDatasetConfirm')}[${dataset.name}]?`).then(() => {
-        this.localDatasets.splice(index, 1);
+        const newDatasets = deepCopy(this.datasets);
+        newDatasets.splice(index, 1);
         this.$delete(this.datasetExpanded, index);
+        this.$emit('update-datasource', {
+          name: this.name,
+          oldName: this.name,
+          datasets: newDatasets
+        });
       });
     },
 
@@ -354,9 +342,15 @@ export default {
     deleteFieldAction(dataset, field, fieldIndex) {
       let that = this;
       showConfirm(`${this.$t('tree.delFieldConfirm')}[${field.name}]？`).then(() => {
-        if (dataset.fields) {
-          dataset.fields.splice(fieldIndex, 1);
-          that.$forceUpdate();
+        const newDatasets = deepCopy(this.datasets);
+        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        if (targetDataset && targetDataset.fields) {
+          targetDataset.fields.splice(fieldIndex, 1);
+          that.$emit('update-datasource', {
+            name: that.name,
+            oldName: that.name,
+            datasets: newDatasets
+          });
         }
       });
     },
@@ -375,12 +369,9 @@ export default {
       const defaultFields = dataset.fields;
 
       if (defaultFields) {
-        // 如果已有字段，直接使用
-        this.$forceUpdate();
         return;
       }
 
-      // 准备参数
       const parameters = {
         sql: dataset.sql,
         parameters: JSON.stringify(dataset.parameters),
@@ -390,9 +381,16 @@ export default {
 
       try {
         const fields = await buildFields(parameters);
-        // 更新数据集字段
-        this.$set(dataset, 'fields', fields);
-        this.$forceUpdate();
+        const newDatasets = deepCopy(this.datasets);
+        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        if (targetDataset) {
+          targetDataset.fields = fields;
+          this.$emit('update-datasource', {
+            name: this.name,
+            oldName: this.name,
+            datasets: newDatasets
+          });
+        }
       } catch (error) {
         if (error.message) {
           showAlert("服务端错误：" + error.message);
@@ -415,23 +413,18 @@ export default {
       }
 
       let rowIndex = selected[0], colIndex = selected[1];
-      let cellDef = context.getCell(rowIndex, colIndex);
-
-      let oldCellDef = Object.assign({}, cellDef);
+      let cellDef = getCell(rowIndex, colIndex);
 
       if (cellDef.value.type !== 'dataset') {
-        context.removeCell(cellDef);
-        cellDef = {
-          value: { type: 'dataset', conditions: [] },
-          rowNumber: cellDef.rowNumber,
-          columnNumber: cellDef.columnNumber,
-          cellStyle: cellDef.cellStyle
-        };
-        context.addCell(cellDef);
+        let newCellDef = deepCopy(cellDef);
+        newCellDef.value = { type: 'dataset', conditions: [] };
+        addCell( newCellDef );
+        cellDef = newCellDef;
       }
 
-      cellDef.expand = "Down";
-      let value = cellDef.value;
+      let newCellDef = deepCopy(cellDef);
+      newCellDef.expand = "Down";
+      let value = newCellDef.value;
       value.aggregate = "group";
       value.datasetName = dataset.name;
       value.property = field.name;
@@ -442,11 +435,10 @@ export default {
       text += prop + ')';
       hot.setDataAtCell(rowIndex, colIndex, text);
 
-      // 触发相关事件
-      hot.render();
-      // 这里省略了 undoManager 相关代码，因为 Vue 组件中通常使用 Vuex 管理状态
+      setCell(rowIndex, colIndex, newCellDef );
 
-      // 触发选择结束事件
+      hot.render();
+
       if (hot.hooks) {
         hot.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
       }
@@ -457,29 +449,25 @@ export default {
      * 参数 name 是数据集的 name，this.name 是数据源的 name
      */
     handleSqlDatasetSave(name, oldName, sql, parameters) {
-      // 创建数据源对象用于通知父组件更新
-      const datasourceData = {
-        name: this.name,
-        oldName: this.name,
-        datasets: this.localDatasets.map(dataset => ({ ...dataset }))
-      };
+      const newDatasets = deepCopy(this.datasets);
 
-      // 查找正在编辑的数据集
-      let dataset = datasourceData.datasets.find(dataset => dataset.name === oldName);
+      let dataset = newDatasets.find(dataset => dataset.name === oldName);
       if (dataset) {
-        // 编辑现有数据集
         dataset.name = name;
         dataset.sql = sql;
         dataset.parameters = parameters;
         dataset.fields = null;
       } else {
-        // 添加新数据集
         dataset = { name, sql, parameters };
-        datasourceData.datasets.push(dataset);
+        newDatasets.push(dataset);
       }
-      // 通过事件通知父组件更新数据源
-      this.$emit('update-datasource', datasourceData);
-      this.buildFields(dataset, );
+
+      this.$emit('update-datasource', {
+        name: this.name,
+        oldName: this.name,
+        datasets: newDatasets
+      });
+      this.buildFields(dataset);
     },
   }
 };

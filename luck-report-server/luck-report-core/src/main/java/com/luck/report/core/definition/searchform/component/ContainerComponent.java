@@ -24,6 +24,7 @@ import java.util.List;
 public abstract class ContainerComponent implements Component {
     protected List<Component> children;
     private String tag;
+    private String tagIcon;
 
     @Override
     public String getType() {
@@ -48,5 +49,13 @@ public abstract class ContainerComponent implements Component {
 
     public void setTag(String tag) {
         this.tag = tag;
+    }
+
+    public String getTagIcon() {
+        return tagIcon;
+    }
+
+    public void setTagIcon(String tagIcon) {
+        this.tagIcon = tagIcon;
     }
 }

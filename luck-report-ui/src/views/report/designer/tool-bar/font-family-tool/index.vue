@@ -13,7 +13,10 @@
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import ButtonGroup from '@/components/button-group/index.vue';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'FontFamilyTool',
@@ -21,9 +24,14 @@ export default {
     ButtonGroup
   },
   props: {
-    context: {
+    selectedCells: {
       type: Object,
-      required: true
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
     }
   },
   data() {
@@ -44,6 +52,10 @@ export default {
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
     menuItems() {
       return this.fontFamilies.map(font => ({
         text: font,
@@ -51,7 +63,18 @@ export default {
       }));
     }
   },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
+  },
   methods: {
+
     // 检查是否有选中的单元格
     checkSelection() {
       const selected = this.context.hot.getSelected();
@@ -71,7 +94,6 @@ export default {
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -103,20 +125,24 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
-          oldFontFamily[i + ',' + j] = cellStyle.fontFamily;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
+          oldFontFamily[i + ',' + j] = newCellDef.cellStyle.fontFamily;
           cellStyle.fontFamily = fontFamily;
+          setCell( i, j, newCellDef );
+
+          // 更新工具状态为第一个单元格的字体
+          if (i === startRow && j === startCol) {
+            this.currentFontFamily = fontFamily;
+          }
         }
       }
-
-      // 更新当前显示的字体
-      this.currentFontFamily = fontFamily;
 
       return oldFontFamily;
     },
@@ -124,16 +150,18 @@ export default {
     restoreFontFamily(startRow, startCol, endRow, endCol, oldFontFamily) {
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           cellStyle.fontFamily = oldFontFamily[i + ',' + j];
+          setCell( i, j, newCellDef );
 
-          // 更新当前显示的字体为第一个单元格的字体
+          // 更新工具状态为第一个单元格的字体
           if (i === startRow && j === startCol) {
             this.currentFontFamily = cellStyle.fontFamily || "宋体";
           }
@@ -142,7 +170,6 @@ export default {
     },
     // 刷新工具状态
     refresh(startRow, startCol, endRow, endCol) {
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -153,7 +180,7 @@ export default {
       // 获取第一个单元格的字体
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;

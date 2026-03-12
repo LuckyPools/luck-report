@@ -49,7 +49,13 @@
     </div>
 
     <!-- URL参数项对话框 -->
-    <URLParameterItemDialog ref="urlParameterItemDialog" @saveAfter="handleSaveAfter" />
+    <URLParameterItemDialog
+      :visible="itemDialogVisible"
+      :param-item="currentParamItem"
+      :operation="currentOperation"
+      @update:visible="val => itemDialogVisible = val"
+      @saveAfter="handleSaveAfter"
+    />
 
   </UDialog>
 </template>
@@ -67,10 +73,22 @@ export default {
     UDialog,
     URLParameterItemDialog
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    parameters: {
+      type: Array,
+      default: () => []
+    }
+  },
+  emits: ['update:visible', 'saveAfter', 'parameters-change'],
   data() {
     return {
-      visible: false,
-      parameters: []
+      itemDialogVisible: false,
+      currentParamItem: null,
+      currentOperation: 'add'
     };
   },
   computed: {
@@ -87,35 +105,36 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show(parameters) {
-      this.visible = true;
-      this.parameters = parameters;
-    },
     handleAdd() {
-      const param = { name: '', value: '' };
-      this.$refs.urlParameterItemDialog.show(param, 'add');
+      this.currentParamItem = { name: '', value: '' };
+      this.currentOperation = 'add';
+      this.itemDialogVisible = true;
     },
     handleEdit(param) {
-      this.$refs.urlParameterItemDialog.show(param, 'edit');
+      this.currentParamItem = param;
+      this.currentOperation = 'edit';
+      this.itemDialogVisible = true;
     },
     handleSaveAfter({ paramItem, operation }) {
       if (operation === 'add') {
-        this.parameters.push(paramItem);
+        this.$emit('parameters-change', [...this.parameters, paramItem]);
+      } else if (operation === 'edit' && this.currentParamItem) {
+        this.currentParamItem.name = paramItem.name;
+        this.currentParamItem.value = paramItem.value;
+        this.$emit('parameters-change', [...this.parameters]);
       }
+      this.$emit('saveAfter', { paramItem, operation });
     },
     handleDelete(param, index) {
       let that = this;
       showConfirm(this.$t('dialog.urlParam.delTip')).then(() => {
-        that.parameters.splice(index, 1);
+        const newParameters = [...this.parameters];
+        newParameters.splice(index, 1);
+        this.$emit('parameters-change', newParameters);
       });
     },
     handleClose() {
-      this.visible = false;
-
-      // 清理数据
-      setTimeout(() => {
-        this.parameters = [];
-      }, 300); // 等待动画完成
+      this.$emit('update:visible', false);
     },
     handleKeydown(e) {
       if (this.visible) {

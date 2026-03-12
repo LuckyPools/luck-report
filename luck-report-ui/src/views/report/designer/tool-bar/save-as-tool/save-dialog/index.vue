@@ -21,7 +21,7 @@
         <label>{{ $t('dialog.save.source') }}：</label>
         <div class="u-inline">
           <u-select
-            :value="selectedProvider"
+            v-model="selectedProvider"
             style="width:450px;"
             @change="handleProviderChange"
           >
@@ -93,7 +93,7 @@
 </template>
 
 <script>
-import { formatDate, resetDirty } from '@/utils/table.js';
+import { formatDate, resetDirty, tableToXml } from '@/utils/table.js';
 import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
@@ -101,6 +101,7 @@ import { saveReportFile, deleteReportFile, loadReportProviders, loadReportProvid
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'SaveDialog',
@@ -111,22 +112,29 @@ export default {
     UOption,
     UInput
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
   data() {
     return {
-      visible: false,
       fileName: '',
       selectedProvider: '',
       providers: [],
       reportFilesData: {},
       currentReportFiles: [],
       currentProviderPrefix: '',
-      content: '',
-      context: null,
       currentPath: '',
       pathHistory: []
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
     // 为USelect组件准备的提供者选项
     providerOptions() {
       return this.providers.map(provider => ({
@@ -138,6 +146,13 @@ export default {
       return this.pathHistory.length > 0;
     }
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.loadReports();
+      }
+    }
+  },
   mounted() {
     // 添加键盘事件监听
     document.addEventListener('keydown', this.handleKeydown);
@@ -147,21 +162,6 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show(content, context) {
-      this.visible = true;
-      this.content = content;
-      this.context = context;
-      this.fileName = '';
-      this.selectedProvider = '';
-      this.currentReportFiles = [];
-      this.reportFilesData = {};
-      this.currentPath = '';
-      this.pathHistory = [];
-
-      // 加载报表提供者
-      this.loadReports();
-    },
-
     loadReports() {
       loadReportProviders()
         .then(response => {
@@ -239,8 +239,7 @@ export default {
     },
 
     // 处理提供者变化的方法
-    handleProviderChange(value) {
-      this.selectedProvider = value;
+    handleProviderChange() {
       this.currentPath = '';
       this.pathHistory = [];
       this.onProviderChange();
@@ -316,10 +315,11 @@ export default {
 
         let filePath = this.currentPath ? this.currentPath + '/' + this.fileName : this.fileName;
         const fullFileName = this.currentProviderPrefix + filePath + ".ureport.xml";
+        const content = tableToXml(this.context);
         let that = this;
-        saveReportFile(fullFileName, this.content)
+        saveReportFile(fullFileName, content)
           .then(() => {
-            that.$store.dispatch('report/setIsSaved', true);
+            that.$store.dispatch('report/setSaveStatus', true);
             that.$store.dispatch('report/setFileName', fullFileName);
             resetDirty();
             showAlert(this.$t('dialog.save.success')).then(() => {
@@ -338,13 +338,12 @@ export default {
     },
 
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
       setTimeout(() => {
         this.fileName = '';
         this.selectedProvider = '';
         this.currentReportFiles = [];
         this.content = '';
-        this.context = null;
         this.currentPath = '';
         this.pathHistory = [];
       }, 300);

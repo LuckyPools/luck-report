@@ -3,11 +3,10 @@
       :title="$t('setting')"
       class="tool-button"
       icon="icon-settings"
-      @click="execute"
+      @click="handleClick"
   >
     <SettingsDialog
         :visible="dialogVisible"
-        :context="context"
         @close="handleDialogClose"
         @ok="handleDialogOk"
     />
@@ -24,20 +23,13 @@ export default {
     UButton,
     SettingsDialog
   },
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
-  },
   data() {
     return {
       dialogVisible: false
     };
   },
   methods: {
-    execute() {
-      // 直接显示对话框，不需要通过中间的JS类
+    handleClick() {
       this.dialogVisible = true;
     },
     handleDialogClose() {

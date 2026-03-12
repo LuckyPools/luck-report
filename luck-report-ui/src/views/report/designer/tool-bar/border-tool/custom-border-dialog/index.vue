@@ -3,7 +3,7 @@
     :title="$t('tools.border.customBorderLine')"
     width="400px"
     :visible="visible"
-    @close="handleClose"
+    @close="$emit('close')"
   >
     <div class="border-config-container">
       <!-- 选项卡导航 -->
@@ -22,7 +22,7 @@
             <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="topBorder.style"
+                v-model="localTopBorder.style"
               >
                 <u-option
                   v-for="option in lineStyleOptions"
@@ -37,7 +37,7 @@
             <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="topBorder.width"
+                v-model="localTopBorder.width"
               >
                 <u-option
                   v-for="option in lineWidthOptions"
@@ -50,7 +50,7 @@
           </div>
           <div class="form-group">
             <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="topBorder.color" />
+            <UColorPicker v-model="localTopBorder.color" />
           </div>
         </div>
 
@@ -60,7 +60,7 @@
             <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="bottomBorder.style"
+                v-model="localBottomBorder.style"
               >
                 <u-option
                   v-for="option in lineStyleOptions"
@@ -75,7 +75,7 @@
             <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="bottomBorder.width"
+                v-model="localBottomBorder.width"
               >
                 <u-option
                   v-for="option in lineWidthOptions"
@@ -88,7 +88,7 @@
           </div>
           <div class="form-group">
             <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="bottomBorder.color" :inline="true" />
+            <UColorPicker v-model="localBottomBorder.color" :inline="true" />
           </div>
         </div>
 
@@ -98,7 +98,7 @@
             <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="leftBorder.style"
+                v-model="localLeftBorder.style"
               >
                 <u-option
                   v-for="option in lineStyleOptions"
@@ -113,7 +113,7 @@
             <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="leftBorder.width"
+                v-model="localLeftBorder.width"
               >
                 <u-option
                   v-for="option in lineWidthOptions"
@@ -126,7 +126,7 @@
           </div>
           <div class="form-group">
             <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="leftBorder.color" :inline="true" />
+            <UColorPicker v-model="localLeftBorder.color" :inline="true" />
           </div>
         </div>
 
@@ -136,7 +136,7 @@
             <label>{{ $t('tools.border.lineStyle') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="rightBorder.style"
+                v-model="localRightBorder.style"
               >
                 <u-option
                   v-for="option in lineStyleOptions"
@@ -151,7 +151,7 @@
             <label>{{ $t('tools.border.size') }}：</label>
             <div class="u-inline">
               <u-select
-                v-model="rightBorder.width"
+                v-model="localRightBorder.width"
               >
                 <u-option
                   v-for="option in lineWidthOptions"
@@ -164,7 +164,7 @@
           </div>
           <div class="form-group">
             <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="rightBorder.color" :inline="true" />
+            <UColorPicker v-model="localRightBorder.color" :inline="true" />
           </div>
         </div>
       </div>
@@ -197,33 +197,62 @@ export default {
     USelect,
     UOption
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    topBorder: {
+      type: Object,
+      default: () => ({
+        style: 'solid',
+        width: 1,
+        color: '#000000'
+      })
+    },
+    bottomBorder: {
+      type: Object,
+      default: () => ({
+        style: 'solid',
+        width: 1,
+        color: '#000000'
+      })
+    },
+    leftBorder: {
+      type: Object,
+      default: () => ({
+        style: 'solid',
+        width: 1,
+        color: '#000000'
+      })
+    },
+    rightBorder: {
+      type: Object,
+      default: () => ({
+        style: 'solid',
+        width: 1,
+        color: '#000000'
+      })
+    }
+  },
   data() {
     return {
-      visible: false,
       activeTab: 'top',
-      context: null,
-      // 边框配置
-      topBorder: {
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      },
-      bottomBorder: {
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      },
-      leftBorder: {
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      },
-      rightBorder: {
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      }
+      localTopBorder: { style: 'solid', width: 1, color: '#000000' },
+      localBottomBorder: { style: 'solid', width: 1, color: '#000000' },
+      localLeftBorder: { style: 'solid', width: 1, color: '#000000' },
+      localRightBorder: { style: 'solid', width: 1, color: '#000000' }
     };
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.localTopBorder = { ...this.topBorder };
+        this.localBottomBorder = { ...this.bottomBorder };
+        this.localLeftBorder = { ...this.leftBorder };
+        this.localRightBorder = { ...this.rightBorder };
+      }
+    }
   },
   computed: {
     // 线型选项
@@ -243,63 +272,22 @@ export default {
     }
   },
   methods: {
-    show(context, topBorderStyle, bottomBorderStyle, leftBorderStyle, rightBorderStyle) {
-      this.context = context;
-
-      // 加载传入的边框样式
-      if (topBorderStyle) {
-        this.topBorder = { ...topBorderStyle };
-        // 如果颜色是RGB格式，转换为十六进制
-        if (typeof this.topBorder.color === 'string' && this.topBorder.color.includes(',')) {
-          const rgb = this.topBorder.color.split(',');
-          this.topBorder.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
-        }
-      }
-
-      if (bottomBorderStyle) {
-        this.bottomBorder = { ...bottomBorderStyle };
-        if (typeof this.bottomBorder.color === 'string' && this.bottomBorder.color.includes(',')) {
-          const rgb = this.bottomBorder.color.split(',');
-          this.bottomBorder.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
-        }
-      }
-
-      if (leftBorderStyle) {
-        this.leftBorder = { ...leftBorderStyle };
-        if (typeof this.leftBorder.color === 'string' && this.leftBorder.color.includes(',')) {
-          const rgb = this.leftBorder.color.split(',');
-          this.leftBorder.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
-        }
-      }
-
-      if (rightBorderStyle) {
-        this.rightBorder = { ...rightBorderStyle };
-        if (typeof this.rightBorder.color === 'string' && this.rightBorder.color.includes(',')) {
-          const rgb = this.rightBorder.color.split(',');
-          this.rightBorder.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
-        }
-      }
-
-      this.visible = true;
-    },
     handleClose() {
-      this.visible = false;
+      this.$emit('close');
     },
     handleOk() {
-      // 转换颜色格式为RGB
-      const topBorder = { ...this.topBorder };
-      const bottomBorder = { ...this.bottomBorder };
-      const leftBorder = { ...this.leftBorder };
-      const rightBorder = { ...this.rightBorder };
+      const topBorder = { ...this.localTopBorder };
+      const bottomBorder = { ...this.localBottomBorder };
+      const leftBorder = { ...this.localLeftBorder };
+      const rightBorder = { ...this.localRightBorder };
 
-      topBorder.color = this.hexToRgb(this.topBorder.color);
-      bottomBorder.color = this.hexToRgb(this.bottomBorder.color);
-      leftBorder.color = this.hexToRgb(this.leftBorder.color);
-      rightBorder.color = this.hexToRgb(this.rightBorder.color);
+      topBorder.color = this.hexToRgb(this.localTopBorder.color);
+      bottomBorder.color = this.hexToRgb(this.localBottomBorder.color);
+      leftBorder.color = this.hexToRgb(this.localLeftBorder.color);
+      rightBorder.color = this.hexToRgb(this.localRightBorder.color);
 
-      this.$emit('saveAfter', this.context, topBorder, bottomBorder, leftBorder, rightBorder);
-
-      this.visible = false;
+      this.$emit('save', topBorder, bottomBorder, leftBorder, rightBorder);
+      this.$emit('close');
     },
     hexToRgb(hex) {
       // 如果已经是RGB格式，直接返回

@@ -1,9 +1,9 @@
 <template>
   <u-button
       type="info"
-      :title="$t('tools.underline.underline')"
+      :title="$t('underline')"
       class="info-button"
-      @click="execute"
+      @click="handleClick"
   >
     <i class="iconfont icon-font-underline" :style="{ color: isActive ? 'black' : '#666' }"></i>
   </u-button>
@@ -12,15 +12,23 @@
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import UButton from "@/components/button/index.vue";
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'UnderlineTool',
   components: {UButton},
   props: {
-    context: {
+    selectedCells: {
       type: Object,
-      required: true
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
     }
   },
   data() {
@@ -28,7 +36,24 @@ export default {
       isActive: false
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
+  },
   methods: {
+
     // 检查是否有选中的单元格
     checkSelection() {
       const selected = this.context.hot.getSelected();
@@ -39,7 +64,7 @@ export default {
       return true;
     },
     // 执行下划线操作
-    execute() {
+    handleClick() {
       if (!this.checkSelection()) {
         return;
       }
@@ -48,7 +73,6 @@ export default {
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -80,17 +104,17 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
-
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
-          oldUnderlineStyle[i + ',' + j] = cellStyle.underline;
-
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
+          oldUnderlineStyle[i + ',' + j] = newCellDef.cellStyle.underline;
           // 切换下划线状态
           cellStyle.underline = !cellStyle.underline;
+          setCell(i, j, newCellDef );
 
           // 更新工具状态为第一个单元格的下划线状态
           if (i === startRow && j === startCol) {
@@ -105,14 +129,15 @@ export default {
     restoreUnderlineStyle(startRow, startCol, endRow, endCol, oldUnderlineStyle) {
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
-
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           cellStyle.underline = oldUnderlineStyle[i + ',' + j];
+          setCell(i, j, newCellDef );
 
           // 更新工具状态为第一个单元格的下划线状态
           if (i === startRow && j === startCol) {
@@ -123,7 +148,6 @@ export default {
     },
     // 刷新工具状态
     refresh(startRow, startCol, endRow, endCol) {
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -134,7 +158,7 @@ export default {
       // 获取第一个单元格的下划线状态
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;

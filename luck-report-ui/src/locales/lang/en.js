@@ -175,7 +175,10 @@ const en = {
             "editTip":"Edit Selected Condition",
             "editConditionTip":"Please select condition for modify first！",
             "delTitle":"Delete Selected Condition",
-            "delConditionTip":"Please select condition for delete first！"
+            "delConditionTip":"Please select condition for delete first！",
+            "addGroup": "Add Group",
+            "deleteGroup": "Delete Group",
+            "editGroup": "Edit Group"
         },
         "datasource":{
             "title":"Datasource Config",
@@ -625,7 +628,8 @@ const en = {
             "op":"Operate",
             "realValueProp":"Key Property",
             "displayValueProp":"Value Property",
-            "bindDatasetTip":"Please select dataset first!"
+            "bindDatasetTip":"Please select dataset first!",
+            "addMappping": "Add Mappping"
         },
         "expr":{
             "expr":"Expression",
@@ -858,6 +862,7 @@ const en = {
         "componentProperties": "Component Properties",
         "formProperties": "Form Properties",
         "selectComponentType": "Please select component type",
+        "componentType": "Component Type",
         "fieldName": "Field Name",
         "enterFieldName": "Please enter field name (v-model)",
         "componentName": "Component Name",

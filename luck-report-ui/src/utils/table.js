@@ -4,6 +4,7 @@
 import UndoManager from 'undo-manager';
 import MessageBox from '@/components/messagebox/instance.js';
 import store from '@/store';
+import {getCell, getCellName} from "@/utils/contextActions";
 
 export function resetTableData(hot){
     const countCols=hot.countCols(),countRows=hot.countRows(),context=hot.context,data=[];
@@ -15,7 +16,7 @@ export function resetTableData(hot){
                 rowData.push("");
                 continue;
             }
-            let cellDef=context.getCell(i,j);
+            let cellDef= getCell(i,j);
             if(cellDef){
                 let valueType=cellDef.value.type,value=cellDef.value;
                 if(valueType==='dataset'){
@@ -83,11 +84,11 @@ export function tableToXml(context){
             if(spanData.indexOf(i+","+j)>-1){
                 continue;
             }
-            let cellDef=context.getCell(i,j);
+            let cellDef= getCell(i,j);
             if(!cellDef){
                 continue;
             }
-            let cellName=context.getCellName(i,j);
+            let cellName= getCellName(i,j);
             cellXml+=`<cell expand="${cellDef.expand}" name="${cellName}" row="${(i+1)}" col="${(j+1)}"`;
             if(cellDef.leftParentCellName && cellDef.leftParentCellName!==''){
                 cellXml+=` left-cell="${cellDef.leftParentCellName}"`;

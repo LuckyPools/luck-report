@@ -10,9 +10,8 @@
       <div class="form-group" v-show="showJoinGroup">
         <label>{{ $t('dialog.condition.relationship') }}：</label>
         <u-select
-          :value="joinValue"
+          v-model="joinValue"
           :clearable="true"
-          @change="handleJoinChange"
         >
           <u-option
             v-for="option in joinOptions"
@@ -26,9 +25,8 @@
       <div class="form-group">
         <label>{{ $t('dialog.condition.propertyName') }}：</label>
         <u-select
-          :value="propertyValue"
+          v-model="propertyValue"
           :clearable="true"
-          @change="handlePropertyChange"
         >
           <u-option
             v-for="option in propertyOptions"
@@ -42,9 +40,8 @@
       <div class="form-group">
         <label>{{ $t('dialog.condition.op') }}：</label>
         <u-select
-          :value="operatorValue"
+          v-model="operatorValue"
           :clearable="true"
-          @change="handleOperatorChange"
         >
           <u-option
             v-for="option in operatorOptions"
@@ -93,18 +90,63 @@ export default {
     UButton,
     UInput
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    fields: {
+      type: Array,
+      default: () => []
+    },
+    condition: {
+      type: Object,
+      default: null
+    },
+    conditions: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
-      visible: false,
       showJoinGroup: false,
-      fields: [],
       joinValue: 'and',
       propertyValue: '',
       operatorValue: '==',
-      valueExpr: '',
-      condition: null,
-      conditions: []
+      valueExpr: ''
     };
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.initDialogData();
+      }
+    },
+    condition: {
+      handler() {
+        if (this.visible) {
+          this.initDialogData();
+        }
+      },
+      deep: true
+    },
+    fields: {
+      handler() {
+        if (this.visible) {
+          this.initDialogData();
+        }
+      },
+      deep: true
+    },
+    conditions: {
+      handler() {
+        if (this.visible) {
+          this.initDialogData();
+        }
+      },
+      deep: true
+    }
   },
   computed: {
     // 关系选项
@@ -136,22 +178,9 @@ export default {
     }
   },
   methods: {
-    // 处理关系选择变化
-    handleJoinChange(value) {
-      this.joinValue = value;
-    },
-    // 处理属性选择变化
-    handlePropertyChange(value) {
-      this.propertyValue = value;
-    },
-    // 处理操作符选择变化
-    handleOperatorChange(value) {
-      this.operatorValue = value;
-    },
-    show(fields, condition) {
-      this.visible = true;
-      this.fields = fields || [];
-      this.condition = condition;
+    initDialogData() {
+      const fields = this.fields || [];
+      const condition = this.condition;
 
       // 设置是否显示关系选择组
       if (condition) {
@@ -201,11 +230,7 @@ export default {
       this.handleClose();
     },
     handleClose() {
-      this.visible = false;
-      setTimeout(() => {
-        this.fields = [];
-        this.condition = null;
-      }, 300);
+      this.$emit('update:visible', false);
     },
     async validateExpression() {
       if (!this.valueExpr) return;

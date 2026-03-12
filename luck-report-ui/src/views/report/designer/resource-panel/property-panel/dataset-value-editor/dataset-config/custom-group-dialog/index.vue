@@ -40,7 +40,7 @@
                 class="form-control group-select"
                 @change="onSelectedItemChange"
             >
-              <option v-for="(item, index) in groupItems" :key="index" :value="index">
+              <option v-for="(item, index) in localGroupItems" :key="index" :value="index">
                 {{ item.name }}
               </option>
             </select>
@@ -89,10 +89,21 @@
     </div>
 
     <!-- GroupItemDialog 组件 -->
-    <GroupItemDialog ref="groupItemDialog" @saveAfter="handleGroupItemSave" />
+    <GroupItemDialog
+      :visible.sync="groupItemDialogVisible"
+      :group-item="groupItemDialogItem"
+      :operation="groupItemDialogOperation"
+      @saveAfter="handleGroupItemSave"
+    />
 
     <!-- ConditionDialog 组件 -->
-    <ConditionDialog ref="conditionDialog" @saveAfter="handleConditionSave" />
+    <ConditionDialog
+      :visible.sync="conditionDialogVisible"
+      :fields="conditionDialogFields"
+      :condition="conditionDialogCondition"
+      :conditions="conditionDialogConditions"
+      @saveAfter="handleConditionSave"
+    />
 
     <!-- 底部按钮 -->
     <div slot="footer" style="text-align: right">
@@ -104,7 +115,7 @@
 
 <script>
 import { showAlert, showConfirm } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
+import { deepCopy } from '@/components/utils/index.js';
 import GroupItemDialogVue from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-item-dialog/index.vue';
 import ConditionDialogVue from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
 import UDialog from '@/components/dialog/index.vue';
@@ -118,16 +129,34 @@ export default {
     GroupItemDialog: GroupItemDialogVue,
     ConditionDialog: ConditionDialogVue
   },
+  props: {
+    groupItems: {
+      type: Array,
+      default: () => []
+    },
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    fields: {
+      type: Array,
+      default: null
+    }
+  },
   data() {
     return {
-      visible: false,
-      cellDef: null,
-      fields: null,
-      groupItems: [],
+      localGroupItems: [],
       selectedItemIndex: null,
       selectedConditionIndex: null,
       currentConditionIndex: null,
-      currentItemIndex: null
+      currentItemIndex: null,
+      conditionDialogVisible: false,
+      conditionDialogFields: [],
+      conditionDialogCondition: null,
+      conditionDialogConditions: [],
+      groupItemDialogVisible: false,
+      groupItemDialogItem: null,
+      groupItemDialogOperation: 'add'
     };
   },
   computed: {
@@ -135,7 +164,25 @@ export default {
       if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
         return [];
       }
-      return this.groupItems[this.selectedItemIndex].conditions || [];
+      return this.localGroupItems[this.selectedItemIndex].conditions || [];
+    }
+  },
+  watch: {
+    groupItems: {
+      handler(newVal) {
+        this.localGroupItems = deepCopy(newVal);
+      },
+      immediate: true,
+      deep: true
+    },
+    visible: {
+      handler(newVal) {
+        if (newVal) {
+          this.localGroupItems = deepCopy(this.groupItems);
+          this.selectedItemIndex = null;
+          this.selectedConditionIndex = null;
+        }
+      }
     }
   },
   mounted() {
@@ -147,38 +194,22 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show(cellDef, fields) {
-      this.visible = true;
-      this.cellDef = cellDef;
-      this.fields = fields;
-      this.groupItems = [...cellDef.value.groupItems];
-      this.selectedItemIndex = null;
-      this.selectedConditionIndex = null;
-    },
-
     handleOk() {
-      // 保存更改到cellDef
-      this.cellDef.value.groupItems = this.groupItems;
-      setDirty();
+      this.$emit('save', this.localGroupItems);
       this.handleClose();
     },
 
     handleClose() {
-      this.visible = false;
-      // 清理数据
-      setTimeout(() => {
-        this.cellDef = null;
-        this.fields = null;
-        this.groupItems = [];
-        this.selectedItemIndex = null;
-        this.selectedConditionIndex = null;
-      }, 300);
+      this.$emit('update:visible', false);
+      this.$emit('close');
     },
 
     // 分组项管理方法
     addItem() {
       const newItem = { name: '', conditions: [] };
-      this.$refs.groupItemDialog.show(newItem, 'add');
+      this.groupItemDialogItem = newItem;
+      this.groupItemDialogOperation = 'add';
+      this.groupItemDialogVisible = true;
     },
 
     deleteItem() {
@@ -187,9 +218,9 @@ export default {
         return;
       }
 
-      const item = this.groupItems[this.selectedItemIndex];
+      const item = this.localGroupItems[this.selectedItemIndex];
       showConfirm(`${this.$t('dialog.customGroup.deleteConfirm')}[${item.name}]?`).then(() => {
-        this.groupItems.splice(this.selectedItemIndex, 1);
+        this.localGroupItems.splice(this.selectedItemIndex, 1);
         this.selectedItemIndex = null;
         this.selectedConditionIndex = null;
       });
@@ -201,8 +232,10 @@ export default {
         return;
       }
 
-      const item = this.groupItems[this.selectedItemIndex];
-      this.$refs.groupItemDialog.show(item, 'edit');
+      const item = this.localGroupItems[this.selectedItemIndex];
+      this.groupItemDialogItem = item;
+      this.groupItemDialogOperation = 'edit';
+      this.groupItemDialogVisible = true;
     },
 
     onSelectedItemChange() {
@@ -216,13 +249,15 @@ export default {
         return;
       }
 
-      const currentItem = this.groupItems[this.selectedItemIndex];
+      const currentItem = this.localGroupItems[this.selectedItemIndex];
       const conditions = currentItem.conditions || [];
 
-      this.$refs.conditionDialog.conditions = conditions;
+      this.conditionDialogConditions = conditions;
       this.currentConditionIndex = -1;
       this.currentItemIndex = this.selectedItemIndex;
-      this.$refs.conditionDialog.show(this.fields);
+      this.conditionDialogFields = this.fields;
+      this.conditionDialogCondition = null;
+      this.conditionDialogVisible = true;
     },
 
     editCondition() {
@@ -236,22 +271,21 @@ export default {
         return;
       }
 
-      const currentItem = this.groupItems[this.selectedItemIndex];
+      const currentItem = this.localGroupItems[this.selectedItemIndex];
       const conditions = currentItem.conditions || [];
       const condition = conditions[this.selectedConditionIndex];
 
-      this.$refs.conditionDialog.conditions = conditions;
-      this.currentConditionIndex = this.selectedConditionIndex; // 保存当前编辑的条件索引
-      this.currentItemIndex = this.selectedItemIndex; // 保存当前操作的分组项索引
-      this.$refs.conditionDialog.show(this.fields, condition);
+      this.conditionDialogConditions = conditions;
+      this.currentConditionIndex = this.selectedConditionIndex;
+      this.currentItemIndex = this.selectedItemIndex;
+      this.conditionDialogFields = this.fields;
+      this.conditionDialogCondition = condition;
+      this.conditionDialogVisible = true;
     },
 
-    /**
-     * 处理分组项保存事件
-     */
     handleGroupItemSave(data) {
       if (data.operation === 'add') {
-        this.groupItems.push(data.groupItem);
+        this.localGroupItems.push(data.groupItem);
       }
     },
 
@@ -263,11 +297,10 @@ export default {
         return;
       }
 
-      const currentItem = this.groupItems[this.currentItemIndex];
+      const currentItem = this.localGroupItems[this.currentItemIndex];
       const conditions = currentItem.conditions || [];
 
       if (conditionData.isEdit && this.currentConditionIndex >= 0) {
-        // 编辑现有条件
         const condition = conditions[this.currentConditionIndex];
         if (condition) {
           condition.left = conditionData.left;
@@ -277,7 +310,6 @@ export default {
           condition.join = conditionData.join;
         }
       } else {
-        // 添加新条件
         const condition = {
           left: conditionData.left,
           operation: conditionData.operation,
@@ -288,8 +320,6 @@ export default {
         };
         conditions.push(condition);
       }
-
-      setDirty();
     },
 
     deleteCondition() {
@@ -303,12 +333,11 @@ export default {
         return;
       }
 
-      const currentItem = this.groupItems[this.selectedItemIndex];
+      const currentItem = this.localGroupItems[this.selectedItemIndex];
       const conditions = currentItem.conditions || [];
 
       conditions.splice(this.selectedConditionIndex, 1);
       this.selectedConditionIndex = null;
-      setDirty();
     },
 
     formatConditionText(condition, index) {

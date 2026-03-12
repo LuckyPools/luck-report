@@ -2,6 +2,13 @@
   <div class="slash-value-editor">
     <label>{{ $t('property.slash.content') }}：</label>
     <div ref="headerContainer">
+      <u-button
+          style="margin-bottom: 10px;margin-top: 10px;float: right"
+          @click="handleRefresh"
+          icon="icon-refresh"
+      >
+        {{ $t('property.slash.refresh') }}
+      </u-button>
       <div ref="slashContainer">
         <!-- 斜线项将在这里动态渲染 -->
         <div v-for="(slash, index) in slashes" :key="index" class="slash-item">
@@ -52,20 +59,15 @@
 
         </div>
       </div>
-
-      <u-button
-        style="margin-bottom: 10px;margin-top: 10px;float: right"
-        @click="handleRefresh"
-        icon="icon-refresh"
-      >
-        {{ $t('property.slash.refresh') }}
-      </u-button>
     </div>
   </div>
 </template>
 
 <script>
 import { setDirty } from '@/utils/table.js';
+import { deepCopy } from '@/components/utils/index.js';
+import { setCell, getCell, getContext } from '@/utils/contextActions.js';
+import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class.js';
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";
@@ -78,74 +80,82 @@ export default {
     UInput
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
     }
   },
   data() {
     return {
-      cellDef: null,
-      rowIndex: 0,
-      colIndex: 0,
       slashes: []
     };
   },
-  methods: {
-    /**
-     * 显示编辑器
-     */
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-
-      // 加载斜线数据
-      this.loadSlashes();
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadSlashes();
+      }
     },
-
-    /**
-     * 加载斜线数据
-     */
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadSlashes();
+      }
+    }
+  },
+  mounted() {
+    this.loadSlashes();
+  },
+  methods: {
     loadSlashes() {
-      if (this.cellDef && this.cellDef.value && this.cellDef.value.slashes) {
-        // 创建深拷贝以避免直接修改原始数据
-        this.slashes = JSON.parse(JSON.stringify(this.cellDef.value.slashes));
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value && cellDef.value.slashes) {
+        this.slashes = deepCopy(cellDef.value.slashes);
       } else {
         this.slashes = [];
       }
     },
 
-    /**
-     * 处理斜线属性变化
-     */
     handleSlashChange(index) {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.slashes) return;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef || !cellDef.value || !cellDef.value.slashes) return;
 
-      // 更新原始数据
-      this.cellDef.value.slashes[index] = JSON.parse(JSON.stringify(this.slashes[index]));
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.value.slashes[index] = deepCopy(this.slashes[index]);
 
-      // 重新绘制单元格
-      const crossTabWidget = this.cellDef.crossTabWidget;
-      if (crossTabWidget) {
-        crossTabWidget.doDraw(this.cellDef);
+      setCell(this.rowIndex, this.colIndex, newCellDef);
+
+      const context = getContext();
+      if (context) {
+        const crossTabWidget = new CrossTabWidget(context, this.rowIndex, this.colIndex, '');
       }
 
       setDirty();
     },
 
-    /**
-     * 处理刷新按钮点击
-     */
     handleRefresh() {
-      if (!this.cellDef) return;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) return;
 
-      const crossTabWidget = this.cellDef.crossTabWidget;
-      if (crossTabWidget) {
+      const context = getContext();
+      if (context) {
+        const crossTabWidget = new CrossTabWidget(context, this.rowIndex, this.colIndex, '');
         crossTabWidget.refreshCell();
-        crossTabWidget.doDraw(this.cellDef, this.rowIndex, this.colIndex);
+        crossTabWidget.doDraw();
 
-        // 重新加载斜线数据
         this.loadSlashes();
       }
     }
@@ -162,5 +172,3 @@ export default {
   margin-top: 10px;
 }
 </style>
-
-

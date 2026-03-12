@@ -22,7 +22,7 @@
             <label>{{ $t('dialog.setting.paperType') }}：</label>
             <div class="u-inline">
               <u-select
-                :value="paper.paperType"
+                v-model="paper.paperType"
                 style="width: 95px"
                 @change="handlePaperTypeChange"
               >
@@ -108,7 +108,7 @@
             <label>{{ $t('dialog.setting.orientation') }}：</label>
             <div class="u-inline">
               <u-select
-                :value="paper.orientation"
+                v-model="paper.orientation"
                 style="width: 312px"
                 @change="handleOrientationChange"
               >
@@ -126,7 +126,7 @@
             <label>{{ $t('dialog.setting.htmlAlign') }}：</label>
             <div class="u-inline">
               <u-select
-                :value="paper.htmlReportAlign"
+                v-model="paper.htmlReportAlign"
                 style="width: 80px"
                 @change="handleHtmlAlignChange"
               >
@@ -193,6 +193,7 @@
           <div class="form-group">
             <span style="vertical-align: top">{{ $t('dialog.setting.hfLeft') }}：</span>
             <textarea
+              ref="leftHeader"
               v-model="header.left"
               class="form-control"
               style="font-size:10pt;font-family:'宋体';padding: 5px;display: inline-block;width: 140px;height: 80px;margin-top: 15px"
@@ -201,6 +202,7 @@
 
             <span style="margin-left: 15px;vertical-align: top">{{ $t('dialog.setting.hfCenter') }}：</span>
             <textarea
+              ref="centerHeader"
               v-model="header.center"
               class="form-control"
               style="padding: 5px;font-size:10pt;font-family:'宋体';display: inline-block;width: 140px;height: 80px;margin-top: 15px"
@@ -209,6 +211,7 @@
 
             <span style="margin-left: 15px;vertical-align: top">{{ $t('dialog.setting.hfRight') }}：</span>
             <textarea
+              ref="rightHeader"
               v-model="header.right"
               class="form-control"
               style="padding: 5px;font-size:10pt;font-family:'宋体';display: inline-block;width: 140px;height: 80px;margin-top: 15px"
@@ -238,6 +241,7 @@
           <div class="form-group" style="margin-bottom: 5px">
             <span style="vertical-align: top">{{ $t('dialog.setting.hfLeft') }}：</span>
             <textarea
+              ref="leftFooter"
               v-model="footer.left"
               class="form-control"
               style="padding: 5px;font-size:10pt;font-family:'宋体';display: inline-block;width: 140px;height: 80px;margin-top: 15px"
@@ -246,6 +250,7 @@
 
             <span style="margin-left: 15px;vertical-align: top">{{ $t('dialog.setting.hfCenter') }}：</span>
             <textarea
+              ref="centerFooter"
               v-model="footer.center"
               class="form-control"
               style="padding: 5px;font-size:10pt;font-family:'宋体';display: inline-block;width: 140px;height: 80px;margin-top: 15px"
@@ -254,6 +259,7 @@
 
             <span style="margin-left: 15px;vertical-align: top">{{ $t('dialog.setting.hfRight') }}：</span>
             <textarea
+              ref="rightFooter"
               v-model="footer.right"
               class="form-control"
               style="padding: 5px;font-size:10pt;font-family:'宋体';display: inline-block;width: 140px;height: 80px;margin-top: 15px"
@@ -268,7 +274,7 @@
             <label>{{ $t('dialog.setting.pagingType') }}：</label>
             <div class="u-inline">
               <u-radio-group
-                  :value="paper.pagingMode"
+                  v-model="paper.pagingMode"
                   @change="handlePagingModeChange"
               >
                 <u-radio
@@ -301,7 +307,7 @@
             <label>{{ $t('dialog.setting.column') }}：</label>
             <div class="u-inline">
               <u-radio-group
-                  :value="paper.columnEnabled"
+                  v-model="paper.columnEnabled"
                   @change="handleColumnEnabledChange"
               >
                 <u-radio
@@ -319,7 +325,7 @@
             <label>{{ $t('dialog.setting.columnCount') }}：</label>
             <div class="u-inline">
               <u-select
-                :value="paper.columnCount"
+                v-model="paper.columnCount"
                 :disabled="!paper.columnEnabled"
                 @change="handleColumnCountChange"
               >
@@ -350,6 +356,7 @@
     <FontSettingDialog
       ref="headerFontDialog"
       :visible="headerFontDialogVisible"
+      :font-style="header"
       @close="handleHeaderFontDialogClose"
       @ok="handleHeaderFontDialogOk"
     />
@@ -357,6 +364,7 @@
     <FontSettingDialog
       ref="footerFontDialog"
       :visible="footerFontDialogVisible"
+      :font-style="footer"
       @close="handleFooterFontDialogClose"
       @ok="handleFooterFontDialogOk"
     />
@@ -371,6 +379,7 @@
 <script>
 import { showAlert } from '@/utils/comnon.js';
 import { pointToMM, mmToPoint, buildPageSizeList, setDirty } from '@/utils/table.js';
+import { deepCopy } from '@/components/utils/index.js';
 import FontSettingDialog from '@/views/report/designer/tool-bar/settings-tool/font-setting-dialog/index.vue';
 import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
@@ -382,6 +391,8 @@ import UInputNumber from "@/components/input-number/index.vue";
 import UInput from "@/components/input/index.vue";
 import UTabs from "@/components/tabs/index.vue";
 import UTabPane from "@/components/tabs/pane.vue";
+import { mapGetters } from 'vuex';
+import { updateReportDef } from '@/utils/contextActions.js';
 
 export default {
   name: 'SettingsDialog',
@@ -402,10 +413,6 @@ export default {
     visible: {
       type: Boolean,
       default: false
-    },
-    context: {
-      type: Object,
-      default: null
     }
   },
   data() {
@@ -457,12 +464,17 @@ export default {
         underline: false
       },
       headerFontDialogVisible: false,
-      footerFontDialogVisible: false,
-      tempHeaderStyle: null,
-      tempFooterStyle: null
+      footerFontDialogVisible: false
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
+    reportDef() {
+      return this.context ? this.context.reportDef : null;
+    },
     // 纸张类型选项
     paperTypeOptions() {
       const options = [];
@@ -613,7 +625,6 @@ export default {
     // 初始化dialogVisible
     this.dialogVisible = this.visible;
 
-    // 如果初始状态就是可见的，并且有context，则初始化数据
     if (this.visible && this.context) {
       this.initializeData();
     }
@@ -687,37 +698,37 @@ export default {
   methods: {
     initializeData() {
       if (!this.context) {
-        console.error('context未定义，无法初始化数据');
+        console.error('context 未定义，无法初始化数据');
         return;
       }
 
       if (!this.context.reportDef) {
-        console.error('context.reportDef未定义，无法初始化数据');
+        console.error('context.reportDef 未定义，无法初始化数据');
         return;
       }
 
       // 设置初始化标志
       this.initializing = true;
 
-      this.reportDef = this.context.reportDef;
+      const reportDefCopy = deepCopy(this.context.reportDef);
 
       // 初始化数据
-      this.paper = { ...this.reportDef.paper };
+      this.paper = { ...reportDefCopy.paper };
 
-      // 确保fixRows有一个有效的默认值
+      // 确保 fixRows 有一个有效的默认值
       if (!this.paper.fixRows || this.paper.fixRows < 1) {
         this.paper.fixRows = 30;
       }
 
-      if (!this.reportDef.header) {
-        this.reportDef.header = { margin: 30 };
+      if (!reportDefCopy.header) {
+        reportDefCopy.header = { margin: 30 };
       }
-      if (!this.reportDef.footer) {
-        this.reportDef.footer = { margin: 30 };
+      if (!reportDefCopy.footer) {
+        reportDefCopy.footer = { margin: 30 };
       }
 
-      this.header = { ...this.reportDef.header };
-      this.footer = { ...this.reportDef.footer };
+      this.header = { ...reportDefCopy.header };
+      this.footer = { ...reportDefCopy.footer };
 
       // 设置编辑器样式
       this.$nextTick(() => {
@@ -731,18 +742,24 @@ export default {
       this.$emit('close');
     },
     handleOk() {
-      // 检查reportDef是否存在
-      if (!this.reportDef) {
-        console.error('reportDef未定义，无法保存设置');
+      // 检查 reportDef 是否存在
+      if (!this.context || !this.context.reportDef) {
         this.dialogVisible = false;
         this.$emit('ok');
         return;
       }
 
-      // 保存设置到reportDef
-      this.reportDef.paper = { ...this.paper };
-      this.reportDef.header = { ...this.header };
-      this.reportDef.footer = { ...this.footer };
+      // 使用 deepCopy 复制数据
+      const newPaper = deepCopy(this.paper);
+      const newHeader = deepCopy(this.header);
+      const newFooter = deepCopy(this.footer);
+
+      updateReportDef({
+        ...this.context.reportDef,
+        paper: newPaper,
+        header: newHeader,
+        footer: newFooter
+      });
 
       this.dialogVisible = false;
       this.$emit('ok');
@@ -787,48 +804,10 @@ export default {
       setDirty();
     },
     openHeaderFontDialog() {
-      // 保存当前样式作为临时数据
-      this.tempHeaderStyle = {
-        fontFamily: this.header.fontFamily,
-        fontSize: this.header.fontSize,
-        forecolor: this.header.forecolor,
-        bold: this.header.bold,
-        italic: this.header.italic,
-        underline: this.header.underline
-      };
-
-      // 显示字体对话框
       this.headerFontDialogVisible = true;
-
-      // 通知FontSettingDialog组件初始化数据
-      this.$nextTick(() => {
-        const headerFontDialog = this.$refs.headerFontDialog;
-        if (headerFontDialog && headerFontDialog.show) {
-          headerFontDialog.show(this.tempHeaderStyle);
-        }
-      });
     },
     openFooterFontDialog() {
-      // 保存当前样式作为临时数据
-      this.tempFooterStyle = {
-        fontFamily: this.footer.fontFamily,
-        fontSize: this.footer.fontSize,
-        forecolor: this.footer.forecolor,
-        bold: this.footer.bold,
-        italic: this.footer.italic,
-        underline: this.footer.underline
-      };
-
-      // 显示字体对话框
       this.footerFontDialogVisible = true;
-
-      // 通知FontSettingDialog组件初始化数据
-      this.$nextTick(() => {
-        const footerFontDialog = this.$refs.footerFontDialog;
-        if (footerFontDialog && footerFontDialog.show) {
-          footerFontDialog.show(this.tempFooterStyle);
-        }
-      });
     },
     handleHeaderFontDialogClose() {
       this.headerFontDialogVisible = false;
@@ -898,28 +877,22 @@ export default {
       editor.style.fontStyle = style.italic && style.italic !== 'false' ? 'italic' : 'normal';
       editor.style.textDecoration = style.underline && style.underline !== 'false' ? 'underline' : 'none';
     },
-    handlePaperTypeChange(value) {
-      this.paper.paperType = value;
+    handlePaperTypeChange() {
       setDirty();
     },
-    handleOrientationChange(value) {
-      this.paper.orientation = value;
+    handleOrientationChange() {
       setDirty();
     },
-    handleHtmlAlignChange(value) {
-      this.paper.htmlReportAlign = value;
+    handleHtmlAlignChange() {
       setDirty();
     },
-    handleColumnCountChange(value) {
-      this.paper.columnCount = value;
+    handleColumnCountChange() {
       setDirty();
     },
-    handlePagingModeChange(value) {
-      this.paper.pagingMode = value;
+    handlePagingModeChange() {
       setDirty();
     },
-    handleColumnEnabledChange(value) {
-      this.paper.columnEnabled = value;
+    handleColumnEnabledChange() {
       setDirty();
     }
   }

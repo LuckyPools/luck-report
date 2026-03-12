@@ -12,19 +12,16 @@
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import Handsontable from 'handsontable';
 import ButtonGroup from '@/components/button-group/index.vue';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'ZxingTool',
   components: {
     ButtonGroup
-  },
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
   },
   data() {
     return {
@@ -42,7 +39,14 @@ export default {
       ]
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
   methods: {
+
     // 检查是否有选中的单元格
     checkSelection() {
       const selected = this.context.hot.getSelected();
@@ -61,14 +65,15 @@ export default {
       const hot = this.context.hot;
       const selected = hot.getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
-      let cellDef = this.context.getCell(startRow, startCol);
-      let oldValue = cellDef.value, oldCellData = hot.getDataAtCell(startRow, startCol);
+      let cellDef = getCell(startRow, startCol);
+      let oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
 
       hot.setDataAtCell(startRow, startCol, '');
       let td = hot.getCell(startRow, startCol);
       let width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
 
-      cellDef.value = {
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.value = {
         width,
         height,
         type: 'zxing',
@@ -76,6 +81,7 @@ export default {
         source: 'text',
         data: ''
       };
+      setCell( startRow, startCol, newCellDef );
 
       hot.render();
       setDirty();
@@ -83,12 +89,13 @@ export default {
 
       undoManager.add({
         redo: () => {
-          cellDef = this.context.getCell(startRow, startCol);
-          oldValue = cellDef.value, oldCellData = hot.getDataAtCell(startRow, startCol);
+          cellDef = getCell(startRow, startCol);
+          oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
           hot.setDataAtCell(startRow, startCol, '');
           td = hot.getCell(startRow, startCol);
           width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
-          cellDef.value = {
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value = {
             width,
             height,
             type: 'zxing',
@@ -96,13 +103,16 @@ export default {
             source: 'text',
             data: ''
           };
+          setCell( startRow, startCol,  newCellDef );
           hot.render();
           setDirty();
           Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
         },
         undo: () => {
-          cellDef = this.context.getCell(startRow, startCol);
-          cellDef.value = oldValue;
+          cellDef = getCell(startRow, startCol);
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value = oldValue;
+          setCell(startRow,startCol,newCellDef );
           hot.setDataAtCell(startRow, startCol, oldCellData);
           hot.render();
           setDirty();
@@ -119,14 +129,15 @@ export default {
       const hot = this.context.hot;
       const selected = hot.getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
-      let cellDef = this.context.getCell(startRow, startCol);
-      let oldValue = cellDef.value, oldCellData = hot.getDataAtCell(startRow, startCol);
+      let cellDef = getCell(startRow, startCol);
+      let oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
 
       hot.setDataAtCell(startRow, startCol, '');
       let td = hot.getCell(startRow, startCol);
       let width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
 
-      cellDef.value = {
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.value = {
         width,
         height,
         type: 'zxing',
@@ -135,6 +146,7 @@ export default {
         format: 'CODE_128',
         data: ''
       };
+      setCell(startRow,startCol, newCellDef );
 
       hot.render();
       setDirty();
@@ -142,12 +154,13 @@ export default {
 
       undoManager.add({
         redo: () => {
-          cellDef = this.context.getCell(startRow, startCol);
-          oldValue = cellDef.value, oldCellData = hot.getDataAtCell(startRow, startCol);
+          cellDef = getCell(startRow, startCol);
+          oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
           hot.setDataAtCell(startRow, startCol, '');
           td = hot.getCell(startRow, startCol);
           width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
-          cellDef.value = {
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value = {
             width,
             height,
             type: 'zxing',
@@ -156,13 +169,16 @@ export default {
             format: 'CODE_128',
             data: ''
           };
+          setCell(startRow, startCol,  newCellDef );
           hot.render();
           setDirty();
           Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
         },
         undo: () => {
-          cellDef = this.context.getCell(startRow, startCol);
-          cellDef.value = oldValue;
+          cellDef = getCell(startRow, startCol);
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value = oldValue;
+          setCell(startRow, startCol, newCellDef );
           hot.setDataAtCell(startRow, startCol, oldCellData);
           hot.render();
           setDirty();

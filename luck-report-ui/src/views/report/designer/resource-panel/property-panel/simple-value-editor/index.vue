@@ -27,7 +27,10 @@
 
 <script>
 import {setDirty} from "@/utils/table";
+import { deepCopy } from '@/components/utils/index.js';
 import UInputNumber from '@/components/input-number/index.vue';
+import { mapGetters } from 'vuex';
+import {setCell, getCell, getContext} from "@/utils/contextActions";
 
 export default {
   name: 'SimpleValueEditor',
@@ -35,38 +38,67 @@ export default {
     UInputNumber
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
     }
   },
   data() {
     return {
       content: '',
-      lineHeight: '',
-      cellDef: null
+      lineHeight: ''
     };
   },
-  created() {
-    // 存储行索引和列索引
-    this.rowIndex = null;
-    this.colIndex = null;
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    },
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    }
+  },
+  mounted() {
+    this.loadCellData();
   },
   methods: {
+    loadCellData() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) {
+        this.content = '';
+        this.lineHeight = '';
+        return;
+      }
 
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.cellDef = cellDef;
-
-      // 初始化内容
       if (cellDef && cellDef.value && cellDef.value.value !== undefined) {
         this.content = cellDef.value.value;
       } else {
         this.content = '';
       }
 
-      // 初始化行高
       if (cellDef && cellDef.cellStyle && cellDef.cellStyle.lineHeight !== undefined) {
         this.lineHeight = cellDef.cellStyle.lineHeight;
       } else {
@@ -75,54 +107,52 @@ export default {
     },
 
     onContentChange() {
-      // 更新单元格内容
-      if (this.context && this.context.hot && this.rowIndex !== null && this.colIndex !== null) {
-        this.context.hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      const newCellDef = deepCopy(cellDef);
+
+      const context = getContext();
+      if (context && context.hot && this.rowIndex !== null && this.colIndex !== null) {
+        context.hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
       }
 
-      // 标记为脏数据
       setDirty();
 
-      // 更新cellDef
-      if (this.cellDef) {
-        // 确保value对象存在
-        if (!this.cellDef.value) {
-          this.cellDef.value = { type: 'simple', value: '' };
+      if (newCellDef) {
+        if (!newCellDef.value) {
+          newCellDef.value = { type: 'simple', value: '' };
         }
-        // 更新值并确保类型正确
-        this.cellDef.value.type = 'simple';
-        this.cellDef.value.value = this.content;
-        // 通过context确保cellDef被正确存储
-        if (this.context && typeof this.context.setCell === 'function') {
-          this.context.setCell(this.rowIndex, this.colIndex, this.cellDef);
-        }
+        newCellDef.value.type = 'simple';
+        newCellDef.value.value = this.content;
+        setCell(this.rowIndex, this.colIndex, newCellDef );
       }
     },
 
     onLineHeightChange() {
-      if (this.cellDef) {
-        // 确保cellStyle对象存在
-        if (!this.cellDef.cellStyle) {
-          this.cellDef.cellStyle = {};
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      const newCellDef = deepCopy(cellDef);
+
+      if (newCellDef) {
+        if (!newCellDef.cellStyle) {
+          newCellDef.cellStyle = {};
         }
 
-        this.cellDef.cellStyle.lineHeight = this.lineHeight;
+        newCellDef.cellStyle.lineHeight = this.lineHeight;
 
-        // 更新表格单元格样式
-        const hot = this.context.hot;
-        if (hot) {
-          const td = hot.getCell(this.rowIndex, this.colIndex);
+        const context = getContext();
+        if (context && context.hot) {
+          const td = context.hot.getCell(this.rowIndex, this.colIndex);
           if (td) {
             if (this.lineHeight === '') {
               td.style.lineHeight = '';
             } else {
               td.style.lineHeight = this.lineHeight;
             }
-            hot.render();
+            context.hot.render();
           }
         }
 
         setDirty();
+        setCell( this.rowIndex, this.colIndex, newCellDef );
       }
     }
   }

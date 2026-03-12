@@ -68,10 +68,10 @@ export default {
     })
     // 监听radio的选中事件，做value值同步
     this.$on('on-radio-select', (radio) => {
+      this.syncValue(radio.label)
       if (this.value !== radio.label) {
         this.$emit("change", radio.label);
       }
-      this.syncValue(radio.label)
     })
   },
   methods: {

@@ -14,7 +14,7 @@
         <input
           type="file"
           class="form-control"
-          ref="fileInput"
+          :key="fileInputKey"
           @change="handleFileChange"
         />
       </div>
@@ -39,21 +39,28 @@ export default {
     UDialog,
     UButton
   },
+  emits: ['update:visible', 'import-success'],
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
   data() {
     return {
-      visible: false,
-      selectedFile: null
+      selectedFile: null,
+      fileInputKey: 0
     };
   },
-  methods: {
-    show() {
-      this.visible = true;
-      this.selectedFile = null;
-      // 重置文件输入框
-      if (this.$refs.fileInput) {
-        this.$refs.fileInput.value = '';
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.selectedFile = null;
+        this.fileInputKey += 1;
       }
-    },
+    }
+  },
+  methods: {
     handleFileChange(event) {
       this.selectedFile = event.target.files[0];
     },
@@ -74,10 +81,8 @@ export default {
     handleImportResponse(response) {
       const result = response.result;
       if (result) {
-        const routeData = this.$router.resolve({
-          name: 'Designer',
-        });
-        window.open(routeData.href , "_self");
+        this.$emit('import-success');
+        this.$emit('update:visible', false);
       } else {
         const errorInfo = response.errorInfo;
         if (errorInfo) {
@@ -88,10 +93,8 @@ export default {
       }
     },
     handleClose() {
-      this.visible = false;
-      setTimeout(() => {
-        this.selectedFile = null;
-      }, 300);
+      this.$emit('update:visible', false);
+      this.selectedFile = null;
     }
   }
 };

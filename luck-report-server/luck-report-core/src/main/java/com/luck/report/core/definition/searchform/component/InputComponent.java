@@ -13,7 +13,6 @@ public class InputComponent extends BaseInputComponent {
     private String append;
     private String prefixIcon;
     private String suffixIcon;
-    private String tagIcon;
     private String defaultValue;
 
     @Override
@@ -99,14 +98,6 @@ public class InputComponent extends BaseInputComponent {
 
     public void setSuffixIcon(String suffixIcon) {
         this.suffixIcon = suffixIcon;
-    }
-
-    public String getTagIcon() {
-        return tagIcon;
-    }
-
-    public void setTagIcon(String tagIcon) {
-        this.tagIcon = tagIcon;
     }
 
     public String getDefaultValue() {

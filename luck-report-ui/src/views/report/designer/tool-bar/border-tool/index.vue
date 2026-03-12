@@ -8,15 +8,26 @@
     />
 
     <!-- 自定义边框对话框 -->
-    <CustomBorderDialog ref="customBorderDialog" @saveAfter="handleSaveAfter" />
+    <CustomBorderDialog
+      :visible="customBorderVisible"
+      :topBorder="customBorderData.topBorder"
+      :bottomBorder="customBorderData.bottomBorder"
+      :leftBorder="customBorderData.leftBorder"
+      :rightBorder="customBorderData.rightBorder"
+      @close="customBorderVisible = false"
+      @save="handleSave"
+    />
   </div>
 </template>
 
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import CustomBorderDialog from '@/views/report/designer/tool-bar/border-tool/custom-border-dialog/index.vue';
 import ButtonGroup from '@/components/button-group/index.vue';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'BorderTool',
@@ -24,14 +35,15 @@ export default {
     CustomBorderDialog,
     ButtonGroup
   },
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
-  },
   data() {
     return {
+      customBorderVisible: false,
+      customBorderData: {
+        topBorder: { style: 'solid', width: 1, color: '#000000' },
+        bottomBorder: { style: 'solid', width: 1, color: '#000000' },
+        leftBorder: { style: 'solid', width: 1, color: '#000000' },
+        rightBorder: { style: 'solid', width: 1, color: '#000000' }
+      },
       menuItems: [
         {
           text: this.$t('tools.border.allLine'),
@@ -71,7 +83,14 @@ export default {
       ]
     };
   },
+  computed: {
+      ...mapGetters('report', ['getContext']),
+      context() {
+          return this.getContext;
+      }
+  },
   methods: {
+
     // 检查是否有选中的单元格
     checkSelection() {
       const selected = this.context.hot.getSelected();
@@ -91,7 +110,6 @@ export default {
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -132,7 +150,6 @@ export default {
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -184,7 +201,6 @@ export default {
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -221,63 +237,68 @@ export default {
         return;
       }
 
-      // 获取当前选中单元格的边框样式
       const selected = this.context.hot.getSelected();
       const startRow = selected[0], startCol = selected[1];
-      const cellDef = this.context.getCell(startRow, startCol);
+      const cellDef = getCell(startRow, startCol);
 
-      // 默认边框样式
-      const defaultBorderStyle = { width: 1, style: 'solid', color: '0,0,0' };
+      const defaultBorderStyle = { style: 'solid', width: 1, color: '#000000' };
 
-      // 获取当前单元格的边框样式，如果没有则使用默认样式
-      let topBorderStyle, bottomBorderStyle, leftBorderStyle, rightBorderStyle;
+      const convertColorToHex = (borderStyle) => {
+        if (!borderStyle) {
+          return { ...defaultBorderStyle };
+        }
+        const result = { ...borderStyle };
+        if (typeof result.color === 'string' && result.color.includes(',')) {
+          const rgb = result.color.split(',');
+          result.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
+        }
+        return result;
+      };
 
       if (cellDef && cellDef.cellStyle) {
-        topBorderStyle = cellDef.cellStyle.topBorder || defaultBorderStyle;
-        bottomBorderStyle = cellDef.cellStyle.bottomBorder || defaultBorderStyle;
-        leftBorderStyle = cellDef.cellStyle.leftBorder || defaultBorderStyle;
-        rightBorderStyle = cellDef.cellStyle.rightBorder || defaultBorderStyle;
+        this.customBorderData.topBorder = convertColorToHex(cellDef.cellStyle.topBorder);
+        this.customBorderData.bottomBorder = convertColorToHex(cellDef.cellStyle.bottomBorder);
+        this.customBorderData.leftBorder = convertColorToHex(cellDef.cellStyle.leftBorder);
+        this.customBorderData.rightBorder = convertColorToHex(cellDef.cellStyle.rightBorder);
       } else {
-        topBorderStyle = { ...defaultBorderStyle };
-        bottomBorderStyle = { ...defaultBorderStyle };
-        leftBorderStyle = { ...defaultBorderStyle };
-        rightBorderStyle = { ...defaultBorderStyle };
+        this.customBorderData.topBorder = { ...defaultBorderStyle };
+        this.customBorderData.bottomBorder = { ...defaultBorderStyle };
+        this.customBorderData.leftBorder = { ...defaultBorderStyle };
+        this.customBorderData.rightBorder = { ...defaultBorderStyle };
       }
 
-      this.showCustomBorderDialog(topBorderStyle, bottomBorderStyle, leftBorderStyle, rightBorderStyle);
+      this.customBorderVisible = true;
     },
-    // 显示自定义边框对话框
-    showCustomBorderDialog(topBorderStyle, bottomBorderStyle, leftBorderStyle, rightBorderStyle) {
-      this.$refs.customBorderDialog.show(
-        this.context,
-        topBorderStyle, bottomBorderStyle, leftBorderStyle, rightBorderStyle
-      );
-    },
-    // 处理自定义边框保存后事件
-    handleSaveAfter(context, topBorder, bottomBorder, leftBorder, rightBorder) {
-      const selected = context.hot.getSelected();
+    handleSave(topBorder, bottomBorder, leftBorder, rightBorder) {
+      const selected = this.context.hot.getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
       let oldBorderStyle = this.updateCustomBorderStyle(
-        context, startRow, startCol, endRow, endCol,
+        this.context, startRow, startCol, endRow, endCol,
         leftBorder, rightBorder, topBorder, bottomBorder
       );
 
       undoManager.add({
         redo: () => {
           oldBorderStyle = this.updateCustomBorderStyle(
-            context, startRow, startCol, endRow, endCol,
+            this.context, startRow, startCol, endRow, endCol,
             leftBorder, rightBorder, topBorder, bottomBorder
           );
           setDirty();
         },
         undo: () => {
-          this.updateOldBorderStyles(context, startRow, startCol, endRow, endCol, oldBorderStyle);
+          this.updateOldBorderStyles(this.context, startRow, startCol, endRow, endCol, oldBorderStyle);
           setDirty();
         }
       });
 
       setDirty();
+    },
+    rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      }).join('');
     },
     // 更新自定义边框样式
     updateCustomBorderStyle(context, startRow, startCol, endRow, endCol, leftBorderStyle, rightBorderStyle, topBorderStyle, bottomBorderStyle) {
@@ -301,14 +322,14 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const td = hot.getCell(i, j);
-          const cellDef = context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           oldBorderStyle[i + "," + j] = {
             leftBorder: cellStyle.leftBorder,
             rightBorder: cellStyle.rightBorder,
@@ -320,6 +341,8 @@ export default {
           cellStyle.rightBorder = this.cloneBorder(right);
           cellStyle.topBorder = this.cloneBorder(top);
           cellStyle.bottomBorder = this.cloneBorder(bottom);
+
+          setCell( i, j, newCellDef );
         }
       }
 
@@ -341,20 +364,22 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const td = hot.getCell(i, j);
-          const cellDef = context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
           const oldBorder = oldBorderStyle[i + "," + j];
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
 
           cellStyle.leftBorder = oldBorder.leftBorder || "";
           cellStyle.rightBorder = oldBorder.rightBorder || "";
           cellStyle.topBorder = oldBorder.topBorder || "";
           cellStyle.bottomBorder = oldBorder.bottomBorder || "";
+
+          setCell( i, j, newCellDef );
         }
       }
 
@@ -367,14 +392,14 @@ export default {
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const td = hot.getCell(i, j);
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
 
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           oldStyle[i + "," + j] = {
             leftBorder: cellStyle.leftBorder,
             rightBorder: cellStyle.rightBorder,
@@ -408,6 +433,8 @@ export default {
             cellStyle.rightBorder = '';
             cellStyle.topBorder = '';
           }
+
+          setCell( i, j, newCellDef );
         }
       }
 

@@ -4,7 +4,7 @@
         <!-- 左侧区域：顶部工具和内容表格 -->
         <div class="left-part">
           <!-- 顶部工具 -->
-          <TopToolBar v-if="contextCreated" ref="topToolBar" />
+          <TopToolBar v-if="contextCreated" ref="topToolBar" :selectedCells="selectedCells" />
           <!-- 内容表格组件 -->
           <ContentTable
             @cell-selected="handleCellSelected"
@@ -13,7 +13,7 @@
         </div>
         <!-- 右侧区域：侧边栏 -->
         <div class="right-part">
-          <ResourcePanel v-if="contextCreated" ref="sidePanel" />
+          <ResourcePanel v-if="contextCreated" ref="sidePanel" :selectedCells="selectedCells" />
         </div>
       </div>
       <!-- 打印线 -->
@@ -46,7 +46,13 @@ export default {
   },
   data() {
     return {
-      contextCreated: false
+      contextCreated: false,
+      selectedCells: {
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      }
     };
   },
   methods: {
@@ -62,17 +68,13 @@ export default {
      * 处理单元格选择事件
      */
     handleCellSelected({rowIndex, colIndex, row2Index, col2Index}) {
-      // 调用SidePanel组件的refreshPropertyPanel方法
-      if (this.$refs.sidePanel) {
-        this.$refs.sidePanel.refreshPropertyPanel(rowIndex, colIndex, row2Index, col2Index);
-      }
-      // 调用TopToolBar组件的refreshTools方法
-      if (this.$refs.topToolBar) {
-        this.$refs.topToolBar.refreshTools(rowIndex, colIndex, row2Index, col2Index);
-      }
-    },
-
-
+      this.selectedCells = {
+        rowIndex,
+        colIndex,
+        row2Index,
+        col2Index
+      };
+    }
   }
 }
 </script>

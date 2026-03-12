@@ -13,8 +13,6 @@
       <ChartDataset
           v-show="activeTab === 'dataset'"
           :datasetConfig="datasetConfig"
-          :availableDatasets="availableDatasets"
-          :availableFields="availableFields"
           @dataset-change="handleDatasetChange"
           @category-property-change="handleCategoryPropertyChange"
           @value-property-change="handleValuePropertyChange"
@@ -27,17 +25,18 @@
       <!-- 选项选项卡 -->
       <ChartOption
           v-show="activeTab === 'option'"
-          :cellDef="cellDef"
-          :chartOptions="chartOptions"
+          :chartConfig="chartConfig"
+          @chart-option-change="handleChartOptionChange"
+          @data-labels-change="handleDataLabelsChange"
       />
 
       <!-- 轴配置选项卡 -->
       <ChartAxis
           v-show="activeTab === 'axis'"
-          :cellDef="cellDef"
           :xAxesConfig.sync="xAxesConfig"
           :yAxesConfig.sync="yAxesConfig"
           :format.sync="datasetConfig.format"
+          @axis-change="handleAxisChange"
       />
     </div>
   </div>
@@ -45,11 +44,15 @@
 
 <script>
 import { setDirty } from '@/utils/table';
+import { deepCopy } from '@/components/utils/index.js';
+import { getCell, setCell } from '@/utils/contextActions';
+import chartWidgetManager from '@/views/report/designer/edit-table/chart-widget/manager.js';
 import ChartDataset from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-dataset/index.vue';
 import ChartAxis from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-axis/index.vue';
 import ChartOption from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-option/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'ChartValueEditor',
@@ -65,28 +68,30 @@ export default {
       type: String,
       default: 'bar'
     },
-    context: {
-      type: Object,
-      required: true
-    },
     showAxis: {
       type: Boolean,
       default: true
+    },
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
     }
   },
   data() {
     return {
       activeTab: 'dataset',
-      cellDef: null,
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
-      datasources: [],
-      availableDatasets: [],
-      availableFields: [],
-
-      // 数据集配置
       datasetConfig: {
         datasetName: '',
         categoryProperty: '',
@@ -98,8 +103,8 @@ export default {
         format: ''
       },
 
-      // 图表选项
-      chartOptions: {
+      // 图表配置
+      chartConfig: {
         title: {
           display: false,
           position: 'top',
@@ -143,125 +148,79 @@ export default {
       }
     };
   },
-  methods: {
-    /**
-     * 显示编辑器
-     */
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
-
-      // 加载数据源
-      this.datasources = this.context.reportDef.datasources || [];
-      this.loadAvailableDatasets();
-
-      // 加载图表配置
-      this.loadChartConfig();
-    },
-
-    /**
-     * 加载可用的数据集
-     */
-    loadAvailableDatasets() {
-      this.availableDatasets = [];
-      for (let ds of this.datasources) {
-        let datasets = ds.datasets || [];
-        for (let dataset of datasets) {
-          this.availableDatasets.push(dataset);
-        }
+  computed: {
+      ...mapGetters('report', ['getContext']),
+      context() {
+          return this.getContext;
+      }
+  },
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadChartConfig();
       }
     },
-
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadChartConfig();
+      }
+    }
+  },
+  mounted() {
+    this.loadChartConfig();
+  },
+  methods: {
+    getCell,
     /**
      * 加载图表配置
      */
     loadChartConfig() {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef || !cellDef.value || !cellDef.value.chart) {
         return;
       }
+      const chart = cellDef.value.chart;
 
-      const chart = this.cellDef.value.chart;
-
-      // 加载数据集配置
       if (chart.dataset) {
         this.datasetConfig = { ...this.datasetConfig, ...chart.dataset };
-        this.loadAvailableFields();
       }
 
-      // 加载X轴配置
       if (chart.xaxes) {
         this.xAxesConfig = { ...this.xAxesConfig, ...chart.xaxes };
       }
 
-      // 加载Y轴配置
       if (chart.yaxes) {
         this.yAxesConfig = { ...this.yAxesConfig, ...chart.yaxes };
       }
 
-      // 加载图表选项
       if (chart.options && Array.isArray(chart.options)) {
         for (let option of chart.options) {
           switch (option.type) {
             case "title":
-              this.chartOptions.title = { ...this.chartOptions.title, ...option };
+              this.chartConfig.title = { ...this.chartConfig.title, ...option };
               break;
             case "legend":
-              this.chartOptions.legend = { ...this.chartOptions.legend, ...option };
+              this.chartConfig.legend = { ...this.chartConfig.legend, ...option };
               break;
             case "animation":
-              this.chartOptions.animation = { ...this.chartOptions.animation, ...option };
+              this.chartConfig.animation = { ...this.chartConfig.animation, ...option };
               break;
             case "layout":
-              this.chartOptions.layout = { ...this.chartOptions.layout, ...option.layout };
+              this.chartConfig.layout = { ...this.chartConfig.layout, ...option.layout };
               break;
           }
         }
       }
 
-      // 加载插件配置
       if (chart.plugins && Array.isArray(chart.plugins)) {
         for (let plugin of chart.plugins) {
           if (plugin.name === 'data-labels') {
-            this.chartOptions.dataLabels.display = plugin.display;
+            this.chartConfig.dataLabels.display = plugin.display;
           }
         }
       }
-    },
-
-    /**
-     * 加载可用字段
-     */
-    loadAvailableFields() {
-      this.availableFields = [];
-      const datasetName = this.datasetConfig.datasetName;
-
-      if (!datasetName) return;
-
-      for (let ds of this.datasources) {
-        let datasets = ds.datasets || [];
-        for (let dataset of datasets) {
-          if (dataset.name === datasetName) {
-            this.availableFields = dataset.fields || [];
-            break;
-          }
-        }
-        if (this.availableFields.length > 0) {
-          break;
-        }
-      }
-    },
-
-    /**
-     * 获取数据集配置
-     */
-    getDatasetConfig() {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
-        return {};
-      }
-      return this.cellDef.value.chart.dataset || {};
     },
 
     /**
@@ -269,9 +228,11 @@ export default {
      */
     handleDatasetChange(value) {
       this.datasetConfig.datasetName = value;
-      this.loadAvailableFields();
-      const dataset = this.getDatasetConfig();
-      dataset.datasetName = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.datasetName = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
       setDirty();
     },
 
@@ -280,8 +241,11 @@ export default {
      */
     handleCategoryPropertyChange(value) {
       this.datasetConfig.categoryProperty = value;
-      const dataset = this.getDatasetConfig();
-      dataset.categoryProperty = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.categoryProperty = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
       setDirty();
     },
 
@@ -290,8 +254,11 @@ export default {
      */
     handleValuePropertyChange(value) {
       this.datasetConfig.valueProperty = value;
-      const dataset = this.getDatasetConfig();
-      dataset.valueProperty = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.valueProperty = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
       setDirty();
     },
 
@@ -300,8 +267,11 @@ export default {
      */
     handleSeriesTypeChange(value) {
       this.datasetConfig.seriesType = value;
-      const dataset = this.getDatasetConfig();
-      dataset.seriesType = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.seriesType = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
       setDirty();
     },
 
@@ -310,8 +280,11 @@ export default {
      */
     handleSeriesPropertyChange(value) {
       this.datasetConfig.seriesProperty = value;
-      const dataset = this.getDatasetConfig();
-      dataset.seriesProperty = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.seriesProperty = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
       setDirty();
     },
 
@@ -320,8 +293,11 @@ export default {
      */
     handleSeriesTextChange(value) {
       this.datasetConfig.seriesText = value;
-      const dataset = this.getDatasetConfig();
-      dataset.seriesText = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.seriesText = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
       setDirty();
     },
 
@@ -330,8 +306,66 @@ export default {
      */
     handleAggregateChange(value) {
       this.datasetConfig.collectType = value;
-      const dataset = this.getDatasetConfig();
-      dataset.collectType = value;
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
+        cell.value.chart.dataset.collectType = value;
+        setCell(this.rowIndex, this.colIndex, cell);
+      }
+      setDirty();
+    },
+
+    /**
+     * 处理图表选项变化
+     */
+    handleChartOptionChange({ type, option }) {
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
+      }
+
+      const chart = cell.value.chart;
+      if (!chart.options) {
+        chart.options = [];
+      }
+
+      let existingOption = chart.options.find(opt => opt.type === type);
+      if (existingOption) {
+        Object.assign(existingOption, option);
+      } else {
+        chart.options.push({ type, ...option });
+      }
+
+      setCell(this.rowIndex, this.colIndex, cell);
+      this.updateChart();
+      setDirty();
+    },
+
+    /**
+     * 处理数据标签显示变化
+     */
+    handleDataLabelsChange(dataLabels) {
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
+      }
+
+      const chart = cell.value.chart;
+      if (!chart.plugins) {
+        chart.plugins = [];
+      }
+
+      let dataLabelPlugin = chart.plugins.find(p => p.name === 'data-labels');
+      if (dataLabelPlugin) {
+        dataLabelPlugin.display = dataLabels.display;
+      } else {
+        chart.plugins.push({
+          name: 'data-labels',
+          display: dataLabels.display
+        });
+      }
+
+      setCell(this.rowIndex, this.colIndex, cell);
+      this.updateChart();
       setDirty();
     },
 
@@ -339,9 +373,84 @@ export default {
      * 更新图表
      */
     updateChart() {
-      if (this.cellDef && this.cellDef.chartWidget && this.cellDef.chartWidget.chart) {
-        this.cellDef.chartWidget.chart.update();
+      const widgetKey = `${this.rowIndex}_${this.colIndex}`;
+      const chartWidget = chartWidgetManager.get(widgetKey);
+      if (chartWidget) {
+        chartWidget.refresh(this.context);
       }
+    },
+
+    /**
+     * 处理轴配置变化
+     */
+    handleAxisChange({ type, value }) {
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
+      }
+
+      const chart = cell.value.chart;
+
+      switch (type) {
+        case 'x-rotation':
+          if (!chart.xaxes) {
+            chart.xaxes = {};
+          }
+          chart.xaxes.rotation = value;
+          break;
+        case 'x-title-display':
+          if (!chart.xaxes) {
+            chart.xaxes = {};
+          }
+          if (!chart.xaxes.scaleLabel) {
+            chart.xaxes.scaleLabel = {};
+          }
+          chart.xaxes.scaleLabel.display = value;
+          break;
+        case 'x-title-text':
+          if (!chart.xaxes) {
+            chart.xaxes = {};
+          }
+          if (!chart.xaxes.scaleLabel) {
+            chart.xaxes.scaleLabel = {};
+          }
+          chart.xaxes.scaleLabel.labelString = value;
+          break;
+        case 'y-rotation':
+          if (!chart.yaxes) {
+            chart.yaxes = {};
+          }
+          chart.yaxes.rotation = value;
+          break;
+        case 'y-title-display':
+          if (!chart.yaxes) {
+            chart.yaxes = {};
+          }
+          if (!chart.yaxes.scaleLabel) {
+            chart.yaxes.scaleLabel = {};
+          }
+          chart.yaxes.scaleLabel.display = value;
+          break;
+        case 'y-title-text':
+          if (!chart.yaxes) {
+            chart.yaxes = {};
+          }
+          if (!chart.yaxes.scaleLabel) {
+            chart.yaxes.scaleLabel = {};
+          }
+          chart.yaxes.scaleLabel.labelString = value;
+          break;
+        case 'format':
+          if (!chart.dataset) {
+            chart.dataset = {};
+          }
+          chart.dataset.format = value;
+          break;
+      }
+
+      setCell(this.rowIndex, this.colIndex, cell);
+      this.updateChart();
+      setDirty();
     }
   }
 };

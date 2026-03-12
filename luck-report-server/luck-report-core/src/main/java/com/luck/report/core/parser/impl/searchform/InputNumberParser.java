@@ -10,6 +10,7 @@ public class InputNumberParser implements FormParser<InputNumberComponent> {
         component.setLabel(FormParserUtils.parseStringAttribute(element.attributeValue("label")));
         component.setControlsPosition(FormParserUtils.parseStringAttribute(element.attributeValue("controlsPosition")));
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
+        component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
         component.setStepStrictly(FormParserUtils.parseBooleanAttribute(element.attributeValue("stepStrictly")));
         component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));

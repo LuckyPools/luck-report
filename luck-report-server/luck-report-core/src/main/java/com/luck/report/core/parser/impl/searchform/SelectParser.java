@@ -15,6 +15,7 @@ public class SelectParser implements FormParser<SelectComponent> {
         select.setPlaceholder(FormParserUtils.parseStringAttribute(element.attributeValue("placeholder")));
         select.setStyle(FormParserUtils.parseStyle(element.attributeValue("style")));
         select.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
+        select.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
         select.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         select.setMultiple(FormParserUtils.parseBooleanAttribute(element.attributeValue("multiple")));

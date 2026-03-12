@@ -3,9 +3,13 @@
       :title="$t('tools.save.save')"
       class="tool-button"
       icon="icon-save2"
-      @click="execute"
+      @click="handleClick"
   >
-    <SaveDialog ref="saveDialog" @saveAfter="handleSaveAfter" />
+    <SaveDialog
+      :visible="visible"
+      @update:visible="visible = $event"
+      @saveAfter="handleSaveAfter"
+    />
   </u-button>
 </template>
 
@@ -20,20 +24,21 @@ import { mapGetters } from 'vuex';
 export default {
   name: 'SaveTool',
   components: {SaveDialog, UButton},
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
+  data() {
+    return {
+      visible: false
+    };
   },
   computed: {
-    ...mapGetters('report', ['getIsSaved', 'getFileName'])
+    ...mapGetters('report', ['getSaveStatus', 'getFileName', 'getContext']),
+    context() {
+      return this.getContext;
+    }
   },
   methods: {
-    execute() {
-      if (!this.getIsSaved) {
-        const content = tableToXml(this.context);
-        this.showSaveDialog(content);
+    handleClick() {
+      if (!this.getSaveStatus) {
+        this.visible = true;
         return;
       }
 
@@ -53,11 +58,6 @@ export default {
               showAlert(this.$t('tools.save.failSave'));
             }
           });
-    },
-    showSaveDialog(content) {
-      if (this.$refs.saveDialog && this.$refs.saveDialog.show) {
-        this.$refs.saveDialog.show(content, this.context);
-      }
     },
     handleSaveAfter(fullFile){
       window.location.replace("?reportPath=" + fullFile);

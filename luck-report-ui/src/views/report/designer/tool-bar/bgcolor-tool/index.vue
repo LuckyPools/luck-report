@@ -15,7 +15,10 @@
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import UColorPicker from "@/components/color-picker/index.vue";
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'BgColorTool',
@@ -23,18 +26,39 @@ export default {
     UColorPicker
   },
   props: {
-    context: {
+    selectedCells: {
       type: Object,
-      required: true
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
     }
   },
   data() {
     return {
-      currentColor: '255,255,255', // 当前应用的颜色 (R,G,B格式)
-      selectedColor: '#FFFFFF', // 颜色选择器的颜色值 (#RRGGBB格式)
+      currentColor: '255,255,255',
+      selectedColor: '#FFFFFF',
       isDropdownOpen: false,
-      isSelectionValid: false // 是否有选中的单元格
+      isSelectionValid: false
     };
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
   },
   methods: {
     // 处理颜色选择器点击事件
@@ -111,20 +135,20 @@ export default {
     // 更新单元格背景色样式
     updateCellsBgColorStyle(startRow, startCol, endRow, endCol, color) {
       const oldBgColorStyle = {};
-      const table = this.context.hot;
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           oldBgColorStyle[i + ',' + j] = cellStyle.bgcolor;
           cellStyle.bgcolor = color;
+          setCell( i, j, newCellDef );
 
-          // 更新当前颜色显示
           this.currentColor = color;
         }
       }
@@ -136,18 +160,18 @@ export default {
     restoreBgColorStyle(startRow, startCol, endRow, endCol, oldBgColorStyle) {
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           cellStyle.bgcolor = oldBgColorStyle[i + ',' + j];
+          setCell( i, j, newCellDef );
 
-          // 更新当前颜色显示为第一个单元格的颜色
           if (i === startRow && j === startCol) {
             this.currentColor = cellStyle.bgcolor || '255,255,255';
-            // 同步更新颜色选择器的值
             const rgbParts = this.currentColor.split(',');
             if (rgbParts.length === 3) {
               this.selectedColor = this.rgbToHex(
@@ -187,7 +211,7 @@ export default {
       // 获取第一个单元格的背景色
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
