@@ -11,6 +11,7 @@ public abstract class BaseInputComponent implements Component {
 
     private String label;
     private String tag;
+    private String tagIcon;
     private Integer span;
     private String labelWidth;
     private Map<String, String> style;
@@ -49,6 +50,14 @@ public abstract class BaseInputComponent implements Component {
 
     public void setTag(String tag) {
         this.tag = tag;
+    }
+
+    public String getTagIcon() {
+        return tagIcon;
+    }
+
+    public void setTagIcon(String tagIcon) {
+        this.tagIcon = tagIcon;
     }
 
     public Integer getSpan() {

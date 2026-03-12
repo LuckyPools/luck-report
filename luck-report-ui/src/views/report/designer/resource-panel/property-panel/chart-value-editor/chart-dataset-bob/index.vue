@@ -7,7 +7,7 @@
       <label>{{ $t('chart.dataset') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localDataset"
+          v-model="localDataset"
           :clearable="true"
           @change="handleDatasetChange"
         >
@@ -26,7 +26,7 @@
       <label>{{ $t('chart.categoryProperty') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localCategoryProperty"
+          v-model="localCategoryProperty"
           :clearable="true"
           @change="handleCategoryPropertyChange"
         >
@@ -45,7 +45,7 @@
       <label>{{ $t('chart.xProperty') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localXProperty"
+          v-model="localXProperty"
           :clearable="true"
           @change="handleXPropertyChange"
         >
@@ -64,7 +64,7 @@
       <label>{{ $t('chart.yProperty') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localYProperty"
+          v-model="localYProperty"
           :clearable="true"
           @change="handleYPropertyChange"
         >
@@ -83,7 +83,7 @@
       <label>{{ $t('chart.rProperty') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localRProperty"
+          v-model="localRProperty"
           :clearable="true"
           @change="handleRPropertyChange"
         >
@@ -103,6 +103,7 @@
 import {setDirty} from '@/utils/table.js';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'ChartDataConfig',
@@ -111,15 +112,6 @@ export default {
     UOption
   },
   props: {
-    cellDef: {
-      type: Object,
-      default: () => ({})
-    },
-    datasources: {
-      type: Array,
-      default: () => []
-    },
-    // 数据集相关 - 改为普通的props
     selectedDataset: {
       type: String,
       default: ''
@@ -157,6 +149,13 @@ export default {
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
+    datasources() {
+      return this.context?.reportDef?.datasources || [];
+    },
     availableDatasets() {
       if (!this.datasources) return [];
 
@@ -252,8 +251,7 @@ export default {
     },
 
     // 处理数据集变化
-    handleDatasetChange(value) {
-      this.localDataset = value;
+    handleDatasetChange() {
 
       // 清空属性选择
       this.localCategoryProperty = '';
@@ -263,7 +261,7 @@ export default {
 
       // 通知父组件更新配置
       this.$emit('update-dataset', {
-        datasetName: value,
+        datasetName: this.localDataset,
         categoryProperty: '',
         xProperty: '',
         yProperty: '',
@@ -274,42 +272,26 @@ export default {
     },
 
     // 处理类别属性变化
-    handleCategoryPropertyChange(value) {
-      this.localCategoryProperty = value;
-
-      // 通知父组件更新配置
-      this.$emit('update-dataset', { categoryProperty: value });
-
+    handleCategoryPropertyChange() {
+      this.$emit('update-dataset', { categoryProperty: this.localCategoryProperty });
       setDirty();
     },
 
     // 处理X属性变化
-    handleXPropertyChange(value) {
-      this.localXProperty = value;
-
-      // 通知父组件更新配置
-      this.$emit('update-dataset', { xProperty: value });
-
+    handleXPropertyChange() {
+      this.$emit('update-dataset', { xProperty: this.localXProperty });
       setDirty();
     },
 
     // 处理Y属性变化
-    handleYPropertyChange(value) {
-      this.localYProperty = value;
-
-      // 通知父组件更新配置
-      this.$emit('update-dataset', { yProperty: value });
-
+    handleYPropertyChange() {
+      this.$emit('update-dataset', { yProperty: this.localYProperty });
       setDirty();
     },
 
     // 处理R属性变化
-    handleRPropertyChange(value) {
-      this.localRProperty = value;
-
-      // 通知父组件更新配置
-      this.$emit('update-dataset', { rProperty: value });
-
+    handleRPropertyChange() {
+      this.$emit('update-dataset', { rProperty: this.localRProperty });
       setDirty();
     }
   }

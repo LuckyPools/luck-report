@@ -60,11 +60,20 @@ export default {
     datasources: {
       type: Array,
       default: () => []
+    },
+    // 控制弹窗显示
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    // 数据源数据
+    datasource: {
+      type: Object,
+      default: null
     }
   },
   data() {
     return {
-      visible: false,
       dsName: '',
       username: '',
       password: '',
@@ -74,17 +83,27 @@ export default {
       backdrop: null
     };
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.resetForm();
+        if (this.datasource) {
+          this.fillForm(this.datasource);
+        }
+      }
+    }
+  },
   methods: {
-    show(ds) {
-      // 重置表单
+    resetForm() {
       this.dsName = '';
       this.username = '';
       this.password = '';
       this.driver = '';
       this.url = '';
       this.oldName = null;
+    },
 
-      // 如果提供了数据源，填充表单
+    fillForm(ds) {
       if (ds) {
         this.oldName = ds.name;
         this.dsName = ds.name;
@@ -93,14 +112,10 @@ export default {
         this.driver = ds.driver || '';
         this.url = ds.url || '';
       }
-
-      // 显示对话框
-      this.visible = true;
-
     },
 
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
     },
 
     handleClose() {

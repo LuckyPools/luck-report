@@ -12,10 +12,9 @@
         <label>{{ $t('dialog.editPropCondition.relation') }}：</label>
         <div class="u-inline">
           <u-select
-              :value="join"
+              v-model="join"
               :clearable="true"
               style="width:300px"
-              @change="handleJoinChange"
           >
             <u-option
                 v-for="option in joinOptions"
@@ -32,10 +31,9 @@
         <label>{{ $t('dialog.editPropCondition.leftValue') }}：</label>
         <div class="u-inline">
           <u-select
-              :value="leftType"
+              v-model="leftType"
               :clearable="true"
               style="width:300px"
-              @change="handleLeftTypeChange"
           >
             <u-option
                 v-for="option in leftTypeOptions"
@@ -52,10 +50,9 @@
         <label>{{ $t('dialog.editPropCondition.propName') }}：</label>
         <div class="u-inline">
           <u-select
-              :value="property"
+              v-model="property"
               :clearable="true"
               style="width:300px"
-              @change="handlePropertyChange"
           >
             <u-option
                 v-for="option in fieldOptions"
@@ -84,10 +81,9 @@
         <label>{{ $t('dialog.editPropCondition.operator') }}：</label>
         <div class="u-inline">
           <u-select
-              :value="operator"
+              v-model="operator"
               :clearable="true"
               style="width:300px"
-              @change="handleOperatorChange"
           >
             <u-option
                 v-for="option in operatorOptions"
@@ -136,19 +132,33 @@ export default {
     UOption,
     UInput
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    dialogFields: {
+      type: Array,
+      default: () => []
+    },
+    dialogCondition: {
+      type: Object,
+      default: null
+    },
+    dialogConditions: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
-      visible: false,
       join: 'and',
       leftType: 'current',
       property: '',
       expression: '',
       operator: '',
       value: '',
-      showJoin: false,
-      fields: [],
-      condition: null,
-      conditions: []
+      showJoin: false
     };
   },
   computed: {
@@ -169,7 +179,7 @@ export default {
     },
     // 字段选项
     fieldOptions() {
-      return this.fields.map(field => ({
+      return this.dialogFields.map(field => ({
         value: field.name,
         label: field.name
       }));
@@ -196,53 +206,37 @@ export default {
     // 移除事件监听
     document.removeEventListener('keydown', this.handleKeydown);
   },
-  methods: {
-    // 处理关系选择变化
-    handleJoinChange(value) {
-      this.join = value;
-    },
-
-    // 处理左值类型选择变化
-    handleLeftTypeChange(value) {
-      this.leftType = value;
-    },
-
-    // 处理属性选择变化
-    handlePropertyChange(value) {
-      this.property = value;
-    },
-
-    // 处理运算符选择变化
-    handleOperatorChange(value) {
-      this.operator = value;
-    },
-
-    show(fields, condition, conditions) {
-      this.visible = true;
-      this.fields = fields || [];
-      this.condition = condition;
-      this.conditions = conditions || [];
-
-      // 根据条件决定是否显示关系选择
-      if (condition) {
-        this.showJoin = !!condition.join;
-      } else {
-        this.showJoin = this.conditions.length > 0;
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.initFormData();
       }
+    }
+  },
+  methods: {
+
+    initFormData() {
+      // 根据条件决定是否显示关系选择
+      if (this.dialogCondition) {
+        this.showJoin = !!this.dialogCondition.join;
+      } else {
+        this.showJoin = this.dialogConditions.length > 0;
+      }
+
       // 初始化表单数据
-      if (condition) {
-        this.leftType = condition.type || 'current';
+      if (this.dialogCondition) {
+        this.leftType = this.dialogCondition.type || 'current';
         if (this.leftType === 'expression') {
-          this.expression = condition.left || '';
-        } else if (condition.left) {
-          this.property = condition.left;
+          this.expression = this.dialogCondition.left || '';
+        } else if (this.dialogCondition.left) {
+          this.property = this.dialogCondition.left;
         }
         if(this.leftType === 'property' && (!this.property || this.property === '')){
           this.leftType = 'current'
         }
-        this.operator = condition.operation || condition.op || '';
-        this.value = condition.right || '';
-        this.join = condition.join || 'and';
+        this.operator = this.dialogCondition.operation || this.dialogCondition.op || '';
+        this.value = this.dialogCondition.right || '';
+        this.join = this.dialogCondition.join || 'and';
       } else {
         this.leftType = 'current';
         this.property = '';
@@ -251,7 +245,6 @@ export default {
         this.value = '';
         this.join = 'and';
       }
-
     },
 
     handleOk() {
@@ -289,13 +282,13 @@ export default {
       }
 
       // 触发保存后事件
-      if (this.condition) {
-        if (this.condition.join) {
+      if (this.dialogCondition) {
+        if (this.dialogCondition.join) {
           this.$emit('saveAfter', type, property, this.operator, this.value, this.join);
         } else {
           this.$emit('saveAfter', type, property, this.operator, this.value);
         }
-      } else if (this.conditions.length > 0) {
+      } else if (this.dialogConditions.length > 0) {
         this.$emit('saveAfter', type, property, this.operator, this.value, this.join);
       } else {
         this.$emit('saveAfter', type, property, this.operator, this.value);
@@ -305,7 +298,7 @@ export default {
     },
 
     handleClose() {
-      this.visible = false;
+      this.$emit('close');
       setTimeout(() => {
         this.join = 'and';
         this.leftType = 'current';
@@ -314,9 +307,6 @@ export default {
         this.operator = '';
         this.value = '';
         this.showJoin = false;
-        this.fields = [];
-        this.condition = null;
-        this.conditions = [];
       }, 300);
     },
 

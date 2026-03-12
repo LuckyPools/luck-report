@@ -25,7 +25,7 @@
       <label>{{ $t('property.dataset.property') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="internalSelectedProperty"
+            v-model="internalSelectedProperty"
             :clearable="true"
             style="width:300px"
             @change="handlePropertyChange"
@@ -45,7 +45,7 @@
       <label>{{ $t('property.dataset.aggregateType') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="internalSelectedAggregate"
+            v-model="internalSelectedAggregate"
             :clearable="true"
             style="width:150px"
             @change="handleAggregateChange"
@@ -71,7 +71,7 @@
     <div class="form-group"  v-show="internalShowSortOptions">
       <label>{{ $t('property.dataset.sortType') }}：</label>
       <div class="u-inline">
-        <u-radio-group :value="internalSelectedSort" @change="handleSortChange">
+        <u-radio-group v-model="internalSelectedSort" @change="handleSortChange">
           <u-radio
               v-for="option in sortOptions"
               :key="option.value"
@@ -115,7 +115,7 @@
     <div class="form-group">
       <label>{{ $t('property.base.newLineCompute') }}：</label>
       <div class="u-inline">
-        <u-radio-group :value="internalWrapCompute" @change="handleWrapComputeChange">
+        <u-radio-group v-model="internalWrapCompute" @change="handleWrapComputeChange">
           <u-radio
               v-for="option in wrapComputeOptions"
               :key="option.value"
@@ -145,7 +145,7 @@
     <div class="form-group">
       <label>{{ $t('property.base.fillBlank') }}：</label>
       <div class="u-inline">
-        <u-radio-group :value="internalFillBlankRows" @change="handleFillBlankRowsChange">
+        <u-radio-group v-model="internalFillBlankRows" @change="handleFillBlankRowsChange">
           <u-radio
               v-for="option in fillBlankRowsOptions"
               :key="option.value"
@@ -182,10 +182,21 @@
     </div>
 
     <!-- 自定义分组对话框组件 -->
-    <CustomGroupDialog ref="customGroupDialog" />
+    <CustomGroupDialog
+      :visible.sync="customGroupDialogVisible"
+      :group-items="groupItems"
+      :fields="customGroupDialogFields"
+      @save="handleCustomGroupSave"
+    />
 
     <!-- 属性条件对话框组件 -->
-    <PropertyConditionDialog ref="propertyConditionDialog" @saveAfter="handlePropertyConditionSave" />
+    <PropertyConditionDialog
+        ref="propertyConditionDialog"
+        :visible.sync="propertyConditionDialogVisible"
+        :dataset-name="propertyConditionDialogDatasetName"
+        :condition-property-items="propertyConditionDialogItems"
+        @saveAfter="handlePropertyConditionSave"
+    />
   </div>
 </template>
 
@@ -200,8 +211,11 @@ import PropertyConditionDialog from '@/views/report/designer/resource-panel/prop
 import CustomGroupDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-dialog/index.vue';
 import { setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import VueSimpleSuggest from 'vue-simple-suggest'
 import 'vue-simple-suggest/dist/styles.css'
+import { mapGetters } from 'vuex';
+
 export default {
   name: 'DatasetConfigTab',
   components: {
@@ -224,31 +238,7 @@ export default {
       type: Array,
       default: () => []
     },
-    cellDef: {
-      type: Object,
-      default: null
-    },
-    context: {
-      type: Object,
-      required: true
-    },
-    rowIndex: {
-      type: Number,
-      default: 0
-    },
-    colIndex: {
-      type: Number,
-      default: 0
-    },
-    row2Index: {
-      type: Number,
-      default: 0
-    },
-    col2Index: {
-      type: Number,
-      default: 0
-    },
-    datasources: {
+    groupItems: {
       type: Array,
       default: () => []
     },
@@ -309,7 +299,6 @@ export default {
   },
   data() {
     return {
-      // 内部状态，用于与外部props同步
       internalSelectedDataset: '',
       internalSelectedProperty: '',
       internalSelectedAggregate: 'select',
@@ -323,6 +312,11 @@ export default {
       internalShowSortOptions: true,
       internalShowExpandOptions: true,
       isInitialized: false,
+      propertyConditionDialogVisible: false,
+      propertyConditionDialogDatasetName: '',
+      propertyConditionDialogItems: [],
+      customGroupDialogVisible: false,
+      customGroupDialogFields: null,
       suggestionList:[
         "yyyy/MM/dd",
         "yyyy/MM",
@@ -347,21 +341,25 @@ export default {
     };
   },
   computed: {
-    // 为USelect组件准备的数据集选项
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
+    datasources() {
+      return this.context.reportDef.datasources || [];
+    },
     datasetOptions() {
       return this.datasets.map(dataset => ({
         value: dataset.name,
         label: dataset.name
       }));
     },
-    // 为USelect组件准备的属性选项
     propertyOptions() {
       return this.currentFields.map(field => ({
         value: field.name,
         label: field.name
       }));
     },
-    // 为USelect组件准备的聚合类型选项
     aggregateOptions() {
       return [
         { value: 'select', label: this.$t('property.dataset.select') },
@@ -374,7 +372,6 @@ export default {
         { value: 'avg', label: this.$t('property.dataset.avg') }
       ];
     },
-    // 为URadioGroup组件准备的排序类型选项
     sortOptions() {
       return [
         { value: 'none', label: this.$t('property.dataset.notSort') },
@@ -382,7 +379,6 @@ export default {
         { value: 'desc', label: this.$t('property.dataset.desc') }
       ];
     },
-    // 为URadioGroup组件准备的展开方向选项
     expandOptions() {
       return [
         { value: 'Down', label: this.$t('property.dataset.down') },
@@ -390,14 +386,12 @@ export default {
         { value: 'None', label: this.$t('property.dataset.noneExpand') }
       ];
     },
-    // 为URadioGroup组件准备的换行计算选项
     wrapComputeOptions() {
       return [
         { value: 'default', label: this.$t('property.base.open'), title: this.$t('property.base.newLineComputeTip') },
         { value: 'custom', label: this.$t('property.base.close') }
       ];
     },
-    // 为URadioGroup组件准备的填充空白行选项
     fillBlankRowsOptions() {
       return [
         { value: 'default', label: this.$t('property.base.open') },
@@ -487,8 +481,7 @@ export default {
     /**
      * 处理属性变化
      */
-    handlePropertyChange(value) {
-      this.internalSelectedProperty = value;
+    handlePropertyChange() {
       // 触发事件，通知父组件
       this.$emit('update:selectedProperty', this.internalSelectedProperty);
       this.$emit('property-change', this.internalSelectedProperty);
@@ -497,8 +490,7 @@ export default {
     /**
      * 处理聚合类型变化
      */
-    handleAggregateChange(value) {
-      this.internalSelectedAggregate = value;
+    handleAggregateChange() {
       if (this.internalSelectedAggregate === 'sum' || this.internalSelectedAggregate === 'count' ||
           this.internalSelectedAggregate === 'max' || this.internalSelectedAggregate === 'min' ||
           this.internalSelectedAggregate === 'avg') {
@@ -553,9 +545,7 @@ export default {
     /**
      * 处理换行计算变化
      */
-    handleWrapComputeChange(value) {
-      this.internalWrapCompute = value;
-      // 触发事件，通知父组件
+    handleWrapComputeChange() {
       this.$emit('update:wrapCompute', this.internalWrapCompute);
       this.$emit('wrap-compute-change', this.internalWrapCompute);
     },
@@ -575,8 +565,7 @@ export default {
     /**
      * 处理填充空白行变化
      */
-    handleFillBlankRowsChange(value) {
-      this.internalFillBlankRows = value;
+    handleFillBlankRowsChange() {
       // 触发事件，通知父组件
       this.$emit('update:fillBlankRows', this.internalFillBlankRows);
       this.$emit('fill-blank-rows-change', this.internalFillBlankRows);
@@ -585,11 +574,10 @@ export default {
     /**
      * 处理倍数变化
      */
-    handleMultipleChange(value) {
+    handleMultipleChange() {
       if (!this.isInitialized) {
         return;
       }
-      this.internalMultiple = value;
       // 触发事件，通知父组件
       this.$emit('update:multiple', this.internalMultiple);
       this.$emit('multiple-change', this.internalMultiple);
@@ -599,26 +587,20 @@ export default {
      * 处理条件属性配置
      */
     handleConditionPropertyConfig() {
-      if (!this.cellDef) return;
-
       const conditionPropertyItems = this.conditionPropertyItems
-        ? JSON.parse(JSON.stringify(this.conditionPropertyItems))
+        ? deepCopy(this.conditionPropertyItems)
         : [];
 
-      this.$refs.propertyConditionDialog.show(
-        this.datasources,
-        this.internalSelectedDataset,
-        conditionPropertyItems
-      );
+      this.propertyConditionDialogDatasetName = this.internalSelectedDataset;
+      this.propertyConditionDialogItems = conditionPropertyItems;
+      this.propertyConditionDialogVisible = true;
     },
 
     /**
      * 处理属性条件保存后的回调
      */
     handlePropertyConditionSave(propertyConditions) {
-      // 使用深拷贝确保数据正确更新
-      const updatedConditions = JSON.parse(JSON.stringify(propertyConditions));
-      // 触发事件，通知父组件更新 conditionPropertyItems
+      const updatedConditions = deepCopy(propertyConditions);
       this.$emit('update:conditionPropertyItems', updatedConditions);
       this.$emit('condition-property-items-change', updatedConditions);
       setDirty();
@@ -629,7 +611,18 @@ export default {
      */
     handleCustomGroupConfig() {
       const fields = this._buildFields();
-      this.$refs.customGroupDialog.show(this.cellDef, fields);
+      if (fields) {
+        this.customGroupDialogFields = fields;
+        this.customGroupDialogVisible = true;
+      }
+      setDirty();
+    },
+
+    /**
+     * 处理自定义分组保存
+     */
+    handleCustomGroupSave(groupItems) {
+      this.$emit('update-custom-group', groupItems);
       setDirty();
     },
 

@@ -4,7 +4,7 @@
       :title="$t('mergeSplitCells')"
       class="info-button"
       icon="icon-merge"
-      @click="execute"
+      @click="handleClick"
   >
   </u-button>
 </template>
@@ -13,18 +13,20 @@
 import { undoManager, setDirty, buildNewCellDef } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import UButton from "@/components/button/index.vue";
+import { mapGetters } from 'vuex';
+import {addCell, getCell} from "@/utils/contextActions";
 
 export default {
   name: 'MergeTool',
   components: {UButton},
-  props: {
-    context: {
-      type: Object,
-      required: true
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
   methods: {
-    execute() {
+    handleClick() {
       const table = this.context.hot;
       const selected = table.getSelected();
 
@@ -37,7 +39,6 @@ export default {
       let oldMergeCells = mergeCells.concat([]);
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-      // 确保startRow <= endRow和startCol <= endCol
       let tmp = endRow;
       if (startRow > endRow) {
         endRow = startRow;
@@ -70,7 +71,6 @@ export default {
 
     doMergeCells(startRow, startCol, endRow, endCol, table, context) {
       let doMerge = true, doSplit = false;
-      const selectCell = context.getCell(startRow, startCol);
       const mergeCells = table.getSettings().mergeCells || [];
 
       // 检查选中的单元格是否已经合并，如果是则拆分
@@ -134,10 +134,10 @@ export default {
         if (doSplit) {
           for (let i = startRow; i <= endRow; i++) {
             for (let j = startCol; j <= endCol; j++) {
-              let cellDef = context.getCell(i, j);
+              let cellDef = getCell(i, j);
               if (!cellDef) {
                 cellDef = buildNewCellDef(i + 1, j + 1);
-                context.addCell(cellDef);
+                addCell(cellDef );
               }
             }
           }

@@ -14,8 +14,6 @@
         <!-- 字段选项卡 -->
         <ChartDataConfig
           ref="datasetTab"
-          :cellDef="cellDef"
-          :datasources="datasources"
           :selectedDataset="datasetValues.selectedDataset"
           :selectedCategoryProperty="datasetValues.selectedCategoryProperty"
           :selectedXProperty="datasetValues.selectedXProperty"
@@ -28,21 +26,21 @@
       <!-- 选项选项卡 -->
       <div class="tab-pane" v-show="activeTab === 'option'">
         <ChartOption
-          :cellDef="cellDef"
-          :chartOptions="chartOptions"
-          :showDataLabel="false"
-        />
+        :chartConfig="chartConfig"
+        :showDataLabel="false"
+        @chart-option-change="handleChartOptionChange"
+        @data-labels-change="handleDataLabelsChange"
+      />
       </div>
 
       <!-- 轴配置选项卡 -->
       <div class="tab-pane" v-show="activeTab === 'axis'">
         <!-- 使用ChartAxis组件 -->
         <ChartAxis
-          :cellDef="cellDef"
           :xAxesConfig.sync="xAxesConfig"
           :yAxesConfig.sync="yAxesConfig"
           :format.sync="xAxisFormat"
-          @change="handleAxisConfigChange"
+          @axis-change="handleAxisChange"
         />
       </div>
     </div>
@@ -51,11 +49,15 @@
 
 <script>
 import { setDirty } from '@/utils/table.js';
+import { deepCopy } from '@/components/utils/index.js';
+import { getCell, setCell } from '@/utils/contextActions';
+import chartWidgetManager from '@/views/report/designer/edit-table/chart-widget/manager.js';
 import ChartAxis from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-axis/index.vue';
 import ChartOption from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-option/index.vue';
 import ChartDataConfig from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-dataset-bob/index.vue';
 import UTabs from "@/components/tabs/index.vue";
 import UTabPane from "@/components/tabs/pane.vue";
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'BubbleChartValueEditor',
@@ -67,20 +69,26 @@ export default {
     ChartDataConfig
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
     }
   },
   data() {
     return {
       activeTab: 'dataset',
-      cellDef: null,
-      datasources: null,
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
 
       // 数据集相关 - 使用一个对象来管理所有数据集相关的值
       datasetValues: {
@@ -113,7 +121,7 @@ export default {
       xAxisFormat: '',
 
       // 图表选项
-      chartOptions: {
+      chartConfig: {
         title: {
           display: false,
           position: 'top',
@@ -139,34 +147,37 @@ export default {
       }
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
   watch: {
-    // 监听X轴格式变化
-    xAxisFormat() {
-      this.handleXAxisFormatChange();
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadChartConfig();
+      }
     },
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadChartConfig();
+      }
+    }
+  },
+  mounted() {
+    this.loadChartConfig();
   },
   methods: {
-
-    // 显示编辑器
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
-
-      // 获取数据源
-      this.datasources = this.context.reportDef.datasources;
-
-      // 先加载图表配置
-      this.loadChartConfig();
-    },
-
+    getCell,
     // 加载图表配置
     loadChartConfig() {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) return;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef || !cellDef.value || !cellDef.value.chart) return;
 
-      const chart = this.cellDef.value.chart;
+      const chart = cellDef.value.chart;
       // 加载数据集配置
       const dataset = chart.dataset || {};
       this.datasetValues = {
@@ -203,16 +214,16 @@ export default {
       for (const option of options) {
         switch (option.type) {
           case 'animation':
-            this.chartOptions.animation = { ...this.chartOptions.animation, ...option };
+            this.chartConfig.animation = { ...this.chartConfig.animation, ...option };
             break;
           case 'title':
-            this.chartOptions.title = { ...this.chartOptions.title, ...option };
+            this.chartConfig.title = { ...this.chartConfig.title, ...option };
             break;
           case 'legend':
-            this.chartOptions.legend = { ...this.chartOptions.legend, ...option };
+            this.chartConfig.legend = { ...this.chartConfig.legend, ...option };
             break;
           case 'layout':
-            this.chartOptions.layout = { ...this.chartOptions.layout, ...option.layout };
+            this.chartConfig.layout = { ...this.chartConfig.layout, ...option.layout };
             break;
         }
       }
@@ -221,110 +232,169 @@ export default {
       if (chart.plugins && Array.isArray(chart.plugins)) {
         for (const plugin of chart.plugins) {
           if (plugin.name === 'data-labels') {
-            this.chartOptions.dataLabels.display = plugin.display;
+            this.chartConfig.dataLabels.display = plugin.display;
           }
         }
       }
     },
 
-    // 处理轴配置变化
-    handleAxisConfigChange(config) {
-      if (!this.cellDef.value.chart) {
-        this.cellDef.value.chart = {};
-      }
-      this.cellDef.value.chart.xAxes = config.xAxes;
-      this.cellDef.value.chart.yAxes = config.yAxes;
-      setDirty();
-    },
-
-    // 处理数据集配置更新
+    /**
+     * 处理数据集配置更新
+     */
     handleDatasetUpdate(config) {
-      if (!this.cellDef.value.chart) {
-        this.cellDef.value.chart = {};
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
       }
 
-      if (!this.cellDef.value.chart.dataset) {
-        this.cellDef.value.chart.dataset = {};
+      if (!cell.value.chart.dataset) {
+        cell.value.chart.dataset = {};
       }
 
-      // 更新配置
-      Object.assign(this.cellDef.value.chart.dataset, config);
-
-      // 同时更新本地数据集值，保持UI同步
+      Object.assign(cell.value.chart.dataset, config);
       Object.assign(this.datasetValues, config);
 
-      // 标记为已修改
+      setCell(this.rowIndex, this.colIndex, cell);
       setDirty();
     },
 
-    // 处理X轴格式变化
-    handleXAxisFormatChange() {
-      if (!this.cellDef.value.chart) {
-        this.cellDef.value.chart = {};
+    /**
+     * 处理图表选项变化
+     */
+    handleChartOptionChange({ type, option }) {
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
       }
 
-      if (!this.cellDef.value.chart.dataset) {
-        this.cellDef.value.chart.dataset = {};
+      const chart = cell.value.chart;
+      if (!chart.options) {
+        chart.options = [];
       }
 
-      this.cellDef.value.chart.dataset.format = this.xAxisFormat;
+      let existingOption = chart.options.find(opt => opt.type === type);
+      if (existingOption) {
+        Object.assign(existingOption, option);
+      } else {
+        chart.options.push({ type, ...option });
+      }
+
+      setCell(this.rowIndex, this.colIndex, cell);
+      this.updateChart();
       setDirty();
     },
 
-    // 获取X轴配置
-    getXAxesConfig() {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
-        return {};
+    /**
+     * 处理数据标签显示变化
+     */
+    handleDataLabelsChange(dataLabels) {
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
       }
 
-      let xaxes = this.cellDef.value.chart.xaxes;
-      if (!xaxes) {
-        xaxes = {};
-        this.cellDef.value.chart.xaxes = xaxes;
+      const chart = cell.value.chart;
+      if (!chart.plugins) {
+        chart.plugins = [];
       }
-      return xaxes;
+
+      let dataLabelPlugin = chart.plugins.find(p => p.name === 'data-labels');
+      if (dataLabelPlugin) {
+        dataLabelPlugin.display = dataLabels.display;
+      } else {
+        chart.plugins.push({
+          name: 'data-labels',
+          display: dataLabels.display
+        });
+      }
+
+      setCell(this.rowIndex, this.colIndex, cell);
+      this.updateChart();
+      setDirty();
     },
 
-    // 获取Y轴配置
-    getYAxesConfig() {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
-        return {};
+    /**
+     * 更新图表
+     */
+    updateChart() {
+      const widgetKey = `${this.rowIndex}_${this.colIndex}`;
+      const chartWidget = chartWidgetManager.get(widgetKey);
+      if (chartWidget) {
+          chartWidget.refresh(this.context);
       }
-
-      let yaxes = this.cellDef.value.chart.yaxes;
-      if (!yaxes) {
-        yaxes = {};
-        this.cellDef.value.chart.yaxes = yaxes;
-      }
-      return yaxes;
     },
 
-    // 获取目标选项
-    getTargetOption(type) {
-      if (!this.cellDef || !this.cellDef.value || !this.cellDef.value.chart) {
-        return {};
+    /**
+     * 处理轴配置变化
+     */
+    handleAxisChange({ type, value }) {
+      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
+      if (!cell || !cell.value || !cell.value.chart) {
+        return;
       }
 
-      let options = this.cellDef.value.chart.options;
-      if (!options) {
-        options = [];
-        this.cellDef.value.chart.options = options;
-      }
+      const chart = cell.value.chart;
 
-      let targetOption = null;
-      for (const option of options) {
-        if (option.type === type) {
-          targetOption = option;
+      switch (type) {
+        case 'x-rotation':
+          if (!chart.xaxes) {
+            chart.xaxes = {};
+          }
+          chart.xaxes.rotation = value;
           break;
-        }
+        case 'x-title-display':
+          if (!chart.xaxes) {
+            chart.xaxes = {};
+          }
+          if (!chart.xaxes.scaleLabel) {
+            chart.xaxes.scaleLabel = {};
+          }
+          chart.xaxes.scaleLabel.display = value;
+          break;
+        case 'x-title-text':
+          if (!chart.xaxes) {
+            chart.xaxes = {};
+          }
+          if (!chart.xaxes.scaleLabel) {
+            chart.xaxes.scaleLabel = {};
+          }
+          chart.xaxes.scaleLabel.labelString = value;
+          break;
+        case 'y-rotation':
+          if (!chart.yaxes) {
+            chart.yaxes = {};
+          }
+          chart.yaxes.rotation = value;
+          break;
+        case 'y-title-display':
+          if (!chart.yaxes) {
+            chart.yaxes = {};
+          }
+          if (!chart.yaxes.scaleLabel) {
+            chart.yaxes.scaleLabel = {};
+          }
+          chart.yaxes.scaleLabel.display = value;
+          break;
+        case 'y-title-text':
+          if (!chart.yaxes) {
+            chart.yaxes = {};
+          }
+          if (!chart.yaxes.scaleLabel) {
+            chart.yaxes.scaleLabel = {};
+          }
+          chart.yaxes.scaleLabel.labelString = value;
+          break;
+        case 'format':
+          if (!chart.dataset) {
+            chart.dataset = {};
+          }
+          chart.dataset.format = value;
+          break;
       }
 
-      if (!targetOption) {
-        targetOption = { type };
-        options.push(targetOption);
-      }
-
-      return targetOption;
+      setCell(this.rowIndex, this.colIndex, cell);
+      this.updateChart();
+      setDirty();
     }
   }
 };

@@ -49,12 +49,17 @@
     </div>
 
     <!-- 条件对话框组件 -->
-    <ConditionDialog ref="conditionDialog" @saveAfter="handleConditionSave" />
+    <ConditionDialog
+      :visible.sync="conditionDialogVisible"
+      :fields="conditionDialogFields"
+      :condition="conditionDialogCondition"
+      @saveAfter="handleConditionSave"
+    />
   </div>
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
+import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { setDirty } from '@/utils/table.js';
 import uuid from 'node-uuid';
 import ConditionDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
@@ -78,16 +83,15 @@ export default {
     currentFields: {
       type: Array,
       default: () => []
-    },
-    cellDef: {
-      type: Object,
-      default: () => ({})
-    },
+    }
   },
   data() {
     return {
       selectedConditionIndex: -1,
-      currentConditionIndex: -1 // 用于跟踪当前操作的条件索引
+      currentConditionIndex: -1,
+      conditionDialogVisible: false,
+      conditionDialogFields: [],
+      conditionDialogCondition: null
     };
   },
   methods: {
@@ -101,7 +105,9 @@ export default {
       }
 
       this.currentConditionIndex = -1;
-      this.$refs.conditionDialog.show(this.currentFields);
+      this.conditionDialogFields = this.currentFields;
+      this.conditionDialogCondition = null;
+      this.conditionDialogVisible = true;
     },
 
     handleEditCondition() {
@@ -110,9 +116,11 @@ export default {
         return;
       }
 
-      this.currentConditionIndex = this.selectedConditionIndex; // 保存当前编辑的条件索引
+      this.currentConditionIndex = this.selectedConditionIndex;
       const condition = this.conditions[this.selectedConditionIndex];
-      this.$refs.conditionDialog.show(this.currentFields, condition);
+      this.conditionDialogFields = this.currentFields;
+      this.conditionDialogCondition = condition;
+      this.conditionDialogVisible = true;
     },
 
     /**
@@ -143,7 +151,7 @@ export default {
       }
 
       this.$emit('update:conditions', conditions);
-      this.$emit('update-cell-def-conditions', conditions);
+      this.$emit('update-filter-conditions', conditions);
       setDirty();
     },
 
@@ -164,7 +172,7 @@ export default {
         if (index !== -1) {
           conditions.splice(index, 1);
           this.$emit('update:conditions', conditions);
-          this.$emit('update-cell-def-conditions', conditions);
+          this.$emit('update-filter-conditions', conditions);
           this.selectedConditionIndex = -1;
           setDirty();
         }

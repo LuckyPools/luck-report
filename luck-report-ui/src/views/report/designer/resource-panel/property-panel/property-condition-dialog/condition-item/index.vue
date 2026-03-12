@@ -29,7 +29,7 @@
         ref="itemSelect"
         size="10"
         class="form-control item-select"
-        v-model="selectedItemIndex"
+        :value="selectedItemIndex"
         @change="onItemSelectChange"
       >
       <option
@@ -43,9 +43,12 @@
     </div>
 
     <property-condition-item-dialog
-        ref="conditionItemDialog"
+        :visible="dialogVisible"
+        :conditionItem="currentConditionItem"
+        :operation="currentOperation"
         :propertyConditions="propertyConditions"
         @saveAfter="handleSaveAfter"
+        @close="handleDialogClose"
     />
   </div>
 </template>
@@ -67,18 +70,40 @@ export default {
     propertyConditions: {
       type: Array,
       default: () => []
+    },
+    selectedItemIndex: {
+      type: Number,
+      default: -1
     }
   },
   data() {
     return {
-      selectedItemIndex: -1,
-      selectedItem: null
+      selectedItem: null,
+      dialogVisible: false,
+      currentConditionItem: null,
+      currentOperation: 'add'
     };
+  },
+  watch: {
+    selectedItemIndex: {
+      handler(newVal) {
+        if (newVal < 0 || newVal >= this.propertyConditions.length) {
+          this.selectedItem = null;
+          this.$emit('item-selected', null);
+        } else {
+          this.selectedItem = this.propertyConditions[newVal];
+          this.$emit('item-selected', this.selectedItem);
+        }
+      },
+      immediate: true
+    }
   },
   methods: {
     addItem() {
       const newItem = { name: '', id: uuid() };
-      this.$refs.conditionItemDialog.show(newItem, 'add');
+      this.currentConditionItem = newItem;
+      this.currentOperation = 'add';
+      this.dialogVisible = true;
     },
     editItem() {
       if (this.selectedItemIndex < 0 || this.selectedItemIndex >= this.propertyConditions.length) {
@@ -87,7 +112,9 @@ export default {
       }
 
       const item = this.propertyConditions[this.selectedItemIndex];
-      this.$refs.conditionItemDialog.show(item, 'edit');
+      this.currentConditionItem = item;
+      this.currentOperation = 'edit';
+      this.dialogVisible = true;
     },
     deleteItem() {
       if (this.selectedItemIndex < 0 || this.selectedItemIndex >= this.propertyConditions.length) {
@@ -100,67 +127,33 @@ export default {
 
       showConfirm(`${this.$t('dialog.propCondition.delConfirm')}[${itemName}]?`).then(() => {
         this.$emit('item-deleted', this.selectedItemIndex);
-
-        const newLength = this.propertyConditions.length - 1;
-
-        // 如果删除后数组为空，重置选中状态
-        if (newLength <= 0) {
-          this.selectedItemIndex = -1;
-          this.selectedItem = null;
-          this.$emit('item-selected', null);
-        } else {
-          // 如果删除的是最后一个项目，则选中前一个项目
-          if (this.selectedItemIndex >= newLength) {
-            this.selectedItemIndex = newLength - 1;
-          }
-          // 如果删除的不是最后一个项目，保持当前索引不变（因为数组会自动调整）
-
-          // 确保索引在有效范围内
-          if (this.selectedItemIndex < 0) {
-            this.selectedItemIndex = 0;
-          }
-
-          // 更新选中的项目
-          this.selectedItem = this.propertyConditions[this.selectedItemIndex];
-          this.$emit('item-selected', this.selectedItem);
-        }
-
         setDirty();
       });
     },
-    onItemSelectChange() {
-      if (this.selectedItemIndex < 0 || this.selectedItemIndex >= this.propertyConditions.length) {
-        this.selectedItem = null;
-        this.$emit('item-selected', null);
-        return;
-      }
-
-      this.selectedItem = this.propertyConditions[this.selectedItemIndex];
-      this.$emit('item-selected', this.selectedItem);
+    onItemSelectChange(event) {
+      const newIndex = parseInt(event.target.value);
+      this.$emit('item-index-changed', newIndex);
       setDirty();
     },
-    // 提供给外部调用的方法
-    selectFirstItem() {
-      if (this.propertyConditions.length > 0) {
-        this.selectedItemIndex = 0;
-        this.onItemSelectChange();
-      }
-    },
-    clearSelection() {
-      this.selectedItemIndex = -1;
-      this.selectedItem = null;
-      this.$emit('item-selected', null);
-    },
-    // 处理保存后事件
     handleSaveAfter({ item, operation }) {
       if (operation === 'add') {
-        this.$emit('item-added', item);
-        this.selectedItemIndex = this.propertyConditions.length - 1;
-        this.onItemSelectChange();
+        this.currentConditionItem.name = item.name;
+        this.$emit('item-added', this.currentConditionItem);
+        const newIndex = this.propertyConditions.length - 1;
+        this.$emit('item-index-changed', newIndex);
       } else if (operation === 'edit') {
-        this.$emit('item-updated', item);
+        this.currentConditionItem.name = item.name;
+        this.$emit('item-updated', this.currentConditionItem);
       }
       setDirty();
+    },
+    // 处理弹窗关闭事件
+    handleDialogClose() {
+      this.dialogVisible = false;
+      setTimeout(() => {
+        this.currentConditionItem = null;
+        this.currentOperation = 'add';
+      }, 300);
     },
   }
 };

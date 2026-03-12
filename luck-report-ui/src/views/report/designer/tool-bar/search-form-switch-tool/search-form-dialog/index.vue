@@ -21,6 +21,8 @@ import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import SearchForm from "@/views/report/designer/search-form/index.vue";
 import {deepClone} from "@/views/report/designer/search-form/utils";
+import { mapGetters } from 'vuex';
+import { updateReportDef } from '@/utils/contextActions.js';
 
 export default {
   name: 'SearchFormDialog',
@@ -29,39 +31,50 @@ export default {
     UDialog,
     SearchForm
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
   data() {
     return {
-      visible: false,
       iframeSrc: '',
       index: 0,
-      reportDef: null,
       searchFormData: null
     };
   },
-  methods: {
-    show(reportDef) {
-      this.visible = true;
-      this.reportDef = reportDef;
-      if(this.reportDef.searchForm){
-        this.searchFormData = deepClone(this.reportDef.searchForm)
+  watch: {
+    visible(newVal) {
+      if (newVal && this.context.reportDef.searchForm) {
+        this.searchFormData = deepClone(this.context.reportDef.searchForm);
       }
-    },
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
+  methods: {
 
-    buildData(){
+    buildData() {
       const searchFormDesigner = this.$refs.searchFormDesigner;
       searchFormDesigner.AssembleFormData();
       const formData = searchFormDesigner.formData;
-      this.reportDef.searchForm = deepClone(formData);
-      console.log(JSON.stringify(formData))
+      const newReportDef = deepClone(this.context.reportDef);
+      newReportDef.searchForm = deepClone(formData);
+      updateReportDef(newReportDef);
     },
 
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
     },
 
     handleOk() {
       this.buildData();
-      this.visible = false;
+      this.$emit('update:visible', false);
     }
   }
 };

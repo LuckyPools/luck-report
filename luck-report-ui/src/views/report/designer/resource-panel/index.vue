@@ -5,7 +5,7 @@
           <u-tab-pane :label="$t('panel.datasource')" index="datasource" />
       </u-tabs>
       <div class="tab-content" ref="tabContent">
-          <PropertyPanel v-show="activeTab === 'property'" ref="propertyPanel" />
+          <PropertyPanel v-show="activeTab === 'property'" ref="propertyPanel" :row-index="rowIndex" :col-index="colIndex" :row2-index="row2Index" :col2-index="col2Index" :refresh-trigger="refreshTrigger" @refresh="handlePropertyPanelRefresh" />
           <DatasourcePanel v-show="activeTab === 'datasource'" />
       </div>
   </div>
@@ -21,13 +21,25 @@ import {mapGetters} from "vuex";
 export default {
   name: 'SidePanel',
   components: {DatasourcePanel, PropertyPanel, UTabs, UTabPane},
+  props: {
+    selectedCells: {
+      type: Object,
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
+    }
+  },
   data() {
     return {
       activeTab: 'property',
       rowIndex: 0,
       colIndex: 0,
       row2Index: 0,
-      col2Index: 0
+      col2Index: 0,
+      refreshTrigger: 0
     };
   },
   computed: {
@@ -35,6 +47,16 @@ export default {
     context() {
       return this.getContext || {};
     },
+  },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refreshPropertyPanel(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
   },
   beforeUnmount() {
 
@@ -45,21 +67,22 @@ export default {
      * 刷新属性面板
      */
     refreshPropertyPanel(rowIndex, colIndex, row2Index, col2Index) {
-      let that = this;
       this.rowIndex = rowIndex;
       this.colIndex = colIndex;
       this.row2Index = row2Index;
       this.col2Index = col2Index;
       this.activeTab = this.activeTab ? this.activeTab : 'property';
-      this.$nextTick(() => {
-        that.$refs.propertyPanel.refresh(rowIndex, colIndex, row2Index, col2Index);
-      })
+      this.refreshTrigger++;
     },
 
     handleTabChange(){
       if(this.activeTab === 'property'){
-        this.$refs.propertyPanel.refreshProperty();
+        this.refreshTrigger++;
       }
+    },
+
+    handlePropertyPanelRefresh(){
+      this.refreshTrigger++;
     }
   }
 }

@@ -132,7 +132,7 @@
         {{ $t('property.prop.linkConfig') }}
       </legend>
       <div class="form-group" style="margin-bottom:8px">
-        <label>URL(<span style="font-size: 12px;color: #747474" :title="$t('property.prop.urlExpressionTip')">{{ $t('property.prop.urlExpressionSupport') }}</span>)：</label>
+        <label>URL(<span style="font-size: 12px;color: #747474">{{ $t('property.prop.urlExpressionSupport') }}</span>)：</label>
         <div class="u-inline">
           <u-input
             v-model="linkUrl"
@@ -146,7 +146,7 @@
         <label>{{ $t('property.prop.target') }}：</label>
         <div class="u-inline">
           <u-select
-            :value="linkTarget"
+            v-model="linkTarget"
             :clearable="true"
             @change="handleLinkTargetChange"
             style="width: 120px"
@@ -174,7 +174,7 @@
       <label>{{ $t('property.prop.cellType') }}：</label>
       <div class="u-inline">
           <u-select
-            :value="cellType"
+            v-model="cellType"
             :clearable="true"
             @change="handleCellTypeChange"
           >
@@ -191,43 +191,61 @@
     <!-- 表达式值编辑器Vue组件 -->
     <expression-value-editor
       ref="expressionValueEditor"
-      :context="getContext()"
-      v-show="currentEditorType === 'expression'"
+      v-if="expressionValueEditorVisible"
+      :row-index="rowIndex"
+      :col-index="colIndex"
+      :row2-index="row2Index"
+      :col2-index="col2Index"
     />
 
     <!-- 简单值编辑器Vue组件 -->
     <simple-value-editor
       ref="simpleValueEditor"
-      :context="getContext()"
-      v-show="currentEditorType === 'simple'"
+      v-if="simpleValueEditorVisible"
+      :row-index="rowIndex"
+      :col-index="colIndex"
+      :row2-index="row2Index"
+      :col2-index="col2Index"
     />
 
     <!-- 数据集值编辑器Vue组件 -->
     <dataset-value-editor
       ref="datasetValueEditor"
-      :context="getContext()"
-      v-show="currentEditorType === 'dataset'"
+      v-if="datasetValueEditorVisible"
+      :row-index="rowIndex"
+      :col-index="colIndex"
+      :row2-index="row2Index"
+      :col2-index="col2Index"
     />
 
     <!-- 图片值编辑器Vue组件 -->
     <image-value-editor
       ref="imageValueEditor"
-      :context="getContext()"
-      v-show="currentEditorType === 'image'"
+      v-if="imageValueEditorVisible"
+      :row-index="rowIndex"
+      :col-index="colIndex"
+      :row2-index="row2Index"
+      :col2-index="col2Index"
     />
 
     <!-- 斜线值编辑器Vue组件 -->
     <slash-value-editor
       ref="slashValueEditor"
-      :context="getContext()"
-      v-show="currentEditorType === 'slash'"
+      v-if="slashValueEditorVisible"
+      :row-index="rowIndex"
+      :col-index="colIndex"
+      :row2-index="row2Index"
+      :col2-index="col2Index"
     />
 
     <!-- 二维码/条形码值编辑器Vue组件 -->
     <zxing-value-editor
       ref="zxingValueEditor"
-      :context="getContext()"
-      v-show="currentEditorType === 'zxing'"
+      v-if="zxingValueEditorVisible"
+      :row-index="rowIndex"
+      :col-index="colIndex"
+      :row2-index="row2Index"
+      :col2-index="col2Index"
     />
 
     <!-- 图表编辑器容器 -->
@@ -237,24 +255,39 @@
         v-for="(chartType, index) in chartEditorTypes"
         :key="index"
         :id="chartType.id"
-        :context="getContext()"
         :show-axis="chartType.showAxis"
-        v-show="currentChartType === chartType.id"
+        v-if="currentChartType === chartType.id"
+        :row-index="rowIndex"
+        :col-index="colIndex"
+        :row2-index="row2Index"
+        :col2-index="col2Index"
       />
       <bubble-chart-value-editor
         ref="bubbleChartEditor"
-        :context="getContext()"
-        v-show="currentChartType === 'bubble'"
+        v-if="bubbleChartValueEditorVisible"
+        :row-index="rowIndex"
+        :col-index="colIndex"
+        :row2-index="row2Index"
+        :col2-index="col2Index"
       />
       <scatter-chart-value-editor
         ref="scatterChartEditor"
-        :context="getContext()"
-        v-show="currentChartType === 'scatter'"
+        v-if="scatterChartValueEditorVisible"
+        :row-index="rowIndex"
+        :col-index="colIndex"
+        :row2-index="row2Index"
+        :col2-index="col2Index"
       />
     </div>
 
     <!-- URL参数对话框 -->
-    <URLParameterDialog ref="urlParameterDialog" />
+    <URLParameterDialog
+      v-show="urlParameterDialogVisible"
+      :visible="urlParameterDialogVisible"
+      :parameters="linkParameters || []"
+      @update:visible="handleUrlParameterDialogClose"
+      @parameters-change="linkParameters = $event"
+    />
   </div>
 </template>
 
@@ -269,16 +302,14 @@ import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UInput from '@/components/input/index.vue';
 import UButton from '@/components/button/index.vue';
-
-// 导入各种值编辑器
+import { deepCopy } from '@/components/utils/index.js';
+import { getCell, getCellName, setCell } from "@/utils/contextActions";
 import ExpressionValueEditor from './expression-value-editor/index.vue';
 import SimpleValueEditor from './simple-value-editor/index.vue';
 import DatasetValueEditor from './dataset-value-editor/index.vue';
 import ImageValueEditor from './image-value-editor/index.vue';
 import SlashValueEditor from './slash-value-editor/index.vue';
 import ZxingValueEditor from './zxing-value-editor/index.vue';
-
-// 导入图表编辑器组件
 import ChartValueEditor from './chart-value-editor/index.vue';
 import BubbleChartValueEditor from './bubble-chart-value-editor/index.vue';
 import ScatterChartValueEditor from './scatter-chart-value-editor/index.vue';
@@ -304,6 +335,28 @@ export default {
     UInput,
     UButton
   },
+  props: {
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
+    },
+    refreshTrigger: {
+      type: Number,
+      default: 0
+    }
+  },
   data() {
     return {
       // 显示控制
@@ -312,12 +365,6 @@ export default {
       showLinkGroup: false,
       showTypeGroup: false,
 
-      // 当前单元格信息
-      cellDef: null,
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
       initialized: false,
 
       // 父单元格配置
@@ -339,6 +386,7 @@ export default {
       // 链接配置
       linkUrl: '',
       linkTarget: '_blank',
+      linkParameters: null,
 
       // 单元格类型
       cellType: 'simple',
@@ -362,8 +410,17 @@ export default {
       // 当前显示的图表类型
       currentChartType: '',
 
-      // 当前显示的编辑器类型
-      currentEditorType: ''
+      // 编辑器可见性控制
+      expressionValueEditorVisible: false,
+      simpleValueEditorVisible: false,
+      datasetValueEditorVisible: false,
+      imageValueEditorVisible: false,
+      slashValueEditorVisible: false,
+      zxingValueEditorVisible: false,
+      bubbleChartValueEditorVisible: false,
+      scatterChartValueEditorVisible: false,
+
+      urlParameterDialogVisible: false
     };
   },
   computed: {
@@ -406,24 +463,35 @@ export default {
       ];
     }
   },
+  watch: {
+    refreshTrigger() {
+      this.refresh();
+    }
+  },
   mounted() {
   },
   methods: {
 
+    hideAllEditors() {
+      this.expressionValueEditorVisible = false;
+      this.simpleValueEditorVisible = false;
+      this.datasetValueEditorVisible = false;
+      this.imageValueEditorVisible = false;
+      this.slashValueEditorVisible = false;
+      this.zxingValueEditorVisible = false;
+      this.bubbleChartValueEditorVisible = false;
+      this.scatterChartValueEditorVisible = false;
+      this.currentChartType = '';
+    },
+
     /**
      * 刷新属性面板
      */
-    refresh(rowIndex, colIndex, row2Index, col2Index) {
-      const cellDef = this.getContext().getCell(rowIndex, colIndex);
+    refresh() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
       if (!cellDef) {
         return;
       }
-
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
 
       // 显示所有组
       this.showParentGroup = true;
@@ -463,12 +531,18 @@ export default {
 
       // 隐藏Vue组件编辑器
       this.currentChartType = '';
-      this.currentEditorType = '';
+      this.expressionValueEditorVisible = false;
+      this.simpleValueEditorVisible = false;
+      this.datasetValueEditorVisible = false;
+      this.imageValueEditorVisible = false;
+      this.slashValueEditorVisible = false;
+      this.zxingValueEditorVisible = false;
+      this.bubbleChartValueEditorVisible = false;
+      this.scatterChartValueEditorVisible = false;
 
       // 显示对应编辑器
       if (type === 'chart') {
         const chartType = cellDef.value.chart.dataset.type;
-        console.log('---------当前单元格类型为：' + chartType);
 
         // 处理特殊图表类型映射
         let actualChartType = chartType;
@@ -482,96 +556,34 @@ export default {
         if (chartType === 'scatter') {
           // 使用Vue组件显示散点图编辑器
           this.currentChartType = 'scatter';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.scatterChartEditor) {
-              this.$refs.scatterChartEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.scatterChartValueEditorVisible = true;
         } else if (chartType === 'bubble') {
           // 使用Vue组件显示气泡图编辑器
           this.currentChartType = 'bubble';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.bubbleChartEditor) {
-              this.$refs.bubbleChartEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.bubbleChartValueEditorVisible = true;
         } else {
           // 使用Vue组件显示图表编辑器
           this.currentChartType = actualChartType;
-
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            const chartEditor = this.$refs.chartEditor;
-            if (chartEditor && chartEditor.length > 0) {
-              // 找到对应类型的编辑器组件
-              const editor = chartEditor.find(editor => editor.id === actualChartType);
-              if (editor) {
-                editor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-              }
-            }
-          });
         }
       } else {
         this.currentChartType = '';
 
         // 处理简单类型编辑器
         if (type === 'simple') {
-          this.currentEditorType = 'simple';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.simpleValueEditor) {
-              this.$refs.simpleValueEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.simpleValueEditorVisible = true;
         } else if (type === 'expression') {
-          this.currentEditorType = 'expression';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.expressionValueEditor) {
-              this.$refs.expressionValueEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.expressionValueEditorVisible = true;
         } else if (type === 'dataset') {
-          // 使用Vue组件显示数据集值编辑器
-          this.currentEditorType = 'dataset';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.datasetValueEditor) {
-              this.$refs.datasetValueEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.datasetValueEditorVisible = true;
         } else if (type === 'image') {
-          // 使用Vue组件显示图片值编辑器
-          this.currentEditorType = 'image';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.imageValueEditor) {
-              this.$refs.imageValueEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.imageValueEditorVisible = true;
         } else if (type === 'slash') {
-          // 使用Vue组件显示斜线值编辑器
-          this.currentEditorType = 'slash';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.slashValueEditor) {
-              this.$refs.slashValueEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.slashValueEditorVisible = true;
         } else if (type === 'zxing') {
-          // 使用Vue组件显示二维码/条形码值编辑器
-          this.currentEditorType = 'zxing';
-          // 等待组件渲染完成后调用show方法
-          this.$nextTick(() => {
-            if (this.$refs.zxingValueEditor) {
-              this.$refs.zxingValueEditor.show(cellDef, rowIndex, colIndex, row2Index, col2Index);
-            }
-          });
+          this.zxingValueEditorVisible = true;
         } else {
           // 其他类型的编辑器
-          this.editorMap.get(type).show(cellDef, rowIndex, colIndex, row2Index, col2Index);
+          this.editorMap.get(type).show(rowIndex, colIndex, row2Index, col2Index);
         }
       }
 
@@ -582,9 +594,16 @@ export default {
      *
      */
     refreshProperty(){
-      const cellDef = this.getContext().getCell(this.rowIndex, this.colIndex);
-      if(this.cellType !== cellDef.value.type){
-        this.refresh(this.rowIndex, this.colIndex, this.row2Index, this.col2Index)
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if(!cellDef) {
+        return;
+      }
+      const oldCellDef = getCell(this.rowIndex, this.colIndex);
+      const typeChanged = this.cellType !== cellDef.value.type;
+      const crossTabWidgetChanged = !!(cellDef.crossTabWidget) !== !!(oldCellDef && oldCellDef.crossTabWidget);
+
+      if(typeChanged || crossTabWidgetChanged){
+        this.$emit('refresh');
       }
     },
 
@@ -599,7 +618,7 @@ export default {
       this.topParentCellNameOptions = [{ value: 'root', label: this.$t('property.prop.none') }];
 
       for (let j = 0; j < countCols; j++) {
-        let name = this.getContext().getCellName(null, j);
+        let name = getCellName(null, j);
         this.leftParentCellNameOptions.push({ value: name, label: name });
         this.topParentCellNameOptions.push({ value: name, label: name });
       }
@@ -625,8 +644,9 @@ export default {
      * 加载父单元格配置
      */
     loadParentCellConfig() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
       // 左侧父单元格
-      const leftParentCellName = this.cellDef.leftParentCellName;
+      const leftParentCellName = cellDef.leftParentCellName;
       if (leftParentCellName) {
         this.leftParentType = 'custom';
         if (leftParentCellName === 'root') {
@@ -658,7 +678,7 @@ export default {
               }
             }
           }
-          let cellName = this.getContext().getCellName(row, col);
+          let cellName = getCellName(row, col);
           let data = this.parseCellName(cellName);
           this.leftParentCellName = data.name;
           this.leftParentRowNumber = data.num;
@@ -666,7 +686,7 @@ export default {
       }
 
       // 顶部父单元格
-      const topParentCellName = this.cellDef.topParentCellName;
+      const topParentCellName = cellDef.topParentCellName;
       if (topParentCellName) {
         this.topParentType = 'custom';
         if (topParentCellName === 'root') {
@@ -698,7 +718,7 @@ export default {
               }
             }
           }
-          let cellName = this.getContext().getCellName(row, col);
+          let cellName = getCellName(row, col);
           let data = this.parseCellName(cellName);
           this.topParentCellName = data.name;
           this.topParentRowNumber = data.num;
@@ -740,23 +760,25 @@ export default {
       }
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.getContext().getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
+          const newCellDef = deepCopy(cellDef);
           if (isLeft) {
             if (cellName) {
-              cellDef.leftParentCellName = cellName;
+              newCellDef.leftParentCellName = cellName;
             } else {
-              cellDef.leftParentCellName = null;
+              newCellDef.leftParentCellName = null;
             }
           } else {
             if (cellName) {
-              cellDef.topParentCellName = cellName;
+              newCellDef.topParentCellName = cellName;
             } else {
-              cellDef.topParentCellName = null;
+              newCellDef.topParentCellName = null;
             }
           }
+          setCell(i, j, newCellDef);
         }
       }
       setDirty();
@@ -771,26 +793,26 @@ export default {
       }
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.getContext().getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
-          cellDef.renderer = renderer;
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.renderer = renderer;
+          setCell(i, j, newCellDef);
         }
       }
       setDirty();
     },
 
     // 事件处理方法
-    handleLeftParentTypeChange(value) {
-      this.leftParentType = value;
+    handleLeftParentTypeChange() {
       if (this.leftParentType === 'default') {
         this.setParentCell(null, true);
       }
     },
 
-    handleLeftParentCellNameChange(value) {
-      this.leftParentCellName = value;
+    handleLeftParentCellNameChange() {
       const name = this.leftParentCellName;
       if (name === 'root') {
         this.leftParentRowNumber = '';
@@ -855,13 +877,24 @@ export default {
     },
 
     handleLinkUrlChange() {
-      this.cellDef.linkUrl = this.linkUrl;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) {
+        return;
+      }
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.linkUrl = this.linkUrl;
+      setCell(this.rowIndex, this.colIndex, newCellDef);
       setDirty();
     },
 
-    handleLinkTargetChange(value) {
-      this.linkTarget = value;
-      this.cellDef.linkTargetWindow = this.linkTarget;
+    handleLinkTargetChange() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) {
+        return;
+      }
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.linkTargetWindow = this.linkTarget;
+      setCell(this.rowIndex, this.colIndex, newCellDef);
       setDirty();
     },
 
@@ -870,107 +903,100 @@ export default {
         showAlert(this.$t('property.prop.urlTip'));
         return;
       }
-      if (!this.cellDef.linkParameters) {
-        this.cellDef.linkParameters = [];
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) {
+        return;
       }
-      this.$refs.urlParameterDialog.show(this.cellDef.linkParameters);
+      const newCellDef = deepCopy(cellDef);
+      if (!newCellDef.linkParameters) {
+        newCellDef.linkParameters = [];
+      }
+      this.linkParameters = newCellDef.linkParameters;
+      this.urlParameterDialogVisible = true;
+      setDirty();
+    },
+
+    handleUrlParameterDialogClose() {
+      this.urlParameterDialogVisible = false;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) {
+        return;
+      }
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.linkParameters = this.linkParameters || [];
+      setCell(this.rowIndex, this.colIndex, newCellDef);
       setDirty();
     },
 
     handleCellTypeChange(value) {
-      this.cellType = value;
-      const cellDef = this.cellDef;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) {
+        return;
+      }
+      const newCellDef = deepCopy(cellDef);
 
       if (value === 'simple') {
-        if (cellDef.value.type !== 'simple') {
-          cellDef.value = { type: 'simple' };
+        if (newCellDef.value.type !== 'simple') {
+          newCellDef.value = { type: 'simple' };
         }
-        cellDef.expand = 'None';
-        // 使用Vue组件显示简单值编辑器
-        this.currentEditorType = 'simple';
-        this.$nextTick(() => {
-          if (this.$refs.simpleValueEditor) {
-            this.$refs.simpleValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        newCellDef.expand = 'None';
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.simpleValueEditorVisible = true;
       } else if (value === 'expression') {
-        if (cellDef.value.type !== 'expression') {
-          cellDef.value = { type: 'expression', value: '' };
+        if (newCellDef.value.type !== 'expression') {
+          newCellDef.value = { type: 'expression', value: '' };
         }
-        cellDef.expand = 'None';
-        // 使用Vue组件显示表达式值编辑器
-        this.currentEditorType = 'expression';
-        this.$nextTick(() => {
-          if (this.$refs.expressionValueEditor) {
-            this.$refs.expressionValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        newCellDef.expand = 'None';
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.expressionValueEditorVisible = true;
       } else if (value === 'dataset') {
-        if (cellDef.value.type !== 'dataset') {
-          cellDef.value = { type: 'dataset', datasetName: '', property: '', aggregate: '', conditions: [], order: 'none' };
+        if (newCellDef.value.type !== 'dataset') {
+          newCellDef.value = { type: 'dataset', datasetName: '', property: '', aggregate: '', conditions: [], order: 'none' };
         }
-        cellDef.expand = 'Down';
-        // 使用Vue组件显示数据集值编辑器
-        this.currentEditorType = 'dataset';
-        this.$nextTick(() => {
-          if (this.$refs.datasetValueEditor) {
-            this.$refs.datasetValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        newCellDef.expand = 'Down';
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.datasetValueEditorVisible = true;
       } else if (value === 'image') {
-        if (cellDef.value.type !== 'image') {
-          cellDef.value = { type: 'image', source: 'text' };
+        if (newCellDef.value.type !== 'image') {
+          newCellDef.value = { type: 'image', source: 'text' };
         }
-        cellDef.expand = 'None';
-        // 使用Vue组件显示图片值编辑器
-        this.currentEditorType = 'image';
-        this.$nextTick(() => {
-          if (this.$refs.imageValueEditor) {
-            this.$refs.imageValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        newCellDef.expand = 'None';
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.imageValueEditorVisible = true;
       } else if (value === 'qrcode') {
-        if (cellDef.value.type !== 'zxing' || cellDef.value.category !== 'qrcode') {
+        if (newCellDef.value.type !== 'zxing' || newCellDef.value.category !== 'qrcode') {
           const width = this.buildWidth(this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).colSpan, this.getContext().hot);
           const height = this.buildHeight(this.rowIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).rowSpan, this.getContext().hot);
-          cellDef.value = { width, height, type: 'zxing', source: 'text', category: 'qrcode', data: '' };
-          cellDef.expand = 'None';
+          newCellDef.value = { width, height, type: 'zxing', source: 'text', category: 'qrcode', data: '' };
+          newCellDef.expand = 'None';
         }
-        // 使用Vue组件显示二维码值编辑器
-        this.currentEditorType = 'zxing';
-        this.$nextTick(() => {
-          if (this.$refs.zxingValueEditor) {
-            this.$refs.zxingValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.zxingValueEditorVisible = true;
       } else if (value === 'barcode') {
-        if (cellDef.value.type !== 'zxing' || cellDef.value.category !== 'barcode') {
+        if (newCellDef.value.type !== 'zxing' || newCellDef.value.category !== 'barcode') {
           const width = this.buildWidth(this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).colSpan, this.getContext().hot);
           const height = this.buildHeight(this.rowIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).rowSpan, this.getContext().hot);
-          cellDef.value = { width, height, type: 'zxing', source: 'text', category: 'barcode', data: '', format: 'CODE_128' };
-          cellDef.expand = 'None';
+          newCellDef.value = { width, height, type: 'zxing', source: 'text', category: 'barcode', data: '', format: 'CODE_128' };
+          newCellDef.expand = 'None';
         }
-        // 使用Vue组件显示条形码值编辑器
-        this.currentEditorType = 'zxing';
-        this.$nextTick(() => {
-          if (this.$refs.zxingValueEditor) {
-            this.$refs.zxingValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.zxingValueEditorVisible = true;
       } else if (value === 'slash') {
-        cellDef.crossTabWidget = new CrossTabWidget(this.getContext(), this.rowIndex, this.colIndex);
-        cellDef.expand = 'None';
-        // 使用Vue组件显示斜线值编辑器
-        this.currentEditorType = 'slash';
-        this.$nextTick(() => {
-          if (this.$refs.slashValueEditor) {
-            this.$refs.slashValueEditor.show(cellDef, this.rowIndex, this.colIndex, this.row2Index, this.col2Index);
-          }
-        });
+        newCellDef.crossTabWidget = new CrossTabWidget(this.getContext(), this.rowIndex, this.colIndex);
+        newCellDef.expand = 'None';
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
+        this.slashValueEditorVisible = true;
       } else if (value === 'chart') {
         const width = this.buildWidth(this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).colSpan, this.getContext().hot);
         const height = this.buildHeight(this.rowIndex, this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).rowSpan, this.getContext().hot);
-        cellDef.value = {
+        newCellDef.value = {
           width,
           height,
           type: 'chart',
@@ -980,6 +1006,8 @@ export default {
             }
           }
         };
+        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.hideAllEditors();
       }
 
       this.getContext().hot.setDataAtCell(this.rowIndex, this.colIndex, '');

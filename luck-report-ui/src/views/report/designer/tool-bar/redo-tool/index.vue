@@ -3,7 +3,7 @@
       :title="$t('tools.redo.redo')"
       class="tool-button"
       icon="icon-redo"
-      @click="execute"
+      @click="handleClick"
   >
   </u-button>
 </template>
@@ -16,14 +16,8 @@ import UButton from "@/components/button/index.vue";
 export default {
   name: 'RedoTool',
   components: {UButton},
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
-  },
   methods: {
-    execute() {
+    handleClick() {
       if (undoManager.hasRedo()) {
         undoManager.redo();
       } else {

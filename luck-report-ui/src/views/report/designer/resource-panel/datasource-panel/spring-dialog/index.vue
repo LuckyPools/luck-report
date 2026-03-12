@@ -44,30 +44,50 @@ export default {
     datasources: {
       type: Array,
       default: () => []
+    },
+    // 控制弹窗显示
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    // 数据源数据
+    datasource: {
+      type: Object,
+      default: null
     }
   },
   data() {
     return {
-      visible: false,
       dsName: '',
       beanId: '',
       oldName: null
     };
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.resetForm();
+        if (this.datasource) {
+          this.fillForm(this.datasource);
+        }
+      }
+    }
+  },
   methods: {
-    show(ds) {
+    resetForm() {
       this.dsName = '';
       this.beanId = '';
       this.oldName = null;
+    },
 
+    fillForm(ds) {
       if (ds) {
         this.oldName = ds.name;
         this.dsName = ds.name;
         this.beanId = ds.beanId;
       }
-
-      this.visible = true;
     },
+
     saveData() {
       if (this.dsName === '') {
         showAlert(this.$t('dialog.springDS.nameTip'));
@@ -104,7 +124,7 @@ export default {
       setDirty();
     },
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
     }
   }
 };

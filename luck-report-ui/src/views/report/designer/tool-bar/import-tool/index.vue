@@ -3,9 +3,13 @@
       :title="$t('importExcel')"
       class="tool-button"
       icon="icon-cloud-upload"
-      @click="handleImport"
+      @click="visible = true"
   >
-    <ImportDialog ref="importDialog" />
+    <ImportDialog 
+      :visible="visible" 
+      @update:visible="visible = $event"
+      @import-success="handleImportSuccess"
+    />
   </u-button>
 </template>
 
@@ -19,17 +23,17 @@ export default {
     UButton,
     ImportDialog
   },
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
+  data() {
+    return {
+      visible: false
+    };
   },
   methods: {
-    handleImport() {
-      if (this.$refs.importDialog && this.$refs.importDialog.show) {
-        this.$refs.importDialog.show();
-      }
+    handleImportSuccess() {
+      const routeData = this.$router.resolve({
+        name: 'Designer',
+      });
+      window.open(routeData.href, "_self");
     }
   }
 };

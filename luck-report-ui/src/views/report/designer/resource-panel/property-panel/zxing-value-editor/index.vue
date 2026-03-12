@@ -25,7 +25,7 @@
       <label>{{ $t('property.zxing.format') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="format"
+          v-model="format"
           :clearable="true"
           @change="handleFormatChange"
         >
@@ -44,7 +44,7 @@
       <label>{{ $t('property.zxing.source') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="source"
+          v-model="source"
           :clearable="true"
           @change="handleSourceChange"
         >
@@ -117,6 +117,10 @@ import URadio from '@/components/radio/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import UInputNumber from '@/components/input-number/index.vue'
 import UInput from '@/components/input/index.vue'
+import { deepCopy } from '@/components/utils/index.js';
+import { mapGetters } from 'vuex';
+import {setCell, getCell} from "@/utils/contextActions";
+
 export default {
   name: 'ZxingValueEditor',
   components: {
@@ -128,29 +132,28 @@ export default {
     UInput
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
     }
   },
-  data() {
-    return {
-      codeMirror: null,
-      cellDef: null,
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
-      width: 100,
-      height: 100,
-      format: 'QR_CODE',
-      source: 'text',
-      textValue: '',
-      expand: 'None',
-      showFormat: true
-    };
-  },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
     // 格式选项
     formatOptions() {
       return [
@@ -176,7 +179,34 @@ export default {
       ];
     }
   },
+  data() {
+    return {
+      codeMirror: null,
+      width: 100,
+      height: 100,
+      format: 'QR_CODE',
+      source: 'text',
+      textValue: '',
+      expand: 'None',
+      showFormat: true
+    };
+  },
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    },
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    }
+  },
   mounted() {
+    this.loadCellData();
   },
   beforeDestroy() {
     if (this.codeMirror) {
@@ -185,6 +215,7 @@ export default {
     }
   },
   methods: {
+
     /**
      * 初始化代码编辑器
      */
@@ -219,57 +250,24 @@ export default {
       // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
         const expr = cm.getValue();
-        if (this.cellDef && this.cellDef.value) {
-          this.cellDef.value.value = expr;
+        const cellDef = getCell(this.rowIndex, this.colIndex);
+        if (cellDef && cellDef.value) {
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value.value = expr;
+          setCell( this.rowIndex, this.colIndex, newCellDef );
         }
         setDirty();
       });
 
-      // 编辑器初始化后，检查是否有数据需要显示
-      if (this.cellDef && this.cellDef.value) {
-        this.codeMirror.setValue(this.cellDef.value.value || '');
-      }
+      // 加载初始数据
+      this.loadCellData();
     },
 
     /**
-     * 构建脚本校验函数
+     * 加载单元格数据
      */
-    buildScriptLintFunction() {
-      return async (text, updateLinting, options, editor) => {
-        if (text === '') {
-          updateLinting(editor, []);
-          return;
-        }
-        if (!text || text === '') {
-          return;
-        }
-
-        try {
-          const result = await scriptValidation(text);
-          if (result) {
-            for (let item of result) {
-              item.from = { line: item.line - 1 };
-              item.to = { line: item.line - 1 };
-            }
-            updateLinting(editor, result);
-          } else {
-            updateLinting(editor, []);
-          }
-        } catch (error) {
-          showAlert(this.$t('property.base.syntaxError'));
-        }
-      };
-    },
-
-    /**
-     * 显示编辑器
-     */
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
+    loadCellData() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
 
       // 设置宽度
       this.width = cellDef.value.width || 100;
@@ -306,11 +304,33 @@ export default {
     },
 
     /**
-     * 隐藏编辑器
+     * 构建脚本校验函数
      */
-    hide() {
-      // 隐藏组件
-      this.visible = false;
+    buildScriptLintFunction() {
+      return async (text, updateLinting, options, editor) => {
+        if (text === '') {
+          updateLinting(editor, []);
+          return;
+        }
+        if (!text || text === '') {
+          return;
+        }
+
+        try {
+          const result = await scriptValidation(text);
+          if (result) {
+            for (let item of result) {
+              item.from = { line: item.line - 1 };
+              item.to = { line: item.line - 1 };
+            }
+            updateLinting(editor, result);
+          } else {
+            updateLinting(editor, []);
+          }
+        } catch (error) {
+          showAlert(this.$t('property.base.syntaxError'));
+        }
+      };
     },
 
     /**
@@ -321,8 +341,11 @@ export default {
         showAlert(this.$t('property.zxing.numberTip'));
         return;
       }
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.width = this.width;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.width = this.width;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
         this.context.hot.render();
         setDirty();
       }
@@ -333,8 +356,11 @@ export default {
         showAlert(this.$t('property.zxing.numberTip'));
         return;
       }
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.height = this.height;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.height = this.height;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
         this.context.hot.render();
         setDirty();
       }
@@ -343,10 +369,12 @@ export default {
     /**
      * 处理格式变化
      */
-    handleFormatChange(value) {
-      this.format = value;
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.format = this.format;
+    handleFormatChange() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.format = this.format;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
         setDirty();
       }
     },
@@ -354,10 +382,12 @@ export default {
     /**
      * 处理数据源变化
      */
-    handleSourceChange(value) {
-      this.source = value;
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.source = this.source;
+    handleSourceChange() {
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.source = this.source;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
         setDirty();
 
         // 根据数据源类型初始化编辑器
@@ -366,7 +396,8 @@ export default {
             if (!this.codeMirror) {
               this.initCodeEditor();
             } else {
-              this.codeMirror.setValue(this.cellDef.value.value || '');
+              const currentCellDef = getCell(this.rowIndex, this.colIndex);
+              this.codeMirror.setValue(currentCellDef.value.value || '');
               this.codeMirror.refresh();
             }
           });
@@ -378,8 +409,11 @@ export default {
      * 处理文本变化
      */
     handleTextChange() {
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.value = this.textValue;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.value = this.textValue;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
         setDirty();
       }
     },
@@ -392,8 +426,11 @@ export default {
       this.expand = expand;
 
       // 只更新当前单元格，而不是整个选区
-      if (this.cellDef) {
-        this.cellDef.expand = expand;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.expand = expand;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
       }
 
       const hot = this.context.hot;

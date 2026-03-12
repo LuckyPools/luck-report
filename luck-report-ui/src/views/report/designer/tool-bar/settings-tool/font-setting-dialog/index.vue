@@ -125,11 +125,21 @@ export default {
     visible: {
       type: Boolean,
       default: false
+    },
+    fontStyle: {
+      type: Object,
+      default: () => ({
+        fontFamily: '宋体',
+        fontSize: 10,
+        forecolor: '0,0,0',
+        bold: false,
+        italic: false,
+        underline: false
+      })
     }
   },
   data() {
     return {
-      style: {},
       localStyle: {
         fontFamily: '宋体',
         fontSize: '10',
@@ -192,18 +202,30 @@ export default {
       ];
     }
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.initializeStyle();
+      }
+    },
+    fontStyle(newVal) {
+      if (this.visible) {
+        this.initializeStyle();
+      }
+    }
+  },
+  created() {
+    this.initializeStyle();
+  },
   methods: {
-    show(style) {
-      this.style = style || {};
-
-      // 初始化新样式
+    initializeStyle() {
       this.localStyle = {
-        fontFamily: this.style.fontFamily || '宋体',
-        forecolor: this.style.forecolor || '0,0,0',
-        fontSize: this.style.fontSize !== undefined ? String(this.style.fontSize) : '10',
-        bold: this.style.bold !== undefined ? String(this.style.bold) : 'false',
-        italic: this.style.italic !== undefined ? String(this.style.italic) : 'false',
-        underline: this.style.underline !== undefined ? String(this.style.underline) : 'false'
+        fontFamily: this.fontStyle.fontFamily || '宋体',
+        forecolor: this.fontStyle.forecolor || '0,0,0',
+        fontSize: this.fontStyle.fontSize !== undefined ? String(this.fontStyle.fontSize) : '10',
+        bold: this.fontStyle.bold !== undefined ? String(this.fontStyle.bold) : 'false',
+        italic: this.fontStyle.italic !== undefined ? String(this.fontStyle.italic) : 'false',
+        underline: this.fontStyle.underline !== undefined ? String(this.fontStyle.underline) : 'false'
       };
     },
     handleOk() {

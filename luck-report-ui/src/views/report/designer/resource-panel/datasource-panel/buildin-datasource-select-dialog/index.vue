@@ -53,22 +53,28 @@ export default {
     datasources: {
       type: Array,
       default: () => []
+    },
+    visible: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
-      visible: false,
       loading: false,
       buildinDatasources: []
     };
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.buildinDatasources = [];
+        this.loading = true;
+        this.loadBuildinDatasources();
+      }
+    }
+  },
   methods: {
-    show() {
-      this.buildinDatasources = [];
-      this.loading = true;
-      this.visible = true;
-      this.loadBuildinDatasources();
-    },
     async loadBuildinDatasources() {
       try {
         const result = await loadBuildinDatasources();
@@ -97,7 +103,7 @@ export default {
       this.closeDialog();
     },
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
     }
   }
 };

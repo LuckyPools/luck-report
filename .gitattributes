@@ -1,0 +1,12 @@
+# 所有文本文件自动处理换行符
+* text=auto
+
+# 强制文本文件使用 LF（适合代码文件）
+*.js text eol=lf
+*.py text eol=lf
+*.java text eol=lf
+
+# 二进制文件不做任何转换
+*.png binary
+*.jpg binary
+*.exe binary

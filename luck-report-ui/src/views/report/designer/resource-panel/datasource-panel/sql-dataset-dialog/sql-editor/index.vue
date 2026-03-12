@@ -4,9 +4,9 @@
       {{ $t('dialog.sql.datasetName') }}：
       <div class="u-inline">
         <u-input
-          ref="nameEditor"
           v-model="datasetName"
           style="width:500px;"
+          @input="handleDatasetNameChange"
         />
       </div>
     </div>
@@ -39,22 +39,36 @@ export default {
     UInput
   },
   props: {
-    initialName: {
+    name: {
+      type: String,
+      default: ''
+    },
+    sql: {
       type: String,
       default: ''
     }
   },
   watch: {
-    // 监听initialName变化，确保数据集名称能正确更新
-    initialName(newVal) {
+    // 监听name变化，确保数据集名称能正确更新
+    name(newVal) {
       this.datasetName = newVal || '';
       this.setDatasetName(newVal);
+    },
+    // 监听sql变化，更新SQL内容
+    sql(newVal) {
+      // 如果是内部更新导致的，跳过以避免循环
+      if (this.isInternalUpdate) {
+        this.isInternalUpdate = false;
+        return;
+      }
+      this.setSql(newVal || '');
     }
   },
   data() {
     return {
-      datasetName: this.initialName,
-      codeMirror: null
+      datasetName: this.name,
+      codeMirror: null,
+      isInternalUpdate: false
     };
   },
   beforeUnmount() {
@@ -64,7 +78,15 @@ export default {
       this.codeMirror = null;
     }
   },
+  mounted() {
+    // 组件挂载时初始化CodeMirror
+    this.initCodeMirror(this.sql);
+  },
   methods: {
+    handleDatasetNameChange() {
+      // 通知父组件数据集名称已变化
+      this.$emit('dataset-name-change', this.getDatasetName());
+    },
 
     // 初始化或更新CodeMirror编辑器
     initCodeMirror(initialSql = '') {
@@ -94,6 +116,15 @@ export default {
         lineWrapping: true
       });
       this.codeMirror.setSize('660px', '204px');
+
+      // 监听SQL内容变化，通知父组件
+      this.codeMirror.on('change', (cm, change) => {
+        // 标记为内部更新，避免循环
+        if (change.origin !== 'setValue') {
+          this.isInternalUpdate = true;
+          this.$emit('sql-change', this.getSql());
+        }
+      });
 
       // 重新设置 SQL 内容
       if (initialSql) {
@@ -142,18 +173,11 @@ export default {
     },
 
     getDatasetName() {
-      const nameEditor = this.$refs.nameEditor;
-      return nameEditor ? nameEditor.value : this.datasetName;
+      return this.datasetName;
     },
 
     setDatasetName(name) {
-      const nameEditor = this.$refs.nameEditor;
-      if (nameEditor) {
-        nameEditor.value = name || '';
-        this.datasetName = name || '';
-      } else {
-        this.datasetName = name || '';
-      }
+      this.datasetName = name || '';
     },
 
     getSql() {

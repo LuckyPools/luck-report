@@ -15,7 +15,10 @@
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import UColorPicker from "@/components/color-picker/index.vue";
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'ForecolorTool',
@@ -23,20 +26,42 @@ export default {
     UColorPicker
   },
   props: {
-    context: {
+    selectedCells: {
       type: Object,
-      required: true
+      default: () => ({
+        rowIndex: null,
+        colIndex: null,
+        row2Index: null,
+        col2Index: null
+      })
     }
   },
   data() {
     return {
-      currentColor: '0,0,0', // 当前应用的颜色 (R,G,B格式)
-      selectedColor: '#000000', // 颜色选择器的颜色值 (#RRGGBB格式)
+      currentColor: '0,0,0',
+      selectedColor: '#000000',
       isDropdownOpen: false,
-      isSelectionValid: false // 是否有选中的单元格
+      isSelectionValid: false
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
+  watch: {
+    selectedCells: {
+      deep: true,
+      handler(newVal) {
+        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
+        }
+      }
+    }
+  },
   methods: {
+
     // 处理颜色选择器点击事件
     handlePickerClick() {
       this.isSelectionValid = this.checkSelection();
@@ -58,7 +83,6 @@ export default {
         return;
       }
 
-      // 将十六进制颜色转换为RGB格式
       const rgb = this.hexToRgb(color);
       if (rgb) {
         const rgbStr = `${rgb.r},${rgb.g},${rgb.b}`;
@@ -68,7 +92,6 @@ export default {
         const selected = table.getSelected();
         let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
-        // 确保正确的行列范围
         if (startRow > endRow) {
           [startRow, endRow] = [endRow, startRow];
         }
@@ -76,7 +99,6 @@ export default {
           [startCol, endCol] = [endCol, startCol];
         }
 
-        // 更新单元格前景色样式
         const oldForeColorStyle = this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
         table.render();
 
@@ -111,18 +133,19 @@ export default {
     // 更新单元格前景色样式
     updateCellsForeColorStyle(startRow, startCol, endRow, endCol, color) {
       const oldForeColorStyle = {};
-      const table = this.context.hot;
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           oldForeColorStyle[i + ',' + j] = cellStyle.forecolor;
           cellStyle.forecolor = color;
+          setCell( i, j, newCellDef );
         }
       }
 
@@ -133,18 +156,18 @@ export default {
     restoreForeColorStyle(startRow, startCol, endRow, endCol, oldForeColorStyle) {
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
 
-          const cellStyle = cellDef.cellStyle;
+          const newCellDef = deepCopy(cellDef);
+          const cellStyle = newCellDef.cellStyle;
           cellStyle.forecolor = oldForeColorStyle[i + ',' + j];
+          setCell( i, j, newCellDef );
 
-          // 更新当前颜色显示为第一个单元格的颜色
           if (i === startRow && j === startCol) {
             this.currentColor = cellStyle.forecolor || '0,0,0';
-            // 同步更新颜色选择器的值
             const rgbParts = this.currentColor.split(',');
             if (rgbParts.length === 3) {
               this.selectedColor = this.rgbToHex(
@@ -170,10 +193,8 @@ export default {
 
     // 刷新工具状态
     refresh(startRow, startCol, endRow, endCol) {
-      // 更新选择状态
       this.isSelectionValid = this.checkSelection();
 
-      // 确保正确的行列范围
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -181,10 +202,9 @@ export default {
         [startCol, endCol] = [endCol, startCol];
       }
 
-      // 获取第一个单元格的前景色
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) {
             continue;
           }
@@ -192,7 +212,6 @@ export default {
           const cellStyle = cellDef.cellStyle;
           this.currentColor = cellStyle.forecolor || '0,0,0';
 
-          // 同步更新颜色选择器的值
           const rgbParts = this.currentColor.split(',');
           if (rgbParts.length === 3) {
             this.selectedColor = this.rgbToHex(

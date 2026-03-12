@@ -3,16 +3,20 @@
       :title="$t('tools.save.saveAs')"
       class="tool-button"
       icon="icon-save-as"
-      @click="execute"
+      @click="visible = true"
   >
-    <SaveDialog ref="saveDialog" @saveAfter="handleSaveAfter" />
+    <SaveDialog 
+      :visible="visible" 
+      @update:visible="visible = $event"
+      @saveAfter="handleSaveAfter"
+    />
   </u-button>
 </template>
 
 <script>
-import { tableToXml } from '@/utils/table.js';
 import SaveDialog from '@/views/report/designer/tool-bar/save-as-tool/save-dialog/index.vue';
 import UButton from "@/components/button/index.vue";
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'SaveAsTool',
@@ -20,23 +24,19 @@ export default {
     SaveDialog,
     UButton
   },
-  props: {
-    context: {
-      type: Object,
-      required: true
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
+  data() {
+    return {
+      visible: false
+    };
+  },
   methods: {
-    execute() {
-      const content = tableToXml(this.context);
-      this.showSaveDialog(content);
-    },
-    showSaveDialog(content) {
-      if (this.$refs.saveDialog && this.$refs.saveDialog.show) {
-        this.$refs.saveDialog.show(content, this.context);
-      }
-    },
-    handleSaveAfter(fullFile){
+    handleSaveAfter(fullFile) {
       window.location.replace("?reportPath=" + fullFile);
     }
   }

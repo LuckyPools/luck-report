@@ -52,33 +52,27 @@ export default {
     UDialog,
     UButton
   },
-  data() {
-    return {
-      visible: false,
-      loading: true,
-      errorInfo: null,
-      resultData: null
-    };
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    loading: {
+      type: Boolean,
+      default: true
+    },
+    errorInfo: {
+      type: String,
+      default: null
+    },
+    resultData: {
+      type: Object,
+      default: null
+    }
   },
   methods: {
-    show() {
-      this.loading = true;
-      this.errorInfo = null;
-      this.resultData = null;
-      this.visible = true;
-    },
-    showData(data) {
-      this.loading = false;
-      this.errorInfo = null;
-      this.resultData = data;
-    },
-    showError(error) {
-      this.loading = false;
-      this.errorInfo = error;
-      this.resultData = null;
-    },
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
     }
   }
 };

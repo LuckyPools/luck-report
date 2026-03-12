@@ -20,7 +20,12 @@ export async function testConnection(formData) {
 export async function previewData(parameters) {
   const formData = new URLSearchParams();
   for (const key in parameters) {
-    formData.append(key, parameters[key]);
+    const value = parameters[key];
+    if (typeof value === 'object' && value !== null) {
+      formData.append(key, JSON.stringify(value));
+    } else {
+      formData.append(key, value);
+    }
   }
 
   return await request.post('/datasource/previewData', formData, {

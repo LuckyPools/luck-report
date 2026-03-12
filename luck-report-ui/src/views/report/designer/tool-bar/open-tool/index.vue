@@ -3,9 +3,12 @@
       :title="$t('openFile')"
       class="tool-button"
       icon="icon-folder"
-      @click="execute"
+      @click="visible = true"
   >
-    <OpenDialog ref="openDialog" />
+    <OpenDialog 
+      :visible="visible" 
+      @update:visible="visible = $event"
+    />
   </u-button>
 </template>
 
@@ -19,26 +22,13 @@ export default {
     UButton,
     OpenDialog
   },
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
-  },
   data() {
     return {
-
+      visible: false
     };
   },
-  mounted() {
-
-  },
   methods: {
-    execute() {
-      if (this.$refs.openDialog && this.$refs.openDialog.show) {
-        this.$refs.openDialog.show();
-      }
-    }
+
   }
 };
 </script>

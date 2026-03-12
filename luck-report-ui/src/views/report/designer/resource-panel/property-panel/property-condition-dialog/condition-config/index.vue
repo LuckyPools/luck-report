@@ -19,7 +19,7 @@
         <span>{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="forceScope"
+              v-model="forceScope"
               :clearable="true"
               @change="onForceScopeChange"
           >
@@ -51,7 +51,7 @@
         <span>{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="bgcolorScope"
+              v-model="bgcolorScope"
               :clearable="true"
               @change="onBgcolorScopeChange"
           >
@@ -76,7 +76,7 @@
       <span v-show="fontChecked" style="margin-left: 10px">
         <div class="u-inline">
           <u-select
-              :value="fontFamily"
+              v-model="fontFamily"
               :clearable="true"
               @change="onFontFamilyChange"
               style="width: 120px"
@@ -92,7 +92,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="fontFamilyScope"
+              v-model="fontFamilyScope"
               :clearable="true"
               @change="onFontFamilyScopeChange"
               style="width: 120px"
@@ -118,7 +118,7 @@
       <span v-show="fontSizeChecked" style="padding-left: 10px;">
         <div class="u-inline">
           <u-select
-              :value="fontSize"
+              v-model="fontSize"
               :clearable="true"
               @change="onFontSizeValueChange"
               style="width: 120px"
@@ -134,7 +134,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="fontSizeScope"
+              v-model="fontSizeScope"
               :clearable="true"
               @change="onFontSizeScopeChange"
               style="width: 120px"
@@ -160,7 +160,7 @@
       <span v-show="fontBoldChecked" style="padding-left: 10px">
         <div class="u-inline">
           <u-select
-              :value="fontBold"
+              v-model="fontBold"
               :clearable="true"
               @change="onFontBoldValueChange"
               style="width: 120px"
@@ -176,7 +176,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="fontBoldScope"
+              v-model="fontBoldScope"
               :clearable="true"
               @change="onFontBoldScopeChange"
               style="width: 120px"
@@ -202,7 +202,7 @@
       <span v-show="fontItalicChecked" style="padding-left: 10px">
         <div class="u-inline">
           <u-select
-              :value="fontItalic"
+              v-model="fontItalic"
               :clearable="true"
               @change="onFontItalicValueChange"
               style="width: 120px"
@@ -218,7 +218,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="fontItalicScope"
+              v-model="fontItalicScope"
               :clearable="true"
               @change="onFontItalicScopeChange"
               style="width: 120px"
@@ -244,7 +244,7 @@
       <span v-show="fontUnderlineChecked" style="padding-left: 10px">
         <div class="u-inline">
           <u-select
-              :value="fontUnderline"
+              v-model="fontUnderline"
               :clearable="true"
               @change="onFontUnderlineValueChange"
               style="width: 120px"
@@ -260,7 +260,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="fontUnderlineScope"
+              v-model="fontUnderlineScope"
               :clearable="true"
               @change="onFontUnderlineScopeChange"
               style="width: 120px"
@@ -286,7 +286,7 @@
       <span v-show="alignChecked" style="margin-left: 10px">
         <div class="u-inline">
           <u-select
-              :value="align"
+              v-model="align"
               :clearable="true"
               @change="onAlignValueChange"
               style="width: 120px"
@@ -302,7 +302,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="alignScope"
+              v-model="alignScope"
               :clearable="true"
               @change="onAlignScopeChange"
               style="width: 120px"
@@ -328,7 +328,7 @@
       <span v-show="valignChecked" style="margin-left: 10px">
         <div class="u-inline">
           <u-select
-              :value="valign"
+              v-model="valign"
               :clearable="true"
               @change="onValignValueChange"
               style="width: 120px"
@@ -344,7 +344,7 @@
         <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="valignScope"
+              v-model="valignScope"
               :clearable="true"
               @change="onValignScopeChange"
               style="width: 120px"
@@ -452,7 +452,7 @@
       <span v-show="pagingBreakChecked" style="margin-left: 10px;">
         <div class="u-inline">
           <u-select
-              :value="pagingPosition"
+              v-model="pagingPosition"
               :clearable="true"
               @change="onPagingPositionChange"
           >
@@ -490,7 +490,7 @@
         <span>{{ $t('dialog.propCondition.target') }}</span>
         <div class="u-inline" style="margin-left: 10px">
           <u-select
-              :value="linkTargetWindow"
+              v-model="linkTargetWindow"
               :clearable="true"
               @change="onLinkTargetChange"
           >
@@ -501,13 +501,28 @@
                 :label="option.label"
             />
           </u-select>
+
+          <u-button @click="configLinkParameter" style="margin-left: 5px">
+              {{ $t('dialog.propCondition.urlParameter') }}
+          </u-button>
         </div>
       </div>
     </div>
 
     <!-- 对话框组件 -->
-    <ConditionParameterCustomBorderDialog ref="conditionParameterCustomBorderDialog" />
-    <URLParameterDialog ref="urlParameterDialog" />
+    <ConditionParameterCustomBorderDialog
+      :visible="customBorderDialogVisible"
+      :cell-style="localItem.cellStyle"
+      @update:visible="customBorderDialogVisible = $event"
+      @save="handleCustomBorderSave"
+    />
+    <URLParameterDialog
+      :visible="urlParameterDialogVisible"
+      :parameters="localItem.linkParameters || []"
+      @update:visible="handleUrlParameterDialogClose"
+      @saveAfter="handleUrlParameterSaveAfter"
+      @parameters-change="localItem.linkParameters = $event"
+    />
   </div>
 </template>
 
@@ -537,6 +552,12 @@ export default {
     UButton,
     UColorPicker,
     VueSimpleSuggest
+  },
+  props: {
+    item: {
+      type: Object,
+      default: null
+    }
   },
   data() {
     return {
@@ -685,21 +706,31 @@ export default {
         "$##,###.##",
         "0.00E00",
         "##0.0E0"
-      ]
+      ],
+
+      urlParameterDialogVisible: false,
+      customBorderDialogVisible: false
     };
   },
   created() {
     // 初始化选项数据
     this.initOptions();
   },
-  mounted() {
+  watch: {
+    item: {
+      handler(newVal) {
+        this.updateConfig(newVal);
+      },
+      immediate: true,
+      deep: true
+    }
   },
   methods: {
 
     updateConfig(config){
       if (!config) {
         this.localItem = {
-          cellStyle: null,
+          cellStyle: {},
           rowHeight: null,
           colWidth: null,
           newValue: null,
@@ -713,7 +744,7 @@ export default {
         const tempItem = JSON.parse(JSON.stringify(config));
 
         this.localItem = {
-          cellStyle: tempItem.cellStyle || null,
+          cellStyle: tempItem.cellStyle || {},
           rowHeight: tempItem.rowHeight !== undefined ? tempItem.rowHeight : null,
           colWidth: tempItem.colWidth !== undefined ? tempItem.colWidth : null,
           newValue: tempItem.newValue !== undefined ? tempItem.newValue : null,
@@ -794,12 +825,7 @@ export default {
     loadItemProperties(item) {
       if (!item) return;
 
-      // 确保cellStyle存在
-      if (!item.cellStyle) {
-        item.cellStyle = { fontSize: '0', fontFamily: '0' };
-      }
-
-      const cellStyle = item.cellStyle;
+      const cellStyle = item.cellStyle || {};
 
       // 加载前景色
       this.forceChecked = !!(cellStyle.forecolor && cellStyle.forecolor !== '' );
@@ -953,8 +979,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onForceScopeChange(val) {
-      this.forceScope = val;
+    onForceScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1000,8 +1025,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onBgcolorScopeChange(val) {
-      this.bgcolorScope = val;
+    onBgcolorScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1033,8 +1057,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontFamilyChange(val) {
-      this.fontFamily = val;
+    onFontFamilyChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1043,8 +1066,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontFamilyScopeChange(val) {
-      this.fontFamilyScope = val;
+    onFontFamilyScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1069,8 +1091,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontSizeValueChange(val) {
-      this.fontSize = val;
+    onFontSizeValueChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1079,8 +1100,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontSizeScopeChange(val) {
-      this.fontSizeScope = val;
+    onFontSizeScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1105,8 +1125,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontBoldValueChange(val) {
-      this.fontBold = val;
+    onFontBoldValueChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1115,8 +1134,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontBoldScopeChange(val) {
-      this.fontBoldScope = val;
+    onFontBoldScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1140,8 +1158,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontItalicValueChange(val) {
-      this.fontItalic = val;
+    onFontItalicValueChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1150,8 +1167,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontItalicScopeChange(val) {
-      this.fontItalicScope = val;
+    onFontItalicScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1176,8 +1192,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontUnderlineValueChange(val) {
-      this.fontUnderline = val;
+    onFontUnderlineValueChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1186,8 +1201,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onFontUnderlineScopeChange(val) {
-      this.fontUnderlineScope = val;
+    onFontUnderlineScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1212,8 +1226,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onAlignValueChange(val) {
-      this.align = val;
+    onAlignValueChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1222,8 +1235,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onAlignScopeChange(val) {
-      this.alignScope = val;
+    onAlignScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1248,8 +1260,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onValignValueChange(val) {
-      this.valign = val;
+    onValignValueChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1258,8 +1269,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onValignScopeChange(val) {
-      this.valignScope = val;
+    onValignScopeChange() {
       if (!this.localItem.cellStyle) {
         this.localItem.cellStyle = {};
       }
@@ -1313,8 +1323,17 @@ export default {
       if (!cellStyle.bottomBorder) {
         cellStyle.bottomBorder = { color: '0,0,0', width: "1", style: 'solid' };
       }
-      this.$refs.conditionParameterCustomBorderDialog.show(cellStyle);
+      this.customBorderDialogVisible = true;
       this.emitPropertyChange();
+    },
+
+    handleCustomBorderSave(borderData) {
+      if (this.localItem.cellStyle) {
+        this.localItem.cellStyle.topBorder = borderData.topBorder;
+        this.localItem.cellStyle.bottomBorder = borderData.bottomBorder;
+        this.localItem.cellStyle.leftBorder = borderData.leftBorder;
+        this.localItem.cellStyle.rightBorder = borderData.rightBorder;
+      }
     },
 
     // 新值相关方法
@@ -1371,8 +1390,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onPagingPositionChange(val) {
-      this.pagingPosition = val;
+    onPagingPositionChange() {
       if (this.localItem.paging) {
         this.localItem.paging.position = this.pagingPosition;
       }
@@ -1404,8 +1422,7 @@ export default {
       this.emitPropertyChange();
     },
 
-    onLinkTargetChange(val) {
-      this.linkTargetWindow = val;
+    onLinkTargetChange() {
       this.localItem.linkTargetWindow = this.linkTargetWindow;
       this.emitPropertyChange();
     },
@@ -1420,8 +1437,16 @@ export default {
         this.localItem.linkParameters = [];
       }
 
-      this.$refs.urlParameterDialog.show(this.localItem.linkParameters);
+      this.urlParameterDialogVisible = true;
       this.emitPropertyChange();
+    },
+
+    handleUrlParameterDialogClose() {
+      this.urlParameterDialogVisible = false;
+      this.emitPropertyChange();
+    },
+
+    handleUrlParameterSaveAfter({ paramItem, operation }) {
     }
   }
 };

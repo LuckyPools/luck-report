@@ -14,9 +14,8 @@
 
         <u-form-item :label="$t('dialog.sqlParam.datatype')">
           <u-select
-              :value="type"
+              v-model="type"
               :clearable="true"
-              @change="handleTypeChange"
           >
             <u-option
                 v-for="option in typeOptions"
@@ -62,14 +61,18 @@ export default {
     UFormItem
   },
   props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
     editData: {
       type: Object,
       default: null
     }
   },
+  emits: ['update:visible', 'save'],
   data() {
     return {
-      visible: false,
       name: '',
       type: '',
       defaultValue: ''
@@ -101,17 +104,24 @@ export default {
         }
       },
       immediate: true
+    },
+    visible(newVal) {
+      if (newVal) {
+        if (this.editData) {
+          this.name = this.editData.name || '';
+          this.type = this.editData.type || '';
+          this.defaultValue = this.editData.defaultValue || '';
+        } else {
+          this.name = '';
+          this.type = 'String';
+          this.defaultValue = '';
+        }
+      }
     }
   },
   methods: {
-    show(){
-      this.visible = true;
-    },
     handleClose() {
-      this.visible = false;
-    },
-    handleTypeChange(value) {
-      this.type = value;
+      this.$emit('update:visible', false);
     },
     handleSave() {
       if (!this.name) {
@@ -123,7 +133,7 @@ export default {
         return;
       }
       this.$emit('save', this.name, this.type, this.defaultValue);
-      this.handleClose();
+      this.$emit('update:visible', false);
     }
   }
 };

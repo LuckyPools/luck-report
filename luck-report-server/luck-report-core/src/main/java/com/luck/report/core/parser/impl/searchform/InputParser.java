@@ -10,6 +10,7 @@ public class InputParser implements FormParser<InputComponent> {
         component.setLabel(FormParserUtils.parseStringAttribute(element.attributeValue("label")));
         component.setPlaceholder(FormParserUtils.parseStringAttribute(element.attributeValue("placeholder")));
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
+        component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
         component.setClearable(FormParserUtils.parseBooleanAttribute(element.attributeValue("clearable")));
         component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
@@ -21,7 +22,6 @@ public class InputParser implements FormParser<InputComponent> {
         component.setAppend(FormParserUtils.parseStringAttribute(element.attributeValue("append")));
         component.setPrefixIcon(FormParserUtils.parseStringAttribute(element.attributeValue("prefixIcon")));
         component.setSuffixIcon(FormParserUtils.parseStringAttribute(element.attributeValue("suffixIcon")));
-        component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
         component.setSpan(FormParserUtils.parseIntAttribute(element.attributeValue("span")));
         component.setLabelWidth(FormParserUtils.parseStringAttribute(element.attributeValue("labelWidth")));

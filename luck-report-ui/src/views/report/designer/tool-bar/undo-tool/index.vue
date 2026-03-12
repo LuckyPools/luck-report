@@ -3,7 +3,7 @@
       :title="$t('tools.undo.undo')"
       class="tool-button"
       icon="icon-undo"
-      @click="execute"
+      @click="handleClick"
   >
   </u-button>
 </template>
@@ -16,14 +16,8 @@ import UButton from "@/components/button/index.vue";
 export default {
   name: 'UndoTool',
   components: {UButton},
-  props: {
-    context: {
-      type: Object,
-      required: true
-    }
-  },
   methods: {
-    execute() {
+    handleClick() {
       if (undoManager.hasUndo()) {
         undoManager.undo();
       } else {

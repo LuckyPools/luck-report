@@ -453,7 +453,7 @@ export default {
       });
       if (!found) {
         that.currentValue = value;
-        that.currentLabel = "";
+        that.currentLabel = value;
       }
     },
     /**

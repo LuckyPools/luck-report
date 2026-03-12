@@ -4,7 +4,7 @@
       type="info"
       class="info-button"
       icon="icon-image"
-      @click="execute"
+      @click="handleClick"
   >
   </u-button>
 </template>
@@ -13,19 +13,23 @@
 import { buildNewCellDef, setDirty, undoManager } from '@/utils/table.js';
 import Handsontable from 'handsontable';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import UButton from "@/components/button/index.vue";
 import imageIcon from '@/assets/icons/image.svg';
+import { mapGetters } from 'vuex';
+import {addCell, getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'ImageTool',
   components: {UButton},
-  props: {
-    context: {
-      type: Object,
-      required: true
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
   },
   methods: {
+
     // 检查是否有选中的单元格
     checkSelection() {
       const selected = this.context.hot.getSelected();
@@ -36,7 +40,7 @@ export default {
       return true;
     },
     // 执行插入图片操作
-    execute() {
+    handleClick() {
       if (!this.checkSelection()) {
         return;
       }
@@ -53,7 +57,7 @@ export default {
         [startCol, endCol] = [endCol, startCol];
       }
 
-      let oldCellDef = this.context.getCell(startRow, startCol);
+      let oldCellDef = getCell(startRow, startCol);
       let oldCellData = hot.getDataAtCell(startRow, startCol);
       let newCellDef = buildNewCellDef(startRow + 1, startCol + 1);
       newCellDef.value = {
@@ -62,10 +66,9 @@ export default {
         value: ''
       };
 
-      this.context.addCell(newCellDef);
+      addCell( newCellDef);
       const imagePath = imageIcon;
 
-      // 使用原生JavaScript替代jQuery操作
       const td = hot.getCell(startRow, startCol);
       if (td) {
         td.innerHTML = '';
@@ -80,7 +83,7 @@ export default {
 
       undoManager.add({
         redo: () => {
-          oldCellDef = this.context.getCell(startRow, startCol);
+          oldCellDef = deepCopy(getCell(startRow, startCol));
           oldCellData = hot.getDataAtCell(startRow, startCol);
           newCellDef = buildNewCellDef(startRow + 1, startCol + 1);
           newCellDef.value = {
@@ -88,14 +91,19 @@ export default {
             source: 'text',
             value: ''
           };
-          this.context.addCell(newCellDef);
+          addCell(newCellDef);
           hot.setDataAtCell(startRow, startCol, '');
           hot.render();
           setDirty();
           Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
         },
         undo: () => {
-          this.context.addCell(oldCellDef);
+          if (oldCellDef) {
+            const newOldCellDef = deepCopy(oldCellDef);
+            addCell({ i: startRow, j: startCol, cellDef: newOldCellDef });
+          } else {
+            setCell(startRow, startCol, null );
+          }
           hot.setDataAtCell(startRow, startCol, oldCellData);
           hot.render();
           setDirty();

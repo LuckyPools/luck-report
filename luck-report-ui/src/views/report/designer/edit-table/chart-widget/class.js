@@ -4,11 +4,13 @@
  */
 import Vue from 'vue';
 import ChartWidgetVue from '@/views/report/designer/edit-table/chart-widget/index.vue';
+import chartWidgetManager from './manager.js';
 
 export default class ChartWidget {
-    constructor(container, cellDef) {
+    constructor(container, rowIndex, colIndex) {
         this.container = container;
-        this.cellDef = cellDef;
+        this.rowIndex = rowIndex;
+        this.colIndex = colIndex;
         this.vueInstance = null;
     }
 
@@ -23,18 +25,24 @@ export default class ChartWidget {
             return;
         }
 
+        // 销毁已存在的 Vue 实例
+        if (this.vueInstance) {
+            this.vueInstance.$destroy();
+            this.vueInstance = null;
+        }
+
         // 清除容器内容
         this.container.innerHTML = '';
 
         // 创建一个临时的挂载点
         const mountPoint = document.createElement('div');
+        mountPoint.className = 'test';
         this.container.appendChild(mountPoint);
 
         // 创建Vue实例并挂载到容器
         this.vueInstance = new Vue({
             render: h => h(ChartWidgetVue, {
                 props: {
-                    cellDef: this.cellDef,
                     context: context,
                     rowIndex: rowIndex,
                     colIndex: colIndex
@@ -43,11 +51,25 @@ export default class ChartWidget {
         }).$mount(mountPoint);
     }
 
+    refresh(context){
+        this.renderChart(this.container,context,this.rowIndex,this.colIndex);
+    }
+
+    // updateChart() {
+    //     if (this.vueInstance && this.vueInstance.$children && this.vueInstance.$children[0]) {
+    //         this.vueInstance.$children[0].updateChart();
+    //     }
+    // }
+
     // 提供销毁方法，避免内存泄漏
     destroy() {
         if (this.vueInstance) {
             this.vueInstance.$destroy();
             this.vueInstance = null;
+        }
+        if (this.rowIndex !== undefined && this.colIndex !== undefined) {
+            const widgetKey = `${this.rowIndex}_${this.colIndex}`;
+            chartWidgetManager.remove(widgetKey);
         }
     }
 };

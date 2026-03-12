@@ -29,7 +29,7 @@
       <label>{{ $t('property.image.source') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="source"
+          v-model="source"
           :clearable="true"
           @change="handleSourceChange"
         >
@@ -58,7 +58,7 @@
               { value: 'None', label: $t('property.image.noneExpand') }
             ]"
             :key="option.value"
-            :label="option.label"
+            :label="option.value"
           >
             {{ option.label }}
           </u-radio>
@@ -104,6 +104,9 @@ import URadio from '@/components/radio/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
 import { showAlert } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'ImageValueEditor',
@@ -116,19 +119,38 @@ export default {
     UInput
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
+    sourceOptions() {
+      return [
+        { value: 'text', label: this.$t('property.image.path') },
+        { value: 'expression', label: this.$t('property.image.expr') }
+      ];
     }
   },
   data() {
     return {
       codeMirror: null,
-      cellDef: null,
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
       initialized: false,
       width: '',
       height: '',
@@ -137,13 +159,22 @@ export default {
       expand: 'None'
     };
   },
-  computed: {
-    sourceOptions() {
-      return [
-        { value: 'text', label: this.$t('property.image.path') },
-        { value: 'expression', label: this.$t('property.image.expr') }
-      ];
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    },
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
     }
+  },
+  mounted() {
+    this.loadCellData();
   },
   beforeDestroy() {
     if (this.codeMirror) {
@@ -183,16 +214,51 @@ export default {
           return;
         }
         const expr = cm.getValue();
-        if (this.cellDef && this.cellDef.value) {
-          this.cellDef.value.value = expr;
+        const cellDef = getCell(this.rowIndex, this.colIndex);
+        if (cellDef && cellDef.value) {
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value.value = expr;
+          setCell( this.rowIndex, this.colIndex, newCellDef );
         }
         setDirty();
       });
 
-      // 编辑器初始化后，检查是否有数据需要显示
-      if (this.cellDef && this.cellDef.value) {
-        this.codeMirror.setValue(this.cellDef.value.value || '');
+      // 加载初始数据
+      this.loadCellData();
+    },
+
+    /**
+     * 加载单元格数据
+     */
+    loadCellData() {
+      this.initialized = true;
+
+      const currentCellDef = getCell(this.rowIndex, this.colIndex);
+      if (!currentCellDef || !currentCellDef.value) return;
+
+      this.width = currentCellDef.value.width || '';
+      this.height = currentCellDef.value.height || '';
+      this.source = currentCellDef.value.source || 'text';
+
+      this.path = '';
+      if (this.source === 'text') {
+        this.path = currentCellDef.value.value || '';
+      } else {
+        if (this.codeMirror) {
+          this.codeMirror.setValue(currentCellDef.value.value || '');
+        }
       }
+
+      this.expand = currentCellDef.expand || 'None';
+
+      this.$nextTick(() => {
+        if (this.source === 'expression' && !this.codeMirror) {
+          this.initCodeEditor();
+        } else if (this.source === 'expression' && this.codeMirror) {
+          this.codeMirror.setValue(currentCellDef.value.value || '');
+        }
+        this.initialized = false;
+      });
     },
 
     /**
@@ -227,54 +293,14 @@ export default {
     },
 
     /**
-     * 显示编辑器
-     */
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
-      this.initialized = true;
-
-      // 设置宽度和高度
-      this.width = cellDef.value.width || '';
-      this.height = cellDef.value.height || '';
-
-      // 设置图片来源
-      this.source = cellDef.value.source || 'text';
-
-      // 设置路径或表达式
-      this.path = '';
-      if (this.source === 'text') {
-        this.path = cellDef.value.value || '';
-      } else {
-        // 如果编辑器已经初始化，设置表达式值
-        if (this.codeMirror) {
-          this.codeMirror.setValue(cellDef.value.value || '');
-        }
-      }
-
-      // 设置展开选项
-      this.expand = cellDef.expand || 'None';
-
-      this.$nextTick(() => {
-        // 如果是表达式模式且编辑器未初始化，则初始化编辑器
-        if (this.source === 'expression' && !this.codeMirror) {
-          this.initCodeEditor();
-        } else if (this.source === 'expression' && this.codeMirror) {
-          this.codeMirror.setValue(cellDef.value.value || '');
-        }
-        this.initialized = false;
-      });
-    },
-
-    /**
      * 处理宽度变化
      */
     handleWidthChange() {
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.width = this.width;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.width = this.width;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
       }
       setDirty();
     },
@@ -283,8 +309,11 @@ export default {
      * 处理高度变化
      */
     handleHeightChange() {
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.height = this.height;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.height = this.height;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
       }
       setDirty();
     },
@@ -292,15 +321,15 @@ export default {
     /**
      * 处理图片来源变化
      */
-    handleSourceChange(newSource) {
-      // 更新source值
-      this.source = newSource;
+    handleSourceChange() {
 
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.source = this.source;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.source = this.source;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
       }
 
-      // 如果切换到表达式模式且编辑器未初始化，则初始化编辑器
       if (this.source === 'expression' && !this.codeMirror) {
         this.$nextTick(() => {
           this.initCodeEditor();
@@ -314,8 +343,11 @@ export default {
      * 处理路径变化
      */
     handlePathChange() {
-      if (this.cellDef && this.cellDef.value) {
-        this.cellDef.value.value = this.path;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (cellDef && cellDef.value) {
+        const newCellDef = deepCopy(cellDef);
+        newCellDef.value.value = this.path;
+        setCell( this.rowIndex, this.colIndex, newCellDef );
       }
       setDirty();
     },
@@ -329,12 +361,14 @@ export default {
       const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
           const type = cellDef.value.type;
           if (type === 'dataset' || type === 'expression' || type === 'image') {
-            cellDef.expand = expand;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.expand = expand;
+            setCell( i, j, newCellDef );
           }
         }
       }

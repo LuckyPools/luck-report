@@ -45,24 +45,33 @@ export default {
     UDialog,
     UButton
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    beanId: {
+      type: String,
+      default: ''
+    }
+  },
   data() {
     return {
-      visible: false,
       loading: false,
-      methods: [],
-      beanId: ''
+      methods: []
     };
   },
+  watch: {
+    visible(newVal) {
+      if (newVal && this.beanId) {
+        this.methods = [];
+        this.loadMethods();
+      }
+    }
+  },
   methods: {
-    show(beanId) {
-      this.beanId = beanId;
-      this.methods = [];
-      this.visible = true;
-      this.loadMethods();
-    },
-
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
     },
 
     handleClose() {
@@ -86,9 +95,8 @@ export default {
     },
 
     selectMethod(methodItem) {
-      // 通过事件通知父组件
       this.$emit('save', methodItem);
-      this.closeDialog();
+      this.$emit('close');
     }
   }
 };

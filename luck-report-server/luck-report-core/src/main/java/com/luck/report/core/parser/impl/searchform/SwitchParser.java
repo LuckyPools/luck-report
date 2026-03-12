@@ -11,6 +11,7 @@ public class SwitchParser implements FormParser<SwitchComponent> {
         component.setActiveColor(FormParserUtils.parseStringAttribute(element.attributeValue("activeColor")));
         component.setInactiveColor(FormParserUtils.parseStringAttribute(element.attributeValue("inactiveColor")));
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
+        component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
         
         component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         component.setActiveValue(FormParserUtils.parseBooleanAttribute(element.attributeValue("activeValue")));

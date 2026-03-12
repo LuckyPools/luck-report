@@ -50,8 +50,9 @@
       </tbody>
     </table>
     <ParameterDialog
-      ref="parameterDialog"
+      :visible="parameterDialogVisible"
       :edit-data="currentEditData"
+      @update:visible="parameterDialogVisible = $event"
       @save="handleDialogSave"
     />
   </div>
@@ -74,7 +75,8 @@ export default {
   data() {
     return {
       currentEditData: null,
-      currentIndex: -1
+      currentIndex: -1,
+      parameterDialogVisible: false
     };
   },
   watch: {
@@ -108,12 +110,12 @@ export default {
       addParameter() {
         this.currentIndex = -1;
         this.currentEditData = null;
-        this.$refs.parameterDialog.show();
+        this.parameterDialogVisible = true;
       },
       editParameter(param, index) {
           this.currentIndex = index;
           this.currentEditData = param;
-          this.$refs.parameterDialog.show();
+          this.parameterDialogVisible = true;
       },
       removeParameter(param, index) {
         this.$emit('remove-parameter', index);

@@ -7,7 +7,7 @@
       <label>{{ $t('chart.dataset') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="datasetConfig.datasetName"
+            v-model="localDatasetConfig.datasetName"
             :clearable="true"
             @change="handleDatasetChange"
         >
@@ -26,7 +26,7 @@
       <label>{{ $t('chart.categoryProperty') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="datasetConfig.categoryProperty"
+            v-model="localDatasetConfig.categoryProperty"
             :clearable="true"
             @change="handleCategoryPropertyChange"
         >
@@ -45,7 +45,7 @@
       <label>{{ $t('chart.valueProperty') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="datasetConfig.valueProperty"
+            v-model="localDatasetConfig.valueProperty"
             :clearable="true"
             @change="handleValuePropertyChange"
         >
@@ -63,7 +63,7 @@
     <div class="form-group" >
       <label>{{ $t('chart.seriesProperty') }}：</label>
       <div class="u-inline">
-        <u-radio-group :value="datasetConfig.seriesType" @change="handleSeriesTypeChange">
+        <u-radio-group v-model="localDatasetConfig.seriesType" @change="handleSeriesTypeChange">
           <u-radio
             v-for="option in [
               { label: $t('chart.property'), value: 'property' },
@@ -79,11 +79,11 @@
     </div>
 
     <!-- 系列属性选择 -->
-    <div class="form-group" v-show="datasetConfig.seriesType === 'property'">
+    <div class="form-group" v-show="localDatasetConfig.seriesType === 'property'">
       <label>{{ $t('chart.prop') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="datasetConfig.seriesProperty"
+            v-model="localDatasetConfig.seriesProperty"
             :clearable="true"
             @change="handleSeriesPropertyChange"
         >
@@ -98,12 +98,12 @@
     </div>
 
     <!-- 系列静态值 -->
-    <div class="form-group" v-show="datasetConfig.seriesType === 'text'">
+    <div class="form-group" v-show="localDatasetConfig.seriesType === 'text'">
       <label>{{ $t('chart.staticValue') }}：</label>
       <div class="u-inline">
         <u-input
-            style="width:288px;"
-            :value="datasetConfig.seriesText"
+            style="width:220px;"
+            v-model="localDatasetConfig.seriesText"
             @change="handleSeriesTextChange"
         >
         </u-input>
@@ -115,7 +115,7 @@
       <label>{{ $t('chart.aggregate') }}：</label>
       <div class="u-inline">
         <u-select
-            :value="datasetConfig.collectType"
+            v-model="localDatasetConfig.collectType"
             :clearable="true"
             @change="handleAggregateChange"
         >
@@ -138,6 +138,7 @@ import URadio from '@/components/radio/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInput from '@/components/input/index.vue';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'ChartDataset',
@@ -152,32 +153,41 @@ export default {
     datasetConfig: {
       type: Object,
       required: true
-    },
-    availableDatasets: {
-      type: Array,
-      default: () => []
-    },
-    availableFields: {
-      type: Array,
-      default: () => []
     }
   },
+  data() {
+    return {
+      availableDatasets: [],
+      availableFields: [],
+      localDatasetConfig: {
+        datasetName: '',
+        categoryProperty: '',
+        valueProperty: '',
+        seriesType: 'text',
+        seriesProperty: '',
+        seriesText: '',
+        collectType: '',
+        format: ''
+      }
+    };
+  },
   computed: {
-    // 为USelect组件准备的数据集选项
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
     datasetOptions() {
       return this.availableDatasets.map(dataset => ({
         value: dataset.name,
         label: dataset.name
       }));
     },
-    // 为USelect组件准备的字段选项
     fieldOptions() {
       return this.availableFields.map(field => ({
         value: field.name,
         label: field.name
       }));
     },
-    // 聚合方式选项
     aggregateOptions() {
       return [
         { value: 'select', label: this.$t('chart.select') },
@@ -189,58 +199,81 @@ export default {
       ];
     }
   },
+  watch: {
+    datasetConfig: {
+      handler(newVal) {
+        if (newVal) {
+          this.localDatasetConfig = { ...this.localDatasetConfig, ...newVal };
+        }
+      },
+      deep: true,
+      immediate: true
+    },
+    'localDatasetConfig.datasetName': {
+      handler(newVal) {
+        if (newVal) {
+          this.loadAvailableFields();
+        }
+      },
+      immediate: true
+    }
+  },
+  mounted() {
+    this.loadAvailableDatasets();
+  },
   methods: {
-    /**
-     * 处理数据集变化
-     */
+    loadAvailableDatasets() {
+      this.availableDatasets = [];
+      for (let ds of this.context.reportDef.datasources) {
+        let datasets = ds.datasets || [];
+        for (let dataset of datasets) {
+          this.availableDatasets.push(dataset);
+        }
+      }
+    },
+    loadAvailableFields() {
+      this.availableFields = [];
+      const datasetName = this.datasetConfig.datasetName;
+
+      if (!datasetName) return;
+
+      for (let ds of this.context.reportDef.datasources) {
+        let datasets = ds.datasets || [];
+        for (let dataset of datasets) {
+          if (dataset.name === datasetName) {
+            this.availableFields = dataset.fields || [];
+            break;
+          }
+        }
+        if (this.availableFields.length > 0) {
+          break;
+        }
+      }
+    },
     handleDatasetChange(value) {
       this.$emit('dataset-change', value);
       setDirty();
     },
-
-    /**
-     * 处理分类属性变化
-     */
     handleCategoryPropertyChange(value) {
       this.$emit('category-property-change', value);
       setDirty();
     },
-
-    /**
-     * 处理值属性变化
-     */
     handleValuePropertyChange(value) {
       this.$emit('value-property-change', value);
       setDirty();
     },
-
-    /**
-     * 处理系列类型变化
-     */
     handleSeriesTypeChange(value) {
       this.$emit('series-type-change', value);
       setDirty();
     },
-
-    /**
-     * 处理系列属性变化
-     */
     handleSeriesPropertyChange(value) {
       this.$emit('series-property-change', value);
       setDirty();
     },
-
-    /**
-     * 处理系列文本变化
-     */
     handleSeriesTextChange(value) {
       this.$emit('series-text-change', value);
       setDirty();
     },
-
-    /**
-     * 处理聚合方式变化
-     */
     handleAggregateChange(value) {
       this.$emit('aggregate-change', value);
       setDirty();

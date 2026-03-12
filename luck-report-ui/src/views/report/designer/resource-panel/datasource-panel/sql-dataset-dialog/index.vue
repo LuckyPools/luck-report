@@ -12,20 +12,22 @@
           <!-- 左侧容器：搜索表格 -->
           <div class="left-panel">
             <SearchTable
-                ref="searchTable"
                 :db="db"
+                :trigger-load="triggerLoadSearchTable"
                 @add="handleAddSql"
+                @load-complete="handleSearchTableLoadComplete"
             />
           </div>
 
           <!-- 右侧容器：SQL 编辑器和参数编辑器 -->
           <div class="right-panel">
             <SqlEditor
-                ref="sqlEditor"
-                :initialName="datasetName"
+                :name="datasetName"
+                :sql="sql"
+                @sql-change="handleSqlChange"
+                @dataset-name-change="handleDatasetNameChange"
             />
             <ParameterEditor
-                ref="parameterEditor"
                 :parameters="parameters"
                 @add-parameter="handleAddParameter"
                 @edit-parameter="handleEditParameter"
@@ -40,7 +42,13 @@
         <u-button @click="handleConfirm">{{ $t('dialog.sql.ok') }}</u-button>
       </div>
     </UDialog>
-    <PreviewDataDialog ref="previewDataDialog" />
+    <PreviewDataDialog
+      :visible="previewDialogVisible"
+      :loading="previewDialogLoading"
+      :errorInfo="previewDialogErrorInfo"
+      :resultData="previewDialogResultData"
+      @close="closePreviewDialog"
+    />
   </div>
 </template>
 
@@ -55,6 +63,8 @@ import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 import { previewData } from '@/api/designer/index.js';
 import {showAlert} from "@/utils/comnon";
+import { mapGetters } from 'vuex';
+import {deepCopy} from "@/components/utils";
 
 export default {
   name: 'SqlDatasetDialog',
@@ -66,55 +76,87 @@ export default {
     UDialog,
     UButton
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    db: {
+      type: Object,
+      default: null
+    },
+    datasetData: {
+      type: Object,
+      default: null
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
+  },
   data() {
     return {
-      visible: false,
-      db: null,
-      datasources: [],
       datasetName: '',
+      sql: '',
       parameters: [],
       oldName: '',
-      currentData: {}
+      currentData: {},
+      previewDialogVisible: false,
+      previewDialogLoading: true,
+      previewDialogErrorInfo: null,
+      previewDialogResultData: null,
+      triggerLoadSearchTable: false
     };
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.initDialog();
+      }
+    }
   },
   methods: {
     /**
-     * 显示对话框
-     * @param {Object} db - 数据库配置
-     * @param {Object} data - 数据集数据
+     * 初始化对话框
      */
-    show(db, data) {
-      this.db = db;
-      this.datasources = db?.datasources || [];
-
-      // 清空旧数据
+    initDialog() {
       this.currentData = {};
       this.datasetName = '';
+      this.sql = '';
       this.parameters = [];
       this.oldName = '';
 
-      // 设置新数据
-      if (data) {
-        this.currentData = { ...data };
-        this.datasetName = data.name || '';
-        this.parameters = Array.isArray(data.parameters) ? [...data.parameters] : [];
-        this.oldName = data.name || '';
+      if (this.datasetData) {
+        this.currentData = { ...this.datasetData };
+        this.datasetName = this.datasetData.name || '';
+        this.sql = this.datasetData.sql || '';
+        this.parameters = Array.isArray(this.datasetData.parameters) ? [...this.datasetData.parameters] : [];
+        this.oldName = this.datasetData.name || '';
       }
 
-      this.visible = true;
-
-      // 延迟初始化/更新 CodeMirror 和加载表格数据
       this.$nextTick(() => {
-          // 调用SqlEditor组件的initCodeMirror方法
-          if (this.$refs.sqlEditor) {
-              this.$refs.sqlEditor.initCodeMirror(this.currentData.sql);
-              this.$refs.sqlEditor.setDatasetName(this.datasetName);
-          }
-          // 调用SearchTable组件的loadDatabaseTables方法
-          if (this.$refs.searchTable) {
-              this.$refs.searchTable.loadDatabaseTables();
-          }
+        this.triggerLoadSearchTable = true;
       });
+    },
+
+    handleSearchTableLoadComplete() {
+      this.triggerLoadSearchTable = false;
+    },
+
+    /**
+     * 处理SQL内容变化
+     */
+    handleSqlChange(newSql) {
+      this.sql = newSql || '';
+    },
+
+    /**
+     * 处理数据集名称变化
+     */
+    handleDatasetNameChange(newName) {
+      this.datasetName = newName || '';
     },
 
     /**
@@ -122,12 +164,7 @@ export default {
      */
     handleAddSql(sql) {
       console.log('收到添加SQL请求:', sql);
-      if (this.$refs.sqlEditor) {
-        console.log('调用SqlEditor的setSql方法');
-        this.$refs.sqlEditor.setSql(sql);
-      } else {
-        console.error('SqlEditor组件引用不存在');
-      }
+      this.sql = sql || '';
     },
 
     /**
@@ -162,13 +199,12 @@ export default {
      * 预览数据
      */
     async handlePreview() {
-      // 获取SQL和其他必要参数
-      const sql = this.$refs.sqlEditor ? this.$refs.sqlEditor.getSql() : '';
+      const sql = this.sql || '';
       const type = this.db.type;
       const parameters = {
         sql,
         type,
-        parameters: JSON.stringify(this.currentData.parameters)
+        parameters: deepCopy(this.currentData.parameters)
       };
 
       if (type === 'jdbc') {
@@ -180,20 +216,22 @@ export default {
         parameters.name = this.db.name;
       }
 
-      // 显示预览对话框
-      if (this.$refs.previewDataDialog) {
-        this.$refs.previewDataDialog.show();
+      this.previewDialogVisible = true;
+      this.previewDialogLoading = true;
+      this.previewDialogErrorInfo = null;
+      this.previewDialogResultData = null;
 
-        try {
-          const data = await previewData(parameters);
-          this.$refs.previewDataDialog.showData(data);
-        } catch (error) {
-          let msg = this.$t('dialog.sql.previewFail');
-          if(error.msg){
-            msg = error.msg;
-          }
-          this.$refs.previewDataDialog.showError(`<div style='color: #d30e00;'>${msg}</div>`);
+      try {
+        const data = await previewData(parameters);
+        this.previewDialogLoading = false;
+        this.previewDialogResultData = data;
+      } catch (error) {
+        let msg = this.$t('dialog.sql.previewFail');
+        if(error.msg){
+          msg = error.msg;
         }
+        this.previewDialogLoading = false;
+        this.previewDialogErrorInfo = `<div style='color: #d30e00;'>${msg}</div>`;
       }
     },
 
@@ -201,8 +239,8 @@ export default {
      * 处理确认保存（来自页脚按钮）
      */
     handleConfirm() {
-      const name = this.$refs.sqlEditor ? this.$refs.sqlEditor.getDatasetName() : '';
-      const sql = this.$refs.sqlEditor ? this.$refs.sqlEditor.getSql() : '';
+      const name = this.datasetName || '';
+      const sql = this.sql || '';
 
       if (!name || name === '') {
         showAlert(this.$t('dialog.sql.nameTip'));
@@ -221,8 +259,7 @@ export default {
       }
 
       if (check) {
-        for (let datasource of this.datasources) {
-          // 确保datasets属性存在且可迭代
+        for (let datasource of this.context.reportDef.datasources) {
           let datasets = datasource.datasets;
           if (!datasets || !Array.isArray(datasets)) {
             continue;
@@ -246,7 +283,10 @@ export default {
      * 关闭对话框
      */
     closeDialog() {
-      this.visible = false;
+      this.$emit('close');
+    },
+    closePreviewDialog() {
+      this.previewDialogVisible = false;
     }
   }
 };

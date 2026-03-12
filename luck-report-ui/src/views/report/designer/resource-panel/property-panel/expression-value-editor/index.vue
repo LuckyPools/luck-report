@@ -79,6 +79,9 @@
     <!-- 条件属性对话框 -->
     <PropertyConditionDialog
         ref="propertyConditionDialog"
+        :visible.sync="propertyConditionDialogVisible"
+        :dataset-name="propertyConditionDialogDatasetName"
+        :condition-property-items="propertyConditionDialogItems"
         @saveAfter="handlePropertyConditionSave"
     />
   </div>
@@ -97,6 +100,9 @@ import UButton from '@/components/button/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import VueSimpleSuggest from 'vue-simple-suggest'
 import 'vue-simple-suggest/dist/styles.css'
+import { deepCopy } from '@/components/utils/index.js';
+import { mapGetters } from 'vuex';
+import {getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'ExpressionValueEditor',
@@ -108,20 +114,39 @@ export default {
     VueSimpleSuggest
   },
   props: {
-    context: {
-      type: Object,
-      required: true
+    rowIndex: {
+      type: Number,
+      default: 0
+    },
+    colIndex: {
+      type: Number,
+      default: 0
+    },
+    row2Index: {
+      type: Number,
+      default: 0
+    },
+    col2Index: {
+      type: Number,
+      default: 0
+    }
+  },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
+    expandOptions() {
+      return [
+        { value: 'Down', label: this.$t('property.dataset.down') },
+        { value: 'Right', label: this.$t('property.dataset.right') },
+        { value: 'None', label: this.$t('property.dataset.noneExpand') }
+      ];
     }
   },
   data() {
     return {
       codeMirror: null,
-      cellDef: null,
-      datasources: null,
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
       initialized: false,
       wrapCompute: 'default',
       expand: 'None',
@@ -147,14 +172,25 @@ export default {
         "0.00E00",
         "##0.0E0"
       ],
-      isInitialized: false
+      loadingCellData: false,
+      propertyConditionDialogVisible: false,
+      propertyConditionDialogDatasetName: '',
+      propertyConditionDialogItems: []
     };
   },
-  mounted() {
-    this.$nextTick(() => {
-      this.initCodeEditor();
-      this.isInitialized = true;
-    });
+  watch: {
+    rowIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    },
+    colIndex: {
+      immediate: true,
+      handler() {
+        this.loadCellData();
+      }
+    }
   },
   beforeDestroy() {
     if (this.codeMirror) {
@@ -162,17 +198,8 @@ export default {
       this.codeMirror = null;
     }
   },
-  computed: {
-    // 为URadioGroup组件准备的展开方向选项
-    expandOptions() {
-      return [
-        { value: 'Down', label: this.$t('property.dataset.down') },
-        { value: 'Right', label: this.$t('property.dataset.right') },
-        { value: 'None', label: this.$t('property.dataset.noneExpand') }
-      ];
-    }
-  },
   methods: {
+
     /**
      * 初始化代码编辑器
      */
@@ -207,8 +234,16 @@ export default {
       // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
         const expr = cm.getValue();
-        if (this.cellDef && this.cellDef.value) {
-          this.cellDef.value.value = expr;
+        const cellDef = getCell(this.rowIndex, this.colIndex);
+        if (cellDef && cellDef.value) {
+          const newCellDef = deepCopy(cellDef);
+          newCellDef.value.value = expr;
+
+          for (let i = this.rowIndex; i <= this.row2Index; i++) {
+            for (let j = this.colIndex; j <= this.col2Index; j++) {
+              setCell( i, j, newCellDef );
+            }
+          }
         }
         if (this.context && this.context.hot) {
           this.context.hot.setDataAtCell(this.rowIndex, this.colIndex, expr);
@@ -216,10 +251,54 @@ export default {
         setDirty();
       });
 
-      // 编辑器初始化后，检查是否有数据需要显示
-      if (this.cellDef && this.cellDef.value) {
-        this.codeMirror.setValue(this.cellDef.value.value || '');
+      // 加载初始数据
+      this.loadCellData();
+    },
+
+    /**
+     * 加载单元格数据
+     */
+    loadCellData() {
+      if (this.loadingCellData) return;
+
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+
+      // 如果编辑器已经初始化，立即设置值
+      if (this.codeMirror && cellDef && cellDef.value) {
+        this.loadingCellData = true;
+        this.codeMirror.setValue(cellDef.value.value || '');
+        this.$nextTick(() => {
+          this.loadingCellData = false;
+        });
       }
+
+      // 设置展开选项
+      if (cellDef && cellDef.expand) {
+        this.expand = cellDef.expand;
+      }
+
+      // 设置格式
+      if (cellDef && cellDef.cellStyle && cellDef.cellStyle.format) {
+        this.format = cellDef.cellStyle.format;
+      } else {
+        this.format = '';
+      }
+
+      // 设置换行计算
+      if (cellDef && cellDef.cellStyle && cellDef.cellStyle.wrapCompute) {
+        this.wrapCompute = 'default';
+      } else {
+        this.wrapCompute = 'custom';
+      }
+
+      this.$nextTick(() => {
+        this.initialized = true;
+        if (!this.codeMirror) {
+          this.initCodeEditor();
+        } else {
+          this.codeMirror.refresh();
+        }
+      });
     },
 
     /**
@@ -254,52 +333,6 @@ export default {
     },
 
     /**
-     * 显示编辑器
-     */
-    show(cellDef, rowIndex, colIndex, row2Index, col2Index) {
-      this.cellDef = cellDef;
-      this.datasources = this.context.reportDef.datasources;
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
-      this.initialized = false;
-
-      // 如果编辑器已经初始化，立即设置值
-      if (this.codeMirror && cellDef && cellDef.value) {
-        this.codeMirror.setValue(cellDef.value.value || '');
-      }
-
-      // 设置展开选项
-      if (cellDef && cellDef.expand) {
-        this.expand = cellDef.expand;
-      }
-
-      // 设置格式
-      if (cellDef && cellDef.cellStyle && cellDef.cellStyle.format) {
-        this.format = cellDef.cellStyle.format;
-      } else {
-        this.format = '';
-      }
-
-      // 设置换行计算
-      if (cellDef && cellDef.cellStyle && cellDef.cellStyle.wrapCompute) {
-        this.wrapCompute = 'default';
-      } else {
-        this.wrapCompute = 'custom';
-      }
-
-      this.$nextTick(() => {
-        this.initialized = true;
-        if (!this.codeMirror) {
-          this.initCodeEditor();
-        } else {
-          this.codeMirror.refresh();
-        }
-      });
-    },
-
-    /**
      * 处理展开选项变化
      */
     handleExpandChange(expand) {
@@ -308,12 +341,14 @@ export default {
       const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
           const type = cellDef.value.type;
           if (type === 'dataset' || type === 'expression') {
-            cellDef.expand = expand;
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.expand = expand;
+            setCell( i, j, newCellDef );
           }
         }
       }
@@ -325,18 +360,19 @@ export default {
      * 处理换行计算选项变化
      */
     handleWrapComputeChange() {
-      // 根据radio button选中的值转换为布尔值
-      const wrapComputeValue = this.wrapCompute === 'custom';
+      const wrapComputeValue = this.wrapCompute === 'default';
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = this.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
-          if (!cellDef.cellStyle) {
-            cellDef.cellStyle = {};
+          const newCellDef = deepCopy(cellDef);
+          if (!newCellDef.cellStyle) {
+            newCellDef.cellStyle = {};
           }
-          cellDef.cellStyle.wrapCompute = wrapComputeValue;
+          newCellDef.cellStyle.wrapCompute = wrapComputeValue;
+          setCell( i, j, newCellDef );
         }
       }
       setDirty();
@@ -346,21 +382,19 @@ export default {
      * 处理格式变化
      */
     handleFormatChange(format) {
-      if (!this.isInitialized) {
-        return;
-      }
       if (!this.context || !this.context.hot) return;
       this.format = format;
-      const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = hot.context.getCell(i, j);
+          const cellDef = getCell(i, j);
           if (!cellDef) continue;
 
-          if (!cellDef.cellStyle) {
-            cellDef.cellStyle = {};
+          const newCellDef = deepCopy(cellDef);
+          if (!newCellDef.cellStyle) {
+            newCellDef.cellStyle = {};
           }
-          cellDef.cellStyle.format = format;
+          newCellDef.cellStyle.format = format;
+          setCell( i, j, newCellDef );
         }
       }
       setDirty();
@@ -370,16 +404,12 @@ export default {
      * 处理条件属性配置
      */
     async handleConditionPropertyConfig() {
-      if (!this.cellDef) return;
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) return;
 
-      // 创建深拷贝，避免引用问题
-      const conditionPropertyItems = this.cellDef.conditionPropertyItems
-          ? JSON.parse(JSON.stringify(this.cellDef.conditionPropertyItems))
+      const conditionPropertyItems = cellDef.conditionPropertyItems
+          ? deepCopy(cellDef.conditionPropertyItems)
           : [];
-
-      if (!this.cellDef.conditionPropertyItems) {
-        this.cellDef.conditionPropertyItems = conditionPropertyItems;
-      }
 
       let datasetName = '';
       const expr = this.codeMirror ? this.codeMirror.getValue() : '';
@@ -400,18 +430,26 @@ export default {
      * 显示条件属性对话框
      */
     showPropertyConditionDialog(datasetName, conditionPropertyItems) {
-      this.$refs.propertyConditionDialog.show(
-          this.datasources,
-          datasetName,
-          conditionPropertyItems
-      );
+      this.propertyConditionDialogDatasetName = datasetName;
+      this.propertyConditionDialogItems = conditionPropertyItems;
+      this.propertyConditionDialogVisible = true;
     },
 
     /**
      * 处理属性条件保存后的回调
      */
     handlePropertyConditionSave(propertyConditions) {
-      this.cellDef.conditionPropertyItems = JSON.parse(JSON.stringify(propertyConditions));
+      const cellDef = getCell(this.rowIndex, this.colIndex);
+      if (!cellDef) return;
+
+      const newCellDef = deepCopy(cellDef);
+      newCellDef.conditionPropertyItems = deepCopy(propertyConditions);
+
+      for (let i = this.rowIndex; i <= this.row2Index; i++) {
+        for (let j = this.colIndex; j <= this.col2Index; j++) {
+          setCell( i, j, newCellDef );
+        }
+      }
       setDirty();
     }
   }

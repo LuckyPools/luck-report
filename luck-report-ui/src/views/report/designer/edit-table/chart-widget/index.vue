@@ -7,14 +7,11 @@
 <script>
 import Chart from 'chart.js';
 import { showAlert } from '@/utils/comnon.js';
+import {getCell} from "@/utils/contextActions";
 
 export default {
   name: 'ChartWidget',
   props: {
-    cellDef: {
-      type: Object,
-      required: true
-    },
     context: {
       type: Object,
       required: true
@@ -35,15 +32,34 @@ export default {
       height: -2
     };
   },
+  computed: {
+      hot() {
+          return this.context.hot;
+      },
+      chartColors() {
+          return {
+              red: 'rgb(255, 99, 132)',
+              orange: 'rgb(255, 159, 64)',
+              yellow: 'rgb(255, 205, 86)',
+              green: 'rgb(75, 192, 192)',
+              blue: 'rgb(54, 162, 235)',
+              purple: 'rgb(153, 102, 255)',
+              grey: 'rgb(201, 203, 207)'
+          };
+      }
+  },
   mounted() {
-    this.renderChart();
+      this.renderChart();
   },
   beforeDestroy() {
-    if (this.chart) {
-      this.chart.destroy();
-    }
+      if (this.chart) {
+          this.chart.destroy();
+      }
   },
   methods: {
+    getCell() {
+      return getCell(this.rowIndex, this.colIndex);
+    },
     renderChart() {
       const { hot, rowIndex, colIndex } = this;
       const container = this.$refs.chartContainer;
@@ -77,13 +93,14 @@ export default {
       canvas.style.height = `${this.height}px`;
 
       // 获取图表类型和配置
-      const type = this.cellDef.value.chart.dataset.type;
+      const cell = this.getCell();
+      const type = cell.value.chart.dataset.type;
       let data = null;
       let options = {};
       let chartType;
 
       // 设置默认配置选项
-      const defaultOptions = this.cellDef.value.chart.options;
+      const defaultOptions = cell.value.chart.options;
       if (defaultOptions) {
         for (let option of defaultOptions) {
           options[option.type] = option;
@@ -91,7 +108,7 @@ export default {
       }
 
       // 处理x轴配置
-      const xaxes = this.cellDef.value.chart.xaxes;
+      const xaxes = cell.value.chart.xaxes;
       if (xaxes) {
         if (!options.scales) {
           options.scales = {};
@@ -109,7 +126,7 @@ export default {
       }
 
       // 处理y轴配置
-      const yaxes = this.cellDef.value.chart.yaxes;
+      const yaxes = cell.value.chart.yaxes;
       if (yaxes) {
         if (!options.scales) {
           options.scales = {};
@@ -363,7 +380,7 @@ export default {
       }
 
       // 处理额外的选项配置
-      const optionList = this.cellDef.value.chart.options || [];
+      const optionList = cell.value.chart.options || [];
       for (let op of optionList) {
         switch (op.type) {
           case "title":
@@ -376,16 +393,11 @@ export default {
             }
             break;
           case "legend":
-            if (op.display) {
-              options.legend = {
-                display: true,
-                position: op.position
-              };
-            } else {
-              options.display = {
-                display: false
-              };
-            }
+            options.legend = {
+              display: op.display || false,
+              position: op.position,
+              labels: op.labels || {}
+            };
             break;
           case "layout":
             if (op.padding) {
@@ -430,24 +442,13 @@ export default {
       // 备用方法：通过选择器查找
       const cellElements = document.querySelectorAll(`.htCore td[data-row="${rowIndex}"][data-col="${colIndex}"]`);
       return cellElements.length > 0 ? cellElements[0] : null;
-    }
-  },
-
-  // 图表颜色定义
-  computed: {
-    hot() {
-      return this.context.hot;
     },
-    chartColors() {
-      return {
-        red: 'rgb(255, 99, 132)',
-        orange: 'rgb(255, 159, 64)',
-        yellow: 'rgb(255, 205, 86)',
-        green: 'rgb(75, 192, 192)',
-        blue: 'rgb(54, 162, 235)',
-        purple: 'rgb(153, 102, 255)',
-        grey: 'rgb(201, 203, 207)'
-      };
+
+    // 更新图表
+    updateChart() {
+      if (this.chart) {
+        this.chart.update();
+      }
     }
   }
 };

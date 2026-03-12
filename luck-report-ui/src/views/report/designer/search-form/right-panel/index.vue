@@ -10,7 +10,7 @@
       <div class="right-scrollbar">
         <!-- 组件属性 -->
         <u-form v-show="currentTab==='field' && showField" size="small" :label-width="90">
-          <u-form-item v-if="activeData.changeTag" :label="$t('searchForm.fieldName')">
+          <u-form-item v-if="activeData.changeTag" :label="$t('searchForm.componentType')">
             <u-select
               v-model="activeData.tagIcon"
               :placeholder="$t('searchForm.selectComponentType')"

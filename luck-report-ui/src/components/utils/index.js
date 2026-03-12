@@ -96,9 +96,10 @@ export function findComponentDownward(context, componentName) {
 /**
  * @description 对象深拷贝
  * @param {object} data 要拷贝的对象
+ * @param {WeakMap} hash 用于处理循环引用的缓存
  * @returns {object} 拷贝后的对象
  */
-export function deepCopy(data) {
+export function deepCopy(data, hash = new WeakMap()) {
     const t = typeOf(data);
     let o;
 
@@ -110,13 +111,19 @@ export function deepCopy(data) {
         return data;
     }
 
+    if (hash.has(data)) {
+        return hash.get(data);
+    }
+
+    hash.set(data, o);
+
     if (t === "array") {
         for (let i = 0; i < data.length; i++) {
-            o.push(deepCopy(data[i]));
+            o.push(deepCopy(data[i], hash));
         }
     } else if (t === "object") {
         for (let i in data) {
-            o[i] = deepCopy(data[i]);
+            o[i] = deepCopy(data[i], hash);
         }
     }
     return o;

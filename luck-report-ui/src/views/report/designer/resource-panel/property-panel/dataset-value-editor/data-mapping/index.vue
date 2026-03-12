@@ -11,7 +11,7 @@
         <label>{{ $t('property.dataset.mappingType') }}：</label>
         <div class="u-inline">
           <u-radio-group
-              :value="localMappingType"
+              v-model="localMappingType"
               @change="handleMappingTypeChange">
             <u-radio
               v-for="option in mappingTypeOptions"
@@ -75,7 +75,7 @@
           <label>{{ $t('property.dataset.dataset') }}：</label>
           <div class="u-inline">
             <u-select
-              :value="localMappingDataset"
+              v-model="localMappingDataset"
               :clearable="true"
               @change="handleMappingDatasetChange"
             >
@@ -94,7 +94,7 @@
           <label>{{ $t('property.dataset.realValueProp') }}：</label>
           <div class="u-inline">
             <u-select
-              :value="localMappingKeyProperty"
+              v-model="localMappingKeyProperty"
               :clearable="true"
               @change="handleMappingKeyPropertyChange"
             >
@@ -113,7 +113,7 @@
           <label>{{ $t('property.dataset.displayValueProp') }}：</label>
           <div class="u-inline">
             <u-select
-              :value="localMappingValueProperty"
+              v-model="localMappingValueProperty"
               :clearable="true"
               @change="handleMappingValuePropertyChange"
             >
@@ -129,7 +129,12 @@
       </div>
     </div>
     <!-- 映射对话框 -->
-    <mapping-dialog ref="mappingDialog" @saveAfter="handleMappingSaveAfter"></mapping-dialog>
+    <mapping-dialog
+      :visible.sync="dialogVisible"
+      :mapping-item="currentMappingItem"
+      :operation="dialogOperation"
+      @save="handleMappingSave"
+    ></mapping-dialog>
   </div>
 </template>
 
@@ -142,6 +147,7 @@ import UOption from '@/components/option/index.vue';
 import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UButton from '@/components/button/index.vue';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'DataMappingTab',
@@ -154,14 +160,6 @@ export default {
     UButton
   },
   props: {
-    cellDef: {
-      type: Object,
-      default: () => ({})
-    },
-    datasources: {
-      type: Array,
-      default: () => []
-    },
     datasets: {
       type: Array,
       default: () => []
@@ -194,7 +192,13 @@ export default {
   data() {
     return {
       mappingFields: [],
-      isAddingMapping: false,
+      dialogVisible: false,
+      dialogOperation: 'add',
+      currentMappingItem: {
+        value: '',
+        label: ''
+      },
+      editingIndex: -1,
       // 本地数据属性，用于存储props的值
       localMappingType: this.mappingType,
       localMappingItems: [...this.mappingItems],
@@ -204,6 +208,13 @@ export default {
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
+    datasources() {
+      return this.context.reportDef.datasources || [];
+    },
     // 为USelect组件准备的数据集选项
     datasetOptions() {
       return this.datasets.map(dataset => ({
@@ -283,8 +294,7 @@ export default {
     /**
      * 处理映射类型变化
      */
-    handleMappingTypeChange(value) {
-      this.localMappingType = value;
+    handleMappingTypeChange() {
       this.$emit('mapping-type-change', this.localMappingType);
       setDirty();
     },
@@ -293,12 +303,10 @@ export default {
      * 处理添加映射
      */
     handleAddMapping() {
-      const newItem = { value: '', label: '' };
-      // 先添加到本地数组中，但不在原数组中
-      this.localMappingItems.push(newItem);
-      // 标记为添加操作
-      this.isAddingMapping = true;
-      this.$refs.mappingDialog.show(newItem, 'add');
+      this.currentMappingItem = { value: '', label: '' };
+      this.dialogOperation = 'add';
+      this.editingIndex = -1;
+      this.dialogVisible = true;
     },
 
     /**
@@ -306,34 +314,27 @@ export default {
      */
     handleEditMapping(index) {
       const item = this.localMappingItems[index];
-      // 标记为编辑操作
-      this.isAddingMapping = false;
-      this.$refs.mappingDialog.show(item, 'edit');
+      this.currentMappingItem = {
+        value: item.value,
+        label: item.label
+      };
+      this.dialogOperation = 'edit';
+      this.editingIndex = index;
+      this.dialogVisible = true;
     },
 
     /**
-     * 处理映射保存后事件
+     * 处理映射保存
      */
-    handleMappingSaveAfter() {
-      // 如果是添加操作，检查新项是否有效
-      if (this.isAddingMapping) {
-        // 获取最后一项（新添加的项）
-        const lastItem = this.localMappingItems[this.localMappingItems.length - 1];
-
-        // 如果新项的值或标签为空，则移除该项
-        if (lastItem.value === '' || lastItem.label === '') {
-          this.localMappingItems.pop();
-        } else {
-          // 有效项，触发更新事件
-          this.$emit('mapping-items-change', this.localMappingItems);
-        }
-
-        this.isAddingMapping = false;
+    handleMappingSave(data) {
+      if (this.dialogOperation === 'add') {
+        this.localMappingItems.push(data);
       } else {
-        // 编辑操作，直接触发更新事件
-        this.$emit('mapping-items-change', this.localMappingItems);
+        if (this.editingIndex >= 0) {
+          this.localMappingItems[this.editingIndex] = data;
+        }
       }
-
+      this.$emit('mapping-items-change', this.localMappingItems);
       setDirty();
     },
 
@@ -358,8 +359,7 @@ export default {
     /**
      * 处理映射数据集变化
      */
-    handleMappingDatasetChange(newDataset) {
-      this.localMappingDataset = newDataset;
+    handleMappingDatasetChange() {
       this.$emit('mapping-dataset-change', this.localMappingDataset);
       setDirty();
     },
@@ -367,8 +367,7 @@ export default {
     /**
      * 处理映射键属性变化
      */
-    handleMappingKeyPropertyChange(newKeyProperty) {
-      this.localMappingKeyProperty = newKeyProperty;
+    handleMappingKeyPropertyChange() {
       this.$emit('mapping-key-property-change', this.localMappingKeyProperty);
       setDirty();
     },
@@ -376,8 +375,7 @@ export default {
     /**
      * 处理映射值属性变化
      */
-    handleMappingValuePropertyChange(newValueProperty) {
-      this.localMappingValueProperty = newValueProperty;
+    handleMappingValuePropertyChange() {
       this.$emit('mapping-value-property-change', this.localMappingValueProperty);
       setDirty();
     }

@@ -3,7 +3,7 @@
       :title="$t('tools.preview.view')"
       class="tool-button"
       icon="icon-preview"
-      @click="execute"
+      @click="handleClick"
   >
   </u-button>
 </template>
@@ -13,24 +13,20 @@ import { tableToXml } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { savePreviewFile } from '@/api/designer/index.js';
 import UButton from "@/components/button/index.vue";
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'PreviewTool',
   components: {UButton},
-  props: {
-    context: {
-      type: Object,
-      required: true
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     }
-  },
-  data() {
-    return {
-
-    };
   },
   methods: {
     // 执行预览操作
-    execute() {
+    handleClick() {
       const content = tableToXml(this.context);
       let fileName = this.$store.state.report.fileName;
       if(fileName){

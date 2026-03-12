@@ -153,6 +153,7 @@ import UInputNumber from '@/components/input-number/index.vue';
 import {getPdfPreviewUrl, pdfNewPaging} from '@/api/preview';
 import UCol from "@/components/col/index.vue";
 import URow from "@/components/row/index.vue";
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'PDFPrintDialog',
@@ -165,9 +166,18 @@ export default {
     UOption,
     UInputNumber
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    paperData: {
+      type: Object,
+      default: null
+    }
+  },
   data() {
     return {
-      visible: false,
       paper: {
         paperType: 'A4',
         width: 0,
@@ -179,11 +189,14 @@ export default {
         bottomMargin: 0
       },
       paperSizeList: buildPageSizeList(),
-      refreshIndex: 0,
-      context: null
+      refreshIndex: 0
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    },
     paperTypeOptions() {
       const options = [];
 
@@ -287,32 +300,34 @@ export default {
       return window.location.search;
     }
   },
-  methods: {
-    show(paper, context) {
-      this.visible = true;
-
-      // 确保每个属性都是响应式的
-      if (paper) {
-        this.$set(this.paper, 'paperType', paper.paperType || 'A4');
-        this.$set(this.paper, 'width', paper.width || 0);
-        this.$set(this.paper, 'height', paper.height || 0);
-        this.$set(this.paper, 'orientation', paper.orientation || 'portrait');
-        this.$set(this.paper, 'leftMargin', paper.leftMargin || 0);
-        this.$set(this.paper, 'rightMargin', paper.rightMargin || 0);
-        this.$set(this.paper, 'topMargin', paper.topMargin || 0);
-        this.$set(this.paper, 'bottomMargin', paper.bottomMargin || 0);
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.$nextTick(() => {
+          this.initIFrame();
+          this.handleApply();
+        });
       }
-
-      this.context = context;
-
-      this.$nextTick(() => {
-        this.initIFrame();
-        this.handleApply();
-      });
     },
-
+    paperData: {
+      handler(newVal) {
+        if (newVal) {
+          this.$set(this.paper, 'paperType', newVal.paperType || 'A4');
+          this.$set(this.paper, 'width', newVal.width || 0);
+          this.$set(this.paper, 'height', newVal.height || 0);
+          this.$set(this.paper, 'orientation', newVal.orientation || 'portrait');
+          this.$set(this.paper, 'leftMargin', newVal.leftMargin || 0);
+          this.$set(this.paper, 'rightMargin', newVal.rightMargin || 0);
+          this.$set(this.paper, 'topMargin', newVal.topMargin || 0);
+          this.$set(this.paper, 'bottomMargin', newVal.bottomMargin || 0);
+        }
+      },
+      immediate: true
+    }
+  },
+  methods: {
     handleClose() {
-      this.visible = false;
+      this.$emit('close');
     },
 
     handlePageTypeChange(value) {

@@ -146,7 +146,9 @@
 
     <!-- PDF打印对话框 -->
     <PDFPrintDialog
-        ref="pdfPrintDialog"
+        :visible="pdfPrintDialogVisible"
+        :paper-data="paperData"
+        @close="handlePdfPrintDialogClose"
     />
   </div>
 </template>
@@ -201,7 +203,9 @@ export default {
       directPrintPdf: false,
       printIndex: 0,
       searchFormParameters: {},
-      pageMenuItems: []
+      pageMenuItems: [],
+      pdfPrintDialogVisible: false,
+      paperData: null
     }
   },
   computed: {
@@ -298,11 +302,16 @@ export default {
 
         const paper = await loadPagePaper(formData);
 
-        this.$refs.pdfPrintDialog.show(paper);
+        this.paperData = paper;
+        this.pdfPrintDialogVisible = true;
       } catch (error) {
         console.error('获取纸张信息失败:', error);
         showAlert(this.$t('preview.error.loadPaperFail'));
       }
+    },
+
+    handlePdfPrintDialogClose() {
+      this.pdfPrintDialogVisible = false;
     },
 
     printDirectPdf(){

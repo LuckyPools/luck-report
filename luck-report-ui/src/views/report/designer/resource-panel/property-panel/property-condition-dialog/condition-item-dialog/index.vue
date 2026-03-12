@@ -41,6 +41,18 @@ export default {
     UInput
   },
   props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    conditionItem: {
+      type: Object,
+      default: null
+    },
+    operation: {
+      type: String,
+      default: 'add'
+    },
     propertyConditions: {
       type: Array,
       default: () => []
@@ -48,10 +60,8 @@ export default {
   },
   data() {
     return {
-      visible: false,
       name: '',
-      conditionItem: null,
-      operation: 'add' // 'add' or 'edit'
+      localConditionItem: null
     };
   },
   computed: {
@@ -64,29 +74,21 @@ export default {
       return this.$t('dialog.conditionItem.title');
     }
   },
+  watch: {
+    visible(newVal) {
+      if (newVal && this.conditionItem) {
+        this.name = this.conditionItem.name || '';
+        this.localConditionItem = { ...this.conditionItem };
+      }
+    }
+  },
   mounted() {
-    // 添加键盘事件监听
     document.addEventListener('keydown', this.handleKeydown);
   },
   beforeDestroy() {
-    // 移除事件监听
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show(conditionItem, operation) {
-      this.visible = true;
-      this.conditionItem = conditionItem;
-      this.name = conditionItem.name || '';
-      this.operation = operation || 'add';
-      let that = this;
-      // 确保DOM更新后聚焦输入框
-      this.$nextTick(() => {
-        if (that.$refs.input && that.$refs.input.focus) {
-            that.$refs.input.focus();
-            that.$refs.input.select();
-        }
-      });
-    },
     handleOk() {
       if (!this.name.trim()) {
         showAlert(this.$t('dialog.conditionItem.nameTip'));
@@ -105,27 +107,18 @@ export default {
         return;
       }
 
-      // 更新条件项名称
-      this.conditionItem.name = this.name;
+      this.localConditionItem.name = this.name;
 
-      // 触发保存后事件
       this.$emit('saveAfter', {
-        item: this.conditionItem,
+        item: this.localConditionItem,
         operation: this.operation
       });
 
       this.handleClose();
     },
     handleClose() {
-      this.visible = false;
-
-      setTimeout(() => {
-        this.name = '';
-        this.conditionItem = null;
-        this.operation = 'add';
-      }, 300);
+      this.$emit('close');
     },
-    // 键盘事件处理
     handleKeydown(e) {
       if (this.visible) {
         if (e.key === 'Escape') {

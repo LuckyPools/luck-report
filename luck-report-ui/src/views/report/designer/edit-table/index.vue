@@ -15,6 +15,7 @@ import { afterRenderer } from './utils/CellRenderer.js';
 import { renderRowHeader } from './utils/HeaderUtils.js';
 import { loadReport } from '@/api/designer';
 import { showAlert } from '@/utils/comnon.js';
+import { addRowHeader } from "@/utils/contextActions";
 
 export default {
   name: 'ContentTable',
@@ -37,8 +38,7 @@ export default {
   },
   methods: {
     ...mapActions('report', [
-      'setContext',
-      'updateContextProperty'
+      'setContext'
     ]),
     /**
      * 初始化表格
@@ -54,7 +54,7 @@ export default {
       if (!filePath || filePath === '') {
           filePath = 'classpath:template/template.ureport.xml';
       }else{
-          this.$store.dispatch('report/setIsSaved', true);
+          this.$store.dispatch('report/setSaveStatus', true);
       }
       this.loadFile(filePath, this.handleReportLoaded.bind(this));
     },
@@ -212,7 +212,7 @@ export default {
           if (!band) {
             continue;
           }
-          this.context.addRowHeader(row.rowNumber - 1, band);
+          addRowHeader(row.rowNumber - 1, band);
         }
         renderRowHeader(this.hot, this.context);
       }

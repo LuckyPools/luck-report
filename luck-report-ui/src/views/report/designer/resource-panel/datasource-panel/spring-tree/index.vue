@@ -23,7 +23,7 @@
           style="margin-left: -16px;"
         >
           <li
-            v-for="(dataset, index) in localDatasets"
+            v-for="(dataset, index) in datasets"
             :key="dataset.name + '_' + index"
           >
             <!-- 数据集节点 -->
@@ -68,17 +68,32 @@
 
     <!-- Bean方法配置对话框 -->
     <BeanMethodDialog
-        ref="beanMethodDialog"
-        :datasources="localDatasets"
+        :visible="beanMethodDialogVisible"
+        :dataset="currentDataset"
+        :datasources="datasources"
         :beanId="localBeanId"
         @save="handleBeanMethodSave"
+        @close="beanMethodDialogVisible = false"
       />
 
     <!-- Spring数据源配置对话框 -->
-    <SpringDialog ref="springDialog" :datasources="datasources" @save="handleSpringDatasourceSave"/>
+    <SpringDialog
+      ref="springDialog"
+      :datasources="datasources"
+      :visible="springDialogVisible"
+      :datasource="currentSpringDatasource"
+      @close="springDialogVisible = false"
+      @save="handleSpringDatasourceSave"
+    />
 
     <!-- 字段名输入对话框 -->
-    <FieldNameDialog ref="fieldNameDialog" @save="handleFieldNameSave" />
+    <FieldNameDialog
+      ref="fieldNameDialog"
+      :visible="fieldNameDialogVisible"
+      :dataset="currentDataset"
+      @save="handleFieldNameSave"
+      @close="fieldNameDialogVisible = false"
+    />
 
     <!-- 右键菜单 -->
     <ContextMenu ref="contextMenu" />
@@ -88,11 +103,14 @@
 <script>
 import uuid from 'node-uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
+import { deepCopy } from '@/components/utils/index.js';
 import BeanMethodDialog from '@/views/report/designer/resource-panel/datasource-panel/bean-method-dialog/index.vue';
 import SpringDialog from '@/views/report/designer/resource-panel/datasource-panel/spring-dialog/index.vue';
 import FieldNameDialog from '../field-name-dialog/index.vue';
 import ContextMenu from '../context-menu/index.vue';
 import { buildClass } from '@/api/designer/index.js';
+import { mapGetters } from 'vuex';
+import {addCell, getCell, setCell} from "@/utils/contextActions";
 
 export default {
   name: 'SpringTree',
@@ -118,10 +136,6 @@ export default {
     beanId: {
       type: String,
       default: ''
-    },
-    context: {
-      type: Object,
-      required: true
     }
   },
   data() {
@@ -129,25 +143,25 @@ export default {
       id: 'spring_' + uuid.v1(),
       datasourceExpanded: true,
       datasetExpanded: {},
-      // 本地数据集副本
-      localDatasets: [],
-      // 本地数据源名称
       localName: this.name,
-      // 本地beanId
       localBeanId: this.beanId,
-      // 当前数据集
-      currentDataset: null
+      currentDataset: null,
+      beanMethodDialogVisible: false,
+      springDialogVisible: false,
+      currentSpringDatasource: null,
+      fieldNameDialogVisible: false
     };
   },
   computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
+    }
   },
   created() {
-    // 初始化本地数据集副本
-    this.localDatasets = this.datasets ? [...this.datasets] : [];
-
     // 初始化数据集展开状态
-    if (this.localDatasets && this.localDatasets.length > 0) {
-      for (let i = 0; i < this.localDatasets.length; i++) {
+    if (this.datasets && this.datasets.length > 0) {
+      for (let i = 0; i < this.datasets.length; i++) {
         this.$set(this.datasetExpanded, i, true);
       }
     }
@@ -158,14 +172,6 @@ export default {
     },
     beanId(newBeanId) {
       this.localBeanId = newBeanId;
-    },
-    // 监听本地数据集变化并同步到父组件
-    localDatasets: {
-      handler(newDatasets) {
-        // 通知父组件数据集已更新
-        this.$emit('update-datasets', newDatasets);
-      },
-      deep: true
     }
   },
   methods: {
@@ -215,12 +221,8 @@ export default {
      * 添加数据集操作
      */
     addDatasetAction() {
-      let that = this;
-      this.$nextTick(() => {
-        if (that.$refs.beanMethodDialog) {
-            that.$refs.beanMethodDialog.show();
-        }
-      });
+      this.currentDataset = null;
+      this.beanMethodDialogVisible = true;
     },
 
     /**
@@ -237,15 +239,11 @@ export default {
      * 编辑数据源操作
      */
     editDatasourceAction() {
-      let that = this;
-      this.$nextTick(() => {
-        if (that.$refs.springDialog) {
-            that.$refs.springDialog.show({
-              name: that.localName,
-              beanId: that.localBeanId
-            });
-        }
-      });
+      this.currentSpringDatasource = {
+        name: this.localName,
+        beanId: this.localBeanId
+      };
+      this.springDialogVisible = true;
     },
 
     /**
@@ -283,13 +281,8 @@ export default {
      * 添加字段操作
      */
     addFieldAction(dataset) {
-      let that = this;
       this.currentDataset = dataset;
-      this.$nextTick(() => {
-        if (that.$refs.fieldNameDialog) {
-          that.$refs.fieldNameDialog.show(dataset);
-        }
-      });
+      this.fieldNameDialogVisible = true;
     },
 
     /**
@@ -297,20 +290,22 @@ export default {
      */
     handleFieldNameSave(fieldName, dataset) {
       if (fieldName) {
-        if (!dataset.fields) {
-          dataset.fields = [];
+        const newDatasets = deepCopy(this.datasets);
+        const targetDataset = newDatasets.find(d => d.name === dataset.name);
+        
+        if (!targetDataset.fields) {
+          targetDataset.fields = [];
         }
 
-        // 检查字段是否已存在
-        const exists = dataset.fields.some(field => field.name === fieldName);
+        const exists = targetDataset.fields.some(field => field.name === fieldName);
         if (exists) {
           showAlert(this.$t('tree.fieldExist'));
           return;
         }
 
         const field = { name: fieldName };
-        dataset.fields.push(field);
-        this.$forceUpdate();
+        targetDataset.fields.push(field);
+        this.$emit('update-datasets', newDatasets);
       }
     },
 
@@ -318,58 +313,49 @@ export default {
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-      let that = this;
-      this.$nextTick(() => {
-        if (that.$refs.beanMethodDialog) {
-            that.$refs.beanMethodDialog.show(dataset);
-        }
-      });
+      this.currentDataset = dataset;
+      this.beanMethodDialogVisible = true;
     },
 
     /**
      * 处理Bean方法保存事件
      */
     handleBeanMethodSave(name, method, clazz, oldName) {
-      // 如果有 oldName，说明是编辑模式，需要查找并更新现有数据集
+      const newDatasets = deepCopy(this.datasets);
+      
       if (oldName && oldName !== '') {
-        // 查找匹配的数据集
-        const index = this.localDatasets.findIndex(dataset => dataset.name === oldName);
+        const index = newDatasets.findIndex(dataset => dataset.name === oldName);
         if (index !== -1) {
-          // 更新现有数据集
-          const dataset = this.localDatasets[index];
+          const dataset = newDatasets[index];
           const originalClazz = dataset.clazz || '';
 
-          // 更新数据集信息
           dataset.name = name;
           dataset.method = method;
           dataset.clazz = clazz;
 
-          // 只有当clazz发生变化时才重新构建字段
           if (clazz !== originalClazz) {
-            // 当clazz变为空时，清空字段；当clazz变为非空且与原来不同时，重新加载字段
             if (!clazz || clazz === '') {
-              // 清空字段
               dataset.fields = [];
             } else {
-              // 强制刷新字段（因为clazz已更改）
-              this.buildFields(dataset, index, false);
+              this.buildFields(dataset, index, false, newDatasets);
             }
           }
 
-          this.$forceUpdate();
+          this.$emit('update-datasets', newDatasets);
           return;
         }
       }
 
-      // 没有找到匹配的数据集或者没有 oldName，说明是新增模式
       const dataset = { name, method, clazz, fields: [] };
-      this.localDatasets.push(dataset);
-      const index = this.localDatasets.length - 1;
+      newDatasets.push(dataset);
+      const index = newDatasets.length - 1;
       this.$set(this.datasetExpanded, index, true);
 
       if (clazz && clazz !== '') {
-        this.buildFields(dataset, index);
+        this.buildFields(dataset, index, false, newDatasets);
       }
+      
+      this.$emit('update-datasets', newDatasets);
     },
 
     /**
@@ -378,8 +364,10 @@ export default {
     deleteDatasetAction(dataset, index) {
         let that = this;
         showConfirm(`${this.$t('tree.delDatasetConfirm')}[${dataset.name}]?`).then(() => {
-          that.localDatasets.splice(index, 1);
+          const newDatasets = deepCopy(this.datasets);
+          newDatasets.splice(index, 1);
           that.$delete(that.datasetExpanded, index);
+          that.$emit('update-datasets', newDatasets);
         });
     },
 
@@ -387,7 +375,9 @@ export default {
      * 刷新数据集操作
      */
     refreshDatasetAction(dataset, index) {
-      this.buildFields(dataset, index, true);
+      const newDatasets = deepCopy(this.datasets);
+      const targetDataset = newDatasets.find(d => d.name === dataset.name);
+      this.buildFields(targetDataset, index, true, newDatasets);
     },
 
     /**
@@ -419,9 +409,11 @@ export default {
     deleteFieldAction(dataset, field, fieldIndex) {
       let that = this;
       showConfirm(`${this.$t('tree.delFieldConfirm')}[${field.name}]?`).then(() => {
-        if (dataset.fields) {
-          dataset.fields.splice(fieldIndex, 1);
-          that.$forceUpdate();
+        const newDatasets = deepCopy(this.datasets);
+        const targetDataset = newDatasets.find(d => d.name === dataset.name);
+        if (targetDataset.fields) {
+          targetDataset.fields.splice(fieldIndex, 1);
+          that.$emit('update-datasets', newDatasets);
         }
       });
     },
@@ -436,22 +428,23 @@ export default {
     /**
      * 构建字段列表
      */
-    async buildFields(dataset, index, refresh = false) {
+    async buildFields(dataset, index, refresh = false, newDatasets = null) {
       const defaultFields = dataset.fields;
 
-      // 如果不是强制刷新且已有字段，直接使用
-      if (!refresh && defaultFields ) {
-        this.$forceUpdate();
+      if (!refresh && defaultFields) {
+        if (newDatasets) {
+          this.$emit('update-datasets', newDatasets);
+        }
         return;
       }
 
-      // 发送请求获取字段
       try {
         const response = await buildClass(dataset.clazz);
         const fields = response;
-        // 更新数据集字段
         this.$set(dataset, 'fields', fields);
-        this.$forceUpdate();
+        if (newDatasets) {
+          this.$emit('update-datasets', newDatasets);
+        }
       } catch (error) {
         if (error.msg) {
           showAlert("服务端错误：" + error.msg);
@@ -471,23 +464,24 @@ export default {
       }
 
       let rowIndex = selected[0], colIndex = selected[1];
-      let cellDef = context.getCell(rowIndex, colIndex);
+      let cellDef = getCell(rowIndex, colIndex);
 
-      let oldCellDef = Object.assign({}, cellDef);
+      let newCellDef = deepCopy(cellDef);
 
-      if (cellDef.value.type !== 'dataset') {
-        context.removeCell(cellDef);
-        cellDef = {
+      if (newCellDef.value.type !== 'dataset') {
+        newCellDef = {
           value: { type: 'dataset', conditions: [] },
-          rowNumber: cellDef.rowNumber,
-          columnNumber: cellDef.columnNumber,
-          cellStyle: cellDef.cellStyle
+          rowNumber: newCellDef.rowNumber,
+          columnNumber: newCellDef.columnNumber,
+          cellStyle: newCellDef.cellStyle
         };
-        context.addCell(cellDef);
+        addCell( newCellDef);
+      } else {
+        setCell( rowIndex, colIndex, newCellDef )
       }
 
-      cellDef.expand = "Down";
-      let value = cellDef.value;
+      newCellDef.expand = "Down";
+      let value = newCellDef.value;
       value.aggregate = "group";
       value.datasetName = dataset.name;
       value.property = field.name;
@@ -498,11 +492,8 @@ export default {
       text += prop + ')';
       hot.setDataAtCell(rowIndex, colIndex, text);
 
-      // 触发相关事件
       hot.render();
-      // 这里省略了 undoManager 相关代码，因为 Vue 组件中通常使用 Vuex 管理状态
 
-      // 触发选择结束事件
       if (hot.hooks) {
         hot.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
       }

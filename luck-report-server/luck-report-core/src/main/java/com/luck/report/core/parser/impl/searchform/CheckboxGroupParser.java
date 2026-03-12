@@ -15,6 +15,7 @@ public class CheckboxGroupParser implements FormParser<CheckboxGroupComponent> {
         component.setOptionType(FormParserUtils.parseStringAttribute(element.attributeValue("optionType")));
         component.setSize(FormParserUtils.parseStringAttribute(element.attributeValue("size")));
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
+        component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
         
         component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         component.setBorder(FormParserUtils.parseBooleanAttribute(element.attributeValue("border")));

@@ -4,6 +4,8 @@
 import {$t} from "@/locales";
 import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class.js';
 import ChartWidget from '@/views/report/designer/edit-table/chart-widget/class.js';
+import chartWidgetManager from '@/views/report/designer/edit-table/chart-widget/manager.js';
+import CrossTabWidgetManager from '@/views/report/designer/edit-table/cross-tab-widget/manager.js';
 import imageIcon from '@/assets/icons/image.svg';
 import qrcodeIcon from '@/assets/icons/qrcode.svg';
 import barcodeIcon from '@/assets/icons/barcode.svg';
@@ -13,12 +15,13 @@ import exprExpandRightIcon from '@/assets/icons/expr-expand-right.svg';
 import expandRightIcon from '@/assets/icons/expand-right.svg';
 import propertyIcon from '@/assets/icons/property.svg';
 import expressionIcon from '@/assets/icons/expression.svg';
+import {getCell} from "@/utils/contextActions";
 
 export function afterRenderer(td,row,col,prop,value,cellProperties){
     if(!this.context){
         return;
     }
-    let cellDef = this.context.getCell(row,col);
+    let cellDef = getCell(row,col);
     if(!cellDef){
         return;
     }
@@ -49,10 +52,16 @@ export function afterRenderer(td,row,col,prop,value,cellProperties){
         td.appendChild(image);
     }else if(valueType==='slash'){
         tip = $t('table.render.slash');
-        if(!cellDef.crossTabWidget){
-            cellDef.crossTabWidget=new CrossTabWidget(this.context,row,col,cellDef);
+        const widgetKey = `${row}_${col}`;
+        const slashNames = (cellValue.slashes || []).map(s => s.text);
+        const valueString = slashNames.join('|');
+        if(!CrossTabWidgetManager.has(widgetKey)){
+            CrossTabWidgetManager.set(widgetKey, new CrossTabWidget(this.context, row, col, valueString));
+        } else {
+            const widget = CrossTabWidgetManager.get(widgetKey);
+            widget.value = valueString;
+            widget.refreshCell();
         }
-        cellDef.crossTabWidget.doDraw(cellDef,row,col);
     }else if(valueType==='zxing'){
         let imagePath = qrcodeIcon;
         tip = $t('table.render.qrcode');
@@ -69,10 +78,11 @@ export function afterRenderer(td,row,col,prop,value,cellProperties){
         td.appendChild(image);
     }else if(valueType==='chart'){
         tip = $t('table.render.chart');
-        if (!cellDef.chartWidget) {
-            cellDef.chartWidget = new ChartWidget(td, cellDef);
+        const widgetKey = `${row}_${col}`;
+        if(!chartWidgetManager.has(widgetKey)){
+            chartWidgetManager.set(widgetKey, new ChartWidget(td, row, col));
         }
-        cellDef.chartWidget.renderChart(td, this.context, row, col);
+        chartWidgetManager.get(widgetKey).renderChart(td, this.context, row, col);
     }else{
         tip = cellValue.value || "";
         if (td.innerHTML === '') {

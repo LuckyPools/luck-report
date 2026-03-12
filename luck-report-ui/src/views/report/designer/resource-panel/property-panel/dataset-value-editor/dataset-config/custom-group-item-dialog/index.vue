@@ -40,12 +40,23 @@ export default {
     UDialog,
     UInput
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    groupItem: {
+      type: Object,
+      default: null
+    },
+    operation: {
+      type: String,
+      default: 'add'
+    }
+  },
   data() {
     return {
-      visible: false,
-      name: '',
-      operation: 'add', // 'add' or 'edit'
-      groupItem: null
+      name: ''
     };
   },
   computed: {
@@ -55,47 +66,41 @@ export default {
         : this.$t('dialog.groupItem.editItem');
     }
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.name = this.groupItem?.name || '';
+      }
+    }
+  },
   mounted() {
-    // 添加键盘事件监听
     document.addEventListener('keydown', this.handleKeydown);
   },
   beforeDestroy() {
-    // 移除事件监听
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    show(groupItem, op) {
-      this.groupItem = groupItem;
-      this.operation = op || 'add';
-      this.name = groupItem.name || '';
-      this.visible = true;
-    },
     handleOk() {
       if (!this.name.trim()) {
         showAlert(this.$t('dialog.groupItem.nameTip'));
         return;
       }
 
-      if (this.groupItem) {
-        this.groupItem.name = this.name;
-      }
+      const updatedGroupItem = this.groupItem ? { ...this.groupItem, name: this.name } : null;
 
-      // 触发 saveAfter 事件，传递操作类型和分组项数据
       this.$emit('saveAfter', {
         operation: this.operation,
-        groupItem: this.groupItem
+        groupItem: updatedGroupItem
       });
 
       this.handleClose();
     },
     handleClose() {
-      this.visible = false;
+      this.$emit('update:visible', false);
     },
     handleClosed() {
       this.name = '';
-      this.groupItem = null;
     },
-    // 键盘事件处理
     handleKeydown(e) {
       if (this.visible) {
         if (e.key === 'Escape') {

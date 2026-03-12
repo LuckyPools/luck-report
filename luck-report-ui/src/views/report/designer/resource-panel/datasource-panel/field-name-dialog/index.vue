@@ -41,11 +41,19 @@ export default {
     UForm,
     UFormItem
   },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    dataset: {
+      type: Object,
+      default: null
+    }
+  },
   data() {
     return {
-      visible: false,
-      fieldName: '',
-      dataset: null
+      fieldName: ''
     };
   },
   mounted() {
@@ -54,17 +62,14 @@ export default {
   beforeDestroy() {
     document.removeEventListener('keydown', this.handleKeydown);
   },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.fieldName = '';
+      }
+    }
+  },
   methods: {
-    show(dataset) {
-      this.visible = true;
-      this.fieldName = '';
-      this.dataset = dataset;
-      this.$nextTick(() => {
-        if (this.$refs.input) {
-          this.$refs.input.focus();
-        }
-      });
-    },
     handleOk() {
       const fieldNameValue = this.fieldName.trim();
       if (!fieldNameValue) {
@@ -72,13 +77,12 @@ export default {
         return;
       }
       this.$emit('save', fieldNameValue, this.dataset);
-      this.handleClose();
+      this.$emit('close');
     },
     handleClose() {
-      this.visible = false;
+      this.$emit('close');
       setTimeout(() => {
         this.fieldName = '';
-        this.dataset = null;
       }, 300);
     },
     handleKeydown(e) {

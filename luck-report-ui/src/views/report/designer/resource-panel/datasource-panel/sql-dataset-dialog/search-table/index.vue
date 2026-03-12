@@ -64,13 +64,25 @@ export default {
   props: {
     db: {
       type: Object
+    },
+    triggerLoad: {
+      type: Boolean,
+      default: false
     }
   },
-  emits: ['add'],
+  emits: ['add', 'load-complete'],
   data() {
     return {
       tables: [],
       searchKeyword: ''
+    }
+  },
+  watch: {
+    triggerLoad(newVal) {
+      if (newVal) {
+        this.loadDatabaseTables();
+        this.$emit('load-complete');
+      }
     }
   },
   computed: {
