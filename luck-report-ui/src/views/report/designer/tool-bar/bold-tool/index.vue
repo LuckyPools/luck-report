@@ -14,8 +14,8 @@ import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import UButton from "@/components/button/index.vue";
-import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'BoldTool',
@@ -37,10 +37,6 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    }
   },
   watch: {
     selectedCells: {
@@ -56,7 +52,8 @@ export default {
 
     // 检查是否有选中的单元格
     checkSelection() {
-      const selected = this.context.hot.getSelected();
+      const hot = TableManager.get();
+      const selected = hot.getSelected();
       if (!selected || selected.length === 0) {
         showAlert(this.$t('selectTargetCellFirst'));
         return false;
@@ -69,7 +66,7 @@ export default {
         return;
       }
 
-      const table = this.context.hot;
+      const table = TableManager.get();
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 

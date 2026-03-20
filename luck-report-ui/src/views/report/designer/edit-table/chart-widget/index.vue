@@ -8,6 +8,7 @@
 import Chart from 'chart.js';
 import { showAlert } from '@/utils/comnon.js';
 import {getCell} from "@/utils/contextActions";
+import TableManager from '../manager.js';
 
 export default {
   name: 'ChartWidget',
@@ -33,9 +34,6 @@ export default {
     };
   },
   computed: {
-      hot() {
-          return this.context.hot;
-      },
       chartColors() {
           return {
               red: 'rgb(255, 99, 132)',
@@ -61,7 +59,8 @@ export default {
       return getCell(this.rowIndex, this.colIndex);
     },
     renderChart() {
-      const { hot, rowIndex, colIndex } = this;
+      const { rowIndex, colIndex } = this;
+      const hot = TableManager.get();
       const container = this.$refs.chartContainer;
       const canvas = this.$refs.chartCanvas;
 
@@ -429,7 +428,7 @@ export default {
 
     // 获取单元格对应的DOM元素
     getTDByCell(rowIndex, colIndex) {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       if (!hot || !hot.view || !hot.view.wtTable) {
         return null;
       }

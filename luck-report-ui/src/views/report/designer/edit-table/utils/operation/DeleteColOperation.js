@@ -4,11 +4,12 @@
 import {resetTableData, setDirty, undoManager} from '@/utils/table.js';
 import {showAlert} from '@/utils/comnon.js';
 import {$t} from "@/locales";
-import {addCell, getCell, removeCell} from "@/utils/contextActions";
+import {addCell, getCell, getContext, removeCell} from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
 
 export function doDeleteCol() {
-    const selected = this.getSelected(), context = this.context;
+    const selected = this.getSelected();
+    const context = getContext();
     if (!selected) {
         showAlert($t('table.colTip'));
         return;

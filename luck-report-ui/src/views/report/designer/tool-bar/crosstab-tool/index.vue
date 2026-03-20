@@ -19,31 +19,14 @@ import CrosstabDialog from '@/views/report/designer/tool-bar/crosstab-tool/cross
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import UButton from "@/components/button/index.vue";
-import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'CrosstabTool',
   components: {
     UButton,
     CrosstabDialog
-  },
-  props: {
-    selectedCells: {
-      type: Object,
-      default: () => ({
-        rowIndex: null,
-        colIndex: null,
-        row2Index: null,
-        col2Index: null
-      })
-    }
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    }
   },
   data() {
     return {
@@ -68,7 +51,8 @@ export default {
 
     // 检查是否有选中的单元格
     checkSelection() {
-      const selected = this.context.hot.getSelected();
+      const hot = TableManager.get();
+      const selected = hot.getSelected();
       if (!selected || selected.length === 0) {
         showAlert(this.$t('selectTargetCellFirst'));
         return false;
@@ -81,7 +65,7 @@ export default {
         return;
       }
 
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       const selected = hot.getSelected();
       const rowIndex = selected[0], colIndex = selected[1];
       const cellDef = getCell(rowIndex, colIndex);
@@ -100,7 +84,7 @@ export default {
     // 处理保存后的逻辑
     handleSaveAfter(value) {
       const { rowIndex, colIndex, cellDef, selected } = this.selectedCell;
-      const hot = this.context.hot;
+      const hot = TableManager.get();
 
       const newCellDef = deepCopy(cellDef);
       newCellDef.value = {
@@ -113,7 +97,7 @@ export default {
       if (CrossTabWidgetManager.has(widgetKey)) {
         CrossTabWidgetManager.remove(widgetKey);
       }
-      CrossTabWidgetManager.set(widgetKey, new CrossTabWidget(this.context, rowIndex, colIndex, value));
+      CrossTabWidgetManager.set(widgetKey, new CrossTabWidget(hot, rowIndex, colIndex, value));
 
       hot.render();
       setDirty();

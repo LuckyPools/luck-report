@@ -16,6 +16,7 @@ import { renderRowHeader } from './utils/HeaderUtils.js';
 import { loadReport } from '@/api/designer';
 import { showAlert } from '@/utils/comnon.js';
 import { addRowHeader } from "@/utils/contextActions";
+import TableManager from './manager.js';
 
 export default {
   name: 'ContentTable',
@@ -80,6 +81,8 @@ export default {
         width: '100%',
         height: '100%',
       });
+
+      TableManager.set(this.hot);
 
       this.hot.addHook("afterRenderer", afterRenderer);
       this.bindRowResizeEvent();
@@ -214,7 +217,7 @@ export default {
           }
           addRowHeader(row.rowNumber - 1, band);
         }
-        renderRowHeader(this.hot, this.context);
+        renderRowHeader(this.hot);
       }
     },
 

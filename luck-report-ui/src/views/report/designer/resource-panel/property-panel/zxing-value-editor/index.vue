@@ -120,6 +120,7 @@ import UInput from '@/components/input/index.vue'
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ZxingValueEditor',
@@ -346,7 +347,10 @@ export default {
         const newCellDef = deepCopy(cellDef);
         newCellDef.value.width = this.width;
         setCell( this.rowIndex, this.colIndex, newCellDef );
-        this.context.hot.render();
+        const hot = TableManager.get();
+        if (hot) {
+          hot.render();
+        }
         setDirty();
       }
     },
@@ -361,7 +365,10 @@ export default {
         const newCellDef = deepCopy(cellDef);
         newCellDef.value.height = this.height;
         setCell( this.rowIndex, this.colIndex, newCellDef );
-        this.context.hot.render();
+        const hot = TableManager.get();
+        if (hot) {
+          hot.render();
+        }
         setDirty();
       }
     },
@@ -422,10 +429,10 @@ export default {
      * 处理展开选项变化
      */
     handleExpandChange(expand) {
-      if (!this.context || !this.context.hot) return;
+      const hot = TableManager.get();
+      if (!hot) return;
       this.expand = expand;
 
-      // 只更新当前单元格，而不是整个选区
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (cellDef) {
         const newCellDef = deepCopy(cellDef);
@@ -433,7 +440,6 @@ export default {
         setCell( this.rowIndex, this.colIndex, newCellDef );
       }
 
-      const hot = this.context.hot;
       hot.render();
       setDirty();
     }

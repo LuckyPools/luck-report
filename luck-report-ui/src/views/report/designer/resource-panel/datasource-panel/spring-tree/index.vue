@@ -111,6 +111,7 @@ import ContextMenu from '../context-menu/index.vue';
 import { buildClass } from '@/api/designer/index.js';
 import { mapGetters } from 'vuex';
 import {addCell, getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'SpringTree',
@@ -455,16 +456,21 @@ export default {
     },
 
     _buildClickEvent(dataset, field, context) {
-      let hot = context.hot, cellsMap = context.cellsMap;
-      let selected = hot.getSelected();
+      const hot = TableManager.get();
+      if (!hot) {
+        showAlert(this.$t('tree.cellTip'));
+        return;
+      }
+      const cellsMap = context.cellsMap;
+      const selected = hot.getSelected();
 
       if (!selected || selected.length === 0) {
         showAlert(this.$t('tree.cellTip'));
         return;
       }
 
-      let rowIndex = selected[0], colIndex = selected[1];
-      let cellDef = getCell(rowIndex, colIndex);
+      const rowIndex = selected[0], colIndex = selected[1];
+      const cellDef = getCell(rowIndex, colIndex);
 
       let newCellDef = deepCopy(cellDef);
 
@@ -481,14 +487,14 @@ export default {
       }
 
       newCellDef.expand = "Down";
-      let value = newCellDef.value;
+      const value = newCellDef.value;
       value.aggregate = "group";
       value.datasetName = dataset.name;
       value.property = field.name;
       value.order = 'none';
 
-      let text = value.datasetName + "." + value.aggregate + "(";
-      let prop = value.property;
+      const text = value.datasetName + "." + value.aggregate + "(";
+      const prop = value.property;
       text += prop + ')';
       hot.setDataAtCell(rowIndex, colIndex, text);
 

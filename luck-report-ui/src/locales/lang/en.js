@@ -522,7 +522,9 @@ const en = {
             "delTip":"Are you sure delete it？",
             "name":"Parameter Name",
             "expr":"Value Expr",
-            "op":"Operate"
+            "op":"Operate",
+            "edit":"Edit",
+            "delete":"Delete"
         },
         "paramItem":{
             "title":"Add Parameter",

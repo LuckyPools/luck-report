@@ -11,8 +11,8 @@ import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import ButtonGroup from '@/components/button-group/index.vue';
-import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'AlignLeftTool',
@@ -53,10 +53,6 @@ export default {
     };
   },
   computed: {
-      ...mapGetters('report', ['getContext']),
-      context() {
-          return this.getContext;
-      },
       currentIcon() {
           const iconMap = {
               'left': ' icon-left-align',
@@ -146,7 +142,8 @@ export default {
     },
     // 检查是否有选中的单元格
     checkSelection() {
-      const selected = this.context.hot.getSelected();
+      const hot = TableManager.get();
+      const selected = hot.getSelected();
       if (!selected || selected.length === 0) {
         showAlert(this.$t('selectTargetCellFirst'));
         return false;
@@ -156,7 +153,8 @@ export default {
     // 构建单元格对齐方式
     buildCellAlign(align, prevAligns) {
       const oldAligns = {};
-      const selected = this.context.hot.getSelected();
+      const table = TableManager.get();
+      const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
       if (startRow > endRow) {
@@ -169,7 +167,7 @@ export default {
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
           const cellDef = getCell(i, j);
-          const td = this.context.hot.getCell(i, j);
+          const td = table.getCell(i, j);
 
           if (!cellDef) {
             continue;

@@ -26,8 +26,8 @@ import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import CustomBorderDialog from '@/views/report/designer/tool-bar/border-tool/custom-border-dialog/index.vue';
 import ButtonGroup from '@/components/button-group/index.vue';
-import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'BorderTool',
@@ -84,16 +84,13 @@ export default {
     };
   },
   computed: {
-      ...mapGetters('report', ['getContext']),
-      context() {
-          return this.getContext;
-      }
   },
   methods: {
 
     // 检查是否有选中的单元格
     checkSelection() {
-      const selected = this.context.hot.getSelected();
+      const hot = TableManager.get();
+      const selected = hot.getSelected();
       if (!selected || selected.length === 0) {
         showAlert(this.$t('selectTargetCellFirst'));
         return false;
@@ -106,7 +103,7 @@ export default {
         return;
       }
 
-      const table = this.context.hot;
+      const table = TableManager.get();
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
@@ -146,7 +143,7 @@ export default {
         return;
       }
 
-      const table = this.context.hot;
+      const table = TableManager.get();
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
@@ -197,7 +194,7 @@ export default {
         return;
       }
 
-      const table = this.context.hot;
+      const table = TableManager.get();
       const selected = table.getSelected();
       let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
@@ -237,7 +234,7 @@ export default {
         return;
       }
 
-      const selected = this.context.hot.getSelected();
+      const selected = TableManager.get().getSelected();
       const startRow = selected[0], startCol = selected[1];
       const cellDef = getCell(startRow, startCol);
 
@@ -270,24 +267,24 @@ export default {
       this.customBorderVisible = true;
     },
     handleSave(topBorder, bottomBorder, leftBorder, rightBorder) {
-      const selected = this.context.hot.getSelected();
+      const selected = TableManager.get().getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
 
       let oldBorderStyle = this.updateCustomBorderStyle(
-        this.context, startRow, startCol, endRow, endCol,
+        startRow, startCol, endRow, endCol,
         leftBorder, rightBorder, topBorder, bottomBorder
       );
 
       undoManager.add({
         redo: () => {
           oldBorderStyle = this.updateCustomBorderStyle(
-            this.context, startRow, startCol, endRow, endCol,
+            startRow, startCol, endRow, endCol,
             leftBorder, rightBorder, topBorder, bottomBorder
           );
           setDirty();
         },
         undo: () => {
-          this.updateOldBorderStyles(this.context, startRow, startCol, endRow, endCol, oldBorderStyle);
+          this.updateOldBorderStyles(startRow, startCol, endRow, endCol, oldBorderStyle);
           setDirty();
         }
       });
@@ -301,8 +298,8 @@ export default {
       }).join('');
     },
     // 更新自定义边框样式
-    updateCustomBorderStyle(context, startRow, startCol, endRow, endCol, leftBorderStyle, rightBorderStyle, topBorderStyle, bottomBorderStyle) {
-      const hot = context.hot;
+    updateCustomBorderStyle(startRow, startCol, endRow, endCol, leftBorderStyle, rightBorderStyle, topBorderStyle, bottomBorderStyle) {
+      const hot = TableManager.get();
       let left = leftBorderStyle, right = rightBorderStyle, top = topBorderStyle, bottom = bottomBorderStyle;
 
       if (leftBorderStyle.style === 'none') {
@@ -359,8 +356,8 @@ export default {
       }
     },
     // 更新旧边框样式
-    updateOldBorderStyles(context, startRow, startCol, endRow, endCol, oldBorderStyle) {
-      const hot = context.hot;
+    updateOldBorderStyles(startRow, startCol, endRow, endCol, oldBorderStyle) {
+      const hot = TableManager.get();
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
@@ -388,7 +385,7 @@ export default {
     // 更新边框样式
     updateBorderStyles(startRow, startCol, endRow, endCol, newBorder, target) {
       const oldStyle = {};
-      const hot = this.context.hot;
+      const hot = TableManager.get();
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {

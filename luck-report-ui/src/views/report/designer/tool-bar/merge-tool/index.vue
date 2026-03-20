@@ -13,21 +13,15 @@
 import { undoManager, setDirty, buildNewCellDef } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import UButton from "@/components/button/index.vue";
-import { mapGetters } from 'vuex';
 import {addCell, getCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'MergeTool',
   components: {UButton},
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    }
-  },
   methods: {
     handleClick() {
-      const table = this.context.hot;
+      const table = TableManager.get();
       const selected = table.getSelected();
 
       if (!selected) {
@@ -51,13 +45,13 @@ export default {
       }
 
       const _this = this;
-      this.doMergeCells(startRow, startCol, endRow, endCol, table, this.context);
+      this.doMergeCells(startRow, startCol, endRow, endCol, table);
 
       undoManager.add({
         redo: function() {
           mergeCells = table.getSettings().mergeCells || [];
           oldMergeCells = mergeCells.concat([]);
-          _this.doMergeCells(startRow, startCol, endRow, endCol, table, _this.context);
+          _this.doMergeCells(startRow, startCol, endRow, endCol, table);
           setDirty();
         },
         undo: function() {
@@ -69,7 +63,7 @@ export default {
       setDirty();
     },
 
-    doMergeCells(startRow, startCol, endRow, endCol, table, context) {
+    doMergeCells(startRow, startCol, endRow, endCol, table) {
       let doMerge = true, doSplit = false;
       const mergeCells = table.getSettings().mergeCells || [];
 

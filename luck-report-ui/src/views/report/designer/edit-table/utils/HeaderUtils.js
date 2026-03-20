@@ -2,9 +2,12 @@
  * Created by Jacky.Gao on 2017-03-22.
  */
 import {$t} from "@/locales";
-export function renderRowHeader(hot,context){
+import {getContext} from "@/utils/contextActions";
+
+export function renderRowHeader(hot){
     const countRows=hot.countRows();
     const headers=[];
+    const context = getContext();
     const rowHeaders=context.rowHeaders;
     for(let i=1;i<=countRows;i++){
         let type='';

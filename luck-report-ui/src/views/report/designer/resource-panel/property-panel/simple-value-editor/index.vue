@@ -30,7 +30,8 @@ import {setDirty} from "@/utils/table";
 import { deepCopy } from '@/components/utils/index.js';
 import UInputNumber from '@/components/input-number/index.vue';
 import { mapGetters } from 'vuex';
-import {setCell, getCell, getContext} from "@/utils/contextActions";
+import {setCell, getCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'SimpleValueEditor',
@@ -110,9 +111,9 @@ export default {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       const newCellDef = deepCopy(cellDef);
 
-      const context = getContext();
-      if (context && context.hot && this.rowIndex !== null && this.colIndex !== null) {
-        context.hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
+      const hot = TableManager.get();
+      if (hot && this.rowIndex !== null && this.colIndex !== null) {
+        hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
       }
 
       setDirty();
@@ -138,16 +139,16 @@ export default {
 
         newCellDef.cellStyle.lineHeight = this.lineHeight;
 
-        const context = getContext();
-        if (context && context.hot) {
-          const td = context.hot.getCell(this.rowIndex, this.colIndex);
+        const hot = TableManager.get();
+        if (hot) {
+          const td = hot.getCell(this.rowIndex, this.colIndex);
           if (td) {
             if (this.lineHeight === '') {
               td.style.lineHeight = '';
             } else {
               td.style.lineHeight = this.lineHeight;
             }
-            context.hot.render();
+            hot.render();
           }
         }
 

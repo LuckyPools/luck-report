@@ -73,6 +73,7 @@ import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
 import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'DatasetValueEditor',
@@ -375,7 +376,7 @@ export default {
         const newCellDef = deepCopy(cellDef);
         newCellDef.cellStyle.lineHeight = this.lineHeight;
 
-        const hot = this.context.hot;
+        const hot = TableManager.get();
         if (hot) {
           const td = hot.getCell(this.rowIndex, this.colIndex);
           if (td) {
@@ -408,7 +409,7 @@ export default {
      */
     handleWrapComputeChange() {
       const wrapComputeValue = this.wrapCompute === 'default';
-      const hot = this.context.hot;
+      const hot = TableManager.get();
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -430,7 +431,7 @@ export default {
      * 处理格式变化
      */
     handleFormatChange() {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -532,7 +533,7 @@ export default {
      * 更新表格数据
      */
     _updateTableData() {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -549,7 +550,9 @@ export default {
           } else if (valueType === 'expression') {
             data = value.value;
           }
-          hot.setDataAtCell(cellDef.rowNumber - 1, cellDef.columnNumber - 1, data);
+          if (hot) {
+            hot.setDataAtCell(cellDef.rowNumber - 1, cellDef.columnNumber - 1, data);
+          }
         }
       }
     },
@@ -558,7 +561,7 @@ export default {
      * 设置数据集名称
      */
     _setDatasetName(datasetName) {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -581,7 +584,7 @@ export default {
      * 设置属性
      */
     _setProperty(property) {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -604,7 +607,7 @@ export default {
      * 设置聚合类型
      */
     _setAggregate(aggregate) {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       let none = false;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -631,7 +634,9 @@ export default {
         this.selectedExpand = 'None';
       }
       this._updateTableData();
-      hot.render();
+      if (hot) {
+        hot.render();
+      }
       setDirty();
     },
 
@@ -639,7 +644,7 @@ export default {
      * 设置排序
      */
     _setOrder(order) {
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -668,8 +673,10 @@ export default {
         setCell( this.rowIndex,  this.colIndex,  updatedCellDef )
       }
 
-      const hot = this.context.hot;
-      hot.render();
+      const hot = TableManager.get();
+      if (hot) {
+        hot.render();
+      }
       setDirty();
     },
 

@@ -4,12 +4,13 @@
  */
 import Vue from 'vue';
 import CrossTabWidgetVue from './index.vue';
+import TableManager from '../manager.js';
 
 export default class CrossTabWidget {
 
     constructor(context, rowIndex, colIndex, value) {
         this.context = context;
-        this.hot = context.hot;
+        this.hot = TableManager.get();
         this.rowIndex = rowIndex;
         this.colIndex = colIndex;
         this.value = value;

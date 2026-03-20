@@ -522,7 +522,9 @@ const zh = {
             "delTip":"真的要删除？",
             "name":"参数名",
             "expr":"参数值表达式",
-            "op":"操作"
+            "op":"操作",
+            "edit":"编辑",
+            "delete":"删除"
         },
         "paramItem":{
             "title":"添加参数",

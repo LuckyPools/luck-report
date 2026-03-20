@@ -2,7 +2,7 @@
  * Created by Jacky.Gao on 2017-01-31.
  */
 import {$t} from "@/locales";
-import {undoManager,setDirty} from '@/utils/table.js';
+import {setDirty, undoManager} from '@/utils/table.js';
 import {doInsertRow} from '@/views/report/designer/edit-table/utils/operation/InsertRowOperation.js';
 import {doInsertCol} from '@/views/report/designer/edit-table/utils/operation/InsertColOperation.js';
 import {doDeleteRow} from '@/views/report/designer/edit-table/utils/operation/DeleteRowOperation.js';
@@ -11,8 +11,9 @@ import {renderRowHeader} from '@/views/report/designer/edit-table/utils/HeaderUt
 import Class from '@/views/report/designer/edit-table/row-col-width-height-dialog/class';
 import RowColNumberDialogClass from '@/views/report/designer/edit-table/row-col-number-dialog/class';
 import Handsontable from 'handsontable';
-import { showAlert } from "@/utils/comnon.js";
+import {showAlert} from "@/utils/comnon.js";
 import {addCell, addRowHeader, adjustDelRowHeaders, getCell, removeCell} from "@/utils/contextActions";
+import TableManager from '../manager.js';
 
 export default function buildMenuConfigure(){
     return {
@@ -45,83 +46,78 @@ export default function buildMenuConfigure(){
             }else if(key==='clean_content'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
-                let removeCellsMap=cleanCells(_this.context,startRow,endRow,startCol,endCol,'content');
+                let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
                 undoManager.add({
                     redo:function(){
-                        removeCellsMap=cleanCells(_this.context,startRow,endRow,startCol,endCol,'content');
+                        removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
                     },
                     undo:function(){
-                        undoCleanCells(_this.context,startRow,endRow,startCol,endCol,removeCellsMap,'content');
+                        undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, 'content');
                     }
                 })
             }else if(key==='clean_style'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
-                let removeCellsMap=cleanCells(_this.context,startRow,endRow,startCol,endCol,'style');
+                let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
                 undoManager.add({
                     redo:function(){
-                        removeCellsMap=cleanCells(_this.context,startRow,endRow,startCol,endCol,'style');
+                        removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
                     },
                     undo:function(){
-                        undoCleanCells(_this.context,startRow,endRow,startCol,endCol,removeCellsMap,'style');
+                        undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, 'style');
                     }
                 })
             }else if(key==='clean'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
-                let removeCellsMap=cleanCells(_this.context,startRow,endRow,startCol,endCol,'all');
+                let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
                 undoManager.add({
                     redo:function(){
-                        removeCellsMap=cleanCells(_this.context,startRow,endRow,startCol,endCol,'all');
+                        removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
                     },
                     undo:function(){
-                        undoCleanCells(_this.context,startRow,endRow,startCol,endCol,removeCellsMap,'all');
+                        undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, 'all');
                     }
                 });
             }else if(key==='repeat_row_header'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2];
-                const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'headerrepeat');
                 }
-                renderRowHeader(this,context);
+                renderRowHeader(this);
                 setDirty();
             }else if(key==='title_row'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2];
-                const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'title');
                 }
-                renderRowHeader(this,context);
+                renderRowHeader(this);
                 setDirty();
             }else if(key==='repeat_row_footer'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2];
-                const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'footerrepeat');
                 }
-                renderRowHeader(this,context);
+                renderRowHeader(this);
                 setDirty();
             }else if(key==='summary_row'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2];
-                const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'summary');
                 }
-                renderRowHeader(this,context);
+                renderRowHeader(this);
                 setDirty();
             }else if(key==='repeat_cancel'){
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2];
-                const context=this.context;
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     adjustDelRowHeaders(rowNumber);
                 }
-                renderRowHeader(this,context);
+                renderRowHeader(this);
                 setDirty();
             }else if(key==='row_height'){
                 const selected=this.getSelected();
@@ -173,13 +169,13 @@ export default function buildMenuConfigure(){
             }
                 const selected=this.getSelected();
                 const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
-                let oldCellsStyleMap=pasteStyle(_this.context,startRow,endRow,startCol,endCol);
+                let oldCellsStyleMap=pasteStyle(startRow,endRow,startCol,endCol);
                 undoManager.add({
                     redo:function(){
-                        oldCellsStyleMap=pasteStyle(_this.context,startRow,endRow,startCol,endCol);
+                        oldCellsStyleMap=pasteStyle(startRow,endRow,startCol,endCol);
                     },
                     undo:function(){
-                        undoPasteStyle(_this.context,startRow,endRow,startCol,endCol,oldCellsStyleMap);
+                        undoPasteStyle(startRow,endRow,startCol,endCol,oldCellsStyleMap);
                     }
                 });
             }
@@ -256,8 +252,8 @@ export default function buildMenuConfigure(){
         }
     };
 
-    function undoCleanCells(context,startRow,endRow,startCol,endCol,removeCellsMap,type){
-        let cellsMap=context.cellsMap,hot=context.hot;
+    function undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, type) {
+        const hot = TableManager.get();
         for(let i=startRow;i<=endRow;i++) {
             for (let j = startCol; j <= endCol; j++) {
                 let cell = getCell(i, j);
@@ -309,9 +305,9 @@ export default function buildMenuConfigure(){
     };
 
 
-    function undoPasteStyle(context,startRow,endRow,startCol,endCol,oldStyleMap){
+    function undoPasteStyle(startRow,endRow,startCol,endCol,oldStyleMap){
         const style=window.__copy_cell_style__;
-        let cellsMap=new Map(),hot=context.hot;
+        let cellsMap = new Map(), hot = TableManager.get();
         for(let i=startRow;i<=endRow;i++){
             for(let j=startCol;j<=endCol;j++){
                 let cell=getCell(i,j);
@@ -330,9 +326,9 @@ export default function buildMenuConfigure(){
         return cellsMap;
     };
 
-    function pasteStyle(context,startRow,endRow,startCol,endCol){
+    function pasteStyle(startRow,endRow,startCol,endCol){
         const style=window.__copy_cell_style__;
-        let cellsMap=new Map(),hot=context.hot;
+        let cellsMap = new Map(), hot = TableManager.get();
         for(let i=startRow;i<=endRow;i++){
             for(let j=startCol;j<=endCol;j++){
                 let cell=getCell(i,j);
@@ -361,8 +357,8 @@ export default function buildMenuConfigure(){
         return cellsMap;
     };
 
-    function cleanCells(context,startRow,endRow,startCol,endCol,type){
-        let removeCellsMap=new Map(),hot=context.hot;
+    function cleanCells(startRow, endRow, startCol, endCol, type) {
+        let removeCellsMap = new Map(), hot = TableManager.get();
         for(let i=startRow;i<=endRow;i++){
             for(let j=startCol;j<=endCol;j++){
                 let cell=getCell(i,j);

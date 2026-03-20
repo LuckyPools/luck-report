@@ -15,10 +15,10 @@ import exprExpandRightIcon from '@/assets/icons/expr-expand-right.svg';
 import expandRightIcon from '@/assets/icons/expand-right.svg';
 import propertyIcon from '@/assets/icons/property.svg';
 import expressionIcon from '@/assets/icons/expression.svg';
-import {getCell} from "@/utils/contextActions";
+import {getCell, getContext} from "@/utils/contextActions";
 
 export function afterRenderer(td,row,col,prop,value,cellProperties){
-    if(!this.context){
+    if(!getContext()){
         return;
     }
     let cellDef = getCell(row,col);
@@ -56,7 +56,7 @@ export function afterRenderer(td,row,col,prop,value,cellProperties){
         const slashNames = (cellValue.slashes || []).map(s => s.text);
         const valueString = slashNames.join('|');
         if(!CrossTabWidgetManager.has(widgetKey)){
-            CrossTabWidgetManager.set(widgetKey, new CrossTabWidget(this.context, row, col, valueString));
+            CrossTabWidgetManager.set(widgetKey, new CrossTabWidget(getContext(), row, col, valueString));
         } else {
             const widget = CrossTabWidgetManager.get(widgetKey);
             widget.value = valueString;
@@ -82,7 +82,7 @@ export function afterRenderer(td,row,col,prop,value,cellProperties){
         if(!chartWidgetManager.has(widgetKey)){
             chartWidgetManager.set(widgetKey, new ChartWidget(td, row, col));
         }
-        chartWidgetManager.get(widgetKey).renderChart(td, this.context, row, col);
+        chartWidgetManager.get(widgetKey).renderChart(td, getContext(), row, col);
     }else{
         tip = cellValue.value || "";
         if (td.innerHTML === '') {

@@ -110,6 +110,7 @@ import { buildJdbcFields } from '@/api/designer/index.js';
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'DatabaseTree',
@@ -485,7 +486,11 @@ export default {
      * 构建点击事件（从 BaseTree 继承）
      */
     _buildClickEvent(dataset, field, context) {
-      const hot = context.hot;
+      const hot = TableManager.get();
+      if (!hot) {
+        showAlert(this.$t('tree.cellTip'));
+        return;
+      }
       const cellsMap = context.cellsMap;
       const selected = hot.getSelected();
 

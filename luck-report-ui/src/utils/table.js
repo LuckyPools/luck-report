@@ -5,9 +5,10 @@ import UndoManager from 'undo-manager';
 import MessageBox from '@/components/messagebox/instance.js';
 import store from '@/store';
 import {getCell, getCellName} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export function resetTableData(hot){
-    const countCols=hot.countCols(),countRows=hot.countRows(),context=hot.context,data=[];
+    const countCols=hot.countCols(),countRows=hot.countRows(),data=[];
     for(let i=0;i<countRows;i++){
         let rowData=[];
         for(let j=0;j<countCols;j++){
@@ -52,7 +53,7 @@ export function buildNewCellDef(rowNumber,columnNumber){
 };
 
 export function tableToXml(context){
-    const hot=context.hot;
+    const hot = TableManager.get();
     const countRows=hot.countRows(),countCols=hot.countCols();
     let xml=`<?xml version="1.0" encoding="UTF-8"?><ureport>`;
     let rowsXml='',columnXml='';

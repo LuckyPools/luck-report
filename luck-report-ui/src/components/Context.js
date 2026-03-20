@@ -1,6 +1,6 @@
 /**
  * Created by Jacky.Gao on 2017-01-25.
- * 
+ *
  * 重构说明：
  * - Context 现在只包含纯数据属性，不包含任何方法
  * - 所有操作方法已移至 Vuex mutations 和 contextActions.js
@@ -11,10 +11,8 @@ export default class Context {
   constructor(reportTable) {
     this.reportDef = reportTable.reportDef;
     this.cellsMap = reportTable.cellsMap;
-    this.hot = reportTable.hot;
-    this.hot.context = this;
     this.rowHeaders = [];
-    
+
     // 工具数据
     this._initLetters();
   }

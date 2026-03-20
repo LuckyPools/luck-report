@@ -15,8 +15,8 @@ import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import Handsontable from 'handsontable';
 import ButtonGroup from '@/components/button-group/index.vue';
-import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ZxingTool',
@@ -39,17 +39,12 @@ export default {
       ]
     };
   },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    }
-  },
   methods: {
 
     // 检查是否有选中的单元格
     checkSelection() {
-      const selected = this.context.hot.getSelected();
+      const hot = TableManager.get();
+      const selected = hot.getSelected();
       if (!selected || selected.length === 0) {
         showAlert(this.$t('selectTargetCellFirst'));
         return false;
@@ -62,7 +57,7 @@ export default {
         return;
       }
 
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       const selected = hot.getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
       let cellDef = getCell(startRow, startCol);
@@ -126,7 +121,7 @@ export default {
         return;
       }
 
-      const hot = this.context.hot;
+      const hot = TableManager.get();
       const selected = hot.getSelected();
       const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
       let cellDef = getCell(startRow, startCol);

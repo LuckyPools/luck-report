@@ -1,34 +1,27 @@
 /**
  * Context 操作方法集合
- * 
+ *
  * 架构说明：
  * - 所有操作方法都通过 Vuex dispatch 调用
  * - 保持了对 context 数据的集中管理
  * - 符合 Vuex 的最佳实践
- * 
+ *
  * 使用示例：
  * import { addCell, removeCell } from '@/utils/contextActions.js';
- * 
+ *
  * // 在组件或函数中调用
  * addCell(store, cell);
  * removeCell(store, cell);
  */
 
 import store from '@/store';
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 /**
  * 获取 context
  */
 export function getContext() {
   return store.getters['report/getContext'];
-}
-
-/**
- * 获取 hot 实例
- */
-export function getHot() {
-  const context = getContext();
-  return context ? context.hot : null;
 }
 
 /**
@@ -140,21 +133,21 @@ export function getCellName(rowIndex, colIndex) {
  * @returns {Array|null}
  */
 export function getSelectedCells() {
-  const hot = getHot();
+  const hot = TableManager.get();
   if (!hot) {
     return null;
   }
-  
+
   const selected = hot.getSelected();
   if (!selected) {
     return null;
   }
-  
+
   const startRow = selected[0];
   const startCol = selected[1];
   const endRow = selected[2];
   const endCol = selected[3];
-  
+
   const cells = [];
   for (let i = startRow; i <= endRow; i++) {
     for (let j = startCol; j <= endCol; j++) {
@@ -171,7 +164,7 @@ export function getSelectedCells() {
 /**
  * 批量执行 context 操作
  * @param {Function} operationFn - 操作函数，接收 context 作为参数
- * 
+ *
  * 示例：
  * batchExecute((context) => {
  *   context.cellsMap.set('1,1', cell1);
@@ -210,7 +203,6 @@ export function updateProperty(property, value) {
 // 默认导出所有方法
 export default {
   getContext,
-  getHot,
   addCell,
   removeCell,
   setCell,

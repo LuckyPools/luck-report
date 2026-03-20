@@ -103,6 +103,7 @@ import 'vue-simple-suggest/dist/styles.css'
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ExpressionValueEditor',
@@ -245,8 +246,9 @@ export default {
             }
           }
         }
-        if (this.context && this.context.hot) {
-          this.context.hot.setDataAtCell(this.rowIndex, this.colIndex, expr);
+        const hot = TableManager.get();
+        if (hot) {
+          hot.setDataAtCell(this.rowIndex, this.colIndex, expr);
         }
         setDirty();
       });
@@ -336,9 +338,9 @@ export default {
      * 处理展开选项变化
      */
     handleExpandChange(expand) {
-      if (!this.context || !this.context.hot) return;
+      const hot = TableManager.get();
+      if (!hot) return;
       this.expand = expand;
-      const hot = this.context.hot;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -382,7 +384,8 @@ export default {
      * 处理格式变化
      */
     handleFormatChange(format) {
-      if (!this.context || !this.context.hot) return;
+      const hot = TableManager.get();
+      if (!hot) return;
       this.format = format;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {

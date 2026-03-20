@@ -314,6 +314,7 @@ import ChartValueEditor from './chart-value-editor/index.vue';
 import BubbleChartValueEditor from './bubble-chart-value-editor/index.vue';
 import ScatterChartValueEditor from './scatter-chart-value-editor/index.vue';
 import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class.js';
+import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'PropertyPanel',
@@ -611,7 +612,7 @@ export default {
      * 构建父单元格名称选项
      */
     buildParentCellNameOptions() {
-      const hot = this.getContext().hot;
+      const hot = TableManager.get();
       const countCols = hot.countCols();
 
       this.leftParentCellNameOptions = [{ value: 'root', label: this.$t('property.prop.none') }];
@@ -628,7 +629,7 @@ export default {
      * 构建父行号选项
      */
     buildParentRowNumberOptions() {
-      const hot = this.getContext().hot;
+      const hot = TableManager.get();
       const countRows = hot.countRows();
 
       this.leftParentRowNumberOptions = [];
@@ -664,10 +665,11 @@ export default {
           this.leftParentRowNumber = '';
         } else {
           let row = this.rowIndex, col = this.colIndex - 1;
-          let td = this.getContext().hot.getCell(row, col);
+          let hot = TableManager.get();
+          let td = hot.getCell(row, col);
           // 处理合并单元格的情况
           if (this.isCellHidden(td)) {
-            let mergeCells = this.getContext().hot.getSettings().mergeCells;
+            let mergeCells = hot.getSettings().mergeCells;
             for (let item of mergeCells) {
               let rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
               let rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
@@ -704,10 +706,11 @@ export default {
           this.topParentRowNumber = '';
         } else {
           let row = this.rowIndex - 1, col = this.colIndex;
-          let td = this.getContext().hot.getCell(row, col);
+          let hot = TableManager.get();
+          let td = hot.getCell(row, col);
           // 处理合并单元格的情况
           if (this.isCellHidden(td)) {
-            let mergeCells = this.getContext().hot.getSettings().mergeCells;
+            let mergeCells = hot.getSettings().mergeCells;
             for (let item of mergeCells) {
               let rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
               let rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
@@ -969,8 +972,9 @@ export default {
         this.imageValueEditorVisible = true;
       } else if (value === 'qrcode') {
         if (newCellDef.value.type !== 'zxing' || newCellDef.value.category !== 'qrcode') {
-          const width = this.buildWidth(this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).colSpan, this.getContext().hot);
-          const height = this.buildHeight(this.rowIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).rowSpan, this.getContext().hot);
+          const hot = TableManager.get();
+          const width = this.buildWidth(this.colIndex, hot.getCell(this.rowIndex, this.colIndex).colSpan, hot);
+          const height = this.buildHeight(this.rowIndex, hot.getCell(this.rowIndex, this.colIndex).rowSpan, hot);
           newCellDef.value = { width, height, type: 'zxing', source: 'text', category: 'qrcode', data: '' };
           newCellDef.expand = 'None';
         }
@@ -979,8 +983,9 @@ export default {
         this.zxingValueEditorVisible = true;
       } else if (value === 'barcode') {
         if (newCellDef.value.type !== 'zxing' || newCellDef.value.category !== 'barcode') {
-          const width = this.buildWidth(this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).colSpan, this.getContext().hot);
-          const height = this.buildHeight(this.rowIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).rowSpan, this.getContext().hot);
+          const hot = TableManager.get();
+          const width = this.buildWidth(this.colIndex, hot.getCell(this.rowIndex, this.colIndex).colSpan, hot);
+          const height = this.buildHeight(this.rowIndex, hot.getCell(this.rowIndex, this.colIndex).rowSpan, hot);
           newCellDef.value = { width, height, type: 'zxing', source: 'text', category: 'barcode', data: '', format: 'CODE_128' };
           newCellDef.expand = 'None';
         }
@@ -994,8 +999,9 @@ export default {
         this.hideAllEditors();
         this.slashValueEditorVisible = true;
       } else if (value === 'chart') {
-        const width = this.buildWidth(this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).colSpan, this.getContext().hot);
-        const height = this.buildHeight(this.rowIndex, this.colIndex, this.getContext().hot.getCell(this.rowIndex, this.colIndex).rowSpan, this.getContext().hot);
+        const hot = TableManager.get();
+        const width = this.buildWidth(this.colIndex, hot.getCell(this.rowIndex, this.colIndex).colSpan, hot);
+        const height = this.buildHeight(this.rowIndex, hot.getCell(this.rowIndex, this.colIndex).rowSpan, hot);
         newCellDef.value = {
           width,
           height,
@@ -1010,8 +1016,9 @@ export default {
         this.hideAllEditors();
       }
 
-      this.getContext().hot.setDataAtCell(this.rowIndex, this.colIndex, '');
-      this.getContext().hot.render();
+      const hot = TableManager.get();
+      hot.setDataAtCell(this.rowIndex, this.colIndex, '');
+      hot.render();
       setDirty();
     },
 

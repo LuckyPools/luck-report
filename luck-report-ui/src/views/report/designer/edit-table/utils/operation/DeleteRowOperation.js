@@ -5,12 +5,19 @@ import {resetTableData, setDirty, undoManager} from '@/utils/table.js';
 import {renderRowHeader} from '../HeaderUtils.js';
 import {$t} from "@/locales";
 import {showAlert} from "@/utils/comnon";
-import {addCell, adjustDelRowHeaders, adjustInsertRowHeaders, getCell, removeCell} from "@/utils/contextActions";
+import {
+    addCell,
+    adjustDelRowHeaders,
+    adjustInsertRowHeaders,
+    getCell,
+    getContext,
+    removeCell
+} from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
 
 export function doDeleteRow() {
     const selected = this.getSelected();
-    const context = this.context;
+    const context = getContext();
     if (!selected) {
         showAlert($t('table.rowTip')).then(r => {
         });
@@ -75,7 +82,7 @@ export function doDeleteRow() {
         this.alter('remove_row', i);
         adjustDelRowHeaders(i);
     }
-    renderRowHeader(this, this.context);
+    renderRowHeader(this);
     let cellsMap = context.cellsMap, changeCells = [];
     for (let cell of cellsMap.values()) {
         let rowIndex = cell.rowNumber - 1;
@@ -151,7 +158,7 @@ export function doDeleteRow() {
                 _this.alter('remove_row', i);
                 adjustDelRowHeaders(i);
             }
-            renderRowHeader(_this, _this.context);
+            renderRowHeader(_this);
             changeCells.splice(0, changeCells.length);
             for (let cell of cellsMap.values()) {
                 let rowIndex = cell.rowNumber - 1;
@@ -176,7 +183,7 @@ export function doDeleteRow() {
                 _this.alter('insert_row', i);
                 adjustInsertRowHeaders(i);
             }
-            renderRowHeader(_this, _this.context);
+            renderRowHeader(_this);
             changeCells.splice(0, changeCells.length);
             for (let cell of cellsMap.values()) {
                 let rowIndex = cell.rowNumber - 1;

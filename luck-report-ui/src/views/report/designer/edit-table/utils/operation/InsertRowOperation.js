@@ -5,7 +5,14 @@ import {buildNewCellDef, resetTableData, setDirty, undoManager} from '@/utils/ta
 import {renderRowHeader} from '@/views/report/designer/edit-table/utils/HeaderUtils.js';
 import {$t} from "@/locales";
 import {showAlert} from "@/utils/comnon";
-import {addCell, adjustDelRowHeaders, adjustInsertRowHeaders, getCell, removeCell} from "@/utils/contextActions";
+import {
+    addCell,
+    adjustDelRowHeaders,
+    adjustInsertRowHeaders,
+    getCell,
+    getContext,
+    removeCell
+} from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
 
 export function doInsertRow(above, number = 1) {
@@ -37,7 +44,7 @@ export function doInsertRow(above, number = 1) {
     }
     this.alter("insert_row", position, number);
     adjustInsertRowHeaders(position);
-    renderRowHeader(this, this.context);
+    renderRowHeader(this);
 
     buildNewRowCells(this, position, number);
     this.updateSettings({
@@ -47,7 +54,10 @@ export function doInsertRow(above, number = 1) {
     resetTableData(this);
     setDirty();
 
-    const _this = this, context = this.context, cellsMap = this.context.cellsMap, removeCells = [];
+    const _this = this;
+    const context = getContext();
+    const cellsMap = context.cellsMap
+    const removeCells = [];
     let removeRowHeight = 25;
     undoManager.add({
         redo: function () {
@@ -58,7 +68,7 @@ export function doInsertRow(above, number = 1) {
             }
             _this.alter("insert_row", position, number);
             adjustInsertRowHeaders(position);
-            renderRowHeader(_this, _this.context);
+            renderRowHeader(_this);
             let changeCells = [];
             for (let cell of cellsMap.values()) {
                 let rowIndex = cell.rowNumber - 1;
@@ -93,7 +103,7 @@ export function doInsertRow(above, number = 1) {
             }
             _this.alter('remove_row', position, number);
             adjustDelRowHeaders(position);
-            renderRowHeader(_this, _this.context);
+            renderRowHeader(_this);
             _this.updateSettings({
                 rowHeights: newRowHeights,
                 manualRowResize: newRowHeights
@@ -130,8 +140,11 @@ export function doInsertRow(above, number = 1) {
 
 
 function buildNewRowCells(hot, position, number) {
-    const countCols = hot.countCols(), countRows = hot.countRows(), context = hot.context;
-    const cellsMap = context.cellsMap, changeCells = [];
+    const countCols = hot.countCols();
+    const countRows = hot.countRows();
+    const context = getContext();
+    const cellsMap = context.cellsMap;
+    const changeCells = [];
     for (let cell of cellsMap.values()) {
         let rowIndex = cell.rowNumber - 1;
         if (rowIndex >= position) {
