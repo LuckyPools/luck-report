@@ -573,7 +573,7 @@ const en = {
             "selectBean":"Select Bean",
             "prop":"Property ",
             "none":"None",
-            "urlExpressionExample": "For Example:$# == '1' ? 'a.jsp' : 'b.jsp'}",
+            "urlExpressionExample": "For Example:$# == '1' ? 'a.html' : 'b.html'}",
             "urlExpressionSupport": "Support expressions, expressions defined in ${...}"
         },
         "base":{

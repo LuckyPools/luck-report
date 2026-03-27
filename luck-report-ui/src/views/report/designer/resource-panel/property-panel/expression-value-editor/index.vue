@@ -239,12 +239,7 @@ export default {
         if (cellDef && cellDef.value) {
           const newCellDef = deepCopy(cellDef);
           newCellDef.value.value = expr;
-
-          for (let i = this.rowIndex; i <= this.row2Index; i++) {
-            for (let j = this.colIndex; j <= this.col2Index; j++) {
-              setCell( i, j, newCellDef );
-            }
-          }
+          setCell(this.rowIndex, this.colIndex, newCellDef);
         }
         const hot = TableManager.get();
         if (hot) {

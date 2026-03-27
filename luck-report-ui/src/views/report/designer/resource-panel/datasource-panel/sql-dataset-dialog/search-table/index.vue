@@ -101,7 +101,6 @@ export default {
       this.tables = tables
     },
     addSql(tableName) {
-      console.log('添加SQL:', tableName);
       const sql = `select * from ${tableName}`
       this.$emit('add', sql)
     },

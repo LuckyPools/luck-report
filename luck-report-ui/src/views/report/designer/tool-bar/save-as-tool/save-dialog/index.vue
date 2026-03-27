@@ -235,7 +235,6 @@ export default {
       const key = this.currentPath ? `${this.selectedProvider}:${this.currentPath}` : this.selectedProvider;
       this.currentReportFiles = this.reportFilesData[key] || [];
       this.currentProviderPrefix = this.selectedProvider;
-      console.log('设置currentReportFiles为:', this.currentReportFiles);
     },
 
     // 处理提供者变化的方法

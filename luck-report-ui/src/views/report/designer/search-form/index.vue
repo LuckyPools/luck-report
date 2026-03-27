@@ -283,7 +283,6 @@ export default {
         fields: JSON.parse(JSON.stringify(this.drawingList)),
         ...this.formConf
       }
-      console.log(this.formData)
     },
     generate(data) {
       const func = this[`exec${titleCase(this.operationType)}`]

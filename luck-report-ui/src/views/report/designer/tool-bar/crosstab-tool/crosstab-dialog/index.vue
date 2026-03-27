@@ -6,17 +6,17 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
-          <label>{{ $t('dialog.crosstab.crosstab') }}：</label>
-
+      <u-form ref="form" :label-width="60">
+        <u-form-item :label="$t('dialog.crosstab.crosstab')">
           <u-input
-                  v-model="crosstabValue"
-                  ref="input"
-                  @keyup.enter="handleOk"
-                  style="width: 380px"
-                  :placeholder="$t('dialog.crosstab.tip')"
+            v-model="crosstabValue"
+            ref="input"
+            style="width: 300px"
+            :placeholder="$t('dialog.crosstab.tip')"
+            @keyup.enter="handleOk"
           />
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -29,6 +29,8 @@
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'CrosstabDialog',
@@ -36,6 +38,8 @@ export default {
     UButton,
     UDialog,
     UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {

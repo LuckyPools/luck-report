@@ -1,34 +1,31 @@
 <template>
   <UDialog
     :title="title"
-    width="600px"
+    width="500px"
     :visible="visible"
     :z-index="20010"
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
-        <label>{{ $t('dialog.paramItem.name') }}：</label>
-        <div class="u-inline">
+      <u-form ref="form" :label-width="80">
+        <u-form-item :label="$t('dialog.paramItem.name')">
           <u-input
             v-model="name"
             ref="nameInput"
             style="width: 350px;"
             @keyup.enter="handleOk"
           />
-        </div>
-      </div>
-      <div class="form-group">
-        <label>{{ $t('dialog.paramItem.expr') }}：</label>
-        <div class="u-inline">
+        </u-form-item>
+
+        <u-form-item :label="$t('dialog.paramItem.expr')">
           <u-input
             v-model="value"
             ref="valueInput"
             style="width: 350px;"
             @keyup.enter="handleOk"
           />
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -42,13 +39,17 @@ import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'URLParameterItemDialog',
   components: {
     UButton,
     UDialog,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {
@@ -79,14 +80,10 @@ export default {
   },
   watch: {
     visible(newVal) {
-      console.log('URLParameterItemDialog visible changed:', newVal);
       if (newVal) {
         this.name = this.paramItem?.name || '';
         this.value = this.paramItem?.value || '';
         this.localParamItem = this.paramItem ? { ...this.paramItem } : null;
-        this.$nextTick(() => {
-          console.log('URLParameterItemDialog after set name/value:', this.name, this.value);
-        });
       }
     }
   },
@@ -109,6 +106,11 @@ export default {
       if (this.localParamItem) {
         this.localParamItem.name = this.name;
         this.localParamItem.value = this.value;
+      } else {
+        this.localParamItem = {
+          name: this.name,
+          value: this.value
+        };
       }
 
       // 发出saveAfter事件

@@ -142,12 +142,10 @@ export default {
 
       loadReportProviders()
         .then(providers => {
-          console.log('loadProviders result:', providers);
           _this.providers = providers;
 
           for (let provider of providers) {
             let { reportFiles, name, prefix } = provider;
-            console.log('Provider:', prefix, 'Files:', reportFiles);
             _this.reportFilesData[prefix] = reportFiles;
           }
 
@@ -167,12 +165,8 @@ export default {
     },
     loadProvidersByPath(path) {
       const _this = this;
-
-      console.log('loadProvidersByPath called with path:', path);
-
       loadReportProvidersByPath(path)
         .then(result => {
-          console.log('loadProvidersByPath result:', result);
           for (let prefix in result) {
             let providerData = result[prefix];
             _this.reportFilesData[`${prefix}:${path}`] = providerData.reportFiles;
@@ -208,10 +202,7 @@ export default {
     openFile(file) {
       const _this = this;
 
-      console.log('openFile called with:', file);
-
       if (file.directory) {
-        console.log('Entering directory:', file.path);
         this.pathHistory.push(this.currentPath);
         this.currentPath = file.path;
         this.loadProvidersByPath(this.currentPath);
@@ -228,7 +219,6 @@ export default {
       });
     },
     handleFileClick(file) {
-      console.log('handleFileClick called with:', file);
       if (file.directory) {
         this.openFile(file);
       }

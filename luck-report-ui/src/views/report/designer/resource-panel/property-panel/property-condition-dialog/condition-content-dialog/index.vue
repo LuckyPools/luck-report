@@ -7,10 +7,9 @@
       @close="handleClose"
   >
     <div class="dialog-content">
-      <!-- 关系选择 -->
-      <div v-if="showJoin" class="form-group">
-        <label>{{ $t('dialog.editPropCondition.relation') }}：</label>
-        <div class="u-inline">
+      <u-form ref="form" :label-width="80">
+        <!-- 关系选择 -->
+        <u-form-item v-if="showJoin" :label="$t('dialog.editPropCondition.relation')">
           <u-select
               v-model="join"
               :clearable="true"
@@ -23,13 +22,10 @@
                 :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 左值类型选择 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.editPropCondition.leftValue') }}：</label>
-        <div class="u-inline">
+        <!-- 左值类型选择 -->
+        <u-form-item :label="$t('dialog.editPropCondition.leftValue')">
           <u-select
               v-model="leftType"
               :clearable="true"
@@ -42,13 +38,10 @@
                 :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 属性名选择 -->
-      <div v-if="leftType === 'property'" class="form-group">
-        <label>{{ $t('dialog.editPropCondition.propName') }}：</label>
-        <div class="u-inline">
+        <!-- 属性名选择 -->
+        <u-form-item v-if="leftType === 'property'" :label="$t('dialog.editPropCondition.propName')">
           <u-select
               v-model="property"
               :clearable="true"
@@ -61,25 +54,19 @@
                 :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 表达式输入 -->
-      <div v-if="leftType === 'expression'" class="form-group">
-        <label>{{ $t('dialog.editPropCondition.expr') }}：</label>
-        <div class="u-inline">
+        <!-- 表达式输入 -->
+        <u-form-item v-if="leftType === 'expression'" :label="$t('dialog.editPropCondition.expr')">
           <u-input
             v-model="expression"
             style="width: 300px;"
             @blur="validateExpression"
            />
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 运算符选择 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.editPropCondition.operator') }}：</label>
-        <div class="u-inline">
+        <!-- 运算符选择 -->
+        <u-form-item :label="$t('dialog.editPropCondition.operator')">
           <u-select
               v-model="operator"
               :clearable="true"
@@ -92,20 +79,17 @@
                 :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 值表达式输入 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.editPropCondition.valueExpr') }}：</label>
-        <div class="u-inline">
+        <!-- 值表达式输入 -->
+        <u-form-item :label="$t('dialog.editPropCondition.valueExpr')">
           <u-input
             v-model="value"
             style="width: 300px;"
             @blur="validateValueExpression"
           />
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -122,6 +106,8 @@ import UOption from '@/components/option/index.vue';
 import { conditionScriptValidation } from '@/api/designer';
 import UButton from "@/components/button/index.vue";
 import UInput from '@/components/input/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'EditPropertyConditionDialog',
@@ -130,7 +116,9 @@ export default {
     UDialog,
     USelect,
     UOption,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {

@@ -84,10 +84,8 @@ export default {
       const height = this.$refs[key][0].clientHeight + 20
       this.offsetTop -= height
 
-
       this.messageList.splice(index, 1)
       this.messageList.forEach((cell, i) => {
-        console.log(i, index);
         if (i >= index) {
           cell.top -= height
         }

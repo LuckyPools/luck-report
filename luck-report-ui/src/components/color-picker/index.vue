@@ -3,6 +3,7 @@
     <u-button
         :size="size"
         type="info"
+        native-type="button"
         style="border: none"
         @click="togglePicker"
     >

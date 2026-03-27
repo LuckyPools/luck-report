@@ -163,7 +163,6 @@ export default {
      * 处理添加 SQL
      */
     handleAddSql(sql) {
-      console.log('收到添加SQL请求:', sql);
       this.sql = sql || '';
     },
 

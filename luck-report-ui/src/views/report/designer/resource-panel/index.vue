@@ -95,7 +95,7 @@ export default {
   background: #ffffff;
   box-shadow: -5px 0 5px rgba(0, 0, 0, 0.1);
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -103,7 +103,7 @@ export default {
 .tab-content{
   border-left: 1px #e0e0e0 solid;
   flex-grow: 1;
-  height: 100%;
+  overflow-y: auto;
 }
 
 .resource-tabs {

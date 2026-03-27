@@ -1,16 +1,15 @@
 <template>
   <UDialog
     :title="$t('dialog.fontSetting.title')"
-    width="600px"
+    width="400px"
     :visible="visible"
     :z-index="20000"
     @close="handleClose"
   >
     <div class="dialog-content">
-      <!-- 字体选择 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.fontSetting.font') }}：</label>
-        <div class="u-inline">
+      <u-form :label-width="60">
+        <!-- 字体选择 -->
+        <u-form-item :label="$t('dialog.fontSetting.font')">
           <u-select
             v-model="localStyle.fontFamily"
           >
@@ -21,19 +20,15 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 颜色选择 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.fontSetting.color') }}：</label>
-        <UColorPicker v-model="colorValue" />
-      </div>
+        <!-- 颜色选择 -->
+        <u-form-item :label="$t('dialog.fontSetting.color')">
+          <UColorPicker v-model="colorValue" />
+        </u-form-item>
 
-      <!-- 字体大小 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.fontSetting.size') }}：</label>
-        <div class="u-inline">
+        <!-- 字体大小 -->
+        <u-form-item :label="$t('dialog.fontSetting.size')">
           <u-select
             v-model="localStyle.fontSize"
           >
@@ -44,13 +39,10 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 粗体 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.fontSetting.bold') }}：</label>
-        <div class="u-inline">
+        <!-- 粗体 -->
+        <u-form-item :label="$t('dialog.fontSetting.bold')">
           <u-select
             v-model="localStyle.bold"
           >
@@ -61,13 +53,10 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 斜体 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.fontSetting.italic') }}：</label>
-        <div class="u-inline">
+        <!-- 斜体 -->
+        <u-form-item :label="$t('dialog.fontSetting.italic')">
           <u-select
             v-model="localStyle.italic"
           >
@@ -78,13 +67,10 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 下划线 -->
-      <div class="form-group">
-        <label>{{ $t('dialog.fontSetting.underline') }}：</label>
-        <div class="u-inline">
+        <!-- 下划线 -->
+        <u-form-item :label="$t('dialog.fontSetting.underline')">
           <u-select
             v-model="localStyle.underline"
           >
@@ -95,8 +81,8 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -111,6 +97,8 @@ import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UButton from "@/components/button/index.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'FontSettingDialog',
@@ -119,7 +107,9 @@ export default {
     UButton,
     UDialog,
     USelect,
-    UOption
+    UOption,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {

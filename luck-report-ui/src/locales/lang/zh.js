@@ -573,7 +573,7 @@ const zh = {
             "selectBean":"选择Bean",
             "prop":"属性",
             "none":"无",
-            "urlExpressionExample": "如:\$\{# == '1' ? 'a.jsp' : 'b.jsp'}",
+            "urlExpressionExample": "如:\$\{# == '1' ? 'a.html' : 'b.html'}",
             "urlExpressionSupport": "支持表达式,表达式定义在${...}中"
         },
         "base":{

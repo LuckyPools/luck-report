@@ -7,62 +7,58 @@
     @close="handleClose"
   >
     <div class="dialog-content" >
-      <div class="form-group" v-show="showJoinGroup">
-        <label>{{ $t('dialog.condition.relationship') }}：</label>
-        <u-select
-          v-model="joinValue"
-          :clearable="true"
-        >
-          <u-option
-            v-for="option in joinOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </div>
+      <u-form ref="form" :label-width="120">
+        <u-form-item :label="$t('dialog.condition.relationship')" v-show="showJoinGroup">
+          <u-select
+            v-model="joinValue"
+            :clearable="true"
+          >
+            <u-option
+              v-for="option in joinOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
 
-      <div class="form-group">
-        <label>{{ $t('dialog.condition.propertyName') }}：</label>
-        <u-select
-          v-model="propertyValue"
-          :clearable="true"
-        >
-          <u-option
-            v-for="option in propertyOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </div>
+        <u-form-item :label="$t('dialog.condition.propertyName')">
+          <u-select
+            v-model="propertyValue"
+            :clearable="true"
+          >
+            <u-option
+              v-for="option in propertyOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
 
-      <div class="form-group">
-        <label>{{ $t('dialog.condition.op') }}：</label>
-        <u-select
-          v-model="operatorValue"
-          :clearable="true"
-        >
-          <u-option
-            v-for="option in operatorOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </div>
+        <u-form-item :label="$t('dialog.condition.op')">
+          <u-select
+            v-model="operatorValue"
+            :clearable="true"
+          >
+            <u-option
+              v-for="option in operatorOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
 
-      <div class="form-group">
-        <label>{{ $t('dialog.condition.valueExpr') }}：</label>
-        <div class="u-inline">
+        <u-form-item :label="$t('dialog.condition.valueExpr')">
           <u-input
             v-model="valueExpr"
             style="width:240px;"
             @change="validateExpression"
           >
           </u-input>
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
 
     <div slot="footer" style="text-align: right">
@@ -79,6 +75,8 @@ import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UButton from '@/components/button/index.vue';
 import UInput from '@/components/input/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import { conditionScriptValidation } from '@/api/designer';
 
 export default {
@@ -88,7 +86,9 @@ export default {
     USelect,
     UOption,
     UButton,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {

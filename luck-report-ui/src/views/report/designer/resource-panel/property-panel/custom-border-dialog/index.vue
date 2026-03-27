@@ -3,7 +3,8 @@
     :title="$t('tools.border.customBorderLine')"
     width="400px"
     :visible="visible"
-    @close="$emit('close')"
+    :z-index="zIndex"
+    @close="handleClose"
   >
     <div class="border-config-container">
       <!-- 选项卡导航 -->
@@ -15,15 +16,12 @@
       </u-tabs>
 
       <!-- 选项卡内容 -->
-      <div class="tab-content" style="padding: 20px">
-        <!-- 上边框配置 -->
-        <div v-show="activeTab === 'top'" >
-          <div class="form-group">
-            <label>{{ $t('tools.border.lineStyle') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localTopBorder.style"
-              >
+      <div class="tab-content" style="padding-top: 20px">
+        <u-form ref="form" :label-width="60">
+          <!-- 上边框配置 -->
+          <div v-show="activeTab === 'top'">
+            <u-form-item :label="$t('tools.border.lineStyle')">
+              <u-select v-model="localTopBorder.style">
                 <u-option
                   v-for="option in lineStyleOptions"
                   :key="option.value"
@@ -31,14 +29,9 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.size') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localTopBorder.width"
-              >
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.size')">
+              <u-select v-model="localTopBorder.width">
                 <u-option
                   v-for="option in lineWidthOptions"
                   :key="option.value"
@@ -46,22 +39,16 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.color')">
+              <UColorPicker v-model="localTopBorder.color" />
+            </u-form-item>
           </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="localTopBorder.color" />
-          </div>
-        </div>
 
-        <!-- 下边框配置 -->
-        <div v-show="activeTab === 'bottom'" >
-          <div class="form-group">
-            <label>{{ $t('tools.border.lineStyle') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localBottomBorder.style"
-              >
+          <!-- 下边框配置 -->
+          <div v-show="activeTab === 'bottom'">
+            <u-form-item :label="$t('tools.border.lineStyle')">
+              <u-select v-model="localBottomBorder.style">
                 <u-option
                   v-for="option in lineStyleOptions"
                   :key="option.value"
@@ -69,14 +56,9 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.size') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localBottomBorder.width"
-              >
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.size')">
+              <u-select v-model="localBottomBorder.width">
                 <u-option
                   v-for="option in lineWidthOptions"
                   :key="option.value"
@@ -84,22 +66,16 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.color')">
+              <UColorPicker v-model="localBottomBorder.color" :inline="true" />
+            </u-form-item>
           </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="localBottomBorder.color" :inline="true" />
-          </div>
-        </div>
 
-        <!-- 左边框配置 -->
-        <div v-show="activeTab === 'left'" >
-          <div class="form-group">
-            <label>{{ $t('tools.border.lineStyle') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localLeftBorder.style"
-              >
+          <!-- 左边框配置 -->
+          <div v-show="activeTab === 'left'">
+            <u-form-item :label="$t('tools.border.lineStyle')">
+              <u-select v-model="localLeftBorder.style">
                 <u-option
                   v-for="option in lineStyleOptions"
                   :key="option.value"
@@ -107,14 +83,9 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.size') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localLeftBorder.width"
-              >
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.size')">
+              <u-select v-model="localLeftBorder.width">
                 <u-option
                   v-for="option in lineWidthOptions"
                   :key="option.value"
@@ -122,22 +93,16 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.color')">
+              <UColorPicker v-model="localLeftBorder.color" :inline="true" />
+            </u-form-item>
           </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="localLeftBorder.color" :inline="true" />
-          </div>
-        </div>
 
-        <!-- 右边框配置 -->
-        <div v-show="activeTab === 'right'" >
-          <div class="form-group">
-            <label>{{ $t('tools.border.lineStyle') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localRightBorder.style"
-              >
+          <!-- 右边框配置 -->
+          <div v-show="activeTab === 'right'">
+            <u-form-item :label="$t('tools.border.lineStyle')">
+              <u-select v-model="localRightBorder.style">
                 <u-option
                   v-for="option in lineStyleOptions"
                   :key="option.value"
@@ -145,14 +110,9 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.size') }}：</label>
-            <div class="u-inline">
-              <u-select
-                v-model="localRightBorder.width"
-              >
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.size')">
+              <u-select v-model="localRightBorder.width">
                 <u-option
                   v-for="option in lineWidthOptions"
                   :key="option.value"
@@ -160,13 +120,12 @@
                   :label="option.label"
                 />
               </u-select>
-            </div>
+            </u-form-item>
+            <u-form-item :label="$t('tools.border.color')">
+              <UColorPicker v-model="localRightBorder.color" :inline="true" />
+            </u-form-item>
           </div>
-          <div class="form-group">
-            <label>{{ $t('tools.border.color') }}：</label>
-            <UColorPicker v-model="localRightBorder.color" :inline="true" />
-          </div>
-        </div>
+        </u-form>
       </div>
     </div>
 
@@ -185,6 +144,8 @@ import UButton from "@/components/button/index.vue";
 import UTabs from "@/components/tabs/index.vue";
 import UTabPane from "@/components/tabs/pane.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'CustomBorderDialog',
@@ -195,12 +156,18 @@ export default {
     UButton,
     UDialog,
     USelect,
-    UOption
+    UOption,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {
       type: Boolean,
       default: false
+    },
+    cellStyle: {
+      type: Object,
+      default: null
     },
     topBorder: {
       type: Object,
@@ -233,6 +200,10 @@ export default {
         width: 1,
         color: '#000000'
       })
+    },
+    zIndex: {
+      type: Number,
+      default: 20000
     }
   },
   data() {
@@ -247,11 +218,16 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.localTopBorder = { ...this.topBorder };
-        this.localBottomBorder = { ...this.bottomBorder };
-        this.localLeftBorder = { ...this.leftBorder };
-        this.localRightBorder = { ...this.rightBorder };
+        this.loadBorderData();
       }
+    },
+    cellStyle: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadBorderData();
+        }
+      },
+      deep: true
     }
   },
   computed: {
@@ -272,8 +248,41 @@ export default {
     }
   },
   methods: {
+    loadBorderData() {
+      if (this.cellStyle) {
+        if (this.cellStyle.topBorder) {
+          this.localTopBorder = { ...this.cellStyle.topBorder };
+          this.localTopBorder.color = this.rgbToHexIfNeeded(this.localTopBorder.color);
+        }
+        if (this.cellStyle.bottomBorder) {
+          this.localBottomBorder = { ...this.cellStyle.bottomBorder };
+          this.localBottomBorder.color = this.rgbToHexIfNeeded(this.localBottomBorder.color);
+        }
+        if (this.cellStyle.leftBorder) {
+          this.localLeftBorder = { ...this.cellStyle.leftBorder };
+          this.localLeftBorder.color = this.rgbToHexIfNeeded(this.localLeftBorder.color);
+        }
+        if (this.cellStyle.rightBorder) {
+          this.localRightBorder = { ...this.cellStyle.rightBorder };
+          this.localRightBorder.color = this.rgbToHexIfNeeded(this.localRightBorder.color);
+        }
+      } else {
+        this.localTopBorder = { ...this.topBorder };
+        this.localBottomBorder = { ...this.bottomBorder };
+        this.localLeftBorder = { ...this.leftBorder };
+        this.localRightBorder = { ...this.rightBorder };
+      }
+    },
+    rgbToHexIfNeeded(color) {
+      if (typeof color === 'string' && color.includes(',')) {
+        const rgb = color.split(',');
+        return this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
+      }
+      return color;
+    },
     handleClose() {
       this.$emit('close');
+      this.$emit('update:visible', false);
     },
     handleOk() {
       const topBorder = { ...this.localTopBorder };
@@ -286,8 +295,18 @@ export default {
       leftBorder.color = this.hexToRgb(this.localLeftBorder.color);
       rightBorder.color = this.hexToRgb(this.localRightBorder.color);
 
-      this.$emit('save', topBorder, bottomBorder, leftBorder, rightBorder);
+      if (this.cellStyle) {
+        this.$emit('save', {
+          topBorder,
+          bottomBorder,
+          leftBorder,
+          rightBorder
+        });
+      } else {
+        this.$emit('save', topBorder, bottomBorder, leftBorder, rightBorder);
+      }
       this.$emit('close');
+      this.$emit('update:visible', false);
     },
     hexToRgb(hex) {
       // 如果已经是RGB格式，直接返回

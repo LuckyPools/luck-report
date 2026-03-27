@@ -6,17 +6,16 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
-        <label>{{ isCol ? $t('dialog.rowColWidthHeight.colWidth') : $t('dialog.rowColWidthHeight.rowHeight') }}：</label>
-        <div class="u-inline">
+      <u-form ref="form" :label-width="100">
+        <u-form-item :label="isCol ? $t('dialog.rowColWidthHeight.colWidth') : $t('dialog.rowColWidthHeight.rowHeight')">
           <u-input-number
             :placeholder="$t('dialog.rowColWidthHeight.tip')"
             v-model="value"
             ref="input"
             @keyup.enter="handleOk"
           />
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -30,13 +29,17 @@ import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInputNumber from "@/components/input-number/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'RowColWidthHeightDialog',
   components: {
     UButton,
     UDialog,
-    UInputNumber
+    UInputNumber,
+    UForm,
+    UFormItem
   },
   data() {
     return {

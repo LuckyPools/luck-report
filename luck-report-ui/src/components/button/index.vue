@@ -2,6 +2,7 @@
   <button
     class="u-button"
     v-bind="$attrs"
+    :type="nativeType"
     :disabled="disabled || loading"
     :class="{
       [`u-button-${type}`]: true,
@@ -34,6 +35,13 @@ export default {
     return {};
   },
   props: {
+    nativeType: {
+      type: String,
+      default: 'button',
+      validator(value) {
+        return oneOf(value, ['button', 'submit', 'reset']);
+      }
+    },
     type: {
       validator(value) {
         return oneOf(value, [

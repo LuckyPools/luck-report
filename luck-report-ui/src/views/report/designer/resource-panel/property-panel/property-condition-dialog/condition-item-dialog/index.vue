@@ -7,9 +7,8 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
-        <label>{{ $t('dialog.conditionItem.itemName') }}：</label>
-        <div class="u-inline">
+      <u-form ref="form" :label-width="120">
+        <u-form-item :label="$t('dialog.conditionItem.itemName')">
           <u-input
               :placeholder="$t('dialog.conditionItem.nameTip')"
               v-model="name"
@@ -17,8 +16,8 @@
               @keyup.enter="handleOk"
               @click.stop
           />
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -32,13 +31,17 @@ import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'PropertyConditionItemDialog',
   components: {
     UButton,
     UDialog,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {

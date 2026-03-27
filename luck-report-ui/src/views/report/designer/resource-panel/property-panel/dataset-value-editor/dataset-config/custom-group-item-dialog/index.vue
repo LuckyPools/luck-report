@@ -8,17 +8,16 @@
     @closed="handleClosed"
   >
     <div class="dialog-content">
-      <div class="form-group">
-        <label>{{ $t('dialog.groupItem.name') }}：</label>
-        <div class="u-inline">
+      <u-form ref="form" :label-width="80">
+        <u-form-item :label="$t('dialog.groupItem.name')">
           <u-input
             v-model="name"
             ref="nameInput"
             @keyup.enter="handleOk"
             style="width:240px;"
           />
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -32,13 +31,17 @@ import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'GroupItemDialog',
   components: {
     UButton,
     UDialog,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {
