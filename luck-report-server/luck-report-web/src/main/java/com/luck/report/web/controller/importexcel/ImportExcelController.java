@@ -20,7 +20,7 @@ import java.util.Map;
  * Excel导入控制器
  * 替代原有的ImportExcelServletAction，负责导入Excel文件并解析为报表定义
  */
-@RestController
+@RestController("bean.importExcelController")
 @RequestMapping("${luck-report.servletPrefix}/import")
 public class ImportExcelController {
 

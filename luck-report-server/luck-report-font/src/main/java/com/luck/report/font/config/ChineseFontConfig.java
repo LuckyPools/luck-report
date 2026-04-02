@@ -14,27 +14,27 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ChineseFontConfig {
 
-    @Bean("luck-report.fangSongFontRegister")
+    @Bean("bean.fangSongFontRegister")
     public FangSongFontRegister fangSongFontRegister() {
         return new FangSongFontRegister();
     }
 
-    @Bean("luck-report.heiTiFontRegister")
+    @Bean("bean.heiTiFontRegister")
     public HeiTiFontRegister heiTiFontRegister() {
         return new HeiTiFontRegister();
     }
 
-    @Bean("luck-report.kaiTiFontRegister")
+    @Bean("bean.kaiTiFontRegister")
     public KaiTiFontRegister kaiTiFontRegister() {
         return new KaiTiFontRegister();
     }
 
-    @Bean("luck-report.songTiFontRegister")
+    @Bean("bean.songTiFontRegister")
     public SongTiFontRegister songTiFontRegister() {
         return new SongTiFontRegister();
     }
 
-    @Bean("luck-report.yaheiFontRegister")
+    @Bean("bean.yaheiFontRegister")
     public YaheiFontRegister yaheiFontRegister() {
         return new YaheiFontRegister();
     }

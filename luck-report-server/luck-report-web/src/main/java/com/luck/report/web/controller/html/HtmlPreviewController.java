@@ -30,7 +30,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
 
-@RestController
+@RestController("bean.htmlPreviewController")
 @RequestMapping("${luck-report.servletPrefix}/html")
 public class HtmlPreviewController {
 

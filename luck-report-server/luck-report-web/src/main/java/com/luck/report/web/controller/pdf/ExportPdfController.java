@@ -31,9 +31,8 @@ import java.util.Map;
 
 /**
  * PDF导出控制器
- * 替代原来的ExportPdfServletAction
  */
-@RestController
+@RestController("bean.exportPdfController")
 @RequestMapping("${luck-report.servletPrefix}/pdf")
 public class ExportPdfController {
 

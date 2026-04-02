@@ -17,7 +17,7 @@ import java.io.OutputStream;
  * 图片控制器
  * 替代原有的ImageServletAction，提供图片资源访问功能
  */
-@RestController
+@RestController("bean.imageController")
 @RequestMapping("${luck-report.servletPrefix}/image")
 public class ImageController {
 

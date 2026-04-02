@@ -46,9 +46,8 @@ import java.util.regex.Pattern;
 
 /**
  * 数据源控制器
- * 替代原有的DatasourceServletAction，提供数据源相关功能
  */
-@RestController
+@RestController("bean.datasourceController")
 @RequestMapping("${luck-report.servletPrefix}/datasource")
 public class DatasourceController {
 

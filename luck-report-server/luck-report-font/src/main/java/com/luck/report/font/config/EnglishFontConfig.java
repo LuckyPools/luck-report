@@ -13,22 +13,22 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class EnglishFontConfig {
 
-    @Bean("luck-report.arialFontRegister")
+    @Bean("bean.arialFontRegister")
     public ArialFontRegister arialFontRegister() {
         return new ArialFontRegister();
     }
 
-    @Bean("luck-report.comicSansMSFontRegister")
+    @Bean("bean.comicSansMSFontRegister")
     public ComicSansMSFontRegister comicSansMSFontRegister() {
         return new ComicSansMSFontRegister();
     }
 
-    @Bean("luck-report.courierNewFontRegister")
+    @Bean("bean.courierNewFontRegister")
     public CourierNewFontRegister courierNewFontRegister() {
         return new CourierNewFontRegister();
     }
 
-    @Bean("luck-report.timesNewRomanFontRegister")
+    @Bean("bean.timesNewRomanFontRegister")
     public TimesNewRomanFontRegister timesNewRomanFontRegister() {
         return new TimesNewRomanFontRegister();
     }

@@ -39,7 +39,7 @@ import java.util.*;
  * @author Jacky.gao
  * @since 2017年1月25日
  */
-@Controller
+@Controller("bean.designerController")
 @RequestMapping("${luck-report.servletPrefix}/designer")
 public class DesignerController implements ApplicationContextAware {
 

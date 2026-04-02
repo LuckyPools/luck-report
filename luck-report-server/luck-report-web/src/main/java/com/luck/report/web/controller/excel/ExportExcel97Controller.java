@@ -29,7 +29,7 @@ import java.util.Map;
  * Excel 97-2003导出控制器
  * 替代原有的ExportExcel97ServletAction，提供Excel 97-2003格式导出功能
  */
-@RestController
+@RestController("bean.exportExcel97Controller")
 @RequestMapping("${luck-report.servletPrefix}/excel97")
 public class ExportExcel97Controller {
 

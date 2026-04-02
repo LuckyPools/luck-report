@@ -31,7 +31,7 @@ import java.util.Map;
  * Word导出控制器
  * 替代原来的ExportWordServletAction
  */
-@RestController
+@RestController("bean.exportWordController")
 @RequestMapping("${luck-report.servletPrefix}/word")
 public class ExportWordController {
 

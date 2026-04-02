@@ -31,7 +31,7 @@ import java.util.Map;
  * Excel导出控制器
  * 替代原来的ExportExcelServletAction
  */
-@RestController
+@RestController("bean.exportExcelController")
 @RequestMapping("${luck-report.servletPrefix}/excel")
 public class ExportExcelController {
 

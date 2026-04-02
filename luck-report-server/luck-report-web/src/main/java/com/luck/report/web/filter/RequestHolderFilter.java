@@ -30,7 +30,7 @@ import java.io.IOException;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
-@Component
+@Component("bean.requestHolderFilter")
 public class RequestHolderFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
 

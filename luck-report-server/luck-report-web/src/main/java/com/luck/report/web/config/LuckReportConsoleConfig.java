@@ -21,7 +21,7 @@ public class LuckReportConsoleConfig {
      * @param reportDisableHttpSessionReportCache 是否禁用HTTP会话报表缓存
      * @return HttpSessionReportCache实例
      */
-    @Bean("luck-report.httpSessionReportCache")
+    @Bean("bean.httpSessionReportCache")
     public HttpSessionReportCache httpSessionReportCache(
             @Value("${luck-report.disableHttpSessionReportCache:false}") boolean reportDisableHttpSessionReportCache) {
         HttpSessionReportCache cache = new HttpSessionReportCache();

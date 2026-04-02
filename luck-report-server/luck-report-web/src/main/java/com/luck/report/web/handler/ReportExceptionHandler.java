@@ -14,9 +14,10 @@ import java.util.Map;
 /**
  * 全局异常处理器
  * 用于捕获并处理ureport相关的异常，确保异常信息能正确返回给前端
+ * @author luck
  */
-@ControllerAdvice
-public class GlobalExceptionHandler {
+@ControllerAdvice("bean.reportExceptionHandler")
+public class ReportExceptionHandler {
 
     /**
      * 处理ServletException异常
