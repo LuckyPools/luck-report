@@ -7,8 +7,12 @@
           <TopToolBar v-if="contextCreated" ref="topToolBar" :selectedCells="selectedCells" />
           <!-- 内容表格组件 -->
           <ContentTable
+            :reportPath="internalReportPath"
             @cell-selected="handleCellSelected"
             @context-created="handleContextCreated"
+            @navigate="handleNavigate"
+            @save="handleSave"
+            @error="handleError"
           />
         </div>
         <!-- 右侧区域：侧边栏 -->
@@ -35,6 +39,7 @@ import ResourcePanel from '@/views/report/designer/resource-panel/index.vue';
 import PrintLine from './print-line/index.vue';
 import TopToolBar from '@/views/report/designer/tool-bar/index.vue';
 import ContentTable from '@/views/report/designer/edit-table/index.vue';
+import { createNavigator, getLibMode } from '@/lib/navigator';
 
 export default {
   name: 'DesignerPage',
@@ -44,6 +49,12 @@ export default {
     ResourcePanel,
     ContentTable
   },
+  props: {
+    reportPath: {
+      type: String,
+      default: ''
+    }
+  },
   data() {
     return {
       contextCreated: false,
@@ -52,21 +63,28 @@ export default {
         colIndex: null,
         row2Index: null,
         col2Index: null
-      }
+      },
+      internalReportPath: this.reportPath
     };
   },
+  computed: {
+    navigator() {
+      return createNavigator(this);
+    },
+    isLibMode() {
+      return getLibMode();
+    }
+  },
+  watch: {
+    reportPath(val) {
+      this.internalReportPath = val;
+    }
+  },
   methods: {
-
-    /**
-     * 处理context创建事件
-     */
     handleContextCreated() {
       this.contextCreated = true;
     },
 
-    /**
-     * 处理单元格选择事件
-     */
     handleCellSelected({rowIndex, colIndex, row2Index, col2Index}) {
       this.selectedCells = {
         rowIndex,
@@ -74,6 +92,38 @@ export default {
         row2Index,
         col2Index
       };
+    },
+
+    handleNavigate(data) {
+      this.$emit('navigate', data);
+    },
+
+    handleSave(data) {
+      this.$emit('save', data);
+    },
+
+    handleError(err) {
+      this.$emit('error', err);
+    },
+
+    getReportData() {
+      return this.$refs.contentTable?.getReportData?.();
+    },
+
+    saveReport() {
+      return this.$refs.contentTable?.saveReport?.();
+    },
+
+    navigateTo(target, params, openInNewTab = true) {
+      this.navigator.navigate({ target, params, openInNewTab });
+    },
+
+    setReportPath(path) {
+      this.internalReportPath = path;
+    },
+
+    setLocale(locale) {
+      this.$i18n.locale = locale;
     }
   }
 }

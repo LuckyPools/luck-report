@@ -15,6 +15,7 @@
           type="file"
           class="form-control"
           :key="fileInputKey"
+          accept=".xlsx,.xls"
           @change="handleFileChange"
         />
       </div>

@@ -86,7 +86,7 @@
         <!-- 分页切换 -->
         <div v-if="reportData.tools.paging" class="btn-group">
           <ButtonGroup
-              :buttonText="toolsInfo > 0 ? $t('preview.paging.pagingPreview') : $t('preview.paging.preview')"
+              :buttonText="internalToolsInfo > 0 ? $t('preview.paging.pagingPreview') : $t('preview.paging.preview')"
               :showText="true"
               :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
               :menuItems="pagingMenuItems"
@@ -103,7 +103,7 @@
           {{ $t('preview.buttons.prevPage') }}
         </u-button>
 
-        <div v-if="toolsInfo > 0" class="btn-group">
+        <div v-if="internalToolsInfo > 0" class="btn-group">
           <!-- 分页下拉菜单 -->
           <ButtonGroup
               :buttonText="`共${reportData.totalPageWithCol}页，当前第${currentPage}页`"
@@ -183,6 +183,7 @@ import {cssStyle, makeUpHtml, vueScript, vueTemplate} from "@/views/report/desig
 import {makeUpJs} from "@/views/report/designer/search-form/utils/js";
 import {makeUpCss} from "@/views/report/designer/search-form/utils/css";
 import beautifier from "js-beautify";
+import { createNavigator, getLibMode } from '@/lib/navigator';
 
 export default {
   name: 'PreviewPage',
@@ -191,13 +192,35 @@ export default {
     PDFPrintDialog,
     ButtonGroup
   },
+  props: {
+    reportPath: {
+      type: String,
+      default: ''
+    },
+    params: {
+      type: Object,
+      default: () => ({})
+    },
+    mode: {
+      type: String,
+      default: ''
+    },
+    pageIndex: {
+      type: [Number, String],
+      default: null
+    },
+    toolsInfo: {
+      type: [Number, String],
+      default: null
+    }
+  },
   data() {
     return {
       loading: true,
       errorMessage: '',
       reportData: null,
       currentReportName: '',
-      toolsInfo: 0,
+      internalToolsInfo: 0,
       totalPage: 0,
       currentPage: 1,
       directPrintPdf: false,
@@ -205,10 +228,20 @@ export default {
       searchFormParameters: {},
       pageMenuItems: [],
       pdfPrintDialogVisible: false,
-      paperData: null
+      paperData: null,
+      internalReportPath: this.reportPath,
+      internalParams: this.params,
+      internalMode: this.mode,
+      internalPageIndex: this.pageIndex
     }
   },
   computed: {
+    isLibMode() {
+      return getLibMode();
+    },
+    navigator() {
+      return createNavigator(this);
+    },
     pagingMenuItems() {
       return [
         {
@@ -220,14 +253,36 @@ export default {
           action: () => this.goToPreview(1)
         }
       ];
+    },
+    computedToolsInfo() {
+      return this.internalToolsInfo;
     }
   },
   watch: {
-    // 监听路由变化，当页码参数变化时重新加载数据
+    reportPath(val) {
+      this.internalReportPath = val;
+      if (val) {
+        this.initReportPreview();
+      }
+    },
+    params: {
+      handler(val) {
+        this.internalParams = val;
+      },
+      deep: true
+    },
+    mode(val) {
+      this.internalMode = val;
+    },
+    pageIndex(val) {
+      this.internalPageIndex = val;
+    },
+    toolsInfo(val) {
+      this.internalToolsInfo = val;
+    },
     '$route.query._i': {
       handler(newPageIndex, oldPageIndex) {
-        // 如果页码发生变化且不是初始加载，则重新加载报表数据
-        if (newPageIndex !== oldPageIndex && oldPageIndex !== undefined) {
+        if (!this.isLibMode && newPageIndex !== oldPageIndex && oldPageIndex !== undefined) {
           this.loadReportDataForPage(newPageIndex);
         }
       },
@@ -454,16 +509,22 @@ export default {
       try {
         this.loading = true;
 
-        // 从当前路由获取参数
-        const fileName = this.$route.query.reportPath; // 报表文件名
-        const mode = this.$route.query.mode; // 模式
-        const toolsInfo = this.$route.query._t; // 工具栏信息
+        let fileName, mode, toolsInfo;
+
+        if (this.isLibMode) {
+          fileName = this.internalReportPath;
+          mode = this.internalMode;
+          toolsInfo = this.internalToolsInfo;
+        } else {
+          fileName = this.$route.query.reportPath;
+          mode = this.$route.query.mode;
+          toolsInfo = this.$route.query._t;
+        }
 
         if (!fileName) {
           throw new Error(this.$t('preview.error.fileParamMissing'));
         }
 
-        // 构建查询参数
         const params = {
           reportPath: fileName
         };
@@ -480,14 +541,20 @@ export default {
           params._t = toolsInfo
         }
 
-        // 添加自定义参数（非下划线开头的参数）
-        Object.keys(this.$route.query).forEach(key => {
-          if (!key.startsWith('_')) {
-            params[key] = this.$route.query[key];
-          }
-        });
+        if (this.isLibMode) {
+          Object.keys(this.internalParams).forEach(key => {
+            if (!key.startsWith('_')) {
+              params[key] = this.internalParams[key];
+            }
+          });
+        } else {
+          Object.keys(this.$route.query).forEach(key => {
+            if (!key.startsWith('_')) {
+              params[key] = this.$route.query[key];
+            }
+          });
+        }
 
-        // 添加搜索表单参数
         if (this.searchFormParameters) {
           Object.keys(this.searchFormParameters).forEach(key => {
             if (this.searchFormParameters[key]) {
@@ -496,34 +563,29 @@ export default {
           });
         }
 
-        // 加载报表数据
         const reportData = await previewReport(params);
         if (reportData.errorMsg) {
           throw new Error(reportData.errorMsg);
         }
 
-        // 更新报表数据
         this.reportData = reportData;
         this.currentPage = parseInt(pageIndex) || 1;
 
-        // 更新报表内容
         const tableContainer = document.getElementById('report-table');
         if (tableContainer) {
           tableContainer.innerHTML = reportData.content;
         }
 
-        // 重建图表数据
         this._buildChartDatas(reportData.chartDatas);
 
-        // 更新分页信息
         this.totalPage = reportData.totalPageWithCol || reportData.totalPage || 0;
 
-        // 初始化分页菜单项
         this.initPageMenuItems();
 
       } catch (error) {
         this.errorMessage = '加载报表失败: ' + error.message;
         console.error('加载报表失败:', error);
+        this.$emit('error', error);
       } finally {
         this.loading = false;
       }
@@ -535,16 +597,24 @@ export default {
      */
     async initReportPreview() {
       try {
-        const fileName = this.$route.query.reportPath; // 报表文件名
-        const mode = this.$route.query.mode // 模式
-        const pageIndex = this.$route.query._i // 页码索引
-        const toolsInfo = this.$route.query._t // 工具栏信息
+        let fileName, mode, pageIndex, toolsInfo;
+
+        if (this.isLibMode) {
+          fileName = this.internalReportPath;
+          mode = this.internalMode;
+          pageIndex = this.internalPageIndex;
+          toolsInfo = this.internalToolsInfo;
+        } else {
+          fileName = this.$route.query.reportPath;
+          mode = this.$route.query.mode;
+          pageIndex = this.$route.query._i;
+          toolsInfo = this.$route.query._t;
+        }
 
         if (!fileName) {
           throw new Error(this.$t('preview.error.fileParamMissing'))
         }
 
-        // 构建查询参数
         const params = {
           reportPath: fileName
         }
@@ -561,50 +631,52 @@ export default {
           params._t = toolsInfo
         }
 
-        // 添加自定义参数（非下划线开头的参数）
-        Object.keys(this.$route.query).forEach(key => {
-          if (!key.startsWith('_')) {
-            params[key] = this.$route.query[key]
-          }
-        })
+        if (this.isLibMode) {
+          Object.keys(this.internalParams).forEach(key => {
+            if (!key.startsWith('_')) {
+              params[key] = this.internalParams[key];
+            }
+          });
+        } else {
+          Object.keys(this.$route.query).forEach(key => {
+            if (!key.startsWith('_')) {
+              params[key] = this.$route.query[key]
+            }
+          })
+        }
 
-        // 加载报表数据
         this.loading = true
         this.reportData = await previewReport(params)
         if(this.reportData.errorMsg){
           throw Error(this.reportData.errorMsg)
         }
 
-        this.currentReportName = this.reportData.title || this.$route.query._title || file
+        this.currentReportName = this.reportData.title || (this.isLibMode ? this.internalReportPath : this.$route.query._title) || fileName
         if (this.currentReportName.endsWith('.ureport.xml')) {
           this.currentReportName = this.currentReportName.replace('.ureport.xml', '')
         }
 
-        // 更新页面标题
         document.title = this.currentReportName
 
-        // 设置报表样式
         this.initReportSearchForm(this.reportData.searchForm)
 
-        // 设置报表样式
         this.injectReportStyle(this.reportData.style)
 
-        // 设置分页信息
-        this.toolsInfo = parseInt(this.reportData.pageIndex || pageIndex)
+        this.internalToolsInfo = parseInt(this.reportData.pageIndex || pageIndex)
         this.totalPage = this.reportData.totalPageWithCol || this.reportData.totalPage || 0
-        this.currentPage = parseInt(this.$route.query._i) || 1
+        this.currentPage = parseInt(pageIndex) || 1
 
-        // 初始化分页菜单项
         this.initPageMenuItems()
 
-        // 初始化预览功能函数
         this.initializePreviewFunctions()
+
+        this.$emit('ready', { reportData: this.reportData });
 
       } catch (error) {
         this.errorMessage = '加载报表失败: ' + error.message
         console.error('加载报表失败:', error)
+        this.$emit('error', error);
       } finally {
-        // 无论成功失败，都关闭加载状态
         this.loading = false
       }
     },
@@ -970,7 +1042,7 @@ export default {
       setTimeout(() => {
 
         // 初始化分页功能
-        this.buildPaging(that.toolsInfo, that.totalPage)
+        this.buildPaging(that.internalToolsInfo, that.totalPage)
         // 设置自动刷新间隔
         if (this.reportData.intervalRefreshValue > 0) {
           this._intervalRefresh(that.reportData.intervalRefreshValue, that.totalPage);
@@ -991,10 +1063,25 @@ export default {
      * @returns {string} 构建好的预览URL
      */
     getPreviewUrl(pageMode) {
-      const query = { ...this.$route.query };
+      let query = {};
+
+      if (this.isLibMode) {
+        query = {
+          reportPath: this.internalReportPath,
+          mode: this.internalMode,
+          ...this.internalParams
+        };
+      } else {
+        query = { ...this.$route.query };
+      }
 
       if (pageMode === 1) {
         query._i = 1;
+      }
+
+      if (this.isLibMode) {
+        const queryString = new URLSearchParams(query).toString();
+        return `/report/preview?${queryString}`;
       }
 
       const routeData = this.$router.resolve({
@@ -1005,13 +1092,51 @@ export default {
       return routeData.href;
     },
 
-    /**
-     * 跳转到指定模式的预览页面
-     * @param {number} pageMode - 预览模式（0:普通预览, 1:分页预览）
-     */
     goToPreview(pageMode) {
-      window.location.href = this.getPreviewUrl(pageMode);
+      if (this.isLibMode) {
+        this.$emit('navigate', {
+          target: 'Preview',
+          params: {
+            reportPath: this.internalReportPath,
+            mode: this.internalMode,
+            _i: pageMode === 1 ? 1 : undefined,
+            ...this.internalParams
+          },
+          openInNewTab: true
+        });
+      } else {
+        window.location.href = this.getPreviewUrl(pageMode);
+      }
     },
+
+    refresh() {
+      this.initReportPreview();
+    },
+
+    goToPage(pageIndex) {
+      if (this.isLibMode) {
+        this.internalPageIndex = pageIndex;
+        this.loadReportDataForPage(pageIndex);
+      } else {
+        this.navigateToPage(pageIndex);
+      }
+    },
+
+    setReportPath(path) {
+      this.internalReportPath = path;
+      if (path) {
+        this.initReportPreview();
+      }
+    },
+
+    setParams(params) {
+      this.internalParams = params;
+      this.initReportPreview();
+    },
+
+    setLocale(locale) {
+      this.$i18n.locale = locale;
+    }
 
   }
 }

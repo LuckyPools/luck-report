@@ -17,22 +17,42 @@ import { loadReport } from '@/api/designer';
 import { showAlert } from '@/utils/comnon.js';
 import { addRowHeader } from "@/utils/contextActions";
 import TableManager from './manager.js';
+import { getLibMode } from '@/lib/navigator';
 
 export default {
   name: 'ContentTable',
+  props: {
+    reportPath: {
+      type: String,
+      default: ''
+    }
+  },
   data() {
     return {
       hot: null,
       reportDef: null,
       cellsMap: new Map(),
-      context: null
+      context: null,
+      internalReportPath: this.reportPath
     };
+  },
+  computed: {
+    isLibMode() {
+      return getLibMode();
+    }
+  },
+  watch: {
+    reportPath(val) {
+      this.internalReportPath = val;
+      if (val) {
+        this.loadFile(val, this.handleReportLoaded.bind(this));
+      }
+    }
   },
   mounted() {
     this.initTable();
   },
   beforeUnmount() {
-    // 清理资源
     if (this.hot) {
       this.hot.destroy();
     }
@@ -41,28 +61,28 @@ export default {
     ...mapActions('report', [
       'setContext'
     ]),
-    /**
-     * 初始化表格
-     */
     initTable() {
       utils.undoManager.setLimit(100);
 
-      // 初始化Handsontable
       this.initHandsontable();
 
-      // 加载文件
-      let filePath = utils.getParameter("reportPath");
-      if (!filePath || filePath === '') {
+      let filePath = '';
+      if (this.isLibMode) {
+        filePath = this.internalReportPath || 'classpath:template/template.ureport.xml';
+      } else {
+        filePath = utils.getParameter("reportPath");
+        if (!filePath || filePath === '') {
           filePath = 'classpath:template/template.ureport.xml';
-      }else{
-          this.$store.dispatch('report/setSaveStatus', true);
+        }
       }
+
+      if (filePath && filePath !== 'classpath:template/template.ureport.xml') {
+        this.$store.dispatch('report/setSaveStatus', true);
+      }
+
       this.loadFile(filePath, this.handleReportLoaded.bind(this));
     },
 
-    /**
-     * 初始化Handsontable实例
-     */
     initHandsontable() {
       this.hot = new Handsontable(this.$refs.contentTable, {
         startCols: 1,
@@ -90,9 +110,6 @@ export default {
       this.bindSelectionEvent();
     },
 
-    /**
-     * 绑定行调整大小事件
-     */
     bindRowResizeEvent() {
       this.hot.addHook('afterRowResize', function(currentRow, newSize) {
         let rowHeights = this.getSettings().rowHeights;
@@ -127,9 +144,6 @@ export default {
       });
     },
 
-    /**
-     * 绑定列调整大小事件
-     */
     bindColumnResizeEvent() {
       this.hot.addHook('afterColumnResize', function(currentColumn, newSize) {
         let colWidths = this.getSettings().colWidths;
@@ -165,9 +179,6 @@ export default {
       });
     },
 
-    /**
-     * 绑定选择事件
-     */
     bindSelectionEvent() {
       const _this = this;
       Handsontable.hooks.add("afterSelectionEnd", function(rowIndex, colIndex, row2Index, col2Index) {
@@ -175,9 +186,6 @@ export default {
       }, this.hot);
     },
 
-    /**
-     * 处理单元格选择事件
-     */
     handleCellSelected(rowIndex, colIndex, row2Index, col2Index) {
       this.$emit('cell-selected', {
         rowIndex,
@@ -187,26 +195,16 @@ export default {
       });
     },
 
-    /**
-     * 处理报表加载完成
-     */
     handleReportLoaded() {
-      // 创建Context实例
       this.context = new Context(this);
 
-      // 将context存入vuex
       this.setContext(this.context);
 
-      // 通过事件传递context给父组件
       this.$emit('context-created', this.context);
 
-      // 处理行头
       this.processRowHeaders();
     },
 
-    /**
-     * 处理行头
-     */
     processRowHeaders() {
       if (this.reportDef && this.reportDef.rows) {
         const rows = this.reportDef.rows;
@@ -221,9 +219,6 @@ export default {
       }
     },
 
-    /**
-     * 加载报表文件
-     */
     async loadFile(filePath, callback) {
       try {
         let formData = new FormData();
@@ -234,7 +229,6 @@ export default {
         this._buildReportData(reportDef);
         this.hot.render();
 
-        // 先构建菜单，因为它依赖于hot实例但不依赖于context
         this.buildMenu();
 
         if (callback) {
@@ -256,17 +250,15 @@ export default {
         }
 
       } catch (error) {
+        this.$emit('error', error);
         if (error.msg) {
           showAlert("服务端错误：" + error.msg);
         } else {
-          showAlert(this.$t('table.report.load') + `${file}` + this.$t('table.report.fail'));
+          showAlert(this.$t('table.report.load') + `${filePath}` + this.$t('table.report.fail'));
         }
       }
     },
 
-    /**
-     * 构建报表数据
-     */
     _buildReportData(data) {
       this.cellsMap.clear();
       const rows = data.rows;
@@ -317,13 +309,18 @@ export default {
       });
     },
 
-    /**
-     * 构建菜单
-     */
     buildMenu() {
       this.hot.updateSettings({
         contextMenu: buildMenuConfigure()
       });
+    },
+
+    getReportData() {
+      return utils.tableToXml(this.context);
+    },
+
+    saveReport() {
+      this.$emit('save', { data: this.getReportData() });
     }
   }
 };

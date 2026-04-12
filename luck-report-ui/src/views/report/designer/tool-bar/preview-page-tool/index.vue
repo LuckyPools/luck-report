@@ -14,6 +14,7 @@ import { showAlert } from '@/utils/comnon.js';
 import { savePreviewFile } from '@/api/designer/index.js';
 import UButton from "@/components/button/index.vue";
 import { mapGetters } from 'vuex';
+import { createNavigator, getLibMode } from '@/lib/navigator';
 
 export default {
   name: 'PreviewPageTool',
@@ -26,11 +27,16 @@ export default {
     ...mapGetters('report', ['getContext']),
     context() {
       return this.getContext;
+    },
+    isLibMode() {
+      return getLibMode();
+    },
+    navigator() {
+      return createNavigator(this);
     }
   },
   methods: {
 
-    // 执行分页预览操作
     handleClick() {
       const content = tableToXml(this.context);
       let fileName = this.$store.state.report.fileName;
@@ -40,22 +46,14 @@ export default {
         fileName = 'p'
       }
 
-      // 先保存预览数据
       savePreviewFile(fileName, content)
       .then(() => {
-        // 构建预览URL
-        const routeData = this.$router.resolve({
-          name: 'Preview',
-          query: {
-            reportPath: fileName,
-            mode: 'preview',
-            _i: '1',
-            _r: '1'
-          }
-        });
-
-        // 打开新窗口预览
-        window.open(routeData.href, "_blank");
+        this.navigator.openPreview({
+          reportPath: fileName,
+          mode: 'preview',
+          _i: '1',
+          _r: '1'
+        }, true);
       })
       .catch(error => {
         console.error('预览失败:', error);

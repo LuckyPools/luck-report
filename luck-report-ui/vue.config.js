@@ -3,8 +3,10 @@ const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
 const port = process.env.port;
 const PUBLIC_PATH = process.env.VUE_APP_PUBLIC_PATH || '/';
 
+const isLibBuild = process.env.BUILD_TYPE === 'lib';
+
 module.exports = {
-  publicPath: PUBLIC_PATH,
+  publicPath: isLibBuild ? './' : PUBLIC_PATH,
   runtimeCompiler: true,
   devServer: {
     port: port,
@@ -17,28 +19,22 @@ module.exports = {
       }
     },
     client:{
-      // 关闭全屏报错提示
       overlay:false
     },
-    // 配置静态资源路径
     static: {
       directory: path.resolve(__dirname, 'src/assets'),
       publicPath: '/assets',
       watch: true
     },
-    // 启用历史模式的回退
     historyApiFallback: {
       rewrites: [
-        // 将所有路径重定向到index.html，让前端路由处理
         { from: /.*/, to: path.join(PUBLIC_PATH, 'index.html') }
       ]
     },
-    // 启用热模块替换
     hot: true
   },
   assetsDir: 'assets',
-  // webpack配置
-  configureWebpack: {
+  configureWebpack: isLibBuild ? {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src')
@@ -47,6 +43,36 @@ module.exports = {
         crypto: false,
         stream: require.resolve('stream-browserify')
       }
+    },
+    output: {
+      libraryExport: 'default'
+    }
+  } : {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, 'src')
+      },
+      fallback: {
+        crypto: false,
+        stream: require.resolve('stream-browserify')
+      }
+    }
+  },
+  css: {
+    extract: isLibBuild ? false : true,
+    loaderOptions: {
+      css: {
+        // 忽略 CSS 顺序冲突警告
+        esModule: false
+      }
+    }
+  },
+  chainWebpack: config => {
+    if (!isLibBuild) {
+      config.plugin('extract-css').tap(args => {
+        args[0].ignoreOrder = true;
+        return args;
+      });
     }
   }
 }

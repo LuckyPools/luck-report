@@ -93,6 +93,7 @@ import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UButton from "@/components/button/index.vue";
+import { createNavigator, getLibMode } from '@/lib/navigator';
 
 export default {
   name: 'OpenDialog',
@@ -127,6 +128,12 @@ export default {
     },
     canGoBack() {
       return this.pathHistory.length > 0;
+    },
+    isLibMode() {
+      return getLibMode();
+    },
+    navigator() {
+      return createNavigator(this);
     }
   },
   watch: {
@@ -211,11 +218,18 @@ export default {
 
       showConfirm(`${this.$t('dialog.open.openConfirm')}[${file.name}]？`).then(function() {
         let fullFile = _this.selectedProvider + encodeURI(encodeURI(file.path || file.name));
-        const routeData = _this.$router.resolve({
-          name: 'Designer',
-        });
-        let path = routeData.href + "?reportPath=" + fullFile;
-        window.open(path, "_self");
+
+        // 先关闭弹窗
+        _this.handleClose();
+
+        if (_this.isLibMode) {
+          _this.$emit('open-file', fullFile);
+          _this.navigator.openDesigner({
+            reportPath: fullFile
+          }, false);
+        } else {
+          window.location.replace("?reportPath=" + fullFile);
+        }
       });
     },
     handleFileClick(file) {
