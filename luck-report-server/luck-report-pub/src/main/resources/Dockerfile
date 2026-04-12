@@ -13,10 +13,10 @@ RUN apt update && \
 WORKDIR /app
 
 # 将宿主机的 luck-report.jar 复制到容器的 /app 目录下
-COPY luck-report.jar /app/luck-report.jar
+COPY luck-report-pub.jar /app/luck-report-pub.jar
 
 # 暴露端口（根据你的 ureport2 项目实际端口修改，默认可能是 8080）
 EXPOSE 8050
 
 # 容器启动命令：运行 jar 包，指定 prod 环境，同时设置 JVM 优化参数（可选）
-ENTRYPOINT ["java", "-jar", "/app/luck-report-web-exec.jar", "--spring.profiles.active=prod"]
+ENTRYPOINT ["java", "-jar", "/app/luck-report-pub.jar", "--spring.profiles.active=prod"]

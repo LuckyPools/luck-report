@@ -3,7 +3,6 @@ package com.luck.report.web.config;
 import com.luck.report.web.cache.HttpSessionReportCache;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -11,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
  * @author 24731
  */
 @Configuration
-@ComponentScan(basePackages = {"com.luck.report.core.config", "com.luck.report.font.config"})
 public class LuckReportConsoleConfig {
 
     /**

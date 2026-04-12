@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
         LuckReportConsoleConfig.class,
-        VelocityConfig.class,
         WebConfig.class
 })
 public class LuckReportMainConfig {

@@ -13,6 +13,7 @@
         <module>luck-report-web</module>
         <module>luck-report-core</module>
         <module>luck-report-font</module>
+        <module>luck-report-pub</module>
     </modules>
 
     <properties>

@@ -1,4 +1,4 @@
-package com.luck.report.web;
+package com.luck.report.pub;
 
 import com.luck.report.web.config.LuckReportMainConfig;
 import org.springframework.boot.SpringApplication;
@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Import;
 /**
  * @author luck
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.luck.report"})
 @Import(LuckReportMainConfig.class)
 public class LuckReportApplication {
 

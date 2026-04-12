@@ -1,4 +1,4 @@
-package com.luck.report.web.config;
+package com.luck.report.pub.config;
 
 import com.luck.report.core.definition.datasource.BuildinDatasource;
 import org.slf4j.Logger;
