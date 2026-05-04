@@ -1,8 +1,8 @@
 package com.luck.report.core.definition.searchform.component;
 
 import com.luck.report.core.definition.searchform.RenderContext;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ButtonComponent implements Component {
     private String label;

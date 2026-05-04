@@ -17,7 +17,7 @@ package com.luck.report.core.definition;
 
 import com.luck.report.core.export.pdf.font.FontBuilder;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.awt.*;
 import java.io.Serializable;

@@ -17,7 +17,7 @@ package com.luck.report.core.chart;
 
 import com.luck.report.core.cache.CacheUtils;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author Jacky.gao

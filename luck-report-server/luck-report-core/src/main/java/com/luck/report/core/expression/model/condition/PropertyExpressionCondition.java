@@ -21,7 +21,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * @author Jacky.gao

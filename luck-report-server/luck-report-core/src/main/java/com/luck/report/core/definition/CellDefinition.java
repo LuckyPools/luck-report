@@ -19,7 +19,7 @@ import com.luck.report.core.Range;
 import com.luck.report.core.definition.value.Value;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -22,7 +22,7 @@ import com.luck.report.core.model.Column;
 import com.luck.report.core.model.Report;
 import com.luck.report.core.model.Row;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
 import java.util.ArrayList;

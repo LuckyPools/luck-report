@@ -28,7 +28,7 @@ import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.HashMap;
 import java.util.List;

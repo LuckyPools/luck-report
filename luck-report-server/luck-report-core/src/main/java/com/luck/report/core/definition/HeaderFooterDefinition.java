@@ -21,7 +21,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
 import java.util.List;

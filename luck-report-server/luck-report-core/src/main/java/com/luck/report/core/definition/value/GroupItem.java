@@ -16,7 +16,7 @@
 package com.luck.report.core.definition.value;
 
 import com.luck.report.core.expression.model.Condition;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;
 

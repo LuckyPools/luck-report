@@ -14,7 +14,7 @@ import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.TempObjectCache;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.exception.ReportDesignException;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
