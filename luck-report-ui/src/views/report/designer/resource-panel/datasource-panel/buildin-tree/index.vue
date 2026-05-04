@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import uuid from 'node-uuid';
+import { v1 as uuidv1 } from 'uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import SqlDatasetDialog from '@/views/report/designer/resource-panel/datasource-panel/sql-dataset-dialog/index.vue';
@@ -126,7 +126,7 @@ export default {
   },
   data() {
       return {
-        id: 'buildin_' + uuid.v1(),
+        id: 'buildin_' + uuidv1(),
         datasourceExpanded: true,
         datasetExpanded: {},
         currentDataset: null,

@@ -198,10 +198,13 @@ export default {
 
       model[this.prop] = this.fieldValue
 
-      validator.validate(model, { firstFields: true }, errors => {
-        this.validateState = !errors ? 'success' : 'error'
+      validator.validate(model, { firstFields: true }).then(() => {
+        this.validateState = 'success'
+        this.validateMessage = ''
+        callback('')
+      }).catch(({ errors }) => {
+        this.validateState = 'error'
         this.validateMessage = errors ? errors[0].message : ''
-
         callback(this.validateMessage)
       })
     },

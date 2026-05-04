@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import uuid from 'node-uuid';
+import { v1 as uuidv1 } from 'uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import SqlDatasetDialog from '@/views/report/designer/resource-panel/datasource-panel/sql-dataset-dialog/index.vue';
 import DatasourceDialog from '@/views/report/designer/resource-panel/datasource-panel/datasource-dialog/index.vue';
@@ -139,7 +139,7 @@ export default {
   data() {
     return {
       type: 'jdbc',
-      id: uuid.v1(),
+      id: uuidv1(),
       name: this.ds.name,
       username: this.ds.username,
       password: this.ds.password,

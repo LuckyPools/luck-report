@@ -29,6 +29,9 @@ request.interceptors.response.use(response => {
 
 function dealError(error){
     console.log(error);
+    if (error && error.auxCode && error.msg) {
+        error.msg = error.msg + "，异常编码为：" + error.auxCode;
+    }
     return Promise.reject(error);
 }
 

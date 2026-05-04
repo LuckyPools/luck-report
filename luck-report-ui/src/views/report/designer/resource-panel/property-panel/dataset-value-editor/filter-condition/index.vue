@@ -61,7 +61,7 @@
 <script>
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { setDirty } from '@/utils/table.js';
-import uuid from 'node-uuid';
+import { v1 as uuidv1 } from 'uuid';
 import ConditionDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 
@@ -145,7 +145,7 @@ export default {
           operation: conditionData.operation,
           right: conditionData.right,
           join: conditionData.join,
-          id: uuid.v1()
+          id: uuidv1()
         };
         conditions.push(condition);
       }

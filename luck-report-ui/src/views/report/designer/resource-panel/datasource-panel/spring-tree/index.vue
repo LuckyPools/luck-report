@@ -101,7 +101,7 @@
 </template>
 
 <script>
-import uuid from 'node-uuid';
+import { v1 as uuidv1 } from 'uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import BeanMethodDialog from '@/views/report/designer/resource-panel/datasource-panel/bean-method-dialog/index.vue';
@@ -141,7 +141,7 @@ export default {
   },
   data() {
     return {
-      id: 'spring_' + uuid.v1(),
+      id: 'spring_' + uuidv1(),
       datasourceExpanded: true,
       datasetExpanded: {},
       localName: this.name,
