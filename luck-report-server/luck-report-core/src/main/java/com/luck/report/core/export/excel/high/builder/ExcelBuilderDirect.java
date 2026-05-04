@@ -29,10 +29,10 @@ import com.luck.report.core.utils.UnitUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.util.Units;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
-import org.apache.poi.xssf.usermodel.XSSFShape;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -142,14 +142,11 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                     if (obj != null) {
                         if (obj instanceof String) {
                             cell.setCellValue((String) obj);
-                            cell.setCellType(CellType.STRING);
                         } else if (obj instanceof Number) {
                             BigDecimal bigDecimal = Utils.toBigDecimal(obj);
                             cell.setCellValue(bigDecimal.doubleValue());
-                            cell.setCellType(CellType.NUMERIC);
                         } else if (obj instanceof Boolean) {
                             cell.setCellValue((Boolean) obj);
-                            cell.setCellType(CellType.BOOLEAN);
                         } else if (obj instanceof Image) {
                             Image img = (Image) obj;
                             InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
@@ -162,13 +159,13 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                             int leftMargin = 0, topMargin = 0;
                             int wholeWidth = getWholeWidth(columns, i, cellInfo.getColSpan());
                             int wholeHeight = getWholeHeight(rows, rowNumber, cellInfo.getRowSpan());
-                            HorizontalAlignment align = style.getAlignmentEnum();
+                            HorizontalAlignment align = style.getAlignment();
                             if (align.equals(HorizontalAlignment.CENTER)) {
                                 leftMargin = (wholeWidth - width) / 2;
                             } else if (align.equals(HorizontalAlignment.RIGHT)) {
                                 leftMargin = wholeWidth - width;
                             }
-                            VerticalAlignment valign = style.getVerticalAlignmentEnum();
+                            VerticalAlignment valign = style.getVerticalAlignment();
                             if (valign.equals(VerticalAlignment.CENTER)) {
                                 topMargin = (wholeHeight - height) / 2;
                             } else if (valign.equals(VerticalAlignment.BOTTOM)) {
@@ -184,10 +181,10 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                                 anchor.setCol2(i + colSpan);
                                 anchor.setRow1(rowNumber);
                                 anchor.setRow2(rowNumber + rowSpan);
-                                anchor.setDx1(leftMargin * XSSFShape.EMU_PER_PIXEL);
-                                anchor.setDx2(width * XSSFShape.EMU_PER_PIXEL);
-                                anchor.setDy1(topMargin * XSSFShape.EMU_PER_PIXEL);
-                                anchor.setDy2(height * XSSFShape.EMU_PER_PIXEL);
+                                anchor.setDx1(Units.pixelToEMU(leftMargin));
+                                anchor.setDx2(Units.pixelToEMU(width));
+                                anchor.setDy1(Units.pixelToEMU(topMargin));
+                                anchor.setDy2(Units.pixelToEMU(height));
                                 drawing.createPicture(anchor, pictureIndex);
                             } finally {
                                 IOUtils.closeQuietly(inputStream);
@@ -208,13 +205,13 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                                 int leftMargin = 0, topMargin = 0;
                                 int wholeWidth = getWholeWidth(columns, i, cellInfo.getColSpan());
                                 int wholeHeight = getWholeHeight(rows, rowNumber, cellInfo.getRowSpan());
-                                HorizontalAlignment align = style.getAlignmentEnum();
+                                HorizontalAlignment align = style.getAlignment();
                                 if (align.equals(HorizontalAlignment.CENTER)) {
                                     leftMargin = (wholeWidth - width) / 2;
                                 } else if (align.equals(HorizontalAlignment.RIGHT)) {
                                     leftMargin = wholeWidth - width;
                                 }
-                                VerticalAlignment valign = style.getVerticalAlignmentEnum();
+                                VerticalAlignment valign = style.getVerticalAlignment();
                                 if (valign.equals(VerticalAlignment.CENTER)) {
                                     topMargin = (wholeHeight - height) / 2;
                                 } else if (valign.equals(VerticalAlignment.BOTTOM)) {
@@ -230,10 +227,10 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                                     anchor.setCol2(i + colSpan);
                                     anchor.setRow1(rowNumber);
                                     anchor.setRow2(rowNumber + rowSpan);
-                                    anchor.setDx1(leftMargin * XSSFShape.EMU_PER_PIXEL);
-                                    anchor.setDx2(width * XSSFShape.EMU_PER_PIXEL);
-                                    anchor.setDy1(topMargin * XSSFShape.EMU_PER_PIXEL);
-                                    anchor.setDy2(height * XSSFShape.EMU_PER_PIXEL);
+                                    anchor.setDx1(Units.pixelToEMU(leftMargin));
+                                    anchor.setDx2(Units.pixelToEMU(width));
+                                    anchor.setDy1(Units.pixelToEMU(topMargin));
+                                    anchor.setDy2(Units.pixelToEMU(height));
                                     drawing.createPicture(anchor, pictureIndex);
                                 } finally {
                                     IOUtils.closeQuietly(inputStream);

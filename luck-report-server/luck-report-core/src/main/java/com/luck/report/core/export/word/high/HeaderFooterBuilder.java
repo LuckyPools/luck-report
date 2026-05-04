@@ -94,13 +94,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -120,13 +116,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -142,13 +134,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -162,13 +150,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -182,13 +166,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -217,13 +197,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -243,13 +219,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -265,13 +237,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -285,13 +253,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -305,13 +269,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -340,13 +300,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -366,13 +322,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -388,13 +340,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -408,13 +356,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
@@ -428,13 +372,9 @@ public class HeaderFooterBuilder {
                     if (hf.getFontSize() > 1) {
                         r1.setFontSize(hf.getFontSize());
                     }
-                    CTRPr rpr = r1.getCTR().isSetRPr() ? r1.getCTR().getRPr() : r1.getCTR().addNewRPr();
-                    CTFonts fonts = rpr.isSetRFonts() ? rpr.getRFonts() : rpr.addNewRFonts();
                     String fontName = hf.getFontFamily();
                     if (fontName != null) {
-                        fonts.setAscii(fontName);
-                        fonts.setEastAsia(fontName);
-                        fonts.setHAnsi(fontName);
+                        r1.setFontFamily(fontName);
                     }
                     if (hf.isBold()) {
                         r1.setBold(true);
