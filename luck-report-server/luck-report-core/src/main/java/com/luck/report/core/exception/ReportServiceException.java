@@ -13,24 +13,21 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.core.expression.model.condition;
-
-import com.luck.report.core.exception.ReportParseException;
+package com.luck.report.core.exception;
 
 /**
- * @author Jacky.gao
- * @since 2016年12月1日
+ * 报表服务异常
+ * 用于报表服务层抛出的异常
+ * @author luck
  */
-public enum Join {
-    and, or;
+public class ReportServiceException extends ReportException {
+    private static final long serialVersionUID = 1L;
 
-    public static Join parse(String join) {
-        if (join.equals("and") || join.equals("&&")) {
-            return and;
-        }
-        if (join.equals("or") || join.equals("||")) {
-            return or;
-        }
-        throw new ReportParseException("Unknow join : " + join);
+    public ReportServiceException(String msg) {
+        super(msg);
+    }
+
+    public ReportServiceException(Exception ex) {
+        super(ex);
     }
 }

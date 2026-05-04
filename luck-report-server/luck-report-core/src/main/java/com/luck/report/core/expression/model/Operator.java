@@ -54,7 +54,7 @@ public enum Operator {
             case Complementation:
                 return "%";
         }
-        throw new IllegalArgumentException("Unknow operator: [" + this + "]");
+        throw new ReportParseException("Unknow operator: [" + this + "]");
     }
 
     ;

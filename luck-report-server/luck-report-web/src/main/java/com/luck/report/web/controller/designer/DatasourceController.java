@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.designer;
 
+import com.luck.report.core.exception.ReportServiceException;
 import com.luck.report.core.Utils;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.definition.dataset.Field;
@@ -31,7 +32,6 @@ import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
@@ -125,7 +125,7 @@ public class DatasourceController {
      * 构建数据库表
      */
     @RequestMapping("/buildDatabaseTables")
-    public void buildDatabaseTables(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
+    public void buildDatabaseTables(HttpServletRequest req, HttpServletResponse resp) throws ReportServiceException {
         Connection conn = null;
         ResultSet rs = null;
         try {
@@ -146,7 +146,7 @@ public class DatasourceController {
             }
             ResponseUtils.writeObjectToJson(resp, tables);
         } catch (Exception ex) {
-            throw new ServletException(ex);
+            throw new ReportServiceException(ex);
         } finally {
             JdbcUtils.closeResultSet(rs);
             JdbcUtils.closeConnection(conn);
@@ -204,7 +204,7 @@ public class DatasourceController {
      * 预览数据
      */
     @RequestMapping("/previewData")
-    public void previewData(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    public void previewData(HttpServletRequest req, HttpServletResponse resp) throws ReportServiceException, IOException {
         String sql = req.getParameter("sql");
         String parameters = req.getParameter("parameters");
         Map<String, Object> map = buildParameters(parameters);
@@ -252,7 +252,7 @@ public class DatasourceController {
             result.setTotal(size);
             ResponseUtils.writeObjectToJson(resp, result);
         } catch (Exception ex) {
-            throw new ServletException(ex);
+            throw new ReportServiceException(ex);
         } finally {
             if (conn != null) {
                 try {

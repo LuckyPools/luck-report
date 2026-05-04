@@ -16,6 +16,7 @@
 package com.luck.report.core.utils;
 
 import com.luck.report.core.Utils;
+import com.luck.report.core.exception.ReportComputeException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -193,7 +194,7 @@ public class ElCompute {
                 return b1.add(b2);
             }
         }
-        throw new RuntimeException("Unkown operate " + op + "");
+        throw new ReportComputeException("Unkown operate " + op + "");
     }
 
 
