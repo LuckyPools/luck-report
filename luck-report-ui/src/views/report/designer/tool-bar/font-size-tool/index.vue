@@ -78,7 +78,7 @@ export default {
 
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];

@@ -469,7 +469,7 @@ export default {
         return;
       }
 
-      const rowIndex = selected[0], colIndex = selected[1];
+      const [rowIndex, colIndex, endRow, endCol] = selected[0];
       const cellDef = getCell(rowIndex, colIndex);
 
       let newCellDef = deepCopy(cellDef);
@@ -501,7 +501,7 @@ export default {
       hot.render();
 
       if (hot.hooks) {
-        hot.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
+        hot.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
       }
     },
 

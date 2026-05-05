@@ -20,7 +20,7 @@ export function doInsertCol(left, number = 1) {
         showAlert($t('table.colTip'));
         return;
     }
-    let startCol = selected[1], endCol = selected[3];
+    const [startRow, startCol, endRow, endCol] = selected[0];
     let position = startCol;
     if (startCol > endCol) {
         if (left) {

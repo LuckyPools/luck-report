@@ -23,7 +23,7 @@ export function doDeleteRow() {
         });
         return;
     }
-    let startRow = selected[0], endRow = selected[2];
+    let [startRow, startCol, endRow, endCol] = selected[0];
     if (endRow < startRow) {
         let tempStartRow = startRow;
         startRow = endRow;

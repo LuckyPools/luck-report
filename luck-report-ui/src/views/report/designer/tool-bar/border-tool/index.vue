@@ -105,7 +105,7 @@ export default {
 
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
@@ -145,7 +145,7 @@ export default {
 
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
@@ -196,7 +196,7 @@ export default {
 
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
@@ -235,7 +235,7 @@ export default {
       }
 
       const selected = TableManager.get().getSelected();
-      const startRow = selected[0], startCol = selected[1];
+      const [startRow, startCol] = selected[0];
       const cellDef = getCell(startRow, startCol);
 
       const defaultBorderStyle = { style: 'solid', width: 1, color: '#000000' };
@@ -268,7 +268,7 @@ export default {
     },
     handleSave(topBorder, bottomBorder, leftBorder, rightBorder) {
       const selected = TableManager.get().getSelected();
-      const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      const [startRow, startCol, endRow, endCol] = selected[0];
 
       let oldBorderStyle = this.updateCustomBorderStyle(
         startRow, startCol, endRow, endCol,

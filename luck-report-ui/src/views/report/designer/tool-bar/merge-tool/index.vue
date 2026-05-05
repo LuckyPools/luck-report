@@ -31,7 +31,7 @@ export default {
 
       let mergeCells = table.getSettings().mergeCells || [];
       let oldMergeCells = mergeCells.concat([]);
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       let tmp = endRow;
       if (startRow > endRow) {

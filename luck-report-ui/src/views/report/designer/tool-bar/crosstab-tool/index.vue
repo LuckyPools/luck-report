@@ -67,7 +67,7 @@ export default {
 
       const hot = TableManager.get();
       const selected = hot.getSelected();
-      const rowIndex = selected[0], colIndex = selected[1];
+      const [rowIndex, colIndex] = selected[0];
       const cellDef = getCell(rowIndex, colIndex);
 
       this.selectedCell = {

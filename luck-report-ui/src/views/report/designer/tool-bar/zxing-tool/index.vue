@@ -59,7 +59,7 @@ export default {
 
       const hot = TableManager.get();
       const selected = hot.getSelected();
-      const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      const [startRow, startCol, endRow, endCol] = selected[0];
       let cellDef = getCell(startRow, startCol);
       let oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
 
@@ -123,7 +123,7 @@ export default {
 
       const hot = TableManager.get();
       const selected = hot.getSelected();
-      const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      const [startRow, startCol, endRow, endCol] = selected[0];
       let cellDef = getCell(startRow, startCol);
       let oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
 

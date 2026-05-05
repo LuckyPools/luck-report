@@ -45,7 +45,7 @@ export default function buildMenuConfigure(){
                 doDeleteCol.call(this);
             }else if(key==='clean_content'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [startRow, startCol, endRow, endCol] = selected[0];
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
                 undoManager.add({
                     redo:function(){
@@ -57,7 +57,7 @@ export default function buildMenuConfigure(){
                 })
             }else if(key==='clean_style'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [startRow, startCol, endRow, endCol] = selected[0];
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
                 undoManager.add({
                     redo:function(){
@@ -69,7 +69,7 @@ export default function buildMenuConfigure(){
                 })
             }else if(key==='clean'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [startRow, startCol, endRow, endCol] = selected[0];
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
                 undoManager.add({
                     redo:function(){
@@ -81,7 +81,7 @@ export default function buildMenuConfigure(){
                 });
             }else if(key==='repeat_row_header'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [startRow,,endRow] = selected[0];
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'headerrepeat');
                 }
@@ -89,7 +89,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='title_row'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [startRow,,endRow] = selected[0];
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'title');
                 }
@@ -97,7 +97,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='repeat_row_footer'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [startRow,,endRow] = selected[0];
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'footerrepeat');
                 }
@@ -105,7 +105,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='summary_row'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [startRow,,endRow] = selected[0];
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'summary');
                 }
@@ -113,7 +113,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='repeat_cancel'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [startRow,,endRow] = selected[0];
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     adjustDelRowHeaders(rowNumber);
                 }
@@ -121,8 +121,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='row_height'){
                 const selected=this.getSelected();
-                const startRow = selected[0];
-                const endRow = selected[2];
+                const [startRow,,,endRow] = selected[0];
                 const rowHeight=this.getRowHeight(startRow);
                 const dialog=new Class();
                 dialog.show(function(newHeight){
@@ -138,8 +137,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='col_width'){
                 const selected=this.getSelected();
-                const startCol=selected[1];
-                const endCol = selected[3];
+                const [,startCol,,endCol] = selected[0];
                 const colWidth=this.getColWidth(startCol);
                 const dialog=new Class();
                 dialog.show(function(newColWidth){
@@ -155,7 +153,7 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='copy_style'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [startRow, startCol, endRow, endCol] = selected[0];
                 let cell= getCell(startRow,startCol);
                 if(!cell){
                     showAlert("请先选中目标单元格！");
@@ -168,7 +166,7 @@ export default function buildMenuConfigure(){
                 return;
             }
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [startRow, startCol, endRow, endCol] = selected[0];
                 let oldCellsStyleMap=pasteStyle(startRow,endRow,startCol,endCol);
                 undoManager.add({
                     redo:function(){
@@ -403,62 +401,79 @@ export default function buildMenuConfigure(){
     };
 
     function checkCopyOperationDisabled(){
-        const selected=this.getSelected();
-        if(!selected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
+            return true;
+        }
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
         return false;
-    };
+    }
+
     function checkPasteOperationDisabled(){
-        const selected=this.getSelected();
-        if(!selected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
+            return true;
+        }
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
         if(window.__copy_cell_style__){
             return false;
         }
         return true;
-    };
+    }
+
     function checkRowDeleteOperationDisabled(){
-        if(!this || !this.getSelected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
             return true;
         }
-        const selected=this.getSelected();
-        if(!selected){
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
-        const startRow=selected[0], endRow=selected[2];
-        let dif=Math.abs(startRow-endRow)+1;
-        const countRows=this.countRows ? this.countRows() : 0;
-        if(dif>=countRows){
+        const selection = selected[0];
+        if(!selection){
             return true;
-        }else{
-            return false;
         }
-    };
+        const [startRow, , endRow] = selection;
+        const dif = Math.abs(startRow - endRow) + 1;
+        const countRows = typeof hot.countRows === 'function' ? hot.countRows() : 0;
+        return dif >= countRows;
+    }
 
     function checkColDeleteOperationDisabled(){
-        if(!this || !this.getSelected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
             return true;
         }
-        const selected=this.getSelected();
-        if(!selected){
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
-        const startCol=selected[1], endCol=selected[3];
-        let dif=Math.abs(startCol-endCol)+1;
-        const countCols=this.countCols ? this.countCols() : 0;
-        if(dif>=countCols){
+        const selection = selected[0];
+        if(!selection){
             return true;
-        }else{
-            return false;
         }
-    };
+        const [, startCol, , endCol] = selection;
+        const dif = Math.abs(startCol - endCol) + 1;
+        const countCols = typeof hot.countCols === 'function' ? hot.countCols() : 0;
+        return dif >= countCols;
+    }
+
     function checkCleanOperationDisabled(){
-        const selected=this.getSelected();
-        if(!selected || selected.length===0){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
+            return true;
+        }
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
         return false;
-    };
+    }
 }

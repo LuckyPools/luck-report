@@ -499,8 +499,7 @@ export default {
         return;
       }
 
-      const rowIndex = selected[0];
-      const colIndex = selected[1];
+      const [rowIndex, colIndex, endRow, endCol] = selected[0];
       const cellDef = getCell(rowIndex, colIndex);
 
       const oldCellDef = deepCopy(cellDef);
@@ -540,7 +539,7 @@ export default {
 
       // 触发选择结束事件
       if (window.Handsontable && window.Handsontable.hooks) {
-        window.Handsontable.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
+        window.Handsontable.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
       }
 
       // 添加到撤销管理器
@@ -573,7 +572,7 @@ export default {
             if (window.setDirty) window.setDirty();
             hot.render();
             if (window.Handsontable && window.Handsontable.hooks) {
-              window.Handsontable.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
+              window.Handsontable.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
             }
           },
           undo: () => {
@@ -588,7 +587,7 @@ export default {
             if (window.setDirty) window.setDirty();
             hot.render();
             if (window.Handsontable && window.Handsontable.hooks) {
-              window.Handsontable.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
+              window.Handsontable.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
             }
           }
         });

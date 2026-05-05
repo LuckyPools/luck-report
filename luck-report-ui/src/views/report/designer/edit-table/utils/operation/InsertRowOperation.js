@@ -22,7 +22,7 @@ export function doInsertRow(above, number = 1) {
         });
         return;
     }
-    let startRow = selected[0], endRow = selected[2];
+    const [startRow, startCol, endRow, endCol] = selected[0];
     let position = startRow;
     if (startRow > endRow) {
         if (above) {
