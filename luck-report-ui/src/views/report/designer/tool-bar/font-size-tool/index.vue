@@ -183,4 +183,13 @@ export default {
 </script>
 
 <style scoped>
+.font-size-tool-dropdown ::v-deep .button-text {
+  display: inline-block;
+  vertical-align: top;
+  width: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 0;
+}
 </style>

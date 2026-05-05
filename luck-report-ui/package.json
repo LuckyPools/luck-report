@@ -12,8 +12,8 @@
   "dependencies": {
     "async-validator": "^3.5.2",
     "axios": "^1.7.0",
-    "chart.js": "^2.7.2",
-    "chartjs-plugin-datalabels": "^0.3.0",
+    "chart.js": "^3.9.1",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "clipboard": "2.0.8",
     "codemirror": "^5.65.16",
     "core-js": "^3.8.3",

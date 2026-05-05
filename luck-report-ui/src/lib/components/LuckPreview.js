@@ -7,8 +7,10 @@ import getters from '@/store/getters'
 import zh from '@/locales/lang/zh'
 import en from '@/locales/lang/en'
 
-import 'chart.js/dist/Chart.bundle.min.js'
-import 'chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js'
+import { Chart, registerables } from 'chart.js'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
+
+Chart.register(...registerables, ChartDataLabels)
 import '@/assets/css/iconfont/iconfont.css'
 import '@/assets/css/common/index.css'
 

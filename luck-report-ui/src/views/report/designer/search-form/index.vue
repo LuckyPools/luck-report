@@ -151,7 +151,7 @@ import { makeUpHtml, vueTemplate, vueScript, cssStyle } from './utils/html'
 import { makeUpJs } from './utils/js'
 import { makeUpCss } from './utils/css'
 import { drawingDefaultValue, initDrawingDefaultValue, cleanDrawingDefaultValue } from './utils/drawingDefault'
-import logo from '@/assets/images/form-desinger/logo.png'
+import logo from '@/assets/images/form-designer/logo.png'
 import UForm from "@/components/form/index.vue";
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import {deepCopy} from "@/components/utils";

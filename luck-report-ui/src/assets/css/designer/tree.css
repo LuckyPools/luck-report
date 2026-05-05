@@ -53,3 +53,12 @@
 .tree-active{
     border:solid 1px #2196F3 !important
 }
+
+.tree-root{
+    padding-left: 20px;
+    margin: 16px 0;
+}
+
+.node-list{
+    padding-left: 20px;
+}

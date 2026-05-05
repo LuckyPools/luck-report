@@ -26,8 +26,8 @@
         <BoldTool ref="boldTool" :selectedCells="selectedCells" />
         <ItalicTool ref="italicTool" :selectedCells="selectedCells" />
         <UnderlineTool ref="underlineTool" :selectedCells="selectedCells" />
-        <ForecolorTool ref="forecolorTool" :selectedCells="selectedCells" />
-        <BgcolorTool ref="bgcolorTool" :selectedCells="selectedCells" />
+        <FontColorTool ref="fontColorTool" :selectedCells="selectedCells" />
+        <BgColorTool ref="bgColorTool" :selectedCells="selectedCells" />
         <CrosstabTool ref="crosstabTool" :selectedCells="selectedCells" />
         <ImageTool ref="imageTool" :selectedCells="selectedCells" />
         <ChartTool ref="chartTool" :selectedCells="selectedCells" />
@@ -54,8 +54,8 @@ import FontSizeTool from '@/views/report/designer/tool-bar/font-size-tool/index.
 import BoldTool from '@/views/report/designer/tool-bar/bold-tool/index.vue';
 import ItalicTool from '@/views/report/designer/tool-bar/italic-tool/index.vue';
 import UnderlineTool from '@/views/report/designer/tool-bar/underline-tool/index.vue';
-import BgcolorTool from '@/views/report/designer/tool-bar/bgcolor-tool/index.vue';
-import ForecolorTool from '@/views/report/designer/tool-bar/forecolor-tool/index.vue';
+import BgColorTool from '@/views/report/designer/tool-bar/bg-color-tool/index.vue';
+import FontColorTool from '@/views/report/designer/tool-bar/font-color-tool/index.vue';
 import CrosstabTool from '@/views/report/designer/tool-bar/crosstab-tool/index.vue';
 import ImageTool from '@/views/report/designer/tool-bar/image-tool/index.vue';
 import ChartTool from '@/views/report/designer/tool-bar/chart-tool/index.vue';
@@ -84,8 +84,8 @@ export default {
     BoldTool,
     ItalicTool,
     UnderlineTool,
-    ForecolorTool,
-    BgcolorTool,
+    FontColorTool,
+    BgColorTool,
     CrosstabTool,
     ImageTool,
     ChartTool,

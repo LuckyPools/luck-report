@@ -154,8 +154,10 @@
 </template>
 
 <script>
-import 'chart.js/dist/Chart.bundle.min.js';
-import 'chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js';
+import { Chart, registerables } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+
+Chart.register(...registerables, ChartDataLabels);
 import {
   getExcelExportUrl,
   getExcelPagingExportUrl,
@@ -985,11 +987,52 @@ export default {
       }
     },
 
+    convertChartConfig(chartJson) {
+      if (!chartJson || !chartJson.options) {
+        return chartJson
+      }
+
+      const options = chartJson.options
+
+      if (options.scales) {
+        if (options.scales.xAxes && options.scales.xAxes.length > 0) {
+          options.scales.x = options.scales.xAxes[0]
+          delete options.scales.xAxes
+        }
+        if (options.scales.yAxes && options.scales.yAxes.length > 0) {
+          options.scales.y = options.scales.yAxes[0]
+          delete options.scales.yAxes
+        }
+      }
+
+      if (options.title) {
+        options.plugins = options.plugins || {}
+        options.plugins.title = options.title
+        delete options.title
+      }
+
+      if (options.legend) {
+        options.plugins = options.plugins || {}
+        options.plugins.legend = options.legend
+        delete options.legend
+      }
+
+      if (chartJson.type === 'horizontalBar') {
+        chartJson.type = 'bar'
+        options.indexAxis = 'y'
+      }
+
+      return chartJson
+    },
+
     async _buildChart(canvasId,chartJson){
       const ctx=document.getElementById(canvasId);
       if(!ctx){
         return;
       }
+
+      chartJson = this.convertChartConfig(chartJson)
+
       let options=chartJson.options;
       if(!options){
         options={};
@@ -1001,9 +1044,9 @@ export default {
         options.animation=animation;
       }
 
-      animation.onComplete=async (event) => {
+      animation.onComplete=async (context) => {
         try {
-          const chart=event.chart;
+          const chart=context.chart;
           const base64Image=chart.toBase64Image();
           const urlParameters=window.location.search;
           const canvas = document.getElementById(canvasId);

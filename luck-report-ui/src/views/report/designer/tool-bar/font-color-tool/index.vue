@@ -1,29 +1,41 @@
 <template>
   <div class="tool-btn-group">
-    <div @click="handlePickerClick">
-      <UColorPicker
-        v-model="selectedColor"
-        @input="onColorChange"
-        :title="$t('tools.bgColor.bgColor')"
-        :disabled="!isSelectionValid"
+    <div class="font-color-picker" @click="handlePickerClick">
+      <u-button
+        type="info"
+        native-type="button"
+        class="font-color-btn"
+        :title="$t('tools.foreColor.color')"
       >
-      </UColorPicker>
+        <div class="icon-wrapper">
+          <i class="iconfont icon-font-color"></i>
+          <span class="color-indicator" :style="{ backgroundColor: displayColor }"></span>
+        </div>
+      </u-button>
+      <div class="color-picker-popover" v-if="pickerVisible" ref="popover">
+        <sketch-picker
+          :value="colors"
+          @input="updateColor"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import { Sketch } from 'vue-color'
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
-import UColorPicker from "@/components/color-picker/index.vue";
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
+import UButton from "@/components/button/index.vue";
 
 export default {
-  name: 'BgColorTool',
+  name: 'FontColorTool',
   components: {
-    UColorPicker
+    UButton,
+    'sketch-picker': Sketch
   },
   props: {
     selectedCells: {
@@ -38,13 +50,22 @@ export default {
   },
   data() {
     return {
-      currentColor: '255,255,255',
-      selectedColor: '#FFFFFF',
-      isDropdownOpen: false,
-      isSelectionValid: false
+      currentColor: '0,0,0',
+      selectedColor: '#000000',
+      pickerVisible: false,
+      colors: {
+        hex: '#000000',
+        hsl: { h: 0, s: 0, l: 0, a: 1 },
+        hsv: { h: 0, s: 0, v: 0, a: 1 },
+        rgba: { r: 0, g: 0, b: 0, a: 1 },
+        a: 1
+      }
     };
   },
   computed: {
+    displayColor() {
+      return this.selectedColor || '#000000';
+    }
   },
   watch: {
     selectedCells: {
@@ -56,13 +77,27 @@ export default {
       }
     }
   },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside);
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside);
+  },
   methods: {
-    // 处理颜色选择器点击事件
-    handlePickerClick() {
-      this.isSelectionValid = this.checkSelection();
+    handlePickerClick(event) {
+      if (!this.checkSelection()) {
+        return;
+      }
+      event.stopPropagation();
+      this.pickerVisible = !this.pickerVisible;
     },
 
-    // 检查是否有选中的单元格
+    handleClickOutside(event) {
+      if (this.pickerVisible && this.$el && !this.$el.contains(event.target)) {
+        this.pickerVisible = false;
+      }
+    },
+
     checkSelection() {
       const hot = TableManager.get();
       const selected = hot.getSelected();
@@ -73,13 +108,18 @@ export default {
       return true;
     },
 
-    // 颜色选择改变时的回调
+    updateColor(val) {
+      this.colors = val;
+      this.selectedColor = val.hex;
+      this.onColorChange(val.hex);
+      this.pickerVisible = false;
+    },
+
     onColorChange(color) {
       if (!this.checkSelection()) {
         return;
       }
 
-      // 将十六进制颜色转换为RGB格式
       const rgb = this.hexToRgb(color);
       if (rgb) {
         const rgbStr = `${rgb.r},${rgb.g},${rgb.b}`;
@@ -89,7 +129,6 @@ export default {
         const selected = table.getSelected();
         let [startRow, startCol, endRow, endCol] = selected[0];
 
-        // 确保正确的行列范围
         if (startRow > endRow) {
           [startRow, endRow] = [endRow, startRow];
         }
@@ -97,19 +136,17 @@ export default {
           [startCol, endCol] = [endCol, startCol];
         }
 
-        // 更新单元格背景色样式
-        const oldBgColorStyle = this.updateCellsBgColorStyle(startRow, startCol, endRow, endCol, rgbStr);
+        const oldForeColorStyle = this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
         table.render();
 
-        // 添加撤销操作
         undoManager.add({
           redo: () => {
-            this.updateCellsBgColorStyle(startRow, startCol, endRow, endCol, rgbStr);
+            this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
             table.render();
             setDirty();
           },
           undo: () => {
-            this.restoreBgColorStyle(startRow, startCol, endRow, endCol, oldBgColorStyle);
+            this.restoreForeColorStyle(startRow, startCol, endRow, endCol, oldForeColorStyle);
             table.render();
             setDirty();
           }
@@ -119,7 +156,6 @@ export default {
       }
     },
 
-    // 将十六进制颜色转换为RGB对象
     hexToRgb(hex) {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
@@ -129,9 +165,8 @@ export default {
       } : null;
     },
 
-    // 更新单元格背景色样式
-    updateCellsBgColorStyle(startRow, startCol, endRow, endCol, color) {
-      const oldBgColorStyle = {};
+    updateCellsForeColorStyle(startRow, startCol, endRow, endCol, color) {
+      const oldForeColorStyle = {};
 
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
@@ -142,19 +177,16 @@ export default {
 
           const newCellDef = deepCopy(cellDef);
           const cellStyle = newCellDef.cellStyle;
-          oldBgColorStyle[i + ',' + j] = cellStyle.bgcolor;
-          cellStyle.bgcolor = color;
+          oldForeColorStyle[i + ',' + j] = cellStyle.forecolor;
+          cellStyle.forecolor = color;
           setCell( i, j, newCellDef );
-
-          this.currentColor = color;
         }
       }
 
-      return oldBgColorStyle;
+      return oldForeColorStyle;
     },
 
-    // 恢复背景色样式
-    restoreBgColorStyle(startRow, startCol, endRow, endCol, oldBgColorStyle) {
+    restoreForeColorStyle(startRow, startCol, endRow, endCol, oldForeColorStyle) {
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
           const cellDef = getCell(i, j);
@@ -164,11 +196,11 @@ export default {
 
           const newCellDef = deepCopy(cellDef);
           const cellStyle = newCellDef.cellStyle;
-          cellStyle.bgcolor = oldBgColorStyle[i + ',' + j];
+          cellStyle.forecolor = oldForeColorStyle[i + ',' + j];
           setCell( i, j, newCellDef );
 
           if (i === startRow && j === startCol) {
-            this.currentColor = cellStyle.bgcolor || '255,255,255';
+            this.currentColor = cellStyle.forecolor || '0,0,0';
             const rgbParts = this.currentColor.split(',');
             if (rgbParts.length === 3) {
               this.selectedColor = this.rgbToHex(
@@ -177,14 +209,13 @@ export default {
                 parseInt(rgbParts[2])
               );
             } else {
-              this.selectedColor = '#FFFFFF';
+              this.selectedColor = '#000000';
             }
           }
         }
       }
     },
 
-    // 将RGB值转换为十六进制颜色
     rgbToHex(r, g, b) {
       return '#' + [r, g, b].map(x => {
         const hex = x.toString(16);
@@ -192,12 +223,7 @@ export default {
       }).join('').toUpperCase();
     },
 
-    // 刷新工具状态
     refresh(startRow, startCol, endRow, endCol) {
-      // 更新选择状态
-      this.isSelectionValid = this.checkSelection();
-
-      // 确保正确的行列范围
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -205,7 +231,6 @@ export default {
         [startCol, endCol] = [endCol, startCol];
       }
 
-      // 获取第一个单元格的背景色
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
           const cellDef = getCell(i, j);
@@ -214,9 +239,8 @@ export default {
           }
 
           const cellStyle = cellDef.cellStyle;
-          this.currentColor = cellStyle.bgcolor || '255,255,255';
+          this.currentColor = cellStyle.forecolor || '0,0,0';
 
-          // 同步更新颜色选择器的值
           const rgbParts = this.currentColor.split(',');
           if (rgbParts.length === 3) {
             this.selectedColor = this.rgbToHex(
@@ -224,8 +248,10 @@ export default {
               parseInt(rgbParts[1]),
               parseInt(rgbParts[2])
             );
+            this.colors.hex = this.selectedColor;
           } else {
-            this.selectedColor = '#FFFFFF';
+            this.selectedColor = '#000000';
+            this.colors.hex = '#000000';
           }
 
           return;
@@ -237,4 +263,53 @@ export default {
 </script>
 
 <style scoped>
+.font-color-picker {
+  position: relative;
+  display: inline-block;
+}
+
+.font-color-btn {
+  border: none;
+  padding: 0 10px;
+}
+
+.icon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.icon-wrapper .iconfont {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.color-indicator {
+  width: 14px;
+  height: 3px;
+  margin-top: 1px;
+  border-radius: 1px;
+}
+
+.color-picker-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 9999;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.vc-sketch {
+  position: relative;
+  width: 200px;
+  padding: 0;
+  box-sizing: initial;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: none;
+}
 </style>

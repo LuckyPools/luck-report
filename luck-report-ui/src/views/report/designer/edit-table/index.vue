@@ -343,21 +343,6 @@ export default {
 .ud-table{
   width: 100%;
   min-height: 500px;
-}
-</style>
-<style>
-.htCore {
-  border-bottom-width: 1px !important;
-  border-right-width: 1px !important;
-}
-
-.handsontable tr{
-    background: transparent;
-}
-.handsontable td, .handsontable th{
-    background: transparent;
-}
-.handsontable table.htCore{
-    border-collapse:collapse
+  background: white;
 }
 </style>

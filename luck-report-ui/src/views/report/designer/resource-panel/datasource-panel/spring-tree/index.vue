@@ -1,6 +1,6 @@
 <template>
   <div class="tree" style="margin-left: 10px">
-    <ul style="padding-left: 20px;">
+    <ul class="tree-root">
       <li>
         <!-- 数据源节点 -->
         <span
@@ -20,7 +20,7 @@
         <!-- 数据集列表 -->
         <ul
           v-show="datasourceExpanded"
-          style="margin-left: -16px;"
+          class="node-list"
         >
           <li
             v-for="(dataset, index) in datasets"

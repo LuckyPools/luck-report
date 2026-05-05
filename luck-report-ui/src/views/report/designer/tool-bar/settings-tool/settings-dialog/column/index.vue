@@ -129,7 +129,7 @@ export default {
 
 <style scoped>
 .div-col-desc {
-  margin-top: 12px;
+  margin: 0 0 5px 5px;
   color: #999999;
   font-size: 12px;
 }
