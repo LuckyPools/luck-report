@@ -1,13 +1,11 @@
 <template>
   <div>
-    <!-- 数据集选择 -->
-    <div class="form-group" style="margin-top: 10px">
-      <label>{{ $t('property.dataset.dataset') }}：</label>
-      <div class="u-inline">
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('property.dataset.dataset')" style="margin-top: 10px">
         <u-select
             v-model="internalSelectedDataset"
             :clearable="true"
-            style="width:300px"
+            style="width:250px"
             @change="handleDatasetChange"
         >
           <u-option
@@ -17,17 +15,13 @@
               :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('property.dataset.property') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.dataset.property')">
         <u-select
             v-model="internalSelectedProperty"
             :clearable="true"
-            style="width:300px"
+            style="width:250px"
             @change="handlePropertyChange"
         >
           <u-option
@@ -37,17 +31,13 @@
               :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 聚合类型选择 -->
-    <div class="form-group">
-      <label>{{ $t('property.dataset.aggregateType') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.dataset.aggregateType')">
         <u-select
             v-model="internalSelectedAggregate"
             :clearable="true"
-            style="width:150px"
+            style="width:250px"
             @change="handleAggregateChange"
         >
           <u-option
@@ -57,20 +47,16 @@
               :label="option.label"
           />
         </u-select>
-      </div>
-      <u-button
-          style="margin-left: 5px"
-          v-show="internalSelectedAggregate === 'customgroup'"
-          @click="handleCustomGroupConfig"
-      >
-        {{ $t('property.dataset.configCustomGroup') }}
-      </u-button>
-    </div>
+        <u-button
+            style="margin-left: 5px"
+            v-show="internalSelectedAggregate === 'customgroup'"
+            @click="handleCustomGroupConfig"
+        >
+          {{ $t('property.dataset.configCustomGroup') }}
+        </u-button>
+      </u-form-item>
 
-    <!-- 排序类型选择 -->
-    <div class="form-group"  v-show="internalShowSortOptions">
-      <label>{{ $t('property.dataset.sortType') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.dataset.sortType')" v-show="internalShowSortOptions">
         <u-radio-group v-model="internalSelectedSort" @change="handleSortChange">
           <u-radio
               v-for="option in sortOptions"
@@ -80,13 +66,9 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 展开方向选择 -->
-    <div class="form-group" v-show="internalShowExpandOptions">
-      <label>{{ $t('property.dataset.expand') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.dataset.expand')" v-show="internalShowExpandOptions">
         <u-radio-group :value="internalSelectedExpand" @change="handleExpandChange">
           <u-radio
               v-for="option in expandOptions"
@@ -96,25 +78,17 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 行高设置 -->
-    <div class="form-group">
-      <label>{{ $t('property.dataset.lineHeight') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.dataset.lineHeight')">
         <u-input-number
             :placeholder="$t('property.dataset.lineHeightTip')"
             v-model="internalLineHeight"
             @change="handleLineHeightChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 换行计算选项 -->
-    <div class="form-group">
-      <label>{{ $t('property.base.newLineCompute') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.base.newLineCompute')">
         <u-radio-group v-model="internalWrapCompute" @change="handleWrapComputeChange">
           <u-radio
               v-for="option in wrapComputeOptions"
@@ -124,27 +98,20 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 格式化输入框 -->
-    <div class="form-group">
-      <label>{{ $t('property.base.format') }}：</label>
-      <vue-simple-suggest
-          :value="internalFormat"
-          :list="suggestionList"
-          :filter-by-query="true"
-          :placeholder="$t('property.base.formatTip')"
-          class="simple-suggest"
-          style="display: inline-block"
-          @input="handleFormatChange"
-      ></vue-simple-suggest>
-    </div>
+      <u-form-item class="property-label" :label="$t('property.base.format')">
+        <vue-simple-suggest
+            :value="internalFormat"
+            :list="suggestionList"
+            :filter-by-query="true"
+            :placeholder="$t('property.base.formatTip')"
+            class="simple-suggest"
+            @input="handleFormatChange"
+        ></vue-simple-suggest>
+      </u-form-item>
 
-    <!-- 填充空白行选项 -->
-    <div class="form-group">
-      <label>{{ $t('property.base.fillBlank') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.base.fillBlank')">
         <u-radio-group v-model="internalFillBlankRows" @change="handleFillBlankRowsChange">
           <u-radio
               v-for="option in fillBlankRowsOptions"
@@ -154,32 +121,26 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 行倍数 -->
-    <div class="form-group" v-show="internalFillBlankRows === 'default'">
-      <label>{{ $t('property.base.rowTimes') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.base.rowTimes')" v-show="internalFillBlankRows === 'default'">
         <u-input-number
             v-model="internalMultiple"
             @change="handleMultipleChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 条件属性配置 -->
-    <div class="form-group">
-      <label>{{ $t('property.base.conditionProp') }}：</label>
-      <u-button
-          type="info"
-          size="mini"
-          icon="icon-filter"
-          @click="handleConditionPropertyConfig"
-      >
-        {{ $t('property.base.configCondition') }}
-      </u-button>
-    </div>
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            size="mini"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
 
     <!-- 自定义分组对话框组件 -->
     <CustomGroupDialog
@@ -207,6 +168,8 @@ import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
 import UButton from '@/components/button/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import PropertyConditionDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/index.vue';
 import CustomGroupDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-dialog/index.vue';
 import { setDirty } from '@/utils/table.js';
@@ -225,6 +188,8 @@ export default {
     URadio,
     UInputNumber,
     UButton,
+    UForm,
+    UFormItem,
     PropertyConditionDialog,
     CustomGroupDialog,
     VueSimpleSuggest
@@ -656,7 +621,8 @@ export default {
 
 <style scoped>
 .simple-suggest /deep/ .default-input{
-  width: 268px !important;
+  width: 250px !important;
   height: 35px;
+  display: inline-block;
 }
 </style>

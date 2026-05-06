@@ -1,36 +1,32 @@
 <template>
   <div class="image-value-editor" ref="container">
-    <!-- 宽度设置 -->
-    <div class="form-group">
-      <label>{{ $t('property.image.width') }}(px)：</label>
-      <div class="u-inline">
+
+    <div class="property-quote">
+      {{ $t('property.image.config') }}
+    </div>
+
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('property.image.width') + '(px)'">
         <u-input-number
           :placeholder="$t('property.image.widthPlaceholder')"
           v-model="width"
           @change="handleWidthChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 高度设置 -->
-    <div class="form-group">
-      <label>{{ $t('property.image.height') }}(px)：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.height') + '(px)'">
         <u-input-number
           :placeholder="$t('property.image.heightPlaceholder')"
           v-model="height"
           @change="handleHeightChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 图片来源选择 -->
-    <div class="form-group">
-      <label>{{ $t('property.image.source') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.source')">
         <u-select
           v-model="source"
           :clearable="true"
+          style="width: 250px"
           @change="handleSourceChange"
         >
           <u-option
@@ -40,13 +36,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 展开选项 -->
-    <div class="form-group" style="margin-bottom: 10px" v-show="source === 'expression'">
-      <label>{{ $t('property.image.expand') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.expand')" v-show="source === 'expression'">
         <u-radio-group
           v-model="expand"
           @change="handleExpandChange"
@@ -63,31 +55,26 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 图片路径编辑器 -->
-    <div v-show="source === 'text'">
-      <label>{{ $t('property.image.p') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.p')" v-show="source === 'text'">
         <u-input
           :title="$t('property.image.tip')"
           :placeholder="$t('property.image.tip')"
-          style="width: 280px;"
+          style="width: 250px;"
           v-model="path"
           @change="handlePathChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 表达式编辑器 -->
-    <div v-show="source === 'expression'">
-      <label>{{ $t('property.image.expr') }}：</label>
-      <div style="border: solid 1px #eeeeee;">
-        <textarea ref="codeEditor"></textarea>
+      <div v-show="source === 'expression'">
+        <u-form-item class="property-label" :label="$t('property.image.expr')">
+        </u-form-item>
+        <div style="border: solid 1px #eeeeee;">
+          <textarea ref="codeEditor"></textarea>
+        </div>
       </div>
-    </div>
-
+    </u-form>
   </div>
 </template>
 
@@ -97,6 +84,8 @@ import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/lint/lint.js';
 import { setDirty } from '@/utils/table.js';
 import { scriptValidation } from '@/api/designer/index.js';
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import URadioGroup from '@/components/radio-group/index.vue';
@@ -112,6 +101,8 @@ import TableManager from '@/views/report/designer/edit-table/manager.js';
 export default {
   name: 'ImageValueEditor',
   components: {
+    UForm,
+    UFormItem,
     USelect,
     UOption,
     URadioGroup,
@@ -201,7 +192,6 @@ export default {
         }
       });
 
-      // 确保编辑器正确渲染
       this.$nextTick(() => {
         if (this.codeMirror) {
           this.codeMirror.refresh();
@@ -209,12 +199,14 @@ export default {
       });
       this.codeMirror.setSize('auto', '120px');
 
-      // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
         if (this.initialized) {
           return;
         }
         const expr = cm.getValue();
+        if (expr === 'undefined' || expr === undefined || expr === null) {
+          return;
+        }
         const cellDef = getCell(this.rowIndex, this.colIndex);
         if (cellDef && cellDef.value) {
           const newCellDef = deepCopy(cellDef);
@@ -224,7 +216,6 @@ export default {
         setDirty();
       });
 
-      // 加载初始数据
       this.loadCellData();
     },
 
@@ -246,7 +237,11 @@ export default {
         this.path = currentCellDef.value.value || '';
       } else {
         if (this.codeMirror) {
-          this.codeMirror.setValue(currentCellDef.value.value || '');
+          let valueToSet = currentCellDef.value.value || '';
+          if (valueToSet === 'undefined') {
+            valueToSet = '';
+          }
+          this.codeMirror.setValue(valueToSet);
         }
       }
 
@@ -256,7 +251,11 @@ export default {
         if (this.source === 'expression' && !this.codeMirror) {
           this.initCodeEditor();
         } else if (this.source === 'expression' && this.codeMirror) {
-          this.codeMirror.setValue(currentCellDef.value.value || '');
+          let valueToSet = currentCellDef.value.value || '';
+          if (valueToSet === 'undefined') {
+            valueToSet = '';
+          }
+          this.codeMirror.setValue(valueToSet);
         }
         this.initialized = false;
       });

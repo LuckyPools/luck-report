@@ -2,48 +2,36 @@
   <div class="bubble-chart-value-editor" ref="container">
     <!-- 选项卡导航 -->
     <u-tabs v-model="activeTab" type="button">
-      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset"></u-tab-pane>
-      <u-tab-pane :label="$t('chart.option')" index="option"></u-tab-pane>
-      <u-tab-pane :label="$t('chart.axisConfig')" index="axis"></u-tab-pane>
-    </u-tabs>
-
-    <!-- 选项卡内容 -->
-    <div class="tab-content">
-      <!-- 数据集绑定选项卡 -->
-      <div class="tab-pane" v-show="activeTab === 'dataset'">
-        <!-- 字段选项卡 -->
+      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset">
+        <!-- 数据集绑定选项卡 -->
         <ChartDataConfig
-          ref="datasetTab"
-          :selectedDataset="datasetValues.selectedDataset"
-          :selectedCategoryProperty="datasetValues.selectedCategoryProperty"
-          :selectedXProperty="datasetValues.selectedXProperty"
-          :selectedYProperty="datasetValues.selectedYProperty"
-          :selectedRProperty="datasetValues.selectedRProperty"
-          @update-dataset="handleDatasetUpdate"
+            ref="datasetTab"
+            :selectedDataset="datasetValues.selectedDataset"
+            :selectedCategoryProperty="datasetValues.selectedCategoryProperty"
+            :selectedXProperty="datasetValues.selectedXProperty"
+            :selectedYProperty="datasetValues.selectedYProperty"
+            :selectedRProperty="datasetValues.selectedRProperty"
+            @update-dataset="handleDatasetUpdate"
         />
-      </div>
-
-      <!-- 选项选项卡 -->
-      <div class="tab-pane" v-show="activeTab === 'option'">
+      </u-tab-pane>
+      <u-tab-pane :label="$t('chart.option')" index="option">
         <ChartOption
-        :chartConfig="chartConfig"
-        :showDataLabel="false"
-        @chart-option-change="handleChartOptionChange"
-        @data-labels-change="handleDataLabelsChange"
-      />
-      </div>
-
-      <!-- 轴配置选项卡 -->
-      <div class="tab-pane" v-show="activeTab === 'axis'">
+            :chartConfig="chartConfig"
+            :showDataLabel="false"
+            @chart-option-change="handleChartOptionChange"
+            @data-labels-change="handleDataLabelsChange"
+        />
+      </u-tab-pane>
+      <u-tab-pane :label="$t('chart.axisConfig')" index="axis">
         <!-- 使用ChartAxis组件 -->
         <ChartAxis
-          :xAxesConfig.sync="xAxesConfig"
-          :yAxesConfig.sync="yAxesConfig"
-          :format.sync="xAxisFormat"
-          @axis-change="handleAxisChange"
+            :xAxesConfig.sync="xAxesConfig"
+            :yAxesConfig.sync="yAxesConfig"
+            :format.sync="xAxisFormat"
+            @axis-change="handleAxisChange"
         />
-      </div>
-    </div>
+      </u-tab-pane>
+    </u-tabs>
   </div>
 </template>
 

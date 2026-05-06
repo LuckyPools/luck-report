@@ -7,7 +7,7 @@
         style="border: none"
         @click="togglePicker"
     >
-      <i class="iconfont icon-unchecked" :style="{ backgroundColor: displayColor }"></i>
+      <span class="color-block" :style="{ backgroundColor: displayColor }"></span>
     </u-button>
     <div class="u-color-picker-popover" v-if="pickerVisible" ref="popover">
       <sketch-picker
@@ -168,6 +168,15 @@ export default {
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.color-block {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  vertical-align: middle;
+  border: 1px solid #dcdfe6;
 }
 
 

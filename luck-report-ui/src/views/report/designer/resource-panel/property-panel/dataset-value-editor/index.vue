@@ -1,5 +1,6 @@
 <template>
   <div class="dataset-value-editor" ref="container">
+
     <u-tabs v-model="activeTab" type="button">
       <u-tab-pane :label="$t('property.dataset.datasetConfig')" index="dataset">
         <dataset-config
@@ -262,9 +263,6 @@ export default {
         this.conditionPropertyItems = [...cellDef.conditionPropertyItems];
       } else {
         this.conditionPropertyItems = [];
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.conditionPropertyItems = this.conditionPropertyItems;
-        setCell(this.rowIndex, this.colIndex, newCellDef);
       }
 
       // 初始化自定义分组项
@@ -272,9 +270,6 @@ export default {
         this.groupItems = [...cellDef.value.groupItems];
       } else {
         this.groupItems = [];
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.value.groupItems = this.groupItems;
-        setCell(this.rowIndex, this.colIndex, newCellDef);
       }
 
       // 触发数据集变化事件，加载字段
@@ -287,10 +282,8 @@ export default {
      * 处理数据集变化
      */
     handleDatasetChange() {
-      // 清空当前字段
       this.currentFields = [];
 
-      // 加载选中数据集的字段
       if (this.selectedDataset) {
         const datasources = this.context.reportDef.datasources || [];
         for (let ds of datasources) {
@@ -307,8 +300,9 @@ export default {
         }
       }
 
-      // 更新数据集名称，无论是否初始化状态都保存
-      this._setDatasetName(this.selectedDataset);
+      if (this.initialized) {
+        this._setDatasetName(this.selectedDataset);
+      }
     },
 
     /**
@@ -323,12 +317,10 @@ export default {
      * 处理聚合类型变化
      */
     handleAggregateChange(params) {
-      // 如果是从子组件传递过来的参数，则更新相关状态
       if (params && typeof params === 'object') {
         this.showSortOptions = params.showSortOptions;
         this.showExpandOptions = params.showExpandOptions;
       } else {
-        // 兼容直接调用的方式
         if (this.selectedAggregate === 'sum' || this.selectedAggregate === 'count' ||
             this.selectedAggregate === 'max' || this.selectedAggregate === 'min' ||
             this.selectedAggregate === 'avg') {
@@ -340,15 +332,15 @@ export default {
         }
       }
 
-      // 根据聚合类型更新映射选项显示
       if (this.selectedAggregate === 'group' || this.selectedAggregate === 'select') {
         this.showMappingOptions = true;
       } else {
         this.showMappingOptions = false;
       }
 
-      // 更新聚合类型，无论是否初始化状态都保存
-      this._setAggregate(this.selectedAggregate);
+      if (this.initialized) {
+        this._setAggregate(this.selectedAggregate);
+      }
     },
 
     /**

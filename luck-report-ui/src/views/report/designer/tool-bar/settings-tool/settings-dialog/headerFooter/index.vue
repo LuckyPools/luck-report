@@ -238,14 +238,13 @@ export default {
 
 <style scoped>
 .form-group-hf-desc {
-  margin-top: 12px;
+  margin: 0 5px 10px 5px;
   color: #999999;
   font-size: 12px;
 }
 
 .editor-textarea {
   font-size: 10pt;
-  font-family: '宋体';
   padding: 5px;
   display: inline-block;
   width: 140px;

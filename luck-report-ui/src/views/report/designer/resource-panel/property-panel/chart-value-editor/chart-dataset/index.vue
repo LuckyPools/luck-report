@@ -1,15 +1,13 @@
 <template>
-  <fieldset class="fieldset-style">
-    <legend class="legend-style">{{ $t('chart.propBindConfig') }}</legend>
+  <div class="chart-dataset">
 
-    <!-- 数据集选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.dataset') }}：</label>
-      <div class="u-inline">
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
             v-model="localDatasetConfig.datasetName"
             :clearable="true"
             @change="handleDatasetChange"
+            style="width: 250px"
         >
           <u-option
             v-for="option in datasetOptions"
@@ -18,16 +16,13 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 分类属性 -->
-    <div class="form-group">
-      <label>{{ $t('chart.categoryProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.categoryProperty')">
         <u-select
             v-model="localDatasetConfig.categoryProperty"
             :clearable="true"
+            style="width: 250px"
             @change="handleCategoryPropertyChange"
         >
           <u-option
@@ -37,16 +32,13 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 值属性 -->
-    <div class="form-group">
-      <label>{{ $t('chart.valueProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.valueProperty')">
         <u-select
             v-model="localDatasetConfig.valueProperty"
             :clearable="true"
+            style="width: 250px"
             @change="handleValuePropertyChange"
         >
           <u-option
@@ -56,13 +48,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 系列属性 -->
-    <div class="form-group" >
-      <label>{{ $t('chart.seriesProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.seriesProperty')">
         <u-radio-group v-model="localDatasetConfig.seriesType" @change="handleSeriesTypeChange">
           <u-radio
             v-for="option in [
@@ -75,16 +63,13 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 系列属性选择 -->
-    <div class="form-group" v-show="localDatasetConfig.seriesType === 'property'">
-      <label>{{ $t('chart.prop') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" v-show="localDatasetConfig.seriesType === 'property'" :label="$t('chart.prop')">
         <u-select
             v-model="localDatasetConfig.seriesProperty"
             :clearable="true"
+            style="width: 250px"
             @change="handleSeriesPropertyChange"
         >
           <u-option
@@ -94,29 +79,22 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 系列静态值 -->
-    <div class="form-group" v-show="localDatasetConfig.seriesType === 'text'">
-      <label>{{ $t('chart.staticValue') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" v-show="localDatasetConfig.seriesType === 'text'" :label="$t('chart.staticValue')">
         <u-input
-            style="width:220px;"
+            style="width: 250px;"
             v-model="localDatasetConfig.seriesText"
             @change="handleSeriesTextChange"
         >
         </u-input>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 聚合方式 -->
-    <div class="form-group" >
-      <label>{{ $t('chart.aggregate') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.aggregate')">
         <u-select
             v-model="localDatasetConfig.collectType"
             :clearable="true"
+            style="width: 250px"
             @change="handleAggregateChange"
         >
           <u-option
@@ -126,9 +104,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
-  </fieldset>
+      </u-form-item>
+    </u-form>
+  </div>
 </template>
 
 <script>
@@ -138,11 +116,15 @@ import URadio from '@/components/radio/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInput from '@/components/input/index.vue';
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
 import { mapGetters } from 'vuex';
 
 export default {
   name: 'ChartDataset',
   components: {
+    UForm,
+    UFormItem,
     URadioGroup,
     URadio,
     USelect,
@@ -283,20 +265,7 @@ export default {
 </script>
 
 <style scoped>
-
-.fieldset-style {
-  padding: 10px;
-  border: solid 1px #dddddd;
-  border-radius: 8px;
-  margin-bottom: 10px;
+.chart-dataset {
   margin-top: 10px;
-}
-
-.legend-style {
-  width: auto;
-  margin-bottom: 1px;
-  border-bottom: none;
-  font-size: inherit;
-  color: #4b4b4b;
 }
 </style>

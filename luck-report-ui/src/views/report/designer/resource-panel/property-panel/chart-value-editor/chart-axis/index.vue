@@ -1,119 +1,91 @@
 <template>
   <div class="axis-config">
-    <!-- X轴配置 -->
-    <fieldset class="fieldset-style">
-      <legend class="legend-style">{{ $t('chart.xAxis') }}</legend>
+    <u-form :label-width="100" labelPosition="left">
 
-      <!-- X轴旋转角度 -->
-      <div class="form-group" style="margin-bottom: 10px;display:inline-block;margin-right: 20px">
-        <label>{{ $t('chart.titleRotation') }}：</label>
-        <div class="u-inline">
-          <u-input-number
-            :title="$t('chart.angleScope')"
-            v-model="localXAxesConfig.rotation"
-            @change="handleXAxesRotationChange"
-          >
-          </u-input-number>
-        </div>
+      <div class="property-quote">
+        {{ $t('chart.xAxis') }}
       </div>
 
-      <!-- X轴标题显示 -->
-      <div class="form-group" style="margin-bottom: 10px">
-        <label>{{ $t('chart.displayAxisTitle') }}：</label>
-        <div class="u-inline">
-          <u-radio-group
-            v-model="localXAxesConfig.scaleLabel.display"
-            @change="handleXTitleDisplayChange"
-          >
-            <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
-                      :key="option.value"
-                      :label="option.value">
-              {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </div>
+      <u-form-item class="property-label" :label="$t('chart.titleRotation')">
+        <u-input-number
+          :title="$t('chart.angleScope')"
+          v-model="localXAxesConfig.rotation"
+          @change="handleXAxesRotationChange"
+        >
+        </u-input-number>
+      </u-form-item>
+
+      <u-form-item class="property-label" :label="$t('chart.displayAxisTitle')">
+        <u-radio-group
+          v-model="localXAxesConfig.scaleLabel.display"
+          @change="handleXTitleDisplayChange"
+        >
+          <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
+                    :key="option.value"
+                    :label="option.value">
+            {{ option.label }}
+          </u-radio>
+        </u-radio-group>
+      </u-form-item>
+
+      <u-form-item class="property-label" :label="$t('chart.axisTitle')" v-show="xTitleDisplay">
+        <u-input
+          style="width: 250px;"
+          v-model="localXAxesConfig.scaleLabel.labelString"
+          @change="handleXTitleTextChange"
+        >
+        </u-input>
+      </u-form-item>
+
+      <div class="property-quote">
+        {{ $t('chart.yAxisConfig') }}
       </div>
 
-      <!-- X轴标题文本 -->
-      <div class="form-group" style="margin-bottom: 0" v-show="xTitleDisplay">
-        <label>{{ $t('chart.axisTitle') }}：</label>
-        <div class="u-inline">
-          <u-input
-            style="width: 250px;"
-            v-model="localXAxesConfig.scaleLabel.labelString"
-            @change="handleXTitleTextChange"
-          >
-          </u-input>
-        </div>
-      </div>
-    </fieldset>
+      <u-form-item class="property-label" :label="$t('chart.titleRotation')">
+        <u-input-number
+          :title="$t('chart.angleScope')"
+          v-model="localYAxesConfig.rotation"
+          @change="handleYAxesRotationChange"
+        >
+        </u-input-number>
+      </u-form-item>
 
-    <!-- Y轴配置 -->
-    <fieldset class="fieldset-style">
-      <legend class="legend-style">{{ $t('chart.yAxisConfig') }}</legend>
+      <u-form-item class="property-label" :label="$t('chart.displayAxisTitle')">
+        <u-radio-group
+          v-model="localYAxesConfig.scaleLabel.display"
+          @change="handleYTitleDisplayChange"
+        >
+          <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
+                    :key="option.value"
+                    :label="option.value">
+            {{ option.label }}
+          </u-radio>
+        </u-radio-group>
+      </u-form-item>
 
-      <!-- Y轴旋转角度 -->
-      <div class="form-group" style="margin-bottom: 10px;display:inline-block;margin-right: 20px">
-        <label>{{ $t('chart.titleRotation') }}：</label>
-        <div class="u-inline">
-          <u-input-number
-            :title="$t('chart.angleScope')"
-            v-model="localYAxesConfig.rotation"
-            @change="handleYAxesRotationChange"
-          >
-          </u-input-number>
-        </div>
-      </div>
+      <u-form-item class="property-label" :label="$t('chart.axisTitle')" v-show="yTitleDisplay">
+        <u-input
+          style="width: 250px;"
+          v-model="localYAxesConfig.scaleLabel.labelString"
+          @change="handleYTitleTextChange"
+        >
+        </u-input>
+      </u-form-item>
 
-      <!-- Y轴标题显示 -->
-      <div class="form-group" style="margin-bottom: 10px">
-        <label>{{ $t('chart.displayAxisTitle') }}：</label>
-        <div class="u-inline">
-          <u-radio-group
-            v-model="localYAxesConfig.scaleLabel.display"
-            @change="handleYTitleDisplayChange"
-          >
-            <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
-                      :key="option.value"
-                      :label="option.value">
-              {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </div>
+      <div v-if="false" class="property-quote">
+        {{ $t('chart.titleFormat') }}
       </div>
 
-      <!-- Y轴标题文本 -->
-      <div class="form-group" style="margin-bottom: 0" v-show="yTitleDisplay">
-        <label>{{ $t('chart.axisTitle') }}：</label>
-        <div class="u-inline">
-          <u-input
-            style="width: 250px;"
-            v-model="localYAxesConfig.scaleLabel.labelString"
-            @change="handleYTitleTextChange"
-          >
-          </u-input>
-        </div>
-      </div>
-    </fieldset>
+      <u-form-item v-if="false" class="property-label" :label="$t('chart.titleFormat')">
+        <u-input
+          style="width: 260px;"
+          v-model="localFormat"
+          @change="handleFormatChange"
+        >
+        </u-input>
+      </u-form-item>
 
-    <!-- 格式化配置 -->
-    <!-- todo 后台暂不支持 -->
-    <fieldset v-if="false" class="fieldset-style">
-      <legend class="legend-style">{{ $t('chart.titleFormat') }}</legend>
-
-      <!-- 格式化输入框 -->
-      <div class="form-group" style="margin-bottom: 10px">
-        <label>{{ $t('chart.titleFormat') }}：</label>
-        <div class="u-inline">
-          <u-input
-            style="width: 260px;"
-            v-model="localFormat"
-            @change="handleFormatChange"
-          >
-          </u-input>
-        </div>
-      </div>
-    </fieldset>
+    </u-form>
   </div>
 </template>
 
@@ -122,10 +94,14 @@ import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
 
 export default {
   name: 'Axis',
   components: {
+    UForm,
+    UFormItem,
     URadioGroup,
     URadio,
     UInputNumber,
@@ -159,7 +135,6 @@ export default {
   },
   data() {
     return {
-      // 创建本地副本，避免直接修改props
       localXAxesConfig: {
         rotation: this.xAxesConfig.rotation,
         scaleLabel: {
@@ -178,13 +153,11 @@ export default {
     };
   },
   computed: {
-    // 将X轴标题显示的字符串值转换为boolean类型
     xTitleDisplay() {
       return this.localXAxesConfig.scaleLabel.display === 'true' ? true :
              this.localXAxesConfig.scaleLabel.display === 'false' ? false :
              this.localXAxesConfig.scaleLabel.display;
     },
-    // 将Y轴标题显示的字符串值转换为boolean类型
     yTitleDisplay() {
       return this.localYAxesConfig.scaleLabel.display === 'true' ? true :
              this.localYAxesConfig.scaleLabel.display === 'false' ? false :
@@ -192,7 +165,6 @@ export default {
     }
   },
   watch: {
-    // 监听props变化，更新本地数据
     xAxesConfig: {
       handler(newVal) {
         this.localXAxesConfig = {
@@ -282,7 +254,7 @@ export default {
 </script>
 
 <style scoped>
-fieldset {
-  border-radius: 4px;
+.axis-config {
+  width: 100%;
 }
 </style>

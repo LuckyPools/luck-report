@@ -410,7 +410,7 @@ export default {
 
       const hot = TableManager.get();
       hot.setDataAtCell(this.rowIndex, this.colIndex, '');
-      hot.render();
+      // hot.render();
       setDirty();
     },
 
@@ -456,37 +456,7 @@ export default {
 
 <style scoped>
 .property-panel {
-  margin: 20px 8px
-}
-
-fieldset {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-legend {
-  width: auto;
-  margin-bottom: 1px;
-  border-bottom: none;
-  font-size: inherit;
-  color: #4b4b4b;
-  padding: 0 10px;
-}
-
-.link-fieldset {
-  padding: 10px;
-  border: solid 1px #dddddd;
-  border-radius: 8px;
-}
-
-.link-legend {
-  width: auto;
-  margin-bottom: 1px;
-  border-bottom: none;
-  font-size: inherit;
-  color: #4b4b4b;
+  margin: 8px
 }
 </style>
 

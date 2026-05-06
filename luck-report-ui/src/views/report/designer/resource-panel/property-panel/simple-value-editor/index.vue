@@ -1,27 +1,28 @@
 <template>
   <div class="simple-value-editor">
-    <div class="editor-container">
-      <div class="form-group">
-        <label>{{ $t('property.simple.lineHeight') }}：</label>
-        <div class="u-inline">
-          <u-input-number
-              v-model="lineHeight"
-              @change="onLineHeightChange"
-              :placeholder="$t('property.simple.tip')"
-          />
-        </div>
-      </div>
-      <div class="form-group">
-        <label>{{ $t('property.simple.content') }}：</label>
+
+    <div class="property-quote">
+      {{ $t('property.simple.config') }}
+    </div>
+
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('property.simple.lineHeight')">
+        <u-input-number
+            v-model="lineHeight"
+            @change="onLineHeightChange"
+            :placeholder="$t('property.simple.tip')"
+        />
+      </u-form-item>
+      <u-form-item class="property-label" :label="$t('property.simple.content')">
         <textarea
           v-model="content"
           @input="onContentChange"
-          style="width: 360px"
+          style="width: 220px"
           class="form-control"
           rows="3">
         </textarea>
-      </div>
-    </div>
+      </u-form-item>
+    </u-form>
   </div>
 </template>
 
@@ -29,6 +30,8 @@
 import {setDirty} from "@/utils/table";
 import { deepCopy } from '@/components/utils/index.js';
 import UInputNumber from '@/components/input-number/index.vue';
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
 import { mapGetters } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
@@ -36,7 +39,9 @@ import TableManager from '@/views/report/designer/edit-table/manager.js';
 export default {
   name: 'SimpleValueEditor',
   components: {
-    UInputNumber
+    UInputNumber,
+    UForm,
+    UFormItem
   },
   props: {
     rowIndex: {

@@ -1,44 +1,41 @@
 <template>
   <div class="bar-chart-value-editor" ref="container">
-    <!-- 选项卡导航 -->
+
     <u-tabs v-model="activeTab" type="button">
-      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset" />
-      <u-tab-pane :label="$t('chart.option')" index="option" />
-      <u-tab-pane v-if="showAxis" :label="$t('chart.axisConfig')" index="axis" />
+      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset" >
+        <!-- 数据集绑定选项卡 -->
+        <ChartDataset
+            :datasetConfig="datasetConfig"
+            @dataset-change="handleDatasetChange"
+            @category-property-change="handleCategoryPropertyChange"
+            @value-property-change="handleValuePropertyChange"
+            @series-type-change="handleSeriesTypeChange"
+            @series-property-change="handleSeriesPropertyChange"
+            @series-text-change="handleSeriesTextChange"
+            @aggregate-change="handleAggregateChange"
+        />
+      </u-tab-pane>
+
+      <u-tab-pane :label="$t('chart.option')" index="option" >
+        <!-- 选项选项卡 -->
+        <ChartOption
+            :chartConfig="chartConfig"
+            @chart-option-change="handleChartOptionChange"
+            @data-labels-change="handleDataLabelsChange"
+        />
+      </u-tab-pane>
+
+      <u-tab-pane v-if="showAxis" :label="$t('chart.axisConfig')" index="axis" >
+        <!-- 轴配置选项卡 -->
+        <ChartAxis
+            v-show="activeTab === 'axis'"
+            :xAxesConfig.sync="xAxesConfig"
+            :yAxesConfig.sync="yAxesConfig"
+            :format.sync="datasetConfig.format"
+            @axis-change="handleAxisChange"
+        />
+      </u-tab-pane>
     </u-tabs>
-
-    <!-- 选项卡内容 -->
-    <div class="tab-content">
-      <!-- 数据集绑定选项卡 -->
-      <ChartDataset
-          v-show="activeTab === 'dataset'"
-          :datasetConfig="datasetConfig"
-          @dataset-change="handleDatasetChange"
-          @category-property-change="handleCategoryPropertyChange"
-          @value-property-change="handleValuePropertyChange"
-          @series-type-change="handleSeriesTypeChange"
-          @series-property-change="handleSeriesPropertyChange"
-          @series-text-change="handleSeriesTextChange"
-          @aggregate-change="handleAggregateChange"
-      />
-
-      <!-- 选项选项卡 -->
-      <ChartOption
-          v-show="activeTab === 'option'"
-          :chartConfig="chartConfig"
-          @chart-option-change="handleChartOptionChange"
-          @data-labels-change="handleDataLabelsChange"
-      />
-
-      <!-- 轴配置选项卡 -->
-      <ChartAxis
-          v-show="activeTab === 'axis'"
-          :xAxesConfig.sync="xAxesConfig"
-          :yAxesConfig.sync="yAxesConfig"
-          :format.sync="datasetConfig.format"
-          @axis-change="handleAxisChange"
-      />
-    </div>
   </div>
 </template>
 
@@ -457,11 +454,4 @@ export default {
 </script>
 
 <style scoped>
-.tab-pane {
-  min-height: 300px;
-}
-
-fieldset {
-  border-radius: 4px;
-}
 </style>

@@ -574,7 +574,8 @@ const zh = {
             "prop":"属性",
             "none":"无",
             "urlExpressionExample": "如:\$\{# == '1' ? 'a.html' : 'b.html'}",
-            "urlExpressionSupport": "支持表达式,表达式定义在${...}中"
+            "urlExpressionSupport": "支持表达式，表达式定义在${...}中",
+            "linkUrl": "链接地址"
         },
         "base":{
             "fillBlank":"补充空白行",
@@ -631,9 +632,11 @@ const zh = {
             "realValueProp":"实际值属性",
             "displayValueProp":"显示值属性",
             "bindDatasetTip":"请先选择当前单元格要绑定的数据集",
+            "noDatasetSelected":"未选择数据集",
             "addMappping": "添加映射"
         },
         "expr":{
+            "config":"表达式配置",
             "expr":"表达式",
             "expand":"数据展开方向",
             "down":"向下",
@@ -641,6 +644,7 @@ const zh = {
             "noneExpand":"不展开"
         },
         "image":{
+            "config":"图片配置",
             "source":"图片来源",
             "path":"路径",
             "expr":"表达式",
@@ -656,17 +660,20 @@ const zh = {
             "heightPlaceholder":"为0或空表示采用图片默认高度"
         },
         "simple":{
+            "config":"文本配置",
             "content":"文本内容",
             "lineHeight":"行高",
             "tip":"请输入一个数字,为空表示采用默认行高"
         },
         "slash":{
+            "config":"斜表头配置",
             "content":"斜表头内容",
             "refresh":"刷新",
             "name":"名称",
             "angle":"角度"
         },
         "zxing":{
+            "config":"条码配置",
             "width":"宽",
             "numberTip":"请输入数字！",
             "height":"高",

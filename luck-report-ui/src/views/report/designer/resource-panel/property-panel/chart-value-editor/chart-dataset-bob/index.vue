@@ -1,11 +1,8 @@
 <template>
-  <fieldset class="chart-fieldset">
-    <legend>{{ $t('chart.propBindConfig') }}</legend>
+  <div class="chart-dataset-bob">
 
-    <!-- 数据集选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.dataset') }}：</label>
-      <div class="u-inline">
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
           v-model="localDataset"
           :clearable="true"
@@ -18,13 +15,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 类别属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.categoryProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.categoryProperty')">
         <u-select
           v-model="localCategoryProperty"
           :clearable="true"
@@ -37,13 +30,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- X轴属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.xProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.xProperty')">
         <u-select
           v-model="localXProperty"
           :clearable="true"
@@ -56,13 +45,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- Y轴属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.yProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.yProperty')">
         <u-select
           v-model="localYProperty"
           :clearable="true"
@@ -75,13 +60,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- R轴属性选择 -->
-    <div class="form-group" v-if="showRProperty">
-      <label>{{ $t('chart.rProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" v-if="showRProperty" :label="$t('chart.rProperty')">
         <u-select
           v-model="localRProperty"
           :clearable="true"
@@ -94,9 +75,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
-  </fieldset>
+      </u-form-item>
+    </u-form>
+  </div>
 </template>
 
 <script>
@@ -104,10 +85,14 @@ import {setDirty} from '@/utils/table.js';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import { mapGetters } from 'vuex';
+import UFormItem from "@/components/form-item/index.vue";
+import UForm from "@/components/form/index.vue";
 
 export default {
   name: 'ChartDataConfig',
   components: {
+    UForm,
+    UFormItem,
     USelect,
     UOption
   },
@@ -299,20 +284,7 @@ export default {
 </script>
 
 <style scoped>
-.chart-fieldset {
-  padding: 10px;
-  border: solid 1px #dddddd;
-  border-radius: 8px;
-  margin-bottom: 10px;
+.chart-dataset-bob{
   margin-top: 10px;
 }
-
-.chart-fieldset legend {
-  width: auto;
-  margin-bottom: 1px;
-  border-bottom: none;
-  font-size: inherit;
-  color: #4b4b4b;
-}
-
 </style>

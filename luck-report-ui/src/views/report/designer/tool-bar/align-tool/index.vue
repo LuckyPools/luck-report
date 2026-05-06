@@ -41,7 +41,7 @@ export default {
         },
         {
           text: this.$t('tools.alignTop.middleAlign'),
-          icon: 'iconfont icon-justify',
+          icon: 'iconfont icon-vertical-align-middle',
           action: () => this.handleAlignMiddle()
         },
         {

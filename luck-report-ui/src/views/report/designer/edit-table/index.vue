@@ -343,6 +343,5 @@ export default {
 .ud-table{
   width: 100%;
   min-height: 500px;
-  background: white;
 }
 </style>

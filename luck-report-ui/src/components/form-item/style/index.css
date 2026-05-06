@@ -42,6 +42,7 @@
     display: flex;
     margin-bottom: 22px;
     vertical-align: top;
+    align-items: center;
 }
 
 .u-form-item-label {

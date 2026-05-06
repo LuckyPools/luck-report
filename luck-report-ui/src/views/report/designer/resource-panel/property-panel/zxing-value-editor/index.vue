@@ -1,29 +1,28 @@
 <template>
   <div class="zxing-value-editor" ref="container">
-    <!-- 尺寸设置 -->
-    <div class="form-group">
-      <label>{{ $t('property.zxing.width') }}：</label>
-      <div class="u-inline">
+
+    <div class="property-quote">
+      {{ $t('property.zxing.config') }}
+    </div>
+
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('property.zxing.width')">
         <u-input-number
           v-model="width"
           @change="handleWidthChange"
         >
         </u-input-number>
-      </div>
-      <label style="margin-left: 20px">{{ $t('property.zxing.height') }}：</label>
-      <div class="u-inline">
+      </u-form-item>
+
+      <u-form-item class="property-label" :label="$t('property.zxing.height')">
         <u-input-number
           v-model="height"
           @change="handleHeightChange"
         >
         </u-input-number>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 格式选择 -->
-    <div class="form-group" v-show="showFormat">
-      <label>{{ $t('property.zxing.format') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.zxing.format')" v-show="showFormat">
         <u-select
           v-model="format"
           :clearable="true"
@@ -36,13 +35,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 数据源选择 -->
-    <div class="form-group">
-      <label>{{ $t('property.zxing.source') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.zxing.source')">
         <u-select
           v-model="source"
           :clearable="true"
@@ -55,13 +50,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 展开选项 -->
-    <div class="form-group" v-show="source === 'expression'" style="margin-bottom: 10px;">
-      <label>{{ $t('property.zxing.expand') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.zxing.expand')" v-show="source === 'expression'">
         <u-radio-group
           v-model="expand"
           @change="handleExpandChange"
@@ -78,29 +69,22 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 文本输入 -->
-    <div v-show="source === 'text'">
-      <label>{{ $t('property.zxing.text1') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.zxing.text1')" v-show="source === 'text'">
         <u-input
           v-model="textValue"
           @change="handleTextChange"
-          style="width: 300px;"
+          style="width: 250px;"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 表达式编辑器 -->
-    <div v-show="source === 'expression'">
-      <label>{{ $t('property.zxing.expr') }}：</label>
-      <div style="border: solid 1px #eeeeee;">
-        <textarea ref="codeEditor"></textarea>
-      </div>
-    </div>
-
+      <u-form-item class="property-label" :label="$t('property.zxing.expr')" v-show="source === 'expression'">
+        <div style="border: solid 1px #eeeeee;">
+          <textarea ref="codeEditor"></textarea>
+        </div>
+      </u-form-item>
+    </u-form>
   </div>
 </template>
 
@@ -117,20 +101,24 @@ import URadio from '@/components/radio/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import UInputNumber from '@/components/input-number/index.vue'
 import UInput from '@/components/input/index.vue'
+import UFormItem from '@/components/form-item/index.vue'
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
+import UForm from "@/components/form/index.vue";
 
 export default {
   name: 'ZxingValueEditor',
   components: {
+    UForm,
     USelect,
     UOption,
     URadioGroup,
     URadio,
     UInputNumber,
-    UInput
+    UInput,
+    UFormItem
   },
   props: {
     rowIndex: {
@@ -251,6 +239,9 @@ export default {
       // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
         const expr = cm.getValue();
+        if (expr === 'undefined' || expr === undefined || expr === null) {
+          return;
+        }
         const cellDef = getCell(this.rowIndex, this.colIndex);
         if (cellDef && cellDef.value) {
           const newCellDef = deepCopy(cellDef);
@@ -297,7 +288,11 @@ export default {
           if (!this.codeMirror) {
             this.initCodeEditor();
           }else {
-            this.codeMirror.setValue(cellDef.value.value || '');
+            let valueToSet = cellDef.value.value || '';
+            if (valueToSet === 'undefined') {
+              valueToSet = '';
+            }
+            this.codeMirror.setValue(valueToSet);
             this.codeMirror.refresh();
           }
         });

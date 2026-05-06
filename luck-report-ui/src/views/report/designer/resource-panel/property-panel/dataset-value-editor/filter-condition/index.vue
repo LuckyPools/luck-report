@@ -1,8 +1,12 @@
 <template>
   <div class="form-group" style="padding-top: 10px">
     <!-- 当没有选择数据集时显示提示 -->
-    <div v-if="!selectedDataset" class="alert alert-info" style="margin-bottom: 10px;">
-      {{ $t('property.dataset.bindDatasetTip') }}
+    <div v-if="!selectedDataset" class="empty-tip-container">
+      <i class="iconfont icon-warning empty-tip-icon"></i>
+      <div class="empty-tip-content">
+        <div class="empty-tip-title">{{ $t('property.dataset.noDatasetSelected') }}</div>
+        <div class="empty-tip-desc">{{ $t('property.dataset.bindDatasetTip') }}</div>
+      </div>
     </div>
 
     <!-- 条件列表和操作按钮 -->
@@ -205,5 +209,47 @@ export default {
 .condition-select{
   height: 100px;
   outline: none;
+}
+
+.empty-tip-container {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.empty-tip-container:hover {
+  border-color: #217346;
+  box-shadow: 0 2px 12px rgba(33, 115, 70, 0.15);
+}
+
+.empty-tip-icon {
+  flex-shrink: 0;
+  font-size: 32px;
+  color: #217346;
+  margin-right: 16px;
+}
+
+.empty-tip-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.empty-tip-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.empty-tip-desc {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.6;
 }
 </style>

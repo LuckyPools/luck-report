@@ -574,7 +574,8 @@ const en = {
             "prop":"Property ",
             "none":"None",
             "urlExpressionExample": "For Example:$# == '1' ? 'a.html' : 'b.html'}",
-            "urlExpressionSupport": "Support expressions, expressions defined in ${...}"
+            "urlExpressionSupport": "Support expressions, expressions defined in ${...}",
+            "linkUrl": "Link Url"
         },
         "base":{
             "fillBlank":"Fill Rows",
@@ -631,9 +632,11 @@ const en = {
             "realValueProp":"Key Property",
             "displayValueProp":"Value Property",
             "bindDatasetTip":"Please select dataset first!",
+            "noDatasetSelected":"No Dataset Selected",
             "addMappping": "Add Mappping"
         },
         "expr":{
+            "config":"Expression Config",
             "expr":"Expression",
             "expand":"Expand",
             "down":"Down",
@@ -642,6 +645,7 @@ const en = {
         },
         "image":{
             "source":"Image Source",
+            "config":"Image Config",
             "path":"Path",
             "expr":"Expression",
             "p":"Path",
@@ -656,17 +660,20 @@ const en = {
             "heightPlaceholder":"0 or empty for default height"
         },
         "simple":{
+            "config":"Text Config",
             "content":"Text Content",
             "lineHeight":"Line Height",
             "tip":"Please enter a number!"
         },
         "slash":{
+            "config":"Slash Config",
             "content":"Slash Content",
             "refresh":"Refresh",
             "name":"Name",
             "angle":"Angle"
         },
         "zxing":{
+            "config":"Barcode Config",
             "width":"Width",
             "numberTip":"Please enter a number",
             "height":"Height",

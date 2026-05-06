@@ -76,23 +76,24 @@ label {
     display: inline-block;
 }
 
-.fieldset-style {
-    padding: 10px;
-    border: solid 1px #dddddd;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    margin-top: 10px;
-}
-
-.legend-style {
-    width: auto;
-    margin-bottom: 1px;
-    border-bottom: none;
-    font-size: inherit;
-    color: #4b4b4b;
-}
-
 .dialog-content {
     padding: 15px;
+}
+
+.property-label {
+    margin-bottom: 10px !important;
+}
+
+.property-label .u-form-item-label {
+
+}
+
+.property-quote {
+    padding-left: 10px;
+    line-height: 1.8;
+    /*border-left: 5px solid #00554a;*/
+    border-radius: 0 2px 2px 0;
+    margin: 10px 0;
+    background-color: #fafafa;
 }
 
