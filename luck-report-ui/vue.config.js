@@ -18,8 +18,8 @@ module.exports = {
         changeOrigin: true
       }
     },
-    client:{
-      overlay:false
+    client: {
+      overlay: false
     },
     static: {
       directory: path.resolve(__dirname, 'src/assets'),

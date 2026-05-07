@@ -1,12 +1,16 @@
 package com.luck.report.web.config;
 
 import com.luck.report.web.cache.HttpSessionReportCache;
+import com.luck.report.web.filter.RequestHolderFilter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 /**
  * UReport控制台配置类
+ *
  * @author 24731
  */
 @Configuration

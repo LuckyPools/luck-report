@@ -14,9 +14,11 @@ import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.TempObjectCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.exception.ReportDesignException;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import com.luck.report.web.utils.MobileUtils;
-import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,15 +26,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController("bean.htmlPreviewController")
 @RequestMapping("${luck-report.servletPrefix}/html")
-public class HtmlPreviewController {
+public class HtmlPreviewController extends BaseController {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -45,7 +48,7 @@ public class HtmlPreviewController {
     private ReportRender reportRender;
 
     @RequestMapping("/loadHtml")
-    public void loadHtml(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public void loadHtml() throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
         HtmlReport htmlReport = null;
         String errorMsg;
@@ -101,11 +104,11 @@ public class HtmlPreviewController {
             result.put("tools", tools);
         }
         result.put("contextPath", req.getContextPath());
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 
     @RequestMapping("/loadPrintPages")
-    public void loadPrintPages(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public void loadPrintPages() throws Exception {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
@@ -155,11 +158,11 @@ public class HtmlPreviewController {
         }
         Map<String, String> map = new HashMap<String, String>();
         map.put("html", sb.toString());
-        ResponseUtils.writeObjectToJson(resp, map);
+        resp.writeObjectToJson(map);
     }
 
     @RequestMapping("/loadPagePaper")
-    public void loadPagePaper(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public void loadPagePaper() throws Exception {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
@@ -174,16 +177,16 @@ public class HtmlPreviewController {
             report = reportRender.getReportDefinition(fileName);
         }
         Paper paper = report.getPaper();
-        ResponseUtils.writeObjectToJson(resp, paper);
+        resp.writeObjectToJson(paper);
     }
 
     @RequestMapping("/loadData")
-    public void loadData(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public void loadData() throws Exception {
         HtmlReport htmlReport = loadReport(req);
-        ResponseUtils.writeObjectToJson(resp, htmlReport);
+        resp.writeObjectToJson(htmlReport);
     }
 
-    private HtmlReport loadReport(HttpServletRequest req) {
+    private HtmlReport loadReport(RequestInfoProvider req) {
         Map<String, Object> parameters = buildParameters(req);
         HtmlReport htmlReport;
         String pageIndex = req.getParameter("_i");
@@ -243,7 +246,7 @@ public class HtmlPreviewController {
         return htmlReport;
     }
 
-    private String buildTitle(HttpServletRequest req) {
+    private String buildTitle(RequestInfoProvider req) {
         String title = req.getParameter("_title");
         if (StringUtils.isBlank(title)) {
             title = req.getParameter("reportPath");
@@ -261,7 +264,7 @@ public class HtmlPreviewController {
         return title + "-ureport";
     }
 
-    private String buildCustomParameters(HttpServletRequest req) {
+    private String buildCustomParameters(RequestInfoProvider req) {
         StringBuilder sb = new StringBuilder();
         Enumeration<?> enumeration = req.getParameterNames();
         while (enumeration.hasMoreElements()) {
@@ -302,7 +305,7 @@ public class HtmlPreviewController {
         return buildRootException(throwable.getCause());
     }
 
-    protected Map<String, Object> buildParameters(HttpServletRequest req) {
+    protected Map<String, Object> buildParameters(RequestInfoProvider req) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         Enumeration<?> enumeration = req.getParameterNames();
         while (enumeration.hasMoreElements()) {

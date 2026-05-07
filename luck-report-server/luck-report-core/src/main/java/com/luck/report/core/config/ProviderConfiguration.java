@@ -13,8 +13,10 @@ import org.springframework.context.annotation.Configuration;
 public class ProviderConfiguration {
 
     @Bean
-    public DefaultImageProvider defaultImageProvider() {
-        return new DefaultImageProvider();
+    public DefaultImageProvider defaultImageProvider(@Value("${luck-report.imgStoreDir:/WEB-INF/imgDir}") String imgStoreDir) {
+        DefaultImageProvider defaultImageProvider = new DefaultImageProvider();
+        defaultImageProvider.setBaseWebPath(imgStoreDir);
+        return defaultImageProvider;
     }
 
     @Bean

@@ -10,9 +10,11 @@ import com.luck.report.core.expression.ScriptErrorListener;
 import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.filter.RequestHolderFilter;
-import com.luck.report.web.utils.ResponseUtils;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.io.IOUtils;
@@ -20,14 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -39,11 +40,11 @@ import java.util.*;
  * @author Jacky.gao
  * @since 2017年1月25日
  */
-@Controller("bean.designerController")
+@RestController("bean.designerController")
 @RequestMapping("${luck-report.servletPrefix}/designer")
 public class DesignerController implements ApplicationContextAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(DesignerController.class);
     private final List<ReportProvider> reportProviders = new ArrayList<>();
 
     @Autowired
@@ -51,12 +52,18 @@ public class DesignerController implements ApplicationContextAware {
     @Autowired
     private ReportParser reportParser;
 
+    @Autowired
+    protected RequestInfoProvider req;
+    @Autowired
+    protected ResponseInfoProvider resp;
+
+
 
     /**
      * 脚本验证
      */
     @RequestMapping("/scriptValidation")
-    public void scriptValidation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void scriptValidation() throws IOException {
         String content = req.getParameter("content");
         ANTLRInputStream antlrInputStream = new ANTLRInputStream(content);
         ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
@@ -67,14 +74,14 @@ public class DesignerController implements ApplicationContextAware {
         parser.addErrorListener(errorListener);
         parser.expression();
         List<ErrorInfo> infos = errorListener.getInfos();
-        ResponseUtils.writeObjectToJson(resp, infos);
+        resp.writeObjectToJson(infos);
     }
 
     /**
      * 条件脚本验证
      */
     @RequestMapping("/conditionScriptValidation")
-    public void conditionScriptValidation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void conditionScriptValidation() throws IOException {
         String content = req.getParameter("content");
         ANTLRInputStream antlrInputStream = new ANTLRInputStream(content);
         ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
@@ -85,14 +92,14 @@ public class DesignerController implements ApplicationContextAware {
         parser.addErrorListener(errorListener);
         parser.expr();
         List<ErrorInfo> infos = errorListener.getInfos();
-        ResponseUtils.writeObjectToJson(resp, infos);
+        resp.writeObjectToJson(infos);
     }
 
     /**
      * 解析数据集名称
      */
     @RequestMapping("/parseDatasetName")
-    public void parseDatasetName(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void parseDatasetName() throws IOException {
         String expr = req.getParameter("expr");
         ANTLRInputStream antlrInputStream = new ANTLRInputStream(expr);
         ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
@@ -103,7 +110,7 @@ public class DesignerController implements ApplicationContextAware {
         String datasetName = ctx.Identifier().getText();
         Map<String, String> result = new HashMap<String, String>();
         result.put("datasetName", datasetName);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 
 
@@ -111,7 +118,7 @@ public class DesignerController implements ApplicationContextAware {
      * 保存预览文件
      */
     @RequestMapping("/savePreviewFile")
-    public void savePreviewFile(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void savePreviewFile() throws IOException {
         String content = req.getParameter("content");
         String fileName = req.getParameter("fileName");
         content = decode(content);
@@ -127,7 +134,7 @@ public class DesignerController implements ApplicationContextAware {
      * 加载报表
      */
     @RequestMapping(value = "/loadReport")
-    public void loadReport(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void loadReport() throws IOException {
         String filePath = req.getParameter("filePath");
         if (filePath == null) {
             throw new ReportDesignException("Report file can not be null.");
@@ -137,10 +144,10 @@ public class DesignerController implements ApplicationContextAware {
         if (obj instanceof ReportDefinition) {
             ReportDefinition reportDef = (ReportDefinition) obj;
             TempObjectCache.removeObject(fileName);
-            ResponseUtils.writeObjectToJson(resp, new ReportDefinitionWrapper(reportDef));
+            resp.writeObjectToJson(new ReportDefinitionWrapper(reportDef));
         } else {
             ReportDefinition reportDef = reportRender.parseReport(fileName);
-            ResponseUtils.writeObjectToJson(resp, new ReportDefinitionWrapper(reportDef));
+            resp.writeObjectToJson(new ReportDefinitionWrapper(reportDef));
         }
     }
 
@@ -148,7 +155,7 @@ public class DesignerController implements ApplicationContextAware {
      * 删除报表文件
      */
     @RequestMapping("/deleteReportFile")
-    public void deleteReportFile(HttpServletRequest req, HttpServletResponse resp) {
+    public void deleteReportFile() {
         String file = req.getParameter("file");
         if (file == null) {
             throw new ReportDesignException("Report file can not be null.");
@@ -170,7 +177,7 @@ public class DesignerController implements ApplicationContextAware {
      * 保存报表文件
      */
     @RequestMapping("/saveReportFile")
-    public void saveReportFile(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void saveReportFile() throws IOException {
         String file = req.getParameter("file");
         file = ReportUtils.decodeFileName(file);
         String content = req.getParameter("content");
@@ -186,12 +193,12 @@ public class DesignerController implements ApplicationContextAware {
             throw new ReportDesignException("File [" + file + "] not found available report provider.");
         }
         ReportDefinition reportDef;
-        try{
+        try {
             InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
             reportDef = reportParser.parse(inputStream, file);
             IOUtils.closeQuietly(inputStream);
-        }catch (Exception e){
-            logger.error("保存报表异常",e);
+        } catch (Exception e) {
+            logger.error("保存报表异常", e);
             throw e;
         }
         reportRender.rebuildReportDefinition(reportDef);
@@ -203,10 +210,10 @@ public class DesignerController implements ApplicationContextAware {
      * 加载报表提供者
      */
     @RequestMapping("/loadReportProviders")
-    public void loadReportProviders(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void loadReportProviders() throws IOException {
         String path = req.getParameter("path");
         if (path == null || path.isEmpty()) {
-            ResponseUtils.writeObjectToJson(resp, reportProviders);
+            resp.writeObjectToJson(reportProviders);
         } else {
             Map<String, Object> result = new HashMap<>();
             for (ReportProvider provider : reportProviders) {
@@ -220,7 +227,7 @@ public class DesignerController implements ApplicationContextAware {
                 providerData.put("reportFiles", provider.getReportFiles(path));
                 result.put(provider.getPrefix(), providerData);
             }
-            ResponseUtils.writeObjectToJson(resp, result);
+            resp.writeObjectToJson(result);
         }
     }
 

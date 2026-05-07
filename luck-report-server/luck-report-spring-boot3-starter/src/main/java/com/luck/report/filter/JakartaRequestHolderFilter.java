@@ -13,29 +13,32 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.web.filter;
+package com.luck.report.filter;
 
 import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.utils.RequestHolder;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 /**
  * 请求持有过滤器，用于在请求处理过程中设置和清理RequestHolder
+ * 调整为Jakarta版本
  *
- * @author Jacky.gao
- * @since 2017年3月8日
+ * @author jack
+ * @since 2026年4月30日11:31:18
  */
-public class RequestHolderFilter implements Filter {
-    private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
 
+public class JakartaRequestHolderFilter implements Filter {
+    private static final Logger logger = LoggerFactory.getLogger(JakartaRequestHolderFilter.class);
     private final RequestInfoProvider requestInfoProvider;
 
-    public RequestHolderFilter(RequestInfoProvider requestInfoProvider) {
+    public JakartaRequestHolderFilter(RequestInfoProvider requestInfoProvider) {
         this.requestInfoProvider = requestInfoProvider;
     }
 
@@ -72,4 +75,5 @@ public class RequestHolderFilter implements Filter {
     public void destroy() {
         logger.info("RequestHolderFilter destroyed");
     }
+
 }

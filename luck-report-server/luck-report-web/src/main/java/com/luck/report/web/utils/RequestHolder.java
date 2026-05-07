@@ -15,20 +15,20 @@
  ******************************************************************************/
 package com.luck.report.web.utils;
 
-import javax.servlet.http.HttpServletRequest;
+import com.luck.report.web.provider.RequestInfoProvider;
 
 /**
  * @author Jacky.gao
  * @since 2017年3月8日
  */
 public class RequestHolder {
-    private static final ThreadLocal<HttpServletRequest> requestThreadLocal = new ThreadLocal<HttpServletRequest>();
+    private static final ThreadLocal<RequestInfoProvider> requestThreadLocal = new ThreadLocal<RequestInfoProvider>();
 
-    public static HttpServletRequest getRequest() {
+    public static RequestInfoProvider getRequest() {
         return requestThreadLocal.get();
     }
 
-    public static void setRequest(HttpServletRequest request) {
+    public static void setRequest(RequestInfoProvider request) {
         requestThreadLocal.set(request);
     }
 

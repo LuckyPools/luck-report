@@ -13,22 +13,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.web.config;
+package com.luck.report.config;
 
 
-import com.luck.report.web.filter.RequestHolderFilter;
-import com.luck.report.web.provider.Boot2RequestInfoProvider;
-import com.luck.report.web.provider.Boot2ResponseInfoProvider;
+import com.luck.report.filter.JakartaRequestHolderFilter;
+import com.luck.report.provider.Boot3RequestInfoProvider;
+import com.luck.report.provider.Boot3ResponseInfoProvider;
 import com.luck.report.web.provider.RequestInfoProvider;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import com.luck.report.web.provider.ResponseInfoProvider;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * Web配置类，用于注册过滤器和其他Web相关配置
@@ -37,15 +34,15 @@ import javax.servlet.http.HttpServletResponse;
  * @since 2017年3月8日
  */
 @Configuration
-public class WebConfig {
+public class JakartaWebConfig {
 
     /**
      * 注册RequestHolderFilter，确保在所有请求处理过程中设置和清理RequestHolder
      */
     @Bean
-    public FilterRegistrationBean<RequestHolderFilter> requestHolderFilterRegistration(RequestInfoProvider requestInfoProvider) {
-        FilterRegistrationBean<RequestHolderFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new RequestHolderFilter(requestInfoProvider));
+    public FilterRegistrationBean<JakartaRequestHolderFilter> jakartaRequestHolderFilterRegistration(RequestInfoProvider requestInfoProvider) {
+        FilterRegistrationBean<JakartaRequestHolderFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new JakartaRequestHolderFilter(requestInfoProvider));
         // 拦截所有请求
         registration.addUrlPatterns("/*");
         // 设置过滤器名称
@@ -56,12 +53,13 @@ public class WebConfig {
     }
 
     @Bean
-    public Boot2RequestInfoProvider boot2RequestInfoProvider(HttpServletRequest request) {
-        return new Boot2RequestInfoProvider(request);
+    public RequestInfoProvider requestInfoProvider(HttpServletRequest request) {
+        return new Boot3RequestInfoProvider(request);
     }
 
     @Bean
-    public Boot2ResponseInfoProvider boot2ResponseInfoProvider(HttpServletResponse response) {
-        return new Boot2ResponseInfoProvider(response);
+    public ResponseInfoProvider responseInfoProvider(HttpServletResponse response) {
+        return new Boot3ResponseInfoProvider(response);
     }
+
 }

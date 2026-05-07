@@ -2,7 +2,6 @@ package com.luck.report.web.controller.word;
 
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.definition.ReportDefinition;
-import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ExportConfigure;
 import com.luck.report.core.export.ExportConfigureImpl;
@@ -11,14 +10,15 @@ import com.luck.report.core.export.word.high.WordProducer;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.TempObjectCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.exception.ReportDesignException;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLDecoder;
@@ -33,7 +33,7 @@ import java.util.Map;
  */
 @RestController("bean.exportWordController")
 @RequestMapping("${luck-report.servletPrefix}/word")
-public class ExportWordController {
+public class ExportWordController extends BaseController {
 
     @Autowired
     private ReportBuilder reportBuilder;
@@ -47,14 +47,14 @@ public class ExportWordController {
      * 构建PDF报表
      */
     @RequestMapping("/build")
-    public void build(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void build() throws IOException {
         buildWord(req, resp);
     }
 
     /**
      * 构建Word报表
      */
-    public void buildWord(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void buildWord(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
         String fileName = req.getParameter("reportPath");
         fileName = decode(fileName);
         String mode = req.getParameter("mode");
@@ -105,7 +105,7 @@ public class ExportWordController {
     /**
      * 构建请求参数
      */
-    protected Map<String, Object> buildParameters(HttpServletRequest req) {
+    protected Map<String, Object> buildParameters(RequestInfoProvider req) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         Enumeration<?> enumeration = req.getParameterNames();
         while (enumeration.hasMoreElements()) {

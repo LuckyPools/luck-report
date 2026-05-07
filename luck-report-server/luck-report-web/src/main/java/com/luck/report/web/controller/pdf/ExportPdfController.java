@@ -3,7 +3,6 @@ package com.luck.report.web.controller.pdf;
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.core.definition.ReportDefinition;
-import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ExportConfigure;
 import com.luck.report.core.export.ExportConfigureImpl;
@@ -13,14 +12,15 @@ import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.TempObjectCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.exception.ReportDesignException;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLDecoder;
@@ -34,7 +34,7 @@ import java.util.Map;
  */
 @RestController("bean.exportPdfController")
 @RequestMapping("${luck-report.servletPrefix}/pdf")
-public class ExportPdfController {
+public class ExportPdfController extends BaseController {
 
     @Autowired
     private ReportBuilder reportBuilder;
@@ -51,7 +51,7 @@ public class ExportPdfController {
      * 构建PDF报表
      */
     @RequestMapping("/build")
-    public void build(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void build() throws IOException {
         buildPdf(req, resp, false);
     }
 
@@ -59,12 +59,12 @@ public class ExportPdfController {
      * 显示PDF报表
      */
     @RequestMapping("/show")
-    public void show(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void show() throws IOException {
         buildPdf(req, resp, true);
     }
 
     @RequestMapping("/newPaging")
-    public void newPaging(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void newPaging() throws IOException {
         String fileName = req.getParameter("reportPath");
         fileName = decode(fileName);
         String mode = req.getParameter("mode");
@@ -87,7 +87,7 @@ public class ExportPdfController {
         report.rePaging(newPaper);
     }
 
-    private void buildPdf(HttpServletRequest req, HttpServletResponse resp, boolean forPrint) throws IOException {
+    private void buildPdf(RequestInfoProvider req, ResponseInfoProvider resp, boolean forPrint) throws IOException {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
@@ -139,7 +139,7 @@ public class ExportPdfController {
         }
     }
 
-    protected Map<String, Object> buildParameters(HttpServletRequest req) {
+    protected Map<String, Object> buildParameters(RequestInfoProvider req) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         Enumeration<?> enumeration = req.getParameterNames();
         while (enumeration.hasMoreElements()) {

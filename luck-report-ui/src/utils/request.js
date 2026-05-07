@@ -4,7 +4,9 @@ import requestAdapter from '@/lib/requestAdapter'
 
 const request = axios.create({
     baseURL: '/api',
-    timeout: 60000
+    timeout: 60000,
+    //为了携带cookie,实现同会话sessionId相同
+    withCredentials: true
 })
 
 request.interceptors.request.use(config => {
@@ -15,7 +17,7 @@ request.interceptors.request.use(config => {
 
 request.interceptors.response.use(response => {
     if (response.status !== 200) {
-        dealError({response: response}).then(r => {})
+        dealError({ response: response }).then(r => { })
         throw new Error("请求异常");
     }
     return response
@@ -27,7 +29,7 @@ request.interceptors.response.use(response => {
     return dealError(error)
 })
 
-function dealError(error){
+function dealError(error) {
     console.log(error);
     return Promise.reject(error);
 }

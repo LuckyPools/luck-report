@@ -2,6 +2,7 @@ package com.luck.report.web.controller.importexcel;
 
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.filter.RequestHolderFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +23,9 @@ import java.util.Map;
  */
 @RestController("bean.importExcelController")
 @RequestMapping("${luck-report.servletPrefix}/import")
-public class ImportExcelController {
+public class ImportExcelController extends BaseController {
 
-    private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(ImportExcelController.class);
 
     private final List<ExcelParser> excelParsers = new ArrayList<>();
 

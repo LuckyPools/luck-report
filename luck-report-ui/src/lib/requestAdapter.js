@@ -2,7 +2,9 @@ import axios from 'axios'
 
 const defaultRequest = axios.create({
     baseURL: '/api',
-    timeout: 60000
+    timeout: 60000,
+    //为了携带cookie,实现同会话sessionId相同
+    withCredentials: true
 })
 
 let customRequestHandler = null
@@ -37,11 +39,11 @@ const requestAdapter = {
         if (externalRequestInstance) {
             return externalRequestInstance(config)
         }
-        
+
         if (customRequestHandler) {
             return customRequestHandler(config)
         }
-        
+
         return defaultRequest(config)
     },
 

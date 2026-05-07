@@ -1,5 +1,8 @@
 package com.luck.report.web.controller.res;
 
+import com.luck.report.web.controller.base.BaseController;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -18,7 +21,7 @@ import java.io.OutputStream;
  */
 @RestController("bean.resourceLoaderController")
 @RequestMapping("${luck-report.servletPrefix}/res")
-public class ResourceLoaderController {
+public class ResourceLoaderController extends BaseController {
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -27,7 +30,7 @@ public class ResourceLoaderController {
      * 加载静态资源
      */
     @RequestMapping({"", "/**"})
-    public void loadResource(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void loadResource() throws IOException {
         // 获取完整URI
         String uri = req.getRequestURI();
         // 找到/res/的位置

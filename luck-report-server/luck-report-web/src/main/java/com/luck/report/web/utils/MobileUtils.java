@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.luck.report.web.utils;
 
+import com.luck.report.web.provider.RequestInfoProvider;
+
 import javax.servlet.http.HttpServletRequest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +36,7 @@ public class MobileUtils {
     private static final Pattern phonePat = Pattern.compile(phoneReg, Pattern.CASE_INSENSITIVE);
     private static final Pattern tablePat = Pattern.compile(tableReg, Pattern.CASE_INSENSITIVE);
 
-    public static boolean isMobile(HttpServletRequest req) {
+    public static boolean isMobile(RequestInfoProvider req) {
         String userAgent = req.getHeader("USER-AGENT");
         if (userAgent == null) {
             userAgent = "";

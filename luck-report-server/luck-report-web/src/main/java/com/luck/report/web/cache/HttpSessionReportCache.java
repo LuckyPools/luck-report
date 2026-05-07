@@ -16,7 +16,9 @@
 package com.luck.report.web.cache;
 
 import com.luck.report.core.cache.ReportCache;
+import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.utils.RequestHolder;
+
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ public class HttpSessionReportCache implements ReportCache {
 
     @Override
     public Object getObject(String file) {
-        HttpServletRequest req = RequestHolder.getRequest();
+        RequestInfoProvider req = RequestHolder.getRequest();
         if (req == null) {
             return null;
         }
@@ -44,7 +46,7 @@ public class HttpSessionReportCache implements ReportCache {
 
     @Override
     public void storeObject(String file, Object object) {
-        HttpServletRequest req = RequestHolder.getRequest();
+        RequestInfoProvider req = RequestHolder.getRequest();
         if (req == null) {
             return;
         }
@@ -61,7 +63,7 @@ public class HttpSessionReportCache implements ReportCache {
         this.disabled = disabled;
     }
 
-    private ObjectMap getObjectMap(HttpServletRequest req) {
+    private ObjectMap getObjectMap(RequestInfoProvider req) {
         List<String> expiredList = new ArrayList<String>();
         for (String key : sessionReportMap.keySet()) {
             ObjectMap reportObj = sessionReportMap.get(key);
@@ -72,7 +74,7 @@ public class HttpSessionReportCache implements ReportCache {
         for (String key : expiredList) {
             sessionReportMap.remove(key);
         }
-        String sessionId = req.getSession().getId();
+        String sessionId = req.getSessionId();
         ObjectMap obj = sessionReportMap.get(sessionId);
         if (obj != null) {
             return obj;

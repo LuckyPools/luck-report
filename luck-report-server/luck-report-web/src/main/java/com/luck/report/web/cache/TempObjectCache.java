@@ -15,9 +15,9 @@
  ******************************************************************************/
 package com.luck.report.web.cache;
 
+import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.utils.RequestHolder;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +45,7 @@ public class TempObjectCache {
     }
 
     public void remove(String key) {
-        HttpServletRequest req = RequestHolder.getRequest();
+        RequestInfoProvider req = RequestHolder.getRequest();
         if (req == null) {
             return;
         }
@@ -56,7 +56,7 @@ public class TempObjectCache {
     }
 
     public Object get(String key) {
-        HttpServletRequest req = RequestHolder.getRequest();
+        RequestInfoProvider req = RequestHolder.getRequest();
         if (req == null) {
             return null;
         }
@@ -65,7 +65,7 @@ public class TempObjectCache {
     }
 
     public void store(String key, Object obj) {
-        HttpServletRequest req = RequestHolder.getRequest();
+        RequestInfoProvider req = RequestHolder.getRequest();
         if (req == null) {
             return;
         }
@@ -73,8 +73,8 @@ public class TempObjectCache {
         mapObject.put(key, obj);
     }
 
-    private ObjectMap getReportMap(HttpServletRequest req) {
-        List<String> expiredList = new ArrayList<String>();
+    private ObjectMap getReportMap(RequestInfoProvider req) {
+        List<String> expiredList = new ArrayList<>();
         for (String key : sessionMap.keySet()) {
             ObjectMap reportObj = sessionMap.get(key);
             if (reportObj.isExpired()) {
@@ -84,7 +84,7 @@ public class TempObjectCache {
         for (String key : expiredList) {
             sessionMap.remove(key);
         }
-        String sessionId = req.getSession().getId();
+        String sessionId = req.getSessionId();
         ObjectMap obj = sessionMap.get(sessionId);
         if (obj != null) {
             return obj;

@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.luck.cloud</groupId>
         <artifactId>luck-report-server</artifactId>
-        <version>1.0.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>luck-report-pub</artifactId>

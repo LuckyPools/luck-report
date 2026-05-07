@@ -3,6 +3,10 @@ package com.luck.report.web.controller.chart;
 import com.luck.report.core.cache.CacheUtils;
 import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.utils.UnitUtils;
+import com.luck.report.web.controller.base.BaseController;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,13 +20,13 @@ import java.net.URLDecoder;
  */
 @RestController("bean.chartController")
 @RequestMapping("${luck-report.servletPrefix}/chart")
-public class ChartController {
+public class ChartController extends BaseController {
 
     /**
      * 存储图表数据
      */
     @RequestMapping("/storeData")
-    public void storeData(HttpServletRequest req) {
+    public void storeData() {
         String chartId = req.getParameter("_chartId");
         ChartData chartData = CacheUtils.getChartData(chartId);
         if (chartData == null) {
