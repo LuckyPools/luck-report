@@ -222,7 +222,6 @@ export default {
       errorMessage: '',
       reportData: null,
       currentReportName: '',
-      internalToolsInfo: 0,
       totalPage: 0,
       currentPage: 1,
       directPrintPdf: false,
@@ -234,7 +233,8 @@ export default {
       internalReportPath: this.reportPath,
       internalParams: this.params,
       internalMode: this.mode,
-      internalPageIndex: this.pageIndex
+      internalPageIndex: this.pageIndex,
+      internalToolsInfo: this.toolsInfo || 0
     }
   },
   computed: {
@@ -255,9 +255,6 @@ export default {
           action: () => this.goToPreview(1)
         }
       ];
-    },
-    computedToolsInfo() {
-      return this.internalToolsInfo;
     }
   },
   watch: {
@@ -386,7 +383,7 @@ export default {
       const url = getPdfDirectPrintUrl(paramObj, this.printIndex++);
       const iframe = window.frames['print_pdf_frame'];
       const pdfFrame = document.querySelector("iframe[name='print_pdf_frame']");
-      
+
       let loadTimeout = null;
       let isLoaded = false;
 
