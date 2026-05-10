@@ -326,10 +326,18 @@ export default {
     }
   },
   methods: {
+    /**
+     * 关闭对话框，向父组件发送 close 事件
+     */
     handleClose() {
       this.$emit('close');
     },
 
+    /**
+     * 纸张类型变更处理
+     * 选择预设纸张时自动更新宽高，选择自定义时允许手动编辑
+     * @param {string} value - 纸张类型标识（如 'A4', 'B5', 'CUSTOM'）
+     */
     handlePageTypeChange(value) {
       if (value === 'CUSTOM') {
         // 自定义尺寸，允许编辑宽高
@@ -342,6 +350,11 @@ export default {
       this.paper.height = mmToPoint(pageSize.height);
     },
 
+    /**
+     * 纸张宽度变更处理
+     * 将毫米值转换为点值存储，并刷新打印线显示
+     * @param {number} value - 纸张宽度（毫米）
+     */
     handlePageWidthChange(value) {
       if (!value || isNaN(value)) {
         showAlert(this.$t('preview.pdfPrint.numberTip'));
@@ -353,6 +366,11 @@ export default {
       }
     },
 
+    /**
+     * 纸张高度变更处理
+     * 将毫米值转换为点值存储
+     * @param {number} value - 纸张高度（毫米）
+     */
     handlePageHeightChange(value) {
       if (!value || isNaN(value)) {
         showAlert(this.$t('preview.pdfPrint.numberTip'));
@@ -361,6 +379,11 @@ export default {
       this.paper.height = mmToPoint(value);
     },
 
+    /**
+     * 左边距变更处理
+     * 将毫米值转换为点值存储，并刷新打印线显示
+     * @param {number} value - 左边距（毫米）
+     */
     handleLeftMarginChange(value) {
       if (!value || isNaN(value)) {
         showAlert(this.$t('preview.pdfPrint.numberTip'));
@@ -372,6 +395,11 @@ export default {
       }
     },
 
+    /**
+     * 右边距变更处理
+     * 将毫米值转换为点值存储，并刷新打印线显示
+     * @param {number} value - 右边距（毫米）
+     */
     handleRightMarginChange(value) {
       if (!value || isNaN(value)) {
         showAlert(this.$t('preview.pdfPrint.numberTip'));
@@ -383,6 +411,11 @@ export default {
       }
     },
 
+    /**
+     * 上边距变更处理
+     * 将毫米值转换为点值存储
+     * @param {number} value - 上边距（毫米）
+     */
     handleTopMarginChange(value) {
       if (!value || isNaN(value)) {
         showAlert(this.$t('preview.pdfPrint.numberTip'));
@@ -391,6 +424,11 @@ export default {
       this.paper.topMargin = mmToPoint(value);
     },
 
+    /**
+     * 下边距变更处理
+     * 将毫米值转换为点值存储
+     * @param {number} value - 下边距（毫米）
+     */
     handleBottomMarginChange(value) {
       if (!value || isNaN(value)) {
         showAlert(this.$t('preview.pdfPrint.numberTip'));
@@ -399,6 +437,10 @@ export default {
       this.paper.bottomMargin = mmToPoint(value);
     },
 
+    /**
+     * 应用纸张设置并刷新PDF预览
+     * 将当前纸张配置提交到服务端重新分页，然后更新 iframe 中的 PDF 预览内容
+     */
     async handleApply() {
       const loadingInstance = showLoading({
         text: '加载中...',
@@ -439,6 +481,10 @@ export default {
       }
     },
 
+    /**
+     * 执行PDF打印
+     * 调用 PDF 预览 iframe 的浏览器打印功能
+     */
     handlePrint() {
       try {
         window.frames['_iframe_for_pdf_print'].window.print();
@@ -448,6 +494,10 @@ export default {
       }
     },
 
+    /**
+     * 初始化PDF预览iframe
+     * 设置 iframe 的 PDF 预览地址，非 IE 浏览器显示加载中状态
+     */
     initIFrame() {
       if (!this.$refs.pdfFrame) {
         return;
@@ -471,6 +521,10 @@ export default {
       }
     },
 
+    /**
+     * 隐藏加载状态
+     * PDF iframe 加载完成后调用，关闭 loading 遮罩
+     */
     hideLoading() {
       if (this.loadingInstance) {
         this.loadingInstance.close();

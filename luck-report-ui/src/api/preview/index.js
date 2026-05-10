@@ -25,7 +25,7 @@ function buildQueryString(params) {
  * @param params 查询参数
  * @returns {Promise<Object>} 包含报表预览数据的Promise对象
  */
-export async function previewReport(params) {
+export async function loadHtml(params) {
     return request.get('/html/loadHtml', { params });
 }
 

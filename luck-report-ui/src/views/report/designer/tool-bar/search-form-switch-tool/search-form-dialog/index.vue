@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div class="search-form-dialog-content">
-      <search-form :searchFormData="searchFormData" ref="searchFormDesigner"></search-form>
+      <search-form :searchFormConfig="searchFormConfig" ref="searchFormDesigner"></search-form>
     </div>
     <div slot="footer" style="text-align: right">
       <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
@@ -41,13 +41,13 @@ export default {
     return {
       iframeSrc: '',
       index: 0,
-      searchFormData: null
+      searchFormConfig: null
     };
   },
   watch: {
     visible(newVal) {
       if (newVal && this.context.reportDef.searchForm) {
-        this.searchFormData = deepClone(this.context.reportDef.searchForm);
+        this.searchFormConfig = deepClone(this.context.reportDef.searchForm);
       }
     }
   },

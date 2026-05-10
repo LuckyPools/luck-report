@@ -15,12 +15,12 @@ import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.TempObjectCache;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.exception.ReportDesignException;
-import com.luck.report.web.utils.MobileUtils;
 import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,20 +48,15 @@ public class HtmlPreviewController {
     public void loadHtml(HttpServletRequest req, HttpServletResponse resp) throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
         HtmlReport htmlReport = null;
-        String errorMsg;
         try {
             htmlReport = loadReport(req);
-            result.put("error", false);
         } catch (Exception ex) {
             if (!(ex instanceof ReportDesignException)) {
                 log.error("加载报表异常",ex);
             }
-            errorMsg = buildExceptionMessage(ex);
-            result.put("error", true);
+            String errorMsg = buildExceptionMessage(ex);
             result.put("errorMsg", errorMsg);
         }
-        String title = buildTitle(req);
-        result.put("title", title);
         if (htmlReport != null) {
             result.put("searchForm", htmlReport.getSearchForm());
             result.put("content", htmlReport.getContent());
@@ -71,36 +66,8 @@ public class HtmlPreviewController {
             result.put("totalPageWithCol", htmlReport.getTotalPageWithCol());
             result.put("pageIndex", htmlReport.getPageIndex());
             result.put("chartDatas", htmlReport.getChartDatas());
-            result.put("file", "");
             result.put("intervalRefreshValue", htmlReport.getHtmlIntervalRefreshValue());
-            String customParameters = buildCustomParameters(req);
-            result.put("customParameters", customParameters);
-            result.put("_t", "");
-            Tools tools;
-            if (MobileUtils.isMobile(req)) {
-                tools = new Tools(false);
-                tools.setShow(false);
-            } else {
-                String toolsInfo = req.getParameter("_t");
-                if (StringUtils.isNotBlank(toolsInfo)) {
-                    tools = new Tools(false);
-                    if (toolsInfo.equals("0")) {
-                        tools.setShow(false);
-                    } else {
-                        String[] infos = toolsInfo.split(",");
-                        for (String name : infos) {
-                            tools.doInit(name);
-                        }
-                    }
-                    result.put("_t", toolsInfo);
-                    result.put("hasTools", true);
-                } else {
-                    tools = new Tools(true);
-                }
-            }
-            result.put("tools", tools);
         }
-        result.put("contextPath", req.getContextPath());
         ResponseUtils.writeObjectToJson(resp, result);
     }
 
@@ -201,7 +168,7 @@ public class HtmlPreviewController {
             }
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
-            if (!chartMap.isEmpty()) {
+            if (!CollectionUtils.isEmpty(chartMap)) {
                 CacheUtils.storeChartDataMap(chartMap);
             }
             htmlReport = new HtmlReport();
@@ -241,47 +208,6 @@ public class HtmlPreviewController {
             }
         }
         return htmlReport;
-    }
-
-    private String buildTitle(HttpServletRequest req) {
-        String title = req.getParameter("_title");
-        if (StringUtils.isBlank(title)) {
-            title = req.getParameter("reportPath");
-            title = decode(title);
-            int point = title.lastIndexOf(".ureport.xml");
-            if (point > -1) {
-                title = title.substring(0, point);
-            }
-            if(StringUtils.isBlank(title)){
-                title = "设计中报表";
-            }
-        } else {
-            title = decode(title);
-        }
-        return title + "-ureport";
-    }
-
-    private String buildCustomParameters(HttpServletRequest req) {
-        StringBuilder sb = new StringBuilder();
-        Enumeration<?> enumeration = req.getParameterNames();
-        while (enumeration.hasMoreElements()) {
-            Object obj = enumeration.nextElement();
-            if (obj == null) {
-                continue;
-            }
-            String name = obj.toString();
-            String value = req.getParameter(name);
-            if (name == null || value == null || (name.startsWith("_") && !name.equals("_n"))) {
-                continue;
-            }
-            if (sb.length() > 0) {
-                sb.append("&");
-            }
-            sb.append(name);
-            sb.append("=");
-            sb.append(value);
-        }
-        return sb.toString();
     }
 
     private String buildExceptionMessage(Throwable throwable) {

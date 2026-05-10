@@ -263,9 +263,6 @@ export default {
     this.$refs.myInput.removeEventListener("mouseleave", this.setHoverAttr);
   },
   methods: {
-    /**
-     * @description 多选面板操作
-     */
     handleMultiClick() {
       if (this.disabled) return;
       this.visible = !this.visible;

@@ -1,3 +1,44 @@
+
+/**
+ * 构建URL查询参数字符串
+ * 解析当前页面 URL 的查询参数，合并搜索表单参数，生成完整的查询字符串
+ * @param {Object} searchFormParameters - 搜索表单参数对象，键值对形式
+ * @returns {string} 以 '?' 开头的完整查询参数字符串
+ */
+export function buildLocationSearchParameters(searchFormParameters) {
+  let urlParameters = window.location.search;
+  if (urlParameters.length > 0) {
+    urlParameters = urlParameters.substring(1, urlParameters.length);
+  }
+  let parameters = {};
+  const pairs = urlParameters.split('&');
+  for (let i = 0; i < pairs.length; i++) {
+    const item = pairs[i];
+    if (item === '') {
+      continue;
+    }
+    const param = item.split('=');
+    parameters[param[0]] = param[1];
+  }
+  if (searchFormParameters) {
+    for (let key in searchFormParameters) {
+      const value = searchFormParameters[key];
+      if (value) {
+        parameters[key] = value;
+      }
+    }
+  }
+  let p = '?';
+  for (let key in parameters) {
+    if (p === '?') {
+      p += key + '=' + parameters[key];
+    } else {
+      p += '&' + key + '=' + parameters[key];
+    }
+  }
+  return p;
+}
+
 import Vue from 'vue';
 import UCheckbox from "@/components/checkbox/index.vue";
 import UCheckboxGroup from "@/components/checkbox-group/index.vue";
@@ -146,10 +187,22 @@ export function renderTemplateToComponent(componentStr, mountNode) {
     }
   }
 
-  return new Vue(componentOptions).$mount(node);
+  const vm = new Vue(componentOptions).$mount();
+  if (node) {
+    node.innerHTML = '';
+    node.appendChild(vm.$el);
+  }
+  return vm;
 }
 
 
+/**
+ * 简化对象结构
+ * 将包含 { value: xxx } 单属性的对象递归扁平化为直接值，
+ * 处理数组中同类结构的元素，空对象转为空字符串
+ * @param {*} obj - 待简化的值，可以是对象、数组或基本类型
+ * @returns {*} 简化后的值
+ */
 export function simplifyObject (obj) {
   if (typeof obj !== 'object' || obj === null) {
     return obj;

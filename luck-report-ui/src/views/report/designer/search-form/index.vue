@@ -175,7 +175,7 @@ export default {
     UCol
   },
   props:{
-     searchFormData: {
+    searchFormConfig: {
         type: Object,
         default: () => {}
      }
@@ -218,7 +218,7 @@ export default {
       },
       immediate: true
     },
-    searchFormData:{
+    searchFormConfig:{
       handler(val) {
         if(val){
           const { fields, ...rest } = val;

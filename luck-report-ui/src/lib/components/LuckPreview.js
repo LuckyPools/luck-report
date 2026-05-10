@@ -9,6 +9,7 @@ import en from '@/locales/lang/en'
 
 import { Chart, registerables } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
+import { updateUrlParams } from '@/utils/url'
 
 Chart.register(...registerables, ChartDataLabels)
 import '@/assets/css/iconfont/iconfont.css'
@@ -21,7 +22,6 @@ class LuckPreviewElement extends HTMLElement {
     constructor() {
         super()
         this._vm = null
-        this._props = {}
     }
 
     static get observedAttributes() {
@@ -40,71 +40,84 @@ class LuckPreviewElement extends HTMLElement {
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue && this._vm) {
-            const propName = this._camelize(name)
-            this._props[propName] = this._parseValue(newValue)
-            if (this._vm.$children[0]) {
-                this._vm.$children[0][propName] = this._props[propName]
+        if (oldValue !== newValue) {
+            if (name === 'locale') {
+                if (this._vm) {
+                    this._vm.$i18n.locale = newValue || 'zh'
+                }
+                return
+            }
+            this._syncUrlFromAttributes()
+            this._refreshPreview(true)
+        }
+    }
+
+    _refreshPreview(reload = false) {
+        if (this._vm) {
+            const preview = this._vm.$children[0]
+            if (preview) {
+                preview.parseParamsFromUrl()
+                if (reload) {
+                    preview.initReport()
+                }
             }
         }
     }
 
     set reportPath(val) {
-        this._props.reportPath = val
-        if (this._vm) {
-            this._vm.internalReportPath = val
-        }
+        updateUrlParams({ reportPath: val })
+        this._refreshPreview(true)
     }
 
     get reportPath() {
-        return this._props.reportPath
+        return this.getAttribute('report-path')
     }
 
     set params(val) {
-        this._props.params = val
-        if (this._vm) {
-            this._vm.internalParams = val
+        if (val && typeof val === 'object') {
+            updateUrlParams(val)
         }
+        this._refreshPreview(true)
     }
 
     get params() {
-        return this._props.params
+        try {
+            return JSON.parse(this.getAttribute('params') || '{}')
+        } catch {
+            return {}
+        }
     }
 
     set mode(val) {
-        this._props.mode = val
-        if (this._vm) {
-            this._vm.internalMode = val
-        }
+        updateUrlParams({ mode: val })
+        this._refreshPreview(false)
     }
 
     get mode() {
-        return this._props.mode
+        return this.getAttribute('mode')
     }
 
     set pageIndex(val) {
-        this._props.pageIndex = val
-        if (this._vm) {
-            this._vm.internalPageIndex = val
-        }
+        updateUrlParams({ _i: val })
+        this._refreshPreview(false)
     }
 
     get pageIndex() {
-        return this._props.pageIndex
+        return this.getAttribute('page-index')
     }
 
     set toolsInfo(val) {
-        this._props.toolsInfo = val
-        if (this._vm) {
-            this._vm.internalToolsInfo = val
-        }
+        updateUrlParams({ _t: val })
+        this._refreshPreview(false)
     }
 
     get toolsInfo() {
-        return this._props.toolsInfo
+        return this.getAttribute('tools-info')
     }
 
     _mount() {
+        this._syncUrlFromAttributes()
+
         const container = document.createElement('div')
         container.className = 'luck-preview-container'
         container.style.width = '100%'
@@ -121,75 +134,20 @@ class LuckPreviewElement extends HTMLElement {
             messages: { zh, en }
         })
 
-        this._props = {
-            reportPath: this.getAttribute('report-path') || '',
-            params: this._parseValue(this.getAttribute('params')) || {},
-            mode: this.getAttribute('mode') || '',
-            pageIndex: this._parseValue(this.getAttribute('page-index')) || null,
-            toolsInfo: this._parseValue(this.getAttribute('tools-info')) || null
-        }
-
         const PreviewConstructor = Vue.extend({
             store,
             i18n,
-            props: {
-                reportPath: { type: String, default: '' },
-                params: { type: Object, default: () => ({}) },
-                mode: { type: String, default: '' },
-                pageIndex: { type: [Number, String], default: null },
-                toolsInfo: { type: [Number, String], default: null }
-            },
-            data() {
-                return {
-                    internalReportPath: this.reportPath,
-                    internalParams: this.params,
-                    internalMode: this.mode,
-                    internalPageIndex: this.pageIndex,
-                    internalToolsInfo: this.toolsInfo
-                }
-            },
-            watch: {
-                reportPath(val) {
-                    this.internalReportPath = val
-                },
-                params: {
-                    handler(val) {
-                        this.internalParams = val
-                    },
-                    deep: true
-                },
-                mode(val) {
-                    this.internalMode = val
-                },
-                pageIndex(val) {
-                    this.internalPageIndex = val
-                },
-                toolsInfo(val) {
-                    this.internalToolsInfo = val
-                }
-            },
             render(h) {
                 return h(PreviewComponent, {
-                    props: {
-                        reportPath: this.internalReportPath,
-                        params: this.internalParams,
-                        mode: this.internalMode,
-                        pageIndex: this.internalPageIndex,
-                        toolsInfo: this.internalToolsInfo
-                    },
                     on: {
-                        navigate: (data) => this._handleNavigate(data),
                         ready: (data) => this._emit('ready', data),
                         error: (err) => this._emit('error', err)
                     }
                 })
             },
             methods: {
-                _handleNavigate(data) {
-                    this._emit('navigate', data)
-                },
                 _emit(eventName, detail) {
-                    this.$el.dispatchEvent(new CustomEvent(eventName, { 
+                    this.$el.dispatchEvent(new CustomEvent(eventName, {
                         detail,
                         bubbles: true,
                         composed: true
@@ -198,67 +156,48 @@ class LuckPreviewElement extends HTMLElement {
                 refresh() {
                     return this.$children[0]?.refresh?.()
                 },
-                print() {
-                    return this.$children[0]?.print?.()
-                },
-                exportPDF() {
-                    return this.$children[0]?.exportPdf?.()
-                },
-                exportWord() {
-                    return this.$children[0]?.exportWord?.()
-                },
-                exportExcel() {
-                    return this.$children[0]?.exportExcel?.()
-                },
-                goToPage(pageIndex) {
-                    return this.$children[0]?.goToPage?.(pageIndex)
+                handlePageChange(pageIndex) {
+                    return this.$children[0]?.handlePageChange?.(pageIndex)
                 }
             }
         })
 
-        this._vm = new PreviewConstructor({
-            propsData: this._props
-        })
+        this._vm = new PreviewConstructor()
         this._vm.$mount(container)
     }
 
-    _camelize(str) {
-        return str.replace(/-(\w)/g, (_, c) => c ? c.toUpperCase() : '')
-    }
+    _syncUrlFromAttributes() {
+        const params = {}
 
-    _parseValue(value) {
-        if (value === null || value === undefined) return value
-        if (value === 'true') return true
-        if (value === 'false') return false
-        try {
-            return JSON.parse(value)
-        } catch {
-            return value
+        const paramsStr = this.getAttribute('params')
+        if (paramsStr) {
+            try {
+                const extraParams = JSON.parse(paramsStr)
+                Object.keys(extraParams).forEach(key => {
+                    params[key] = extraParams[key]
+                })
+            } catch {}
         }
+
+        const reportPath = this.getAttribute('report-path')
+        const mode = this.getAttribute('mode')
+        const pageIndex = this.getAttribute('page-index')
+        const toolsInfo = this.getAttribute('tools-info')
+
+        if (reportPath != null) params.reportPath = reportPath || null
+        if (mode != null) params.mode = mode || null
+        if (pageIndex != null) params._i = pageIndex || null
+        if (toolsInfo != null) params._t = toolsInfo || null
+
+        updateUrlParams(params)
     }
 
     refresh() {
         return this._vm?.refresh?.()
     }
 
-    print() {
-        return this._vm?.print?.()
-    }
-
-    exportPDF() {
-        return this._vm?.exportPDF?.()
-    }
-
-    exportWord() {
-        return this._vm?.exportWord?.()
-    }
-
-    exportExcel() {
-        return this._vm?.exportExcel?.()
-    }
-
-    goToPage(pageIndex) {
-        return this._vm?.goToPage?.(pageIndex)
+    handlePageChange(pageIndex) {
+        return this._vm?.handlePageChange?.(pageIndex)
     }
 
     setReportPath(path) {

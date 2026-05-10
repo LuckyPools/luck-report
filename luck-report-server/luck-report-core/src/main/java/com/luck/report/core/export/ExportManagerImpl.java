@@ -26,7 +26,9 @@ import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.export.word.high.WordProducer;
 import com.luck.report.core.model.Report;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +71,7 @@ public class ExportManagerImpl implements ExportManager {
         ReportDefinition reportDefinition = reportRender.getReportDefinition(file);
         Report report = reportRender.render(reportDefinition, parameters);
         Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
-        if (chartMap.size() > 0) {
+        if (!CollectionUtils.isEmpty(chartMap)) {
             CacheUtils.storeChartDataMap(chartMap);
         }
         SinglePageData pageData = PageBuilder.buildSinglePageData(pageIndex, report);
