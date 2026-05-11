@@ -1,6 +1,7 @@
 const en = {
     "selectTargetCellFirst":"Please select target cell first!",
     "selectMultiTargetCellFirst":"Please select multiple cells first!",
+    "copyStyleFirst":"Please copy target cell style first",
     "mergeSplitCells":"Merge/Split Cells",
     "image":"Image",
     "importExcel":"Import Excel",
@@ -8,6 +9,7 @@ const en = {
     "openFile":"Open File...",
     "setting":"Setting",
     "underline":"Underline",
+    "colon": ":",
     "panel":{
         "property":"Property",
         "datasource":"Data Source",
@@ -69,7 +71,8 @@ const en = {
             "radar":"Radar",
             "polar":"Polar",
             "scatter":"Scatter",
-            "bubble":"Bubble"
+            "bubble":"Bubble",
+            "unknownChartType":"Unknown chart type"
         },
         "crosstab":{
             "title":"Slash Line"
@@ -93,11 +96,11 @@ const en = {
             "previewFail":"Report Preview Fail"
         },
         "redo":{
-            "noRedo":"Nothing to redo.",
+            "noRedo":"Nothing to redo",
             "redo":"Redo"
         },
         "undo":{
-            "noUndo":"Nothing to undo.",
+            "noUndo":"Nothing to undo",
             "redo":"Undo"
         },
         "save":{
@@ -126,7 +129,8 @@ const en = {
             "className":"Class full name for generate fields,if not specified,you need add field manually",
             "ok":"OK",
             "dataset":"Dataset",
-            "datasetExist":"already exist,please change dataset name."
+            "datasetExist":"already exist,please change dataset name",
+            "datasetNameExist":"Dataset already exists"
         },
         "buildin":{
             "selectDatasource":"Select Buildin Datasource",
@@ -189,16 +193,16 @@ const en = {
             "url":"URL",
             "test":"Test Connection",
             "save":"Save",
-            "nameTip":"Datasource name can not be null.",
-            "usernameTip":"Username can not be null.",
+            "nameTip":"Datasource name can not be null",
+            "usernameTip":"Username can not be null",
             "driverTip":"Driver can not be null",
             "urlTip":"URL can not be null",
             "datasource":"Datasource",
-            "existTip":"already exist，please change the datasource name.",
+            "existTip":"already exist，please change the datasource name",
             "testSuccess":"Test connection successfully!",
             "testFail":"Test connection fail",
-            "failTip":"Test connection fail,please confirm connection info is right.",
-            "failTip1":"Test connection fail.",
+            "failTip":"Test connection fail,please confirm connection info is right",
+            "failTip1":"Test connection fail",
             "saveSuccess":"Save datasource successfully!"
         },
         "editPropCondition":{
@@ -251,7 +255,7 @@ const en = {
         },
         "import":{
             "title":"Import Excel File",
-            "desc":"This operation will import the first sheet content of Excel,if you choice the xlsx format of Excel file,if the background color could not parse,you can save the file as xls format,and upload it again.",
+            "desc":"This operation will import the first sheet content of Excel,if you choice the xlsx format of Excel file,if the background color could not parse,you can save the file as xls format,and upload it again",
             "file":"Select the excel file to import",
             "upload":"Upload",
             "fail":"Import fail"
@@ -412,20 +416,20 @@ const en = {
             "modDate":"Modify Date",
             "del":"Delete",
             "delConfirm":"Are you sure delete the file ",
-            "delFail":"File delete failed.",
+            "delFail":"File delete failed",
             "save":"Save",
-            "nameTip":"File name can not be null.",
-            "locationTip":"Please select destination to store file.",
+            "nameTip":"File name can not be null",
+            "locationTip":"Please select destination to store file",
             "file":"File",
             "exist":" already exist",
             "success":"Save successfully",
             "fail":"Save failed",
-            "loadFail":"Load file failed.",
-            "currentPath":"Current Path:",
+            "loadFail":"Load file failed",
+            "currentPath":"Current Path",
             "backToParent":"Back to Parent",
-            "serverError":"Server Error:",
-            "deleteFileFail":"Delete file failed:",
-            "saveFileFail":"Save file failed:"
+            "serverError":"Server Error",
+            "deleteFileFail":"Delete file failed",
+            "saveFileFail":"Save file failed"
         },
         "setting":{
             "title":"Report Setting",
@@ -474,7 +478,7 @@ const en = {
             "fixRows":"Fix Rows",
             "rowsPerPage":"Rows per Page",
             "fixRowsTip":"Fixed rows cannot be less than one",
-            "colDesc":"The column effect is shown in paging,and print,exporting report.",
+            "colDesc":"The column effect is shown in paging,and print,exporting report",
             "column":"Column",
             "columnCount":"Column count",
             "columnUnit":" columns",
@@ -510,7 +514,7 @@ const en = {
             "nameTip":"Dataset name cannot be null!",
             "sqlTip":"SQL cannot be null!",
             "ds":"Dataset",
-            "exist":" already exist.",
+            "exist":" already exist",
             "addSql":"Double click to add sql",
             "table":"Table",
             "view":"View",
@@ -844,12 +848,12 @@ const en = {
             "default": "Loading..."
         },
         "error": {
-            "serverError": "Server Error:",
+            "serverError": "Server Error",
             "serverErrorSimple": "Server Error!",
             "loadPaperFail": "Failed to load paper information",
             "searchFail": "Search operation failed!",
-            "loadReportFail": "Failed to load report:",
-            "submitSearchFail": "Failed to submit search form:",
+            "loadReportFail": "Failed to load report",
+            "submitSearchFail": "Failed to submit search form",
             "loadDataFail": "Failed to load data",
             "fileParamMissing": "Report file parameter missing"
         },

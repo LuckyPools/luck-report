@@ -1,6 +1,7 @@
 const zh = {
     "selectTargetCellFirst":"请先选择目标单元格!",
     "selectMultiTargetCellFirst":"请选择多个单元格后再进行此操作!",
+    "copyStyleFirst":"请先复制目标单元格样式",
     "mergeSplitCells":"合并/拆分单元格",
     "image":"图片",
     "importExcel":"导入Excel模版文件",
@@ -8,6 +9,7 @@ const zh = {
     "openFile":"打开报表文件",
     "setting":"设置",
     "underline":"下划线",
+    "colon": "：",
     "panel":{
         "property":"属性",
         "datasource":"数据源",
@@ -69,7 +71,8 @@ const zh = {
             "radar":"雷达图",
             "polar":"极坐标图",
             "scatter":"散点图",
-            "bubble":"气泡图"
+            "bubble":"气泡图",
+            "unknownChartType":"不能识别的图表类型"
         },
         "crosstab":{
             "title":"斜线表头"
@@ -126,7 +129,8 @@ const zh = {
             "className":"指定该方法返回类全名,用于生成字段,如不指定需手工添加字段",
             "ok":"确定",
             "dataset":"数据集",
-            "datasetExist":"已存在，请换一个数据集名称."
+            "datasetExist":"已存在，请换一个数据集名称",
+            "datasetNameExist":"数据集已存在"
         },
         "buildin":{
             "selectDatasource":"内置数据源选择",
@@ -194,10 +198,10 @@ const zh = {
             "driverTip":"请输入连接驱动",
             "urlTip":"请输入连接URL",
             "datasource":"数据源",
-            "existTip":"已存在，请更换当前数据源名称.",
+            "existTip":"已存在，请更换当前数据源名称",
             "testSuccess":"连接测试成功！",
             "testFail":"连接测试失败",
-            "failTip":"连接测试失败，不能进行后续动作，请确认当前连接信息是否正确。",
+            "failTip":"连接测试失败，不能进行后续动作，请确认当前连接信息是否正确",
             "failTip1":"连接测试操作失败！",
             "saveSuccess":"保存数据源成功！"
         },
@@ -251,7 +255,7 @@ const zh = {
         },
         "import":{
             "title":"导入Excel模版文件",
-            "desc":"此操作将导入Excel的第一个Sheet页内容，如果选择是的xlsx格式的Excel文件，导入后发现背景色未正常解析，可将该文件另存为xls格式，再次上传这个xls格式Excel文件即可。",
+            "desc":"此操作将导入Excel的第一个Sheet页内容，如果选择是的xlsx格式的Excel文件，导入后发现背景色未正常解析，可将该文件另存为xls格式，再次上传这个xls格式Excel文件即可",
             "file":"请选择要导入的Excel文件",
             "upload":"上传文件",
             "fail":"导入失败"
@@ -421,11 +425,11 @@ const zh = {
             "success":"保存成功！",
             "fail":"文件保存失败！",
             "loadFail":"加载报表文件列表失败!",
-            "currentPath":"当前路径：",
+            "currentPath":"当前路径",
             "backToParent":"返回上一级",
-            "serverError":"服务端错误：",
-            "deleteFileFail":"删除文件失败：",
-            "saveFileFail":"保存文件失败："
+            "serverError":"服务端错误",
+            "deleteFileFail":"删除文件失败",
+            "saveFileFail":"保存文件失败"
         },
         "setting":{
             "title":"报表配置",
@@ -474,7 +478,7 @@ const zh = {
             "fixRows":"固定行数",
             "rowsPerPage":"每页行数",
             "fixRowsTip":"固定行数不能少于一行",
-            "colDesc":"分栏效果在分页时显示，同时在打印、导出报表时采用。",
+            "colDesc":"分栏效果在分页时显示，同时在打印、导出报表时采用",
             "column":"分栏",
             "columnCount":"栏数",
             "columnUnit":"栏",
@@ -510,7 +514,7 @@ const zh = {
             "nameTip":"数据集名称不能为空!",
             "sqlTip":"数据集SQL不能为空！",
             "ds":"数据集",
-            "exist":"已存在，请换一个数据集名称.",
+            "exist":"已存在，请换一个数据集名称",
             "addSql":"双击表名添加查询",
             "table":"表",
             "view":"视图",
@@ -848,8 +852,8 @@ const zh = {
             "serverErrorSimple": "服务端出错！",
             "loadPaperFail": "获取纸张信息失败",
             "searchFail": "查询操作失败！",
-            "loadReportFail": "加载报表失败:",
-            "submitSearchFail": "提交搜索表单失败:",
+            "loadReportFail": "加载报表失败",
+            "submitSearchFail": "提交搜索表单失败",
             "loadDataFail": "加载数据失败",
             "fileParamMissing": "报表文件参数缺失"
         },

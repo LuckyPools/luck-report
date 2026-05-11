@@ -1,6 +1,7 @@
 package com.luck.report.web.controller.importexcel;
 
 import com.luck.report.core.definition.ReportDefinition;
+import com.luck.report.core.exception.ReportException;
 import com.luck.report.web.cache.TempObjectCache;
 import com.luck.report.web.filter.RequestHolderFilter;
 import org.slf4j.Logger;
@@ -40,7 +41,6 @@ public class ImportExcelController {
     public Map<String, Object> importExcel(@RequestParam("_excel_file") MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
         ReportDefinition report = null;
-        String errorInfo = null;
 
         try {
             String fileName = file.getOriginalFilename();
@@ -54,21 +54,18 @@ public class ImportExcelController {
                 }
                 inputStream.close();
             } else {
-                errorInfo = "请选择一个合法的Excel导入";
+                throw new ReportException("请选择一个合法的Excel导入");
             }
         } catch (Exception e) {
             logger.error("Import Excel Error: {}", e);
-            errorInfo = e.getMessage();
+            throw new ReportException(e.getMessage());
         }
 
         if (report != null) {
             result.put("result", true);
             TempObjectCache.putObject("classpath:template/template.ureport.xml", report);
         } else {
-            result.put("result", false);
-            if (errorInfo != null) {
-                result.put("errorInfo", errorInfo);
-            }
+            throw new ReportException("Excel文件解析失败，请检查文件格式是否正确");
         }
 
         return result;

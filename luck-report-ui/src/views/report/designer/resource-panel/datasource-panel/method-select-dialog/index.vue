@@ -87,7 +87,7 @@ export default {
       } catch (error) {
         this.loading = false;
         if (error.msg) {
-          showAlert("服务端错误：" + error.msg);
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(`加载方法[${this.beanId}]失败`);
         }

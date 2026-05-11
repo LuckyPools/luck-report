@@ -441,8 +441,8 @@ export default {
         dataset.fields = fields;
         this.$forceUpdate();
       } catch (error) {
-        if (error.message) {
-          showAlert('服务端错误：' + error.message);
+        if (error.msg) {
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('tree.loadFieldFail'));
         }

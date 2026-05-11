@@ -25,7 +25,7 @@
 
       <div class="path-bar" v-if="currentPath || canGoBack">
         <div class="path-display">
-          <span class="path-label">{{ $t('dialog.save.currentPath') }}</span>
+          <span class="path-label">{{ $t('dialog.save.currentPath') }}：</span>
           <span class="path-text">{{ currentPath || '/' }}</span>
         </div>
         <u-button
@@ -164,7 +164,7 @@ export default {
         .catch(error => {
           console.error('Error loading providers:', error);
           if (error.msg) {
-            showAlert(_this.$t('dialog.save.serverError') + error.msg);
+            showAlert(_this.$t('dialog.save.serverError') + _this.$t('colon') + error.msg, { useHTMLString: true });
           } else {
             showAlert(_this.$t('dialog.open.loadFail'));
           }
@@ -183,7 +183,7 @@ export default {
         .catch(error => {
           console.error('Error loading providers by path:', error);
           if (error.msg) {
-            showAlert(_this.$t('dialog.save.serverError') + error.msg);
+            showAlert(_this.$t('dialog.save.serverError') + _this.$t('colon') + error.msg, { useHTMLString: true });
           } else {
             showAlert(_this.$t('dialog.open.loadFail'));
           }
@@ -267,7 +267,7 @@ export default {
             .catch(error => {
               console.error('Error deleting file:', error);
               if (error.msg) {
-                showAlert(_this.$t('dialog.save.serverError') + error.msg);
+                showAlert(_this.$t('dialog.save.serverError') + _this.$t('colon') + error.msg, { useHTMLString: true });
               } else {
                 showAlert(_this.$t('dialog.open.delFail'));
               }

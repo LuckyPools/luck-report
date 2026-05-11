@@ -169,7 +169,7 @@ public class DesignerController implements ApplicationContextAware {
      * 保存报表文件
      */
     @RequestMapping("/saveReportFile")
-    public void saveReportFile(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void saveReportFile(HttpServletRequest req, HttpServletResponse resp) {
         String file = req.getParameter("file");
         file = ReportUtils.decodeFileName(file);
         String content = req.getParameter("content");

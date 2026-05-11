@@ -156,13 +156,13 @@ export default function buildMenuConfigure(){
                 const [startRow, startCol, endRow, endCol] = selected[0];
                 let cell= getCell(startRow,startCol);
                 if(!cell){
-                    showAlert("请先选中目标单元格！");
+                    showAlert($t('selectTargetCellFirst'));
                     return;
                 }
                 window.__copy_cell_style__=cell.cellStyle;
             }else if(key==='paste_style'){
                 if(!window.__copy_cell_style__){
-                showAlert('请先复制目标单元格样式');
+                showAlert($t('copyStyleFirst'));
                 return;
             }
                 const selected=this.getSelected();

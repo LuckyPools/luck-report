@@ -73,21 +73,12 @@ export default {
 
       try {
         const response = await importExcelFile(this.selectedFile);
-        this.handleImportResponse(response);
-      } catch (error) {
-        console.error('上传文件失败:', error);
-        showAlert(this.$t('dialog.import.fail'));
-      }
-    },
-    handleImportResponse(response) {
-      const result = response.result;
-      if (result) {
         this.$emit('import-success');
         this.$emit('update:visible', false);
-      } else {
-        const errorInfo = response.errorInfo;
-        if (errorInfo) {
-          showAlert(`${this.$t('dialog.import.fail')}: ${errorInfo}`);
+      } catch (error) {
+        console.error('上传文件失败:', error);
+        if (error.msg) {
+          showAlert(this.$t('dialog.import.fail') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('dialog.import.fail'));
         }

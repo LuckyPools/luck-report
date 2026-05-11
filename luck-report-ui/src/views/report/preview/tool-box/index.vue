@@ -270,7 +270,7 @@ export default {
         }
         console.error('打印失败:', error);
         if (error.msg) {
-          showAlert(this.$t('preview.error.serverError') + error.msg);
+          showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('preview.error.serverErrorSimple'));
         }

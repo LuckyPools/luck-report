@@ -58,7 +58,7 @@ export default {
       .catch(error => {
         console.error('预览失败:', error);
         if (error.msg) {
-          showAlert("服务端错误：" + error.msg);
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('tools.preview.previewFail'));
         }

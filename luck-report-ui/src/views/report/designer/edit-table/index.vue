@@ -252,7 +252,7 @@ export default {
       } catch (error) {
         this.$emit('error', error);
         if (error.msg) {
-          showAlert("服务端错误：" + error.msg);
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('table.report.load') + `${filePath}` + this.$t('table.report.fail'));
         }

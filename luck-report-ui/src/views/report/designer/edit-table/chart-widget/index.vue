@@ -12,6 +12,7 @@ Chart.register(...registerables, ChartDataLabels);
 import { showAlert } from '@/utils/comnon.js';
 import {getCell} from "@/utils/contextActions";
 import TableManager from '../manager.js';
+import {$t} from "@/locales";
 
 export default {
   name: 'ChartWidget',
@@ -377,7 +378,7 @@ export default {
           };
           break;
         default:
-          showAlert('不能识别的图表类型：' + type);
+          showAlert($t('tools.chart.unknownChartType') + $t('colon') + type);
       }
 
       // 处理额外的选项配置

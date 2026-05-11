@@ -19,7 +19,7 @@ import java.util.Random;
  * 仅处理报表相关的异常，不影响业务系统的异常处理规则
  * @author luck
  */
-@ControllerAdvice("bean.reportExceptionHandler")
+@ControllerAdvice("com.luck.report.web.controller")
 public class ReportExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ReportExceptionHandler.class);
@@ -39,9 +39,9 @@ public class ReportExceptionHandler {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         String errorMessage = getRootErrorMessage(ex);
         String auxCode = generateAuxCode();
-        
+
         logger.error("报表异常 [auxCode={}]: {}", auxCode, errorMessage, ex);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("data", null);
         result.put("code", 500);

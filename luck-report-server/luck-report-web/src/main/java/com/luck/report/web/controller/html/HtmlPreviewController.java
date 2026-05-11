@@ -47,13 +47,8 @@ public class HtmlPreviewController {
     @RequestMapping("/loadHtml")
     public void loadHtml(HttpServletRequest req, HttpServletResponse resp) throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
-        HtmlReport htmlReport = null;
-        try {
-            htmlReport = loadReport(req);
-        } catch (Exception ex) {
-            log.error("加载报表异常",ex);
-            result.put("errorMsg", ex.getMessage());
-        }
+        HtmlReport htmlReport;
+        htmlReport = loadReport(req);
         if (htmlReport != null) {
             result.put("searchForm", htmlReport.getSearchForm());
             result.put("content", htmlReport.getContent());
@@ -156,12 +151,12 @@ public class HtmlPreviewController {
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         fileName = decode(fileName);
         if (StringUtils.isBlank(fileName)) {
-            throw new ReportComputeException("Report file can not be null.");
+            throw new ReportComputeException("Report file can not be null");
         }
         if (isPreview) {
             ReportDefinition reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
             if (reportDefinition == null) {
-                throw new ReportDesignException("Report data has expired,can not do preview.");
+                throw new ReportDesignException("Report data has expired,can not do preview");
             }
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();

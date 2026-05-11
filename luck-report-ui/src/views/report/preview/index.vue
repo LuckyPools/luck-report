@@ -127,9 +127,6 @@ export default {
       try {
         const params = this.getReportParams(pageIndex);
         const reportData = await loadHtml(params);
-        if (reportData.errorMsg) {
-          throw new Error(reportData.errorMsg);
-        }
         reportData.tools = this.computeTools();
         Object.freeze(reportData);
         this.reportData = reportData;
@@ -137,7 +134,12 @@ export default {
         this.totalPage = this.extractTotalPage(reportData);
         return reportData;
       } catch (error) {
-        showAlert("加载报表失败：" + error.message);
+        if (error.msg) {
+          showAlert($t('preview.error.loadReportFail') + this.$t('colon') + error.msg, { useHTMLString: true });
+        } else {
+          showAlert($t('preview.error.loadReportFail'));
+        }
+
         this.$emit('error', error);
         return null;
       } finally {
@@ -284,12 +286,10 @@ export default {
         await this.loadAndRenderReport({ resetToFirstPage: false });
       } catch (error) {
         console.error('刷新数据失败:', error);
-        const tableContainer = document.getElementById('report-table');
-        if (tableContainer) {
-          tableContainer.innerHTML = '';
-          tableContainer.innerHTML = error.msg
-            ? `<h3 style='color: #d30e00;'>${this.$t('preview.error.serverError')}${error.msg}</h3>`
-            : `<h3 style='color: #d30e00;'>${this.$t('preview.error.loadDataFail')}</h3>`;
+        if (error.msg) {
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
+        } else {
+          showAlert(this.$t('dialog.save.fail'));
         }
       } finally {
         setTimeout(() => this.refreshReport(second), second);

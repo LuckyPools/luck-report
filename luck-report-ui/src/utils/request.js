@@ -30,7 +30,8 @@ request.interceptors.response.use(response => {
 function dealError(error){
     console.log(error);
     if (error && error.auxCode && error.msg) {
-        error.msg = error.msg + "，异常编码为：" + error.auxCode;
+        const auxCodeHtml = `<span class="aux-code">${error.auxCode}</span><i class="iconfont icon-copy" style="cursor: pointer; margin-left: 4px; color: #409eff;" title="点击复制" onclick="navigator.clipboard.writeText('${error.auxCode}').then(() => { this.style.color = '#67c23a'; setTimeout(() => { this.style.color = '#409eff'; }, 1000); })"></i>`;
+        error.msg = error.msg + "<br/>异常编码：" + auxCodeHtml;
     }
     return Promise.reject(error);
 }

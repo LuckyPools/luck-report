@@ -53,6 +53,7 @@ import UInput from '@/components/input/index.vue';
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
 import {showAlert} from "@/utils/comnon";
+import {$t} from "@/locales";
 
 export default {
   name: 'BeanMethodDialog',
@@ -157,7 +158,7 @@ export default {
 
           for (let dataset of datasets) {
             if (dataset.name === this.name) {
-              showAlert(`数据集[${this.name}]已存在`);
+              showAlert(`${this.name} ${$t('dialog.bean.datasetExist')}`);
               return false;
             }
           }

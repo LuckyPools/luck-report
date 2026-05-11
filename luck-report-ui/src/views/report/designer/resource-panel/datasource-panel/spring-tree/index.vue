@@ -293,7 +293,7 @@ export default {
       if (fieldName) {
         const newDatasets = deepCopy(this.datasets);
         const targetDataset = newDatasets.find(d => d.name === dataset.name);
-        
+
         if (!targetDataset.fields) {
           targetDataset.fields = [];
         }
@@ -323,7 +323,7 @@ export default {
      */
     handleBeanMethodSave(name, method, clazz, oldName) {
       const newDatasets = deepCopy(this.datasets);
-      
+
       if (oldName && oldName !== '') {
         const index = newDatasets.findIndex(dataset => dataset.name === oldName);
         if (index !== -1) {
@@ -355,7 +355,7 @@ export default {
       if (clazz && clazz !== '') {
         this.buildFields(dataset, index, false, newDatasets);
       }
-      
+
       this.$emit('update-datasets', newDatasets);
     },
 
@@ -448,7 +448,7 @@ export default {
         }
       } catch (error) {
         if (error.msg) {
-          showAlert("服务端错误：" + error.msg);
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });;
         } else {
           showAlert(this.$t('tree.loadFieldFail'));
         }
