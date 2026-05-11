@@ -1,5 +1,11 @@
 <template>
   <div class="search-box">
+    <div class="tools-content">
+      <i class="iconfont icon-search"></i>
+      <span class="title">
+        {{ $t('preview.searchBox.title') }}
+      </span>
+    </div>
     <div class="main">
       <div ref="searchForm"></div>
     </div>
@@ -42,9 +48,6 @@ export default {
   },
   methods: {
     init(searchFormConfig) {
-      if (!searchFormConfig || !searchFormConfig.fields || searchFormConfig.fields.length === 0) {
-        return;
-      }
 
       if (this.formInstance) {
         this.formInstance.$destroy();
@@ -77,13 +80,32 @@ export default {
 <style scoped>
 .search-box {
   position: relative;
-  height: 200px;
-  width: 100%;
+  width: 380px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.search-box .main{
-  max-width: 800px;
-  margin: 0 auto;
+.tools-content {
+  border: solid 1px #ddd;
+  border-radius: 5px;
+  height: 40px;
+  width: 100%;
+  background: #f8f8f8;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  gap: 6px;
+}
+
+.title {
+  font-size: 14px;
+}
+
+.main {
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 </style>

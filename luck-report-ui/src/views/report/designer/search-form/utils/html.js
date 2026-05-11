@@ -58,7 +58,7 @@ function buildFromBtns(conf, type) {
         <u-row>
           <u-form-item size="large">
             <u-button type="info" @click.prevent="resetForm">重置</u-button>
-            <u-button type="primary" @click.prevent="submitForm">提交</u-button>
+            <u-button type="primary" @click.prevent="submitForm">查询</u-button>
           </u-form-item>
         </u-row>
     `

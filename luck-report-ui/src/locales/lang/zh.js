@@ -824,6 +824,9 @@ const zh = {
             "fail":"操作失败！",
             "print":"打印"
         },
+        "searchBox":{
+            "title":"查询条件"
+        },
         "buttons": {
             "print": "在线打印",
             "pdfDirectPrint": "PDF在线打印",

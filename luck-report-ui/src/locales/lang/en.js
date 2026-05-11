@@ -824,6 +824,9 @@ const en = {
             "fail":"Apply fail!",
             "print":"Print"
         },
+        "searchBox":{
+            "title":"Search Conditions"
+        },
         "buttons": {
             "print": "Online Print",
             "pdfDirectPrint": "PDF Online Print",

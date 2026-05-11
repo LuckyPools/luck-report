@@ -527,5 +527,9 @@ export default {
   height: 40px;
   width: 100%;
   background: #f8f8f8;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
 }
 </style>

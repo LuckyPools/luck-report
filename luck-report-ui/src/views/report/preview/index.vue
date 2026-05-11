@@ -1,24 +1,31 @@
 <template>
-  <div id="preview-container">
-
-    <SearchBox
-      v-if="searchFormConfig"
-      :searchFormConfig="searchFormConfig"
-      @submit="handleFormSubmit"
-    />
-
-    <ToolBox
-        :reportData="reportData"
-        :currentPage="currentPage"
-        :pageEnable="pageEnable"
-        :searchFormParameters="searchFormParameters"
-        @page-change="handlePageChange"
-        @page-enable-change="handlePageEnableChange"
-    />
-
-    <div id="report-table" v-if="reportData && reportData.content"
-         v-html="reportData.content"
-         :style="{ float: reportData.reportAlign || 'left' }"></div>
+  <div id="preview-container" :class="{ 'right-collapsed': !isShowSearchForm }">
+    <div class="preview-left">
+      <ToolBox
+          :reportData="reportData"
+          :currentPage="currentPage"
+          :pageEnable="pageEnable"
+          :searchFormParameters="searchFormParameters"
+          @page-change="handlePageChange"
+          @page-enable-change="handlePageEnableChange"
+      />
+      <div id="report-table" v-if="reportData && reportData.content"
+           v-html="reportData.content"
+           :style="{ float: reportData.reportAlign || 'left' }"></div>
+    </div>
+    <div v-if="isRenderSearchForm" class="collapse-btn" @click="toggleCollapse">
+      <i class="iconfont collapse-icon" :class="isShowSearchForm ? 'icon-right' : 'icon-left'"></i>
+    </div>
+    <div v-if="isRenderSearchForm"
+         class="preview-right"
+         :class="{ collapsed: !isShowSearchForm }">
+      <div class="preview-right-content">
+        <SearchBox
+          :searchFormConfig="searchFormConfig"
+          @submit="handleFormSubmit"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -56,23 +63,34 @@ export default {
       mode: '',
       toolsInfo: null,
       pageIndex: null,
-      extraParams: {}
+      extraParams: {},
+      isShowSearchForm: true
     }
   },
   computed: {
     pageEnable() {
       return this.pageIndex != null && parseInt(this.pageIndex) > 0;
+    },
+    isRenderSearchForm(){
+      return !!(this.searchFormConfig?.fields?.length)
     }
   },
   async mounted() {
+    let that = this;
     this.parseParamsFromUrl();
     window.addEventListener('popstate', this.handlePopState);
-    await this.initReport();
+    this.initReport().then(() => {
+      that.isShowSearchForm = that.isRenderSearchForm
+    })
   },
   beforeDestroy() {
     window.removeEventListener('popstate', this.handlePopState);
   },
   methods: {
+    toggleCollapse() {
+      this.isShowSearchForm = !this.isShowSearchForm;
+    },
+
     async initReport() {
       const reportData = await this.fetchPageData(this.pageIndex);
       if (!reportData) return;
@@ -130,7 +148,7 @@ export default {
     async handleFormSubmit(formData) {
       this.searchFormParameters = formData;
       try {
-        await this.loadAndRenderReport({ resetToFirstPage: true });
+        await this.loadAndRenderReport({ resetToFirstPage: this.pageEnable });
       } catch (error) {
         console.error('提交搜索表单失败:', error);
       }
@@ -346,9 +364,89 @@ export default {
 #preview-container {
   width: 100%;
   height: 100vh;
-  padding: 10px;
+  padding: 10px 10px 0 10px;
   box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  background: white;
+}
+
+.preview-left {
+  flex: 1;
   overflow: auto;
+  padding-right: 10px;
+  min-width: 0;
+}
+
+.preview-right {
+  width: 400px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+  border-left: 1px solid #e8e8e8;
+}
+
+.preview-right-content {
+  padding-left: 10px;
+}
+
+.preview-right.collapsed {
+  width: 0;
+  border-left: none;
+  overflow: hidden;
+}
+
+.preview-right.collapsed .preview-right-content {
+  display: none;
+}
+
+.collapse-btn {
+  width: 32px;
+  height: 32px;
+  position: absolute;
+  top: 38.2%;
+  right: 413px;
+  transform: translate(50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+#preview-container.right-collapsed .collapse-btn {
+  right: 0;
+  transform: translate(0, -50%);
+}
+
+#report-table {
+  margin-top: 10px;
+}
+
+.collapse-btn:hover {
+  background: #f5f5f5;
+  border-color: #1890ff;
+  color: #1890ff;
+  transform: translate(50%, -50%) scale(1.1);
+}
+
+#preview-container.right-collapsed .collapse-btn:hover {
+  transform: translate(0, -50%) scale(1.1);
+}
+
+.collapse-icon {
+  font-size: 16px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes spin {
@@ -359,6 +457,29 @@ export default {
 @media (max-width: 768px) {
   #preview-container {
     padding: 5px;
+    flex-direction: column;
+  }
+  .preview-left {
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+  .preview-right {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e8e8e8;
+  }
+  .preview-right-content {
+    padding-left: 0;
+    padding-top: 10px;
+  }
+  .preview-right.collapsed {
+    width: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .collapse-btn {
+    display: none;
   }
 }
 </style>
