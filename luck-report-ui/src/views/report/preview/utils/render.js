@@ -187,12 +187,7 @@ export function renderTemplateToComponent(componentStr, mountNode) {
     }
   }
 
-  const vm = new Vue(componentOptions).$mount();
-  if (node) {
-    node.innerHTML = '';
-    node.appendChild(vm.$el);
-  }
-  return vm;
+  return new Vue(componentOptions).$mount(node);
 }
 
 

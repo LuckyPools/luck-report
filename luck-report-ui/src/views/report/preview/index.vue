@@ -19,15 +19,6 @@
     <div id="report-table" v-if="reportData && reportData.content"
          v-html="reportData.content"
          :style="{ float: reportData.reportAlign || 'left' }"></div>
-
-    <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">{{ $t('preview.loading.report') }}</div>
-    </div>
-
-    <div v-if="errorMessage" class="error-container">
-      <div class="error-message">{{ errorMessage }}</div>
-    </div>
   </div>
 </template>
 
@@ -41,7 +32,9 @@ import SearchBox from '@/views/report/preview/search-box/index.vue';
 import ToolBox from '@/views/report/preview/tool-box/index.vue';
 import {updateUrlParams} from '@/utils/url';
 
-import {isMobile} from "@/utils/comnon";
+import {isMobile, showAlert} from "@/utils/comnon";
+import showLoading from "@/components/loading/instance";
+import {$t} from "@/locales";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -53,8 +46,6 @@ export default {
   },
   data() {
     return {
-      loading: true,
-      errorMessage: '',
       reportData: null,
       currentReportName: '',
       totalPage: 0,
@@ -112,8 +103,10 @@ export default {
     },
 
     async fetchPageData(pageIndex) {
+      const loadingInstance = showLoading({
+        text: $t('preview.loading.report'),
+      });
       try {
-        this.loading = true;
         const params = this.getReportParams(pageIndex);
         const reportData = await loadHtml(params);
         if (reportData.errorMsg) {
@@ -126,12 +119,11 @@ export default {
         this.totalPage = this.extractTotalPage(reportData);
         return reportData;
       } catch (error) {
-        this.errorMessage = '加载报表失败: ' + error.message;
-        console.error('加载报表失败:', error);
+        showAlert("加载报表失败：" + error.message);
         this.$emit('error', error);
         return null;
       } finally {
-        this.loading = false;
+        loadingInstance.close();
       }
     },
 
@@ -161,7 +153,7 @@ export default {
       const params = this.getReportParams(pageIndex);
       const report = await loadReportData(params);
       this.renderReportContent(report);
-      
+
       this.totalPage = this.extractTotalPage(report);
       this.currentPage = report.pageIndex || this.currentPage;
 
@@ -359,60 +351,9 @@ export default {
   overflow: auto;
 }
 
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  margin-top: 10px;
-  font-size: 16px;
-  color: #666;
-}
-
-.error-container {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  max-width: 80%;
-  max-height: 80%;
-  overflow: auto;
-}
-
-.error-message {
-  color: #e74c3c;
-  font-size: 16px;
-  line-height: 1.5;
 }
 
 @media (max-width: 768px) {

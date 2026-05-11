@@ -1,6 +1,8 @@
 <template>
   <div class="search-box">
-    <div ref="searchForm"></div>
+    <div class="main">
+      <div ref="searchForm"></div>
+    </div>
   </div>
 </template>
 
@@ -74,7 +76,14 @@ export default {
 
 <style scoped>
 .search-box {
-  width: 600px;
+  position: relative;
+  height: 200px;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.search-box .main{
+  max-width: 800px;
   margin: 0 auto;
 }
 </style>

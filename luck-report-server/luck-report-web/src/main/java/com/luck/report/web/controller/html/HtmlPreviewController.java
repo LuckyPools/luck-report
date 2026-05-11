@@ -51,11 +51,8 @@ public class HtmlPreviewController {
         try {
             htmlReport = loadReport(req);
         } catch (Exception ex) {
-            if (!(ex instanceof ReportDesignException)) {
-                log.error("加载报表异常",ex);
-            }
-            String errorMsg = buildExceptionMessage(ex);
-            result.put("errorMsg", errorMsg);
+            log.error("加载报表异常",ex);
+            result.put("errorMsg", ex.getMessage());
         }
         if (htmlReport != null) {
             result.put("searchForm", htmlReport.getSearchForm());
