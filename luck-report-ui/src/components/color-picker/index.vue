@@ -1,15 +1,18 @@
 <template>
   <div class="u-color-picker">
-    <u-button
-        :size="size"
-        type="info"
-        native-type="button"
-        style="border: none"
-        @click="togglePicker"
-    >
-      <span class="color-block" :style="{ backgroundColor: displayColor }"></span>
-    </u-button>
-    <div class="u-color-picker-popover" v-if="pickerVisible" ref="popover">
+    <div class="u-color-picker-trigger" @click="togglePicker">
+      <slot>
+        <u-button
+            :size="size"
+            type="info"
+            native-type="button"
+            style="border: none"
+        >
+          <span class="color-block" :style="{ backgroundColor: displayColor }"></span>
+        </u-button>
+      </slot>
+    </div>
+    <div class="u-color-picker-popover" v-if="pickerVisible" ref="popover" @mousedown="handlePopoverMouseDown">
       <sketch-picker
         :value="colors"
         @input="updateColor"
@@ -46,6 +49,16 @@ export default {
       type: Boolean,
       default: false
     },
+    // 切换前的回调，返回 false 则阻止切换
+    beforeToggle: {
+      type: Function,
+      default: null
+    },
+    // 颜色改变后是否自动关闭
+    closeOnChange: {
+      type: Boolean,
+      default: false
+    },
     // 尺寸
     size: {
       type: String,
@@ -58,6 +71,7 @@ export default {
   data() {
     return {
       pickerVisible: false,
+      shouldCloseAfterUpdate: false,
       colors: {
         hex: '#000000',
         hsl: { h: 0, s: 0, l: 0, a: 1 },
@@ -91,9 +105,9 @@ export default {
   },
   methods: {
     togglePicker() {
-      if (!this.disabled) {
-        this.pickerVisible = !this.pickerVisible
-      }
+      if (this.disabled) return
+      if (!this.pickerVisible && typeof this.beforeToggle === 'function' && !this.beforeToggle()) return
+      this.pickerVisible = !this.pickerVisible
     },
     closePicker() {
       this.pickerVisible = false
@@ -130,6 +144,18 @@ export default {
 
       this.$emit('input', colorValue)
       this.$emit('change', colorValue)
+
+      this.$nextTick(() => {
+        if (this.closeOnChange || this.shouldCloseAfterUpdate) {
+          this.shouldCloseAfterUpdate = false
+          this.pickerVisible = false
+        }
+      })
+    },
+    handlePopoverMouseDown(event) {
+      if (event.target.closest('.vc-sketch-presets-color')) {
+        this.shouldCloseAfterUpdate = true
+      }
     },
     setColorFromValue(value) {
       if (!value) return
@@ -158,6 +184,11 @@ export default {
 .u-color-picker {
   position: relative;
   display: inline-block;
+}
+
+.u-color-picker-trigger {
+  display: inline-block;
+  cursor: pointer;
 }
 
 .u-color-picker-popover {

@@ -406,7 +406,7 @@ export default {
   width: 32px;
   height: 32px;
   position: absolute;
-  top: 38.2%;
+  top: 25%;
   right: 413px;
   transform: translate(50%, -50%);
   display: flex;
