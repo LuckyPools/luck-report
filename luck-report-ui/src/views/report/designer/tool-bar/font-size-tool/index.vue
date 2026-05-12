@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-btn-group">
+  <div class="u-inline">
     <ButtonGroup
       :buttonText="currentFontSize.toString()"
       :showText="true"

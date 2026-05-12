@@ -1,142 +1,155 @@
 <template>
   <UDialog
     :title="$t('preview.pdfPrint.title')"
+    top="20px"
     width="1250px"
     :visible="visible"
     @close="handleClose"
     class="pdf-print-dialog"
   >
     <div class="pdf-print-body">
-      <fieldset class="pdf-print-toolbar">
-        <legend>{{ $t('preview.pdfPrint.setup') }}</legend>
-
-        <!-- 纸张类型 -->
-        <u-row>
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.paper') }}：</label>
-                <div class="u-inline">
-                    <u-select
-                            v-model="paper.paperType"
-                            class="page-select"
-                            @change="handlePageTypeChange"
-                    >
-                        <u-option
-                                v-for="(option, index) in paperTypeOptions"
-                                :key="index"
-                                :value="option.value"
-                                :label="option.label"
-                        >
-                            {{ option.label }}
-                        </u-option>
-                    </u-select>
-                </div>
-            </u-col>
-
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.width') }}：</label>
-                <div class="u-inline">
-                    <u-input-number
-                            v-model="pageWidthMM"
-                            :disabled="paper.paperType !== 'CUSTOM'"
-                            @change="handlePageWidthChange"
-                    />
-                </div>
-            </u-col>
-
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.height') }}：</label>
-                <div class="u-inline">
-                    <u-input-number
-                            v-model="pageHeightMM"
-                            :disabled="paper.paperType !== 'CUSTOM'"
-                            @change="handlePageHeightChange"
-                    />
-                </div>
-            </u-col>
-
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.orientation') }}：</label>
-                <div class="u-inline">
-                    <u-select v-model="paper.orientation" class="orientation-select">
-                        <u-option
-                                v-for="(option, index) in orientationOptions"
-                                :key="index"
-                                :value="option.value"
-                                :label="option.label"
-                        >
-                            {{ option.label }}
-                        </u-option>
-                    </u-select>
-                </div>
-            </u-col>
-        </u-row>
-
-        <u-row style="margin-top: 5px;">
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.leftMargin') }}：</label>
-                <div class="u-inline">
-                    <u-input-number
-                            v-model="leftMarginMM"
-                            @change="handleLeftMarginChange"
-                    />
-                </div>
-            </u-col>
-
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.rightMargin') }}：</label>
-                <div class="u-inline">
-                    <u-input-number
-                            v-model="rightMarginMM"
-                            @change="handleRightMarginChange"
-                    />
-                </div>
-            </u-col>
-
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.topMargin') }}：</label>
-                <div class="u-inline">
-                    <u-input-number
-                            v-model="topMarginMM"
-                            @change="handleTopMarginChange"
-                    />
-                </div>
-            </u-col>
-
-            <u-col :span="6">
-                <label>{{ $t('preview.pdfPrint.bottomMargin') }}：</label>
-                <div class="u-inline">
-                    <u-input-number
-                            v-model="bottomMarginMM"
-                            @change="handleBottomMarginChange"
-                    />
-                </div>
-            </u-col>
-        </u-row>
-
-        <u-row style="margin-top: 5px;">
-            <u-col :span="6" :offset="18">
-                <!-- 按钮 -->
-                <u-button type="primary" style="margin-left:5px" @click="handleApply">
-                    {{ $t('preview.pdfPrint.apply') }}
-                </u-button>
-
-                <u-button type="error" style="margin-left:5px" @click="handlePrint">
-                    {{ $t('preview.pdfPrint.print') }}
-                </u-button>
-            </u-col>
-        </u-row>
-      </fieldset>
-
-      <!-- PDF预览区域 -->
-      <div class="pdf-preview-container">
-        <iframe
-          ref="pdfFrame"
-          name="_iframe_for_pdf_print"
-          class="pdf-preview-frame"
-          frameborder="0"
-          @load="hideLoading"
-        ></iframe>
+      <div v-if="loading" class="pdf-print-loading">
+        <span>{{ $t('preview.loading.default') }}</span>
       </div>
+
+      <div v-else-if="errorMessage" class="pdf-print-error">
+        <span class="error-message">{{ errorMessage }}</span>
+        <u-button type="primary" @click="loadPaperData">
+          {{ $t('preview.pdfPrint.retry') }}
+        </u-button>
+      </div>
+
+      <template v-else>
+        <fieldset class="pdf-print-toolbar">
+          <legend>{{ $t('preview.pdfPrint.setup') }}</legend>
+
+          <!-- 纸张类型 -->
+          <u-form :label-width="100">
+            <u-row>
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.paper')">
+                  <u-select
+                    v-model="paper.paperType"
+                    class="page-select"
+                    style="width: 140px"
+                    @change="handlePageTypeChange"
+                  >
+                    <u-option
+                      v-for="(option, index) in paperTypeOptions"
+                      :key="index"
+                      :value="option.value"
+                      :label="option.label"
+                    >
+                      {{ option.label }}
+                    </u-option>
+                  </u-select>
+                </u-form-item>
+              </u-col>
+
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.width')">
+                  <u-input-number
+                    v-model="pageWidthMM"
+                    :disabled="paper.paperType !== 'CUSTOM'"
+                    @change="handlePageWidthChange"
+                  />
+                </u-form-item>
+              </u-col>
+
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.height')">
+                  <u-input-number
+                    v-model="pageHeightMM"
+                    :disabled="paper.paperType !== 'CUSTOM'"
+                    @change="handlePageHeightChange"
+                  />
+                </u-form-item>
+              </u-col>
+
+              <u-col :span="6">
+                <u-form-item class="property-label"  :label="$t('preview.pdfPrint.orientation')">
+                  <u-select
+                      v-model="paper.orientation"
+                      class="orientation-select"
+                      style="width: 140px">
+                    <u-option
+                      v-for="(option, index) in orientationOptions"
+                      :key="index"
+                      :value="option.value"
+                      :label="option.label"
+                    >
+                      {{ option.label }}
+                    </u-option>
+                  </u-select>
+                </u-form-item>
+              </u-col>
+            </u-row>
+
+          <u-row style="margin-top: 5px;">
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.leftMargin')">
+                  <u-input-number
+                    v-model="leftMarginMM"
+                    @change="handleLeftMarginChange"
+                  />
+                </u-form-item>
+              </u-col>
+
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.rightMargin')">
+                  <u-input-number
+                    v-model="rightMarginMM"
+                    @change="handleRightMarginChange"
+                  />
+                </u-form-item>
+              </u-col>
+
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.topMargin')">
+                  <u-input-number
+                    v-model="topMarginMM"
+                    @change="handleTopMarginChange"
+                  />
+                </u-form-item>
+              </u-col>
+
+              <u-col :span="6">
+                <u-form-item class="property-label" :label="$t('preview.pdfPrint.bottomMargin')">
+                  <u-input-number
+                    v-model="bottomMarginMM"
+                    @change="handleBottomMarginChange"
+                  />
+                </u-form-item>
+              </u-col>
+            </u-row>
+
+            <u-row style="margin-top: 5px;">
+              <u-col :span="6" :offset="18">
+                <u-form-item class="property-label" >
+                  <u-button type="primary" @click="handleApply">
+                    {{ $t('preview.pdfPrint.apply') }}
+                  </u-button>
+
+                  <u-button type="error" style="margin-left:5px" @click="handlePrint">
+                    {{ $t('preview.pdfPrint.print') }}
+                  </u-button>
+                </u-form-item>
+              </u-col>
+            </u-row>
+          </u-form>
+        </fieldset>
+
+        <!-- PDF预览区域 -->
+        <div class="pdf-preview-container">
+          <iframe
+            ref="pdfFrame"
+            name="_iframe_for_pdf_print"
+            class="pdf-preview-frame"
+            frameborder="0"
+            @load="hideLoading"
+          ></iframe>
+        </div>
+      </template>
     </div>
   </UDialog>
 </template>
@@ -150,9 +163,11 @@ import UButton from "@/components/button/index.vue";
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
-import {getPdfPreviewUrl, pdfNewPaging} from '@/api/preview';
+import {getPdfPreviewUrl, pdfNewPaging, loadPagePaper} from '@/api/preview';
 import UCol from "@/components/col/index.vue";
 import URow from "@/components/row/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import { mapGetters } from 'vuex';
 
 export default {
@@ -160,6 +175,8 @@ export default {
   components: {
       URow,
       UCol,
+    UForm,
+    UFormItem,
     UDialog,
     UButton,
     USelect,
@@ -171,9 +188,9 @@ export default {
       type: Boolean,
       default: false
     },
-    paperData: {
+    parameters: {
       type: Object,
-      default: null
+      default: () => ({})
     }
   },
   data() {
@@ -188,8 +205,16 @@ export default {
         topMargin: 0,
         bottomMargin: 0
       },
+      pageWidthMM: 0,
+      pageHeightMM: 0,
+      leftMarginMM: 0,
+      rightMarginMM: 0,
+      topMarginMM: 0,
+      bottomMarginMM: 0,
       paperSizeList: buildPageSizeList(),
-      refreshIndex: 0
+      refreshIndex: 0,
+      loading: false,
+      errorMessage: ''
     };
   },
   computed: {
@@ -236,66 +261,7 @@ export default {
         }
       ];
     },
-    pageWidthMM: {
-      get() {
-        return pointToMM(this.paper.width);
-      },
-      set(value) {
-        if (value && !isNaN(value)) {
-          this.paper.width = mmToPoint(value);
-        }
-      }
-    },
-    pageHeightMM: {
-      get() {
-        return pointToMM(this.paper.height);
-      },
-      set(value) {
-        if (value && !isNaN(value)) {
-          this.paper.height = mmToPoint(value);
-        }
-      }
-    },
-    leftMarginMM: {
-      get() {
-        return pointToMM(this.paper.leftMargin);
-      },
-      set(value) {
-        if (value && !isNaN(value)) {
-          this.paper.leftMargin = mmToPoint(value);
-        }
-      }
-    },
-    rightMarginMM: {
-      get() {
-        return pointToMM(this.paper.rightMargin);
-      },
-      set(value) {
-        if (value && !isNaN(value)) {
-          this.paper.rightMargin = mmToPoint(value);
-        }
-      }
-    },
-    topMarginMM: {
-      get() {
-        return pointToMM(this.paper.topMargin);
-      },
-      set(value) {
-        if (value && !isNaN(value)) {
-          this.paper.topMargin = mmToPoint(value);
-        }
-      }
-    },
-    bottomMarginMM: {
-      get() {
-        return pointToMM(this.paper.bottomMargin);
-      },
-      set(value) {
-        if (value && !isNaN(value)) {
-          this.paper.bottomMargin = mmToPoint(value);
-        }
-      }
-    },
+
     urlParameters() {
       return window.location.search;
     }
@@ -303,29 +269,62 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
+        this.loadPaperData();
+      }
+    }
+  },
+  methods: {
+    /**
+     * 加载纸张配置数据
+     * 根据传入的 parameters 请求后台获取纸张配置信息
+     */
+    async loadPaperData() {
+      this.loading = true;
+      this.errorMessage = '';
+
+      try {
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(this.parameters)) {
+          if (value !== null && value !== undefined) {
+            formData.append(key, value);
+          }
+        }
+
+        const paperData = await loadPagePaper(formData);
+
+        this.$set(this.paper, 'paperType', paperData.paperType || 'A4');
+        this.$set(this.paper, 'width', paperData.width || 0);
+        this.$set(this.paper, 'height', paperData.height || 0);
+        this.$set(this.paper, 'orientation', paperData.orientation || 'portrait');
+        this.$set(this.paper, 'leftMargin', paperData.leftMargin || 0);
+        this.$set(this.paper, 'rightMargin', paperData.rightMargin || 0);
+        this.$set(this.paper, 'topMargin', paperData.topMargin || 0);
+        this.$set(this.paper, 'bottomMargin', paperData.bottomMargin || 0);
+
+        this.pageWidthMM = pointToMM(this.paper.width);
+        this.pageHeightMM = pointToMM(this.paper.height);
+        this.leftMarginMM = pointToMM(this.paper.leftMargin);
+        this.rightMarginMM = pointToMM(this.paper.rightMargin);
+        this.topMarginMM = pointToMM(this.paper.topMargin);
+        this.bottomMarginMM = pointToMM(this.paper.bottomMargin);
+
+        this.loading = false;
+
         this.$nextTick(() => {
           this.initIFrame();
           this.handleApply();
         });
+      } catch (error) {
+        this.loading = false;
+        console.error('获取纸张信息失败:', error);
+        if (error.msg) {
+          this.errorMessage = this.$t('preview.error.serverError') + this.$t('colon') + error.msg;
+        } else {
+          this.errorMessage = this.$t('preview.error.loadPaperFail');
+        }
       }
     },
-    paperData: {
-      handler(newVal) {
-        if (newVal) {
-          this.$set(this.paper, 'paperType', newVal.paperType || 'A4');
-          this.$set(this.paper, 'width', newVal.width || 0);
-          this.$set(this.paper, 'height', newVal.height || 0);
-          this.$set(this.paper, 'orientation', newVal.orientation || 'portrait');
-          this.$set(this.paper, 'leftMargin', newVal.leftMargin || 0);
-          this.$set(this.paper, 'rightMargin', newVal.rightMargin || 0);
-          this.$set(this.paper, 'topMargin', newVal.topMargin || 0);
-          this.$set(this.paper, 'bottomMargin', newVal.bottomMargin || 0);
-        }
-      },
-      immediate: true
-    }
-  },
-  methods: {
+
     /**
      * 关闭对话框，向父组件发送 close 事件
      */
@@ -348,6 +347,8 @@ export default {
       const pageSize = this.paperSizeList[value];
       this.paper.width = mmToPoint(pageSize.width);
       this.paper.height = mmToPoint(pageSize.height);
+      this.pageWidthMM = pageSize.width;
+      this.pageHeightMM = pageSize.height;
     },
 
     /**
@@ -467,12 +468,12 @@ export default {
 
         await pdfNewPaging(formData);
         loadingInstance.close();
-        
+
         const paramObj = {};
         for (const [key, value] of urlParams) {
           paramObj[key] = value;
         }
-        
+
         this.$refs.pdfFrame.src = getPdfPreviewUrl(paramObj, this.refreshIndex++);
       } catch (error) {
         loadingInstance.close();
@@ -538,13 +539,12 @@ export default {
 <style scoped>
 .pdf-print-dialog .pdf-print-body {
   padding-top: 5px;
-  height: 600px;
-  overflow-y: scroll;
+  height: 660px;
+  overflow: hidden;
 }
 
 .pdf-print-toolbar {
   width: 100%;
-  height: 140px;
   font-size: 12px;
   border: solid 1px #ddd;
   border-radius: 5px;
@@ -559,20 +559,6 @@ export default {
   margin-bottom: 0;
 }
 
-.col-group {
-  display: inline-block;
-  margin-left: 6px;
-  margin-bottom: 15px;
-}
-
-.col-group label {
-  margin-right: 5px;
-}
-
-.margin-group {
-  display: inline-block;
-}
-
 .pdf-preview-container {
   width: 100%;
   height: calc(100vh - 200px);
@@ -583,6 +569,29 @@ export default {
   width: 100%;
   height: 100%;
   border: solid 1px #c2c2c2;
+}
+
+.pdf-print-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 16px;
+  color: #666;
+}
+
+.pdf-print-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 16px;
+  color: #f56c6c;
+}
+
+.pdf-print-error .error-message {
+  margin-bottom: 20px;
 }
 </style>
 

@@ -124,6 +124,14 @@ export default {
       }
     }
   },
+  watch: {
+    fileName: {
+      handler(val) {
+        document.title = val;
+      },
+      immediate: true
+    }
+  },
   data() {
     return {
       toolbarStyle: {
@@ -139,10 +147,7 @@ export default {
 <style scoped>
 .ud-toolbar{
   width: 100%;
-}
-
-.tool-btn-group{
-  display: inline-block;
+  z-index: 10000;
 }
 
 .ud-toolbar-title{

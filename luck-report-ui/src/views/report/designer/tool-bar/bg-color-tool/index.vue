@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-btn-group">
+  <div class="u-inline">
     <u-color-picker
       v-model="selectedColor"
       :before-toggle="checkSelection"

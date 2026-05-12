@@ -37,9 +37,9 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
-import { loadBuildinDatasources } from '@/api/designer/index.js';
+import {showAlert} from '@/utils/comnon.js';
+import {setDirty} from '@/utils/table.js';
+import {loadBuildinDatasources} from '@/api/designer/index.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 
@@ -77,13 +77,12 @@ export default {
   methods: {
     async loadBuildinDatasources() {
       try {
-        const result = await loadBuildinDatasources();
-        this.buildinDatasources = result;
+        this.buildinDatasources = await loadBuildinDatasources();
         this.loading = false;
       } catch (error) {
         this.loading = false;
-        if (error.responseText) {
-          showAlert(`服务端错误：${error.responseText}`);
+        if (error.msg) {
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('dialog.buildin.loadFail'));
         }

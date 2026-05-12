@@ -19,6 +19,8 @@ import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataAccessException;
@@ -50,6 +52,8 @@ import java.util.regex.Pattern;
 @RestController("bean.datasourceController")
 @RequestMapping("${luck-report.servletPrefix}/datasource")
 public class DatasourceController {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -268,7 +272,7 @@ public class DatasourceController {
      * 测试数据库连接
      */
     @RequestMapping("/testConnection")
-    public void testConnection(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void testConnection(HttpServletRequest req, HttpServletResponse resp) throws IOException, SQLException, ClassNotFoundException {
         String username = req.getParameter("username");
         String password = req.getParameter("password");
         String driver = req.getParameter("driver");
@@ -279,15 +283,12 @@ public class DatasourceController {
             Class.forName(driver);
             conn = DriverManager.getConnection(url, username, password);
             map.put("result", true);
-        } catch (Exception ex) {
-            map.put("error", ex.toString());
-            map.put("result", false);
         } finally {
             if (conn != null) {
                 try {
                     conn.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    log.error("连接异常",e);
                 }
             }
         }

@@ -410,6 +410,11 @@ export default {
 </script>
 
 <style scoped>
+
+.settings-dialog{
+  height: 400px;
+}
+
 .tab-content {
   padding: 10px 0;
 }

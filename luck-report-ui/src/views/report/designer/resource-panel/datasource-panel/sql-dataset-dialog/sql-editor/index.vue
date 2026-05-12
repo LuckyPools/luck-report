@@ -162,8 +162,8 @@ export default {
             updateLinting(editor, []);
           }
         } catch (error) {
-          if (error.message) {
-            showAlert('服务端错误：' + error.message);
+          if (error.msg) {
+            showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
           } else {
             showAlert(this.$t('dialog.sql.syntaxCheckError'));
           }

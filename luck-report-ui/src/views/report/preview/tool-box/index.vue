@@ -107,7 +107,7 @@
 
     <PDFPrintDialog
         :visible="pdfPrintDialogVisible"
-        :paper-data="paperData"
+        :parameters="pdfPrintParameters"
         @close="handlePdfPrintDialogClose"
     />
 
@@ -124,7 +124,6 @@ import {
   getPdfDirectPrintUrl,
   getPdfExportUrl,
   getWordExportUrl,
-  loadPagePaper,
   loadPrintPages
 } from '@/api/preview'
 
@@ -165,11 +164,19 @@ export default {
     return {
       pageMenuItems: [],
       pdfPrintDialogVisible: false,
-      paperData: null,
       printIndex: 0
     }
   },
   computed: {
+    pdfPrintParameters() {
+      const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
+      const params = new URLSearchParams(urlParameters);
+      const paramObj = {};
+      for (const [key, value] of params.entries()) {
+        paramObj[key] = value;
+      }
+      return paramObj;
+    },
     pagingMenuItems() {
       return [
         {
@@ -279,26 +286,10 @@ export default {
 
     /**
      * PDF预览打印
-     * 加载纸张配置信息后打开 PDF 打印对话框，用户可在对话框中调整纸张参数后打印
+     * 打开 PDF 打印对话框，对话框内部会加载纸张配置信息
      */
-    async printPdf() {
-      try {
-        const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
-        const params = new URLSearchParams(urlParameters);
-
-        const formData = new FormData();
-        for (const [key, value] of params.entries()) {
-          formData.append(key, value);
-        }
-
-        const paper = await loadPagePaper(formData);
-
-        this.paperData = paper;
-        this.pdfPrintDialogVisible = true;
-      } catch (error) {
-        console.error('获取纸张信息失败:', error);
-        showAlert(this.$t('preview.error.loadPaperFail'));
-      }
+    printPdf() {
+      this.pdfPrintDialogVisible = true;
     },
 
     /**

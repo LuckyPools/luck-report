@@ -7,11 +7,8 @@
       :z-index="20000"
       @close="closeDialog"
     >
-        <div class="preview-body-container">
-          <div v-if="loading" style="padding: 20px; text-align: center;">
-            {{ $t('dialog.preview.load') }}
-          </div>
-          <div v-else-if="errorInfo" v-html="errorInfo"></div>
+        <div class="preview-body-container" v-loading="loading">
+          <div v-if="errorInfo" v-html="errorInfo"></div>
           <div v-else-if="resultData">
             <div style="height: 30px; background: #fdfdfd;">
               <span style="margin: 4px;">{{ $t('dialog.preview.total') }}{{ resultData.total }}{{ $t('dialog.preview.totalMid') }}{{ resultData.currentTotal }}{{ $t('dialog.preview.item') }}</span>
@@ -46,31 +43,65 @@
 <script>
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
+import { LoadingDirective } from '@/components/loading/instance.js';
+import { previewData } from '@/api/designer/index.js';
+
 export default {
   name: 'PreviewDataDialog',
   components: {
     UDialog,
     UButton
   },
+  directives: {
+    loading: LoadingDirective
+  },
   props: {
     visible: {
       type: Boolean,
       default: false
     },
-    loading: {
-      type: Boolean,
-      default: true
-    },
-    errorInfo: {
-      type: String,
-      default: null
-    },
-    resultData: {
+    parameters: {
       type: Object,
       default: null
     }
   },
+  data() {
+    return {
+      loading: false,
+      errorInfo: null,
+      resultData: null
+    };
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.loadPreviewData();
+      }
+    }
+  },
   methods: {
+    async loadPreviewData() {
+      if (!this.parameters) {
+        return;
+      }
+
+      this.loading = true;
+      this.errorInfo = null;
+      this.resultData = null;
+
+      try {
+        const data = await previewData(this.parameters);
+        this.loading = false;
+        this.resultData = data;
+      } catch (error) {
+        let msg = this.$t('dialog.sql.previewFail');
+        if (error.msg) {
+          msg = msg + this.$t('colon') + error.msg;
+        }
+        this.loading = false;
+        this.errorInfo = `<div style='color: #d30e00;'>${msg}</div>`;
+      }
+    },
     closeDialog() {
       this.$emit('close');
     }
@@ -84,6 +115,7 @@ export default {
 }
 
 .preview-body-container{
+  min-height: 300px;
   max-height: var(--dialog-height);
   overflow: hidden;
   display: flex;

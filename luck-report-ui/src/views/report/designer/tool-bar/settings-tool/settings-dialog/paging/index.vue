@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="form-group form-group-paging">
+    <div class="form-group">
       <label>{{ $t('dialog.setting.pagingType') }}：</label>
       <div class="u-inline">
         <u-radio-group
@@ -16,11 +16,12 @@
           </u-radio>
         </u-radio-group>
       </div>
+    </div>
 
-      <span v-show="localPaper.pagingMode === 'fixrows'" class="span-paging-label">
-        <span>{{ $t('dialog.setting.rowsPerPage') }}：</span>
-      </span>
-      <div class="u-inline" v-show="localPaper.pagingMode === 'fixrows'">
+    <div v-show="localPaper.pagingMode === 'fixrows'"
+         class="form-group">
+      <label>{{ $t('dialog.setting.rowsPerPage') }}：</label>
+      <div class="u-inline">
         <u-input-number
             :value="localPaper.fixRows"
             :min="1"
@@ -28,6 +29,7 @@
         />
       </div>
     </div>
+
   </div>
 </template>
 
@@ -84,12 +86,4 @@ export default {
 </script>
 
 <style scoped>
-.form-group-paging {
-  margin-top: 10px;
-  height: 12px;
-}
-
-.span-paging-label {
-  margin-left: 15px;
-}
 </style>

@@ -98,6 +98,7 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .tab-content{

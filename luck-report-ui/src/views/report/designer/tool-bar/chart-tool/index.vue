@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-btn-group">
+  <div class="u-inline">
     <ButtonGroup
       iconClass="iconfont icon-pie-chart"
       :title="$t('tools.chart.chart')"

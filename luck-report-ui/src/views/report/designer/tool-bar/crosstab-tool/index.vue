@@ -145,7 +145,4 @@ export default {
 </script>
 
 <style scoped>
-.btn:hover {
-  background-color: #e6e6e6 !important;
-}
 </style>

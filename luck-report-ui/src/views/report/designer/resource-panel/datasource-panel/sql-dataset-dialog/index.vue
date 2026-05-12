@@ -44,9 +44,7 @@
     </UDialog>
     <PreviewDataDialog
       :visible="previewDialogVisible"
-      :loading="previewDialogLoading"
-      :errorInfo="previewDialogErrorInfo"
-      :resultData="previewDialogResultData"
+      :parameters="previewParameters"
       @close="closePreviewDialog"
     />
   </div>
@@ -61,7 +59,6 @@ import ParameterEditor from './parameter-editor/index.vue';
 import PreviewDataDialog from '@/views/report/designer/resource-panel/datasource-panel/preview-data-dialog/index.vue';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
-import { previewData } from '@/api/designer/index.js';
 import {showAlert} from "@/utils/comnon";
 import { mapGetters } from 'vuex';
 import {deepCopy} from "@/components/utils";
@@ -104,9 +101,7 @@ export default {
       oldName: '',
       currentData: {},
       previewDialogVisible: false,
-      previewDialogLoading: true,
-      previewDialogErrorInfo: null,
-      previewDialogResultData: null,
+      previewParameters: null,
       triggerLoadSearchTable: false
     };
   },
@@ -118,9 +113,6 @@ export default {
     }
   },
   methods: {
-    /**
-     * 初始化对话框
-     */
     initDialog() {
       this.currentData = {};
       this.datasetName = '';
@@ -197,7 +189,7 @@ export default {
     /**
      * 预览数据
      */
-    async handlePreview() {
+    handlePreview() {
       const sql = this.sql || '';
       const type = this.db.type;
       const parameters = {
@@ -215,28 +207,10 @@ export default {
         parameters.name = this.db.name;
       }
 
+      this.previewParameters = parameters;
       this.previewDialogVisible = true;
-      this.previewDialogLoading = true;
-      this.previewDialogErrorInfo = null;
-      this.previewDialogResultData = null;
-
-      try {
-        const data = await previewData(parameters);
-        this.previewDialogLoading = false;
-        this.previewDialogResultData = data;
-      } catch (error) {
-        let msg = this.$t('dialog.sql.previewFail');
-        if(error.msg){
-          msg = error.msg;
-        }
-        this.previewDialogLoading = false;
-        this.previewDialogErrorInfo = `<div style='color: #d30e00;'>${msg}</div>`;
-      }
     },
 
-    /**
-     * 处理确认保存（来自页脚按钮）
-     */
     handleConfirm() {
       const name = this.datasetName || '';
       const sql = this.sql || '';
@@ -311,4 +285,3 @@ export default {
   height: 100%;
 }
 </style>
-

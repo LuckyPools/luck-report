@@ -196,8 +196,4 @@ export default {
 </script>
 
 <style scoped>
-.align-top-tool-dropdown {
-  position: relative;
-  display: inline-block;
-}
 </style>

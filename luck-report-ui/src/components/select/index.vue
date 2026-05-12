@@ -75,7 +75,10 @@
     <transition name="fade-bottom">
       <div
           class="u-select-options"
-          :style="{ top: panelHeight ? `${panelHeight + 6}px` : undefined }"
+          :style="{ 
+            top: panelHeight ? `${panelHeight + 6}px` : undefined,
+            width: optionsWidth ? `${optionsWidth}px` : undefined
+          }"
           v-show="visible"
           v-loading="filterable && loading"
       >
@@ -118,7 +121,9 @@ export default {
       hasOptions: true,
       currentPlaceholder: "",
       // 鼠标是否在父级元素上，该属性会影响清空按钮的显示
-      onHover: false
+      onHover: false,
+      // 下拉选项宽度
+      optionsWidth: null
     };
   },
   props: {
@@ -221,6 +226,9 @@ export default {
     },
     visible(newVal) {
       this.$emit("visible-change", newVal);
+      if (newVal) {
+        this.updateOptionsWidth();
+      }
     },
     multiple: {
       handler(value) {
@@ -254,6 +262,8 @@ export default {
 
     this.$refs.myInput.addEventListener("mouseenter", this.setHoverAttr);
     this.$refs.myInput.addEventListener("mouseleave", this.setHoverAttr);
+    
+    this.updateOptionsWidth();
   },
   // 移除时，删除根元素点击事件
   beforeDestroy() {
@@ -263,6 +273,11 @@ export default {
     this.$refs.myInput.removeEventListener("mouseleave", this.setHoverAttr);
   },
   methods: {
+    updateOptionsWidth() {
+      if (this.$refs.USelect) {
+        this.optionsWidth = this.$refs.USelect.offsetWidth;
+      }
+    },
     handleMultiClick() {
       if (this.disabled) return;
       this.visible = !this.visible;
@@ -568,7 +583,6 @@ export default {
 }
 
 .u-select-options {
-  min-width: 220px;
   max-height: 160px;
   transform-origin: center top;
   z-index: 2367;

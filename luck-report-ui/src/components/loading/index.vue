@@ -26,7 +26,7 @@ export default {
 <style scoped>
 .u-loading {
   position: absolute;
-  z-index: 3000;
+  z-index: 30000;
   left: 0;
   top: 0;
   width: 100%;

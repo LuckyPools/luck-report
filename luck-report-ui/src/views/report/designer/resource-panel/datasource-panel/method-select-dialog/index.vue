@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { loadMethods } from '@/api/designer/index.js';
+import {loadMethods} from '@/api/designer/index.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 import {showAlert} from "@/utils/comnon";
@@ -81,8 +81,7 @@ export default {
     async loadMethods() {
       this.loading = true;
       try {
-        const response = await loadMethods(this.beanId);
-        this.methods = response;
+        this.methods = await loadMethods(this.beanId);
         this.loading = false;
       } catch (error) {
         this.loading = false;

@@ -333,6 +333,7 @@ export default {
   display: flex;
   flex: 1;
   overflow: hidden;
+  background: white;
 }
 
 .ud-slider{

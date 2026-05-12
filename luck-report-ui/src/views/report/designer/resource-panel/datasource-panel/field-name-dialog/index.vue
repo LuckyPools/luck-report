@@ -1,16 +1,16 @@
 <template>
   <UDialog
     :title="$t('tree.addField')"
-    width="400px"
+    width="500px"
     :visible="visible"
     @close="handleClose"
   >
     <div class="dialog-content">
-      <u-form :label-width="100">
-        <u-form-item :label="$t('tree.fieldName')">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="100">
+        <u-form-item :label="$t('tree.fieldName')" prop="fieldName">
           <u-input
             :placeholder="$t('tree.inputTip')"
-            v-model="fieldName"
+            v-model="formData.fieldName"
             ref="input"
             @keyup.enter="handleOk"
           />
@@ -25,7 +25,6 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
@@ -53,7 +52,16 @@ export default {
   },
   data() {
     return {
-      fieldName: ''
+      formData: {
+        fieldName: ''
+      },
+      rules: {
+        fieldName: [{
+          required: true,
+          message: this.$t('tree.inputTip'),
+          trigger: 'blur'
+        }]
+      }
     };
   },
   mounted() {
@@ -65,24 +73,33 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.fieldName = '';
+        this.resetForm();
       }
     }
   },
   methods: {
-    handleOk() {
-      const fieldNameValue = this.fieldName.trim();
-      if (!fieldNameValue) {
-        showAlert(this.$t('tree.inputTip'));
+    resetForm() {
+      this.$refs.form && this.$refs.form.resetFields();
+    },
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+    async handleOk() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
-      this.$emit('save', fieldNameValue, this.dataset);
+      this.$emit('save', this.formData.fieldName.trim(), this.dataset);
       this.$emit('close');
     },
     handleClose() {
       this.$emit('close');
       setTimeout(() => {
-        this.fieldName = '';
+        this.resetForm();
       }, 300);
     },
     handleKeydown(e) {
