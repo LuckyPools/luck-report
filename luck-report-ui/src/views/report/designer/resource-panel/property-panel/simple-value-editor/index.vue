@@ -116,13 +116,6 @@ export default {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       const newCellDef = deepCopy(cellDef);
 
-      const hot = TableManager.get();
-      if (hot && this.rowIndex !== null && this.colIndex !== null) {
-        hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
-      }
-
-      setDirty();
-
       if (newCellDef) {
         if (!newCellDef.value) {
           newCellDef.value = { type: 'simple', value: '' };
@@ -131,6 +124,13 @@ export default {
         newCellDef.value.value = this.content;
         setCell(this.rowIndex, this.colIndex, newCellDef );
       }
+
+      const hot = TableManager.get();
+      if (hot && this.rowIndex !== null && this.colIndex !== null) {
+        hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
+      }
+
+      setDirty();
     },
 
     onLineHeightChange() {
