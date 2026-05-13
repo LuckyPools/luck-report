@@ -1,5 +1,6 @@
 import MessageBox from "@/components/messagebox/instance";
 import {$t} from "@/locales";
+import request from "@/utils/request";
 
 /**
  * 提示
@@ -27,4 +28,77 @@ export function showConfirm(message, options){
  */
 export function isMobile() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+/**
+ * Blob 下载文件
+ * @param {string} url 请求 URL
+ * @param {Object} params 查询参数
+ * @param {string} defaultFilename 默认文件名
+ * @returns {Promise<void>}
+ */
+export async function downloadBlob(url, params, defaultFilename) {
+    const queryString = buildQueryString(params);
+    const fullUrl = queryString ? `${url}?${queryString}` : url;
+
+    const response = await request.get(fullUrl, {
+        responseType: 'blob'
+    });
+
+    const blob = response.data || response;
+    const contentDisposition = response.headers?.['content-disposition'];
+    const filename = extractFilename(contentDisposition, defaultFilename);
+
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+}
+
+/**
+ * 构建查询字符串
+ * @param {Object} params 参数对象
+ * @returns {string} 查询字符串
+ */
+export function buildQueryString(params) {
+    if (!params || typeof params !== 'object') {
+        return '';
+    }
+
+    const pairs = [];
+    for (const key in params) {
+        if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== null) {
+            pairs.push(key + '=' + params[key]);
+        }
+    }
+
+    return pairs.join('&');
+}
+
+/**
+ * 从 Content-Disposition 头中提取文件名
+ * @param {string} contentDisposition Content-Disposition 头的值
+ * @param {string} defaultName 默认文件名
+ * @returns {string} 文件名
+ */
+function extractFilename(contentDisposition, defaultName) {
+    if (!contentDisposition) {
+        return defaultName;
+    }
+    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+    const matches = filenameRegex.exec(contentDisposition);
+    if (matches && matches[1]) {
+        let filename = matches[1].replace(/['"]/g, '');
+        try {
+            filename = decodeURIComponent(filename);
+        } catch (e) {
+            // 解码失败则使用原始值
+        }
+        return filename;
+    }
+    return defaultName;
 }

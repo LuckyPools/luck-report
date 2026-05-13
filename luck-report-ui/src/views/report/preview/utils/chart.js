@@ -1,5 +1,6 @@
 import {Chart} from 'chart.js';
 import {storeChartData} from '@/api/preview';
+import {getUrlSearchParams} from '@/utils/url';
 
 /**
  * 将旧版 Chart.js 配置转换为新版（v3+）兼容格式
@@ -98,7 +99,6 @@ export async function buildChart(canvasId, chartJson) {
     try {
       const chart = context.chart;
       const base64Image = chart.toBase64Image();
-      const urlParameters = window.location.search;
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
 
@@ -111,7 +111,7 @@ export async function buildChart(canvasId, chartJson) {
       formData.append('_width', width);
       formData.append('_height', height);
 
-      const params = new URLSearchParams(urlParameters.substring(1));
+      const params = getUrlSearchParams();
       for (const [key, value] of params.entries()) {
         formData.append(key, value);
       }

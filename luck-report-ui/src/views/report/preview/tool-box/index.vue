@@ -118,13 +118,13 @@
 
 <script>
 import {
-  getExcelExportUrl,
-  getExcelPagingExportUrl,
-  getExcelSheetPagingExportUrl,
-  getPdfDirectPrintUrl,
-  getPdfExportUrl,
-  getWordExportUrl,
-  loadPrintPages
+  loadPrintPages,
+  exportPdfBlob,
+  exportWordBlob,
+  exportExcelBlob,
+  exportExcelPagingBlob,
+  exportExcelSheetPagingBlob,
+  getPdfPrintBlob
 } from '@/api/preview'
 
 import {pointToMM} from '@/utils/table.js';
@@ -301,66 +301,58 @@ export default {
 
     /**
      * PDF直接打印
-     * 在隐藏 iframe 中加载服务端生成的 PDF，加载完成后自动调用浏览器打印
-     * 设置了30秒超时保护，防止 PDF 加载失败导致 loading 一直显示
+     * 通过 axios 获取 PDF blob，加载到 iframe 后调用浏览器打印
      */
-    printDirectPdf() {
+    async printDirectPdf() {
       const loadingInstance = showLoading({
         text: this.$t('preview.loading.default'),
       });
-      const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
-      const params = new URLSearchParams(urlParameters);
-      const paramObj = {};
+      
+      try {
+        const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
+        const params = new URLSearchParams(urlParameters);
+        const paramObj = {};
 
-      for (const [key, value] of params.entries()) {
-        paramObj[key] = value;
-      }
-
-      const url = getPdfDirectPrintUrl(paramObj, this.printIndex++);
-      const iframe = window.frames['print_pdf_frame'];
-      const pdfFrame = document.querySelector("iframe[name='print_pdf_frame']");
-
-      let loadTimeout = null;
-      let isLoaded = false;
-
-      const closeLoading = () => {
-        if (!isLoaded) {
-          isLoaded = true;
-          if (loadTimeout) {
-            clearTimeout(loadTimeout);
-          }
-          loadingInstance.close();
+        for (const [key, value] of params.entries()) {
+          paramObj[key] = value;
         }
-      };
+        paramObj['_i'] = this.printIndex++;
 
-      if (pdfFrame) {
-        const handleLoad = function () {
-          closeLoading();
-          try {
-            iframe.window.focus();
-            iframe.window.print();
-          } catch (error) {
-            console.error('打印失败:', error);
-          }
-        };
+        const { blobUrl, revoke } = await getPdfPrintBlob(paramObj);
+        
+        const iframe = window.frames['print_pdf_frame'];
+        const pdfFrame = document.querySelector("iframe[name='print_pdf_frame']");
 
-        const handleError = function () {
-          closeLoading();
-          console.error('PDF加载失败');
-          showAlert(this.$t('preview.error.loadPdfFail'));
-        }.bind(this);
+        if (pdfFrame) {
+          const handleLoad = () => {
+            loadingInstance.close();
+            try {
+              iframe.window.focus();
+              iframe.window.print();
+            } catch (error) {
+              console.error('打印失败:', error);
+            } finally {
+              setTimeout(revoke, 1000);
+            }
+          };
 
-        pdfFrame.addEventListener('load', handleLoad, { once: true });
-        pdfFrame.addEventListener('error', handleError, { once: true });
+          const handleError = () => {
+            loadingInstance.close();
+            revoke();
+            console.error('PDF加载失败');
+            showAlert(this.$t('preview.error.loadPdfFail'));
+          };
 
-        loadTimeout = setTimeout(() => {
-          closeLoading();
-          console.warn('PDF加载超时');
-        }, 30000);
+          pdfFrame.addEventListener('load', handleLoad, { once: true });
+          pdfFrame.addEventListener('error', handleError, { once: true });
+        }
+
+        iframe.location.href = blobUrl;
+      } catch (error) {
+        loadingInstance.close();
+        console.error('PDF直接打印失败:', error);
+        showAlert(this.$t('preview.error.loadPdfFail') || '加载PDF失败');
       }
-
-      iframe.window.focus();
-      iframe.location.href = url;
     },
 
     /**
@@ -379,56 +371,68 @@ export default {
     },
 
     /**
-     * 在新标签页中打开导出URL
-     * @param {string} url - 导出文件的完整URL
-     */
-    openExportUrl(url) {
-      window.open(url, '_blank');
-    },
-
-    /**
      * 导出为PDF文件
      */
-    exportPdf() {
+    async exportPdf() {
       const paramObj = this.getExportParams();
-      const url = getPdfExportUrl(paramObj);
-      this.openExportUrl(url);
+      try {
+        await exportPdfBlob(paramObj);
+      } catch (error) {
+        console.error('导出PDF失败:', error);
+        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+      }
     },
 
     /**
      * 导出为Word文件
      */
-    exportWord() {
+    async exportWord() {
       const paramObj = this.getExportParams();
-      const url = getWordExportUrl(paramObj);
-      this.openExportUrl(url);
+      try {
+        await exportWordBlob(paramObj);
+      } catch (error) {
+        console.error('导出Word失败:', error);
+        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+      }
     },
 
     /**
      * 导出为分页Sheet的Excel文件（每页一个Sheet）
      */
-    exportExcelPagingSheet() {
+    async exportExcelPagingSheet() {
       const paramObj = this.getExportParams();
-      const url = getExcelSheetPagingExportUrl(paramObj);
-      this.openExportUrl(url);
+      try {
+        await exportExcelSheetPagingBlob(paramObj);
+      } catch (error) {
+        console.error('导出Excel失败:', error);
+        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+      }
     },
 
     /**
      * 导出为分页Excel文件
      */
-    exportExcelPaging() {
+    async exportExcelPaging() {
       const paramObj = this.getExportParams();
-      const url = getExcelPagingExportUrl(paramObj);
-      this.openExportUrl(url);
+      try {
+        await exportExcelPagingBlob(paramObj);
+      } catch (error) {
+        console.error('导出Excel失败:', error);
+        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+      }
     },
 
     /**
      * 导出为Excel文件
      */
-    exportExcel() {
+    async exportExcel() {
       const paramObj = this.getExportParams();
-      const url = getExcelExportUrl(paramObj);
-      this.openExportUrl(url);
+      try {
+        await exportExcelBlob(paramObj);
+      } catch (error) {
+        console.error('导出Excel失败:', error);
+        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+      }
     },
 
     /**

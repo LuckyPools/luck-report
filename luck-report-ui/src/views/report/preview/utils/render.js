@@ -1,15 +1,8 @@
 
-/**
- * 构建URL查询参数字符串
- * 解析当前页面 URL 的查询参数，合并搜索表单参数，生成完整的查询字符串
- * @param {Object} searchFormParameters - 搜索表单参数对象，键值对形式
- * @returns {string} 以 '?' 开头的完整查询参数字符串
- */
+import { getUrlQueryString } from '@/utils/url';
+
 export function buildLocationSearchParameters(searchFormParameters) {
-  let urlParameters = window.location.search;
-  if (urlParameters.length > 0) {
-    urlParameters = urlParameters.substring(1, urlParameters.length);
-  }
+  let urlParameters = getUrlQueryString();
   let parameters = {};
   const pairs = urlParameters.split('&');
   for (let i = 0; i < pairs.length; i++) {

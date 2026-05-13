@@ -37,7 +37,7 @@ import {buildChartDatas} from '@/views/report/preview/utils/chart.js'
 
 import SearchBox from '@/views/report/preview/search-box/index.vue';
 import ToolBox from '@/views/report/preview/tool-box/index.vue';
-import {updateUrlParams} from '@/utils/url';
+import {updateUrlParams, getUrlSearchParams} from '@/utils/url';
 
 import {isMobile, showAlert} from "@/utils/comnon";
 import showLoading from "@/components/loading/instance";
@@ -185,7 +185,7 @@ export default {
     },
 
     parseParamsFromUrl() {
-      const searchParams = new URLSearchParams(window.location.search);
+      const searchParams = getUrlSearchParams();
       this.reportPath = searchParams.get('reportPath') || '';
       this.mode = searchParams.get('mode') || '';
       this.toolsInfo = searchParams.get('_t');

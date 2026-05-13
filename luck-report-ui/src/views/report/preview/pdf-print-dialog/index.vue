@@ -163,12 +163,13 @@ import UButton from "@/components/button/index.vue";
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
-import {getPdfPreviewUrl, pdfNewPaging, loadPagePaper} from '@/api/preview';
+import {getPdfBlobUrl, pdfNewPaging, loadPagePaper} from '@/api/preview';
 import UCol from "@/components/col/index.vue";
 import URow from "@/components/row/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
 import { mapGetters } from 'vuex';
+import {getUrlSearchParams} from "@/utils/url";
 
 export default {
   name: 'PDFPrintDialog',
@@ -214,7 +215,8 @@ export default {
       paperSizeList: buildPageSizeList(),
       refreshIndex: 0,
       loading: false,
-      errorMessage: ''
+      errorMessage: '',
+      currentBlobUrl: null
     };
   },
   computed: {
@@ -260,10 +262,6 @@ export default {
           label: this.$t('preview.pdfPrint.landscape')
         }
       ];
-    },
-
-    urlParameters() {
-      return window.location.search;
     }
   },
   watch: {
@@ -329,7 +327,18 @@ export default {
      * 关闭对话框，向父组件发送 close 事件
      */
     handleClose() {
+      this.revokeBlobUrl();
       this.$emit('close');
+    },
+
+    /**
+     * 释放当前 Blob URL，避免内存泄漏
+     */
+    revokeBlobUrl() {
+      if (this.currentBlobUrl) {
+        URL.revokeObjectURL(this.currentBlobUrl);
+        this.currentBlobUrl = null;
+      }
     },
 
     /**
@@ -461,20 +470,24 @@ export default {
 
         const formData = new FormData();
         formData.append('_paper', JSON.stringify(currentPaper));
-        const urlParams = new URLSearchParams(this.urlParameters);
+        const urlParams = getUrlSearchParams();
         for (const [key, value] of urlParams) {
           formData.append(key, value);
         }
 
         await pdfNewPaging(formData);
-        loadingInstance.close();
 
         const paramObj = {};
         for (const [key, value] of urlParams) {
           paramObj[key] = value;
         }
+        paramObj['_r'] = this.refreshIndex++;
 
-        this.$refs.pdfFrame.src = getPdfPreviewUrl(paramObj, this.refreshIndex++);
+        this.revokeBlobUrl();
+        this.currentBlobUrl = await getPdfBlobUrl(paramObj);
+        this.$refs.pdfFrame.src = this.currentBlobUrl;
+        
+        loadingInstance.close();
       } catch (error) {
         loadingInstance.close();
         console.error('Error:', error);
@@ -497,21 +510,20 @@ export default {
 
     /**
      * 初始化PDF预览iframe
-     * 设置 iframe 的 PDF 预览地址，非 IE 浏览器显示加载中状态
+     * 使用 Blob URL 设置 iframe 的 PDF 预览地址
      */
-    initIFrame() {
+    async initIFrame() {
       if (!this.$refs.pdfFrame) {
         return;
       }
 
-      const urlParams = new URLSearchParams(this.urlParameters);
+      const urlParams = getUrlSearchParams();
       const paramObj = {};
       for (const [key, value] of urlParams) {
         paramObj[key] = value;
       }
+      paramObj['_r'] = 1;
 
-      this.$refs.pdfFrame.src = getPdfPreviewUrl(paramObj, 1);
-      // 检测浏览器是否为IE
       const msie = window.navigator.appName.indexOf("Internet Explorer");
       const ie11 = !!window.MSInputMethodContext && !!document.documentMode;
 
@@ -519,6 +531,19 @@ export default {
         this.loadingInstance = showLoading({
           text: '加载中...',
         });
+      }
+
+      try {
+        this.revokeBlobUrl();
+        this.currentBlobUrl = await getPdfBlobUrl(paramObj);
+        this.$refs.pdfFrame.src = this.currentBlobUrl;
+      } catch (error) {
+        console.error('加载PDF失败:', error);
+        if (this.loadingInstance) {
+          this.loadingInstance.close();
+          this.loadingInstance = null;
+        }
+        showAlert(this.$t('preview.error.loadPdfFail') || '加载PDF失败');
       }
     },
 

@@ -6,6 +6,7 @@ import MessageBox from '@/components/messagebox/instance.js';
 import store from '@/store';
 import {getCell, getCellName} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
+import { getUrlQueryString } from '@/utils/url';
 
 export function resetTableData(hot){
     const countCols=hot.countCols(),countRows=hot.countRows(),data=[];
@@ -662,7 +663,7 @@ export function encode(text){
 
 export function getParameter(name) {
     var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
-    var r = window.location.search.substr(1).match(reg);
+    var r = getUrlQueryString().match(reg);
     if (r != null)return r[2];
     return null;
 };
