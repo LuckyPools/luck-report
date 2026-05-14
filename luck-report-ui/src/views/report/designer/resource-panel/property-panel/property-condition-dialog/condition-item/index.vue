@@ -54,10 +54,10 @@
 </template>
 
 <script>
-import { showAlert, showConfirm } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
-import { v1 as uuid } from 'uuid';
-import PropertyConditionItemDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item-dialog/index.vue';
+import {showAlert, showConfirm} from '@/utils/comnon.js';
+import {setDirty} from '@/utils/table.js';
+import PropertyConditionItemDialog
+  from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item-dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 
 export default {
@@ -100,8 +100,7 @@ export default {
   },
   methods: {
     addItem() {
-      const newItem = { name: '', id: uuid() };
-      this.currentConditionItem = newItem;
+      this.currentConditionItem = {name: ''};
       this.currentOperation = 'add';
       this.dialogVisible = true;
     },
@@ -143,7 +142,7 @@ export default {
         this.$emit('item-index-changed', newIndex);
       } else if (operation === 'edit') {
         this.currentConditionItem.name = item.name;
-        this.$emit('item-updated', this.currentConditionItem);
+        this.$emit('item-updated', this.selectedItemIndex, this.currentConditionItem);
       }
       setDirty();
     },

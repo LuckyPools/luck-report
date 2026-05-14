@@ -140,26 +140,21 @@ export default {
       setDirty();
     },
 
-    onItemUpdated(item) {
-      // 找到对应的项目并更新
-      const index = this.localPropertyConditions.findIndex(existingItem => existingItem.id === item.id);
-      if (index !== -1) {
-        // 使用Vue.set或直接替换整个对象以确保响应性
+    onItemUpdated(index, item) {
+      if (index >= 0 && index < this.localPropertyConditions.length) {
         this.$set(this.localPropertyConditions, index, item);
       }
-      // 向上传递事件
       this.$emit('item-updated', item);
       setDirty();
     },
 
     onItemDeleted(index) {
       if (index >= 0 && index < this.localPropertyConditions.length) {
-        const deletedItem = this.localPropertyConditions[index];
         this.localPropertyConditions.splice(index, 1);
 
         this.$emit('item-deleted', index);
 
-        if (this.selectedItem && this.selectedItem.id === deletedItem.id) {
+        if (this.selectedItemIndex === index) {
           if (this.localPropertyConditions.length > 0) {
             this.$nextTick(() => {
               this.selectedItemIndex = 0;
@@ -197,17 +192,12 @@ export default {
     },
 
     onPropertyChanged(updatedItem) {
-      if (updatedItem) {
-        const index = this.localPropertyConditions.findIndex(item => item.name === updatedItem.name);
-        if (index !== -1) {
-          const currentConditions = this.selectedItem ? this.selectedItem.conditions : [];
-
-          this.$set(this.localPropertyConditions, index, updatedItem);
-
-          if (currentConditions && currentConditions.length > 0) {
-            this.localPropertyConditions[index].conditions = currentConditions;
+      if (updatedItem && this.selectedItem) {
+        Object.keys(updatedItem).forEach(key => {
+          if (key !== 'conditions' && key !== 'id') {
+            this.$set(this.selectedItem, key, updatedItem[key]);
           }
-        }
+        });
       }
       setDirty();
     },
@@ -223,10 +213,9 @@ export default {
       setDirty();
     },
 
-    onConditionUpdated(updatedCondition) {
+    onConditionUpdated(index, updatedCondition) {
       if (this.selectedItem && this.selectedItem.conditions) {
-        const index = this.selectedItem.conditions.findIndex(c => c.id === updatedCondition.id);
-        if (index !== -1) {
+        if (index >= 0 && index < this.selectedItem.conditions.length) {
           this.selectedItem.conditions.splice(index, 1, updatedCondition);
           this.currentConditions = [...this.selectedItem.conditions];
         }
@@ -234,10 +223,9 @@ export default {
       setDirty();
     },
 
-    onConditionDeleted(condition) {
+    onConditionDeleted(index) {
       if (this.selectedItem && this.selectedItem.conditions) {
-        const index = this.selectedItem.conditions.findIndex(c => c.id === condition.id);
-        if (index !== -1) {
+        if (index >= 0 && index < this.selectedItem.conditions.length) {
           this.selectedItem.conditions.splice(index, 1);
           this.currentConditions = [...this.selectedItem.conditions];
         }

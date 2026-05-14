@@ -168,18 +168,13 @@ export default {
         return;
       }
 
-      const condition = this.conditions[this.selectedConditionIndex];
       showConfirm(this.$t('property.dataset.delConfirm')).then(() => {
         const conditions = [...this.conditions];
-        const index = conditions.findIndex(c => c.id === condition.id);
-
-        if (index !== -1) {
-          conditions.splice(index, 1);
-          this.$emit('update:conditions', conditions);
-          this.$emit('update-filter-conditions', conditions);
-          this.selectedConditionIndex = -1;
-          setDirty();
-        }
+        conditions.splice(this.selectedConditionIndex, 1);
+        this.$emit('update:conditions', conditions);
+        this.$emit('update-filter-conditions', conditions);
+        this.selectedConditionIndex = -1;
+        setDirty();
       });
     },
 
