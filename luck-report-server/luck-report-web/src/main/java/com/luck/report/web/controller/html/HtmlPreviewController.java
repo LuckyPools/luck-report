@@ -1,9 +1,11 @@
 package com.luck.report.web.controller.html;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.build.paging.Page;
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.core.cache.ChartScopeCache;
 import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.core.definition.ReportDefinition;
@@ -12,13 +14,15 @@ import com.luck.report.core.export.*;
 import com.luck.report.core.export.html.HtmlProducer;
 import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.domain.vo.ChartDataVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +54,8 @@ public class HtmlPreviewController {
         HtmlReport htmlReport;
         htmlReport = loadReport(req);
         if (htmlReport != null) {
+            Collection<ChartDataVo> chartDataVoList = convertToChartDataVo(htmlReport.getChartDatas());
+
             result.put("searchForm", htmlReport.getSearchForm());
             result.put("content", htmlReport.getContent());
             result.put("style", htmlReport.getStyle());
@@ -57,7 +63,7 @@ public class HtmlPreviewController {
             result.put("totalPage", htmlReport.getTotalPage());
             result.put("totalPageWithCol", htmlReport.getTotalPageWithCol());
             result.put("pageIndex", htmlReport.getPageIndex());
-            result.put("chartDatas", htmlReport.getChartDatas());
+            result.put("chartDatas", chartDataVoList);
             result.put("intervalRefreshValue", htmlReport.getHtmlIntervalRefreshValue());
         }
         ResponseUtils.writeObjectToJson(resp, result);
@@ -70,19 +76,20 @@ public class HtmlPreviewController {
         String fileName = req.getParameter("reportPath");
         fileName = decode(fileName);
         Map<String, Object> parameters = buildParameters(req);
-        ReportDefinition reportDefinition = null;
+        ReportDefinition reportDefinition;
         if (isPreview) {
-            reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
+            reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
             if (reportDefinition == null) {
                 throw new ReportDesignException("Report data has expired,can not do export excel.");
             }
+            reportRender.rebuildReportDefinition(reportDefinition);
         } else {
             reportDefinition = reportRender.getReportDefinition(fileName);
         }
         Report report = reportBuilder.buildReport(reportDefinition, parameters);
         Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
         if (!chartMap.isEmpty()) {
-            CacheUtils.storeChartDataMap(chartMap);
+            ChartScopeCache.storeChartDataMap(chartMap);
         }
         FullPageData pageData = PageBuilder.buildFullPageData(report);
         StringBuilder sb = new StringBuilder();
@@ -125,10 +132,11 @@ public class HtmlPreviewController {
         fileName = decode(fileName);
         ReportDefinition report;
         if (isPreview) {
-            report = (ReportDefinition) TempObjectCache.getObject(fileName);
+            report = (ReportDefinition) ReportScopedCache.getObject(fileName);
             if (report == null) {
                 throw new ReportDesignException("Report data has expired.");
             }
+            reportRender.rebuildReportDefinition(report);
         } else {
             report = reportRender.getReportDefinition(fileName);
         }
@@ -139,10 +147,25 @@ public class HtmlPreviewController {
     @RequestMapping("/loadData")
     public void loadData(HttpServletRequest req, HttpServletResponse resp) throws Exception {
         HtmlReport htmlReport = loadReport(req);
-        ResponseUtils.writeObjectToJson(resp, htmlReport);
+        Map<String, Object> result = new HashMap<>();
+        if (htmlReport != null) {
+            Collection<ChartDataVo> chartDataVoList = convertToChartDataVo(htmlReport.getChartDatas());
+
+            result.put("content", htmlReport.getContent());
+            result.put("style", htmlReport.getStyle());
+            result.put("totalPage", htmlReport.getTotalPage());
+            result.put("totalPageWithCol", htmlReport.getTotalPageWithCol());
+            result.put("pageIndex", htmlReport.getPageIndex());
+            result.put("chartDatas", chartDataVoList);
+            result.put("intervalRefreshValue", htmlReport.getHtmlIntervalRefreshValue());
+            result.put("searchForm", htmlReport.getSearchForm());
+            result.put("reportAlign", htmlReport.getReportAlign());
+        }
+        ResponseUtils.writeObjectToJson(resp, result);
     }
 
-    private HtmlReport loadReport(HttpServletRequest req) {
+
+    private HtmlReport loadReport(HttpServletRequest req) throws JsonProcessingException {
         Map<String, Object> parameters = buildParameters(req);
         HtmlReport htmlReport;
         String pageIndex = req.getParameter("_i");
@@ -154,14 +177,15 @@ public class HtmlPreviewController {
             throw new ReportComputeException("Report file can not be null");
         }
         if (isPreview) {
-            ReportDefinition reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
+            ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
             if (reportDefinition == null) {
                 throw new ReportDesignException("Report data has expired,can not do preview");
             }
+            reportRender.rebuildReportDefinition(reportDefinition);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
             if (!CollectionUtils.isEmpty(chartMap)) {
-                CacheUtils.storeChartDataMap(chartMap);
+                ChartScopeCache.storeChartDataMap(chartMap);
             }
             htmlReport = new HtmlReport();
             String html;
@@ -200,6 +224,18 @@ public class HtmlPreviewController {
             }
         }
         return htmlReport;
+    }
+
+    public Collection<ChartDataVo> convertToChartDataVo(Collection<ChartData> chartDatas) {
+        Collection<ChartDataVo> chartDataVos = new ArrayList<>();
+        if (chartDatas == null || chartDatas.isEmpty()) {
+            return chartDataVos;
+        }
+        for (ChartData chartData : chartDatas) {
+            ChartDataVo chartDataVo = new ChartDataVo(chartData.getId(), chartData.getJson());
+            chartDataVos.add(chartDataVo);
+        }
+        return chartDataVos;
     }
 
     private String buildExceptionMessage(Throwable throwable) {

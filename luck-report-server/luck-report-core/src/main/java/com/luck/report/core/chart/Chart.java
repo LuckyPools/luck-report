@@ -27,6 +27,7 @@ import com.luck.report.core.chart.option.Option;
 import com.luck.report.core.chart.plugins.Plugin;
 import com.luck.report.core.model.Cell;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,10 @@ import java.util.List;
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class Chart {
+public class Chart implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public Chart() {}
     private Dataset dataset;
     private XAxes xaxes;
     private YAxes yaxes;

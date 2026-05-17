@@ -22,7 +22,7 @@ import java.io.Serializable;
  * @since 2014年4月29日
  */
 public class Paper implements Serializable {
-    private static final long serialVersionUID = -6153150083492704136L;
+    private static final long serialVersionUID = 1L;
     private int leftMargin = 90;
     private int rightMargin = 90;
     private int topMargin = 72;
@@ -39,6 +39,11 @@ public class Paper implements Serializable {
     private int columnCount = 2;
     private int columnMargin = 5;
     private int htmlIntervalRefreshValue = 0;
+
+    /**
+     * 默认无参构造器
+     */
+    public Paper() {}
 
     public int getLeftMargin() {
         return leftMargin;

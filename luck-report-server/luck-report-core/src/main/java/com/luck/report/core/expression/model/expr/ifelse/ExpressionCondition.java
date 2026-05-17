@@ -25,16 +25,20 @@ import com.luck.report.core.expression.model.data.*;
 import com.luck.report.core.expression.model.data.*;
 import com.luck.report.core.model.Cell;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年1月16日
  */
-public class ExpressionCondition {
+public class ExpressionCondition implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Expression left;
     private Op op;
     private Expression right;
+
+    public ExpressionCondition() {}
 
     public ExpressionCondition(Expression left, Op op, Expression right) {
         this.left = left;
@@ -91,7 +95,39 @@ public class ExpressionCondition {
         return left;
     }
 
+    /**
+     * 获取操作符
+     * @return 操作符
+     */
+    public Op getOp() {
+        return op;
+    }
+
     public Expression getRight() {
         return right;
+    }
+
+    /**
+     * 设置左侧表达式
+     * @param left 左侧表达式
+     */
+    public void setLeft(Expression left) {
+        this.left = left;
+    }
+
+    /**
+     * 设置操作符
+     * @param op 操作符
+     */
+    public void setOp(Op op) {
+        this.op = op;
+    }
+
+    /**
+     * 设置右侧表达式
+     * @param right 右侧表达式
+     */
+    public void setRight(Expression right) {
+        this.right = right;
     }
 }

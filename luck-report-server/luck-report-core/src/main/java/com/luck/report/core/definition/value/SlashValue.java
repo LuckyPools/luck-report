@@ -15,19 +15,25 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
+
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年3月14日
  */
-public class SlashValue implements Value {
+public class SlashValue implements Value, Serializable {
+    private static final long serialVersionUID = 1L;
     private String svg;
     private List<Slash> slashes;
-    @JsonIgnore
     private String base64Data;
+
+    /**
+     * 默认无参构造器
+     */
+    public SlashValue() {}
 
     @Override
     public String getValue() {
@@ -53,6 +59,22 @@ public class SlashValue implements Value {
     @Override
     public ValueType getType() {
         return ValueType.slash;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的value字段
+     * @param value 值（忽略）
+     */
+    public void setValue(String value) {
+        // 空实现，忽略value字段
     }
 
     public String getBase64Data() {

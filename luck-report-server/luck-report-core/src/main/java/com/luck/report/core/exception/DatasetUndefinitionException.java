@@ -20,7 +20,7 @@ package com.luck.report.core.exception;
  * @since 2016年11月1日
  */
 public class DatasetUndefinitionException extends ReportException {
-    private static final long serialVersionUID = -1897331038232057797L;
+    private static final long serialVersionUID = 1L;
 
     public DatasetUndefinitionException(String datasetName) {
         super("Dataset [" + datasetName + "] not definition.");

@@ -2,14 +2,14 @@ package com.luck.report.web.controller.word;
 
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.definition.ReportDefinition;
-import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ExportConfigure;
 import com.luck.report.core.export.ExportConfigureImpl;
 import com.luck.report.core.export.ExportManager;
+import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.word.high.WordProducer;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.exception.ReportDesignException;
 import org.apache.commons.lang.StringUtils;
@@ -41,6 +41,9 @@ public class ExportWordController {
     @Autowired
     private ExportManager exportManager;
 
+    @Autowired
+    private ReportRender reportRender;
+
     private final WordProducer wordProducer = new WordProducer();
 
     /**
@@ -68,10 +71,11 @@ public class ExportWordController {
             resp.setHeader("Content-Disposition", "attachment;filename=\"" + wordName + "\"");
             Map<String, Object> parameters = buildParameters(req);
             if (isPreview) {
-                ReportDefinition reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
+                ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
                 if (reportDefinition == null) {
                     throw new ReportDesignException("Report data has expired,can not do export word.");
                 }
+                reportRender.rebuildReportDefinition(reportDefinition);
                 Report report = reportBuilder.buildReport(reportDefinition, parameters);
                 wordProducer.produce(report, outputStream);
             } else {

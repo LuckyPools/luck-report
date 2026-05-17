@@ -26,7 +26,9 @@ import com.luck.report.core.model.Cell;
  * @since 2017年1月20日
  */
 public class CellValueExpression extends BaseExpression {
-    private static final long serialVersionUID = 5964924636009364350L;
+    private static final long serialVersionUID = 1L;
+
+    public CellValueExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {

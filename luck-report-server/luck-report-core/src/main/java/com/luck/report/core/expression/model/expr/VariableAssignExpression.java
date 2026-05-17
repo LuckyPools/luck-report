@@ -31,9 +31,11 @@ import java.util.List;
  * @since 2018年7月13日
  */
 public class VariableAssignExpression extends BaseExpression {
-    private static final long serialVersionUID = 435511939569866187L;
+    private static final long serialVersionUID = 1L;
     private String variable;
     private Expression expression;
+
+    public VariableAssignExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {

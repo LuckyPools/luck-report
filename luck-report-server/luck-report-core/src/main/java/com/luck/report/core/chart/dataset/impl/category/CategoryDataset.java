@@ -35,6 +35,7 @@ import java.util.*;
  * @since 2017年6月9日
  */
 public abstract class CategoryDataset extends BaseDataset {
+    private static final long serialVersionUID = 1L;
     private CollectType collectType = CollectType.select;
 
     private String datasetName;

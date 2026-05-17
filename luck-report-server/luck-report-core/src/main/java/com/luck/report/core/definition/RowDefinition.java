@@ -25,10 +25,15 @@ import java.util.List;
  * @since 2016年11月1日
  */
 public class RowDefinition implements Comparable<RowDefinition>, Serializable {
-    private static final long serialVersionUID = 8326047944994933822L;
+    private static final long serialVersionUID = 1L;
     private int rowNumber;
     private int height;
     private Band band;
+
+    /**
+     * 默认无参构造器
+     */
+    public RowDefinition() {}
 
     protected Row newRow(List<Row> rows) {
         Row row = new Row(rows);

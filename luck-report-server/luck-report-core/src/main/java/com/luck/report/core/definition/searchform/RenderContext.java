@@ -18,6 +18,7 @@ package com.luck.report.core.definition.searchform;
 import com.luck.report.core.build.Dataset;
 import com.luck.report.core.definition.searchform.component.Component;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,12 +26,18 @@ import java.util.Map;
  * @author Jacky.gao
  * @since 2017年10月23日
  */
-public class RenderContext {
+public class RenderContext implements Serializable {
+    private static final long serialVersionUID = 1L;
     private int id = 0;
     private Map<String, Dataset> datasetMap;
     private Map<String, Object> parameters;
     private Map<Component, String> componentMap = new HashMap<Component, String>();
     private Map<String, Object> metadata = new HashMap<String, Object>();
+
+    /**
+     * 默认无参构造器
+     */
+    public RenderContext() {}
 
     public RenderContext(Map<String, Dataset> datasetMap, Map<String, Object> parameters) {
         this.datasetMap = datasetMap;
@@ -60,5 +67,49 @@ public class RenderContext {
 
     public void putMetadata(String key, Object value) {
         metadata.put(key, value);
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Map<String, Dataset> getDatasetMap() {
+        return datasetMap;
+    }
+
+    public void setDatasetMap(Map<String, Dataset> datasetMap) {
+        this.datasetMap = datasetMap;
+    }
+
+    public Map<String, Object> getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(Map<String, Object> parameters) {
+        this.parameters = parameters;
+    }
+
+    public Map<Component, String> getComponentMap() {
+        return componentMap;
+    }
+
+    public void setComponentMap(Map<Component, String> componentMap) {
+        this.componentMap = componentMap;
+    }
+
+    /**
+     * 获取完整元数据映射
+     * @return 元数据映射
+     */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
     }
 }

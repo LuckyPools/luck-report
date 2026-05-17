@@ -25,8 +25,10 @@ import com.luck.report.core.model.Cell;
  * @since 2016年12月23日
  */
 public class StringExpression extends BaseExpression {
-    private static final long serialVersionUID = 4810887743258516630L;
+    private static final long serialVersionUID = 1L;
     private String text;
+
+    public StringExpression() {}
 
     public StringExpression(String text) {
         this.text = text;
@@ -35,5 +37,21 @@ public class StringExpression extends BaseExpression {
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
         return new ObjectExpressionData(text);
+    }
+
+    /**
+     * 获取文本内容
+     * @return 文本内容
+     */
+    public String getText() {
+        return text;
+    }
+
+    /**
+     * 设置文本内容
+     * @param text 文本内容
+     */
+    public void setText(String text) {
+        this.text = text;
     }
 }

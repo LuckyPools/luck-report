@@ -20,7 +20,7 @@ package com.luck.report.core.definition;
  * @since 2017年4月24日
  */
 public class ConditionCellStyle extends CellStyle {
-    private static final long serialVersionUID = -3295823703567508310L;
+    private static final long serialVersionUID = 1L;
     private int fontSize;
     private String fontFamily;
     private Scope bgcolorScope = Scope.cell;
@@ -32,6 +32,11 @@ public class ConditionCellStyle extends CellStyle {
     private Scope boldScope = Scope.cell;
     private Scope italicScope = Scope.cell;
     private Scope underlineScope = Scope.cell;
+
+    /**
+     * 默认无参构造器
+     */
+    public ConditionCellStyle() {}
 
     public Scope getBgcolorScope() {
         return bgcolorScope;

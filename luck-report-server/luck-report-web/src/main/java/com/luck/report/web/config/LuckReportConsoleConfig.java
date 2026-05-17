@@ -1,6 +1,9 @@
 package com.luck.report.web.config;
 
-import com.luck.report.web.cache.HttpSessionReportCache;
+import com.luck.report.core.cache.ReportCache;
+import com.luck.report.core.cache.ReportCacheKeyResolver;
+import com.luck.report.web.cache.impl.LocalCacheService;
+import com.luck.report.web.cache.impl.SessionCacheKeyResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,17 +16,32 @@ import org.springframework.context.annotation.Configuration;
 public class LuckReportConsoleConfig {
 
     /**
-     * 配置HttpSessionReportCache Bean
-     * 用于在HTTP会话中缓存报表数据
+     * 配置 LocalCacheService Bean
+     * 用于在本地缓存报表数据
      *
-     * @param reportDisableHttpSessionReportCache 是否禁用HTTP会话报表缓存
+     * @param disableLocalReportCache 是否禁用本地报表缓存
      * @return HttpSessionReportCache实例
      */
-    @Bean("bean.httpSessionReportCache")
-    public HttpSessionReportCache httpSessionReportCache(
-            @Value("${luck-report.disableHttpSessionReportCache:false}") boolean reportDisableHttpSessionReportCache) {
-        HttpSessionReportCache cache = new HttpSessionReportCache();
-        cache.setDisabled(reportDisableHttpSessionReportCache);
+    @Bean("bean.localCacheService")
+    public ReportCache localCacheService(
+            @Value("${luck-report.disableLocalReportCache:false}") boolean disableLocalReportCache) {
+        LocalCacheService cache = new LocalCacheService();
+        cache.setDisabled(disableLocalReportCache);
         return cache;
+    }
+
+    /**
+     * 配置 ReportCacheKeyResolver Bean
+     * 使用session会话生成缓存键前缀，隔离用户数据
+     *
+     * @param disableSessionCacheKeyResolver 是否禁用session缓存键生成器
+     * @return HttpSessionReportCache实例
+     */
+    @Bean("bean.sessionCacheKeyResolver")
+    public ReportCacheKeyResolver sessionCacheKeyResolver(
+            @Value("${luck-report.disableSessionCacheKeyResolver:false}") boolean disableSessionCacheKeyResolver) {
+        SessionCacheKeyResolver resolver = new SessionCacheKeyResolver();
+        resolver.setDisabled(disableSessionCacheKeyResolver);
+        return resolver;
     }
 }

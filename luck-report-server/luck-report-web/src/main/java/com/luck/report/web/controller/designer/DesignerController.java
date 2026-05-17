@@ -1,6 +1,7 @@
 package com.luck.report.web.controller.designer;
 
-import com.luck.report.core.cache.CacheUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.luck.report.core.cache.ReportDefinitionCache;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.dsl.ReportParserLexer;
 import com.luck.report.core.dsl.ReportParserParser;
@@ -9,7 +10,7 @@ import com.luck.report.core.expression.ErrorInfo;
 import com.luck.report.core.expression.ScriptErrorListener;
 import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportProvider;
-import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.utils.ResponseUtils;
@@ -117,9 +118,9 @@ public class DesignerController implements ApplicationContextAware {
         fileName = decode(fileName);
         InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
         ReportDefinition reportDef = reportParser.parse(inputStream, fileName);
-        reportRender.rebuildReportDefinition(reportDef);
+        // reportRender.rebuildReportDefinition(reportDef);
         IOUtils.closeQuietly(inputStream);
-        TempObjectCache.putObject(fileName, reportDef);
+        ReportScopedCache.putObject(fileName, reportDef);
     }
 
     /**
@@ -132,10 +133,10 @@ public class DesignerController implements ApplicationContextAware {
             throw new ReportDesignException("Report file can not be null.");
         }
         String fileName = ReportUtils.decodeFileName(filePath);
-        Object obj = TempObjectCache.getObject(fileName);
+        Object obj = ReportScopedCache.getObject(fileName);
         if (obj instanceof ReportDefinition) {
             ReportDefinition reportDef = (ReportDefinition) obj;
-            TempObjectCache.removeObject(fileName);
+            ReportScopedCache.removeObject(fileName);
             ResponseUtils.writeObjectToJson(resp, new ReportDefinitionWrapper(reportDef));
         } else {
             ReportDefinition reportDef = reportRender.parseReport(fileName);
@@ -193,8 +194,8 @@ public class DesignerController implements ApplicationContextAware {
             logger.error("保存报表异常",e);
             throw e;
         }
-        reportRender.rebuildReportDefinition(reportDef);
-        CacheUtils.cacheReportDefinition(file, reportDef);
+        // reportRender.rebuildReportDefinition(reportDef);
+        ReportDefinitionCache.putObject(file, reportDef);
         targetReportProvider.saveReport(file, content);
     }
 

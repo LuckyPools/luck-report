@@ -32,9 +32,11 @@ import java.util.List;
  * @since 2017年1月1日
  */
 public class FromToExpression extends BaseExpression {
-    private static final long serialVersionUID = -3250140935488901894L;
+    private static final long serialVersionUID = 1L;
     private BaseExpression fromExpression;
     private BaseExpression toExpression;
+
+    public FromToExpression() {}
 
     public FromToExpression(BaseExpression fromExpression, BaseExpression toExpression) {
         this.fromExpression = fromExpression;
@@ -60,5 +62,37 @@ public class FromToExpression extends BaseExpression {
         } else {
             throw new ReportComputeException("Can not convert [" + data + "] to integer.");
         }
+    }
+
+    /**
+     * 获取起始表达式
+     * @return 起始表达式
+     */
+    public BaseExpression getFromExpression() {
+        return fromExpression;
+    }
+
+    /**
+     * 设置起始表达式
+     * @param fromExpression 起始表达式
+     */
+    public void setFromExpression(BaseExpression fromExpression) {
+        this.fromExpression = fromExpression;
+    }
+
+    /**
+     * 获取结束表达式
+     * @return 结束表达式
+     */
+    public BaseExpression getToExpression() {
+        return toExpression;
+    }
+
+    /**
+     * 设置结束表达式
+     * @param toExpression 结束表达式
+     */
+    public void setToExpression(BaseExpression toExpression) {
+        this.toExpression = toExpression;
     }
 }

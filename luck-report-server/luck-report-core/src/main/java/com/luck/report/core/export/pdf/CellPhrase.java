@@ -27,7 +27,7 @@ import org.apache.commons.lang.StringUtils;
  * @since 2014年4月17日
  */
 public class CellPhrase extends Phrase {
-    private static final long serialVersionUID = 8712267867853876619L;
+    private static final long serialVersionUID = 1L;
 
     public CellPhrase(Cell cell, Object cellData) {
         String text = "";

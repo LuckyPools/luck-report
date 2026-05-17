@@ -35,8 +35,11 @@ import java.util.Map;
  * @since 2017年1月1日
  */
 public class CellExpression extends BaseExpression {
-    private static final long serialVersionUID = 8376298136905903019L;
+    private static final long serialVersionUID = 1L;
     protected String cellName;
+
+    public CellExpression() {}
+
     public CellExpression(String cellName) {
         this.cellName = cellName;
     }
@@ -104,5 +107,21 @@ public class CellExpression extends BaseExpression {
             }
         }
         return list;
+    }
+
+    /**
+     * 获取单元格名称
+     * @return 单元格名称
+     */
+    public String getCellName() {
+        return cellName;
+    }
+
+    /**
+     * 设置单元格名称
+     * @param cellName 单元格名称
+     */
+    public void setCellName(String cellName) {
+        this.cellName = cellName;
     }
 }

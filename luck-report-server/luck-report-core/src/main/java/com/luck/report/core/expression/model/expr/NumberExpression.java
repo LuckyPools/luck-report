@@ -27,8 +27,10 @@ import java.math.BigDecimal;
  * @since 2016年12月23日
  */
 public class NumberExpression extends BaseExpression {
-    private static final long serialVersionUID = 1694636614530741241L;
+    private static final long serialVersionUID = 1L;
     private BigDecimal value;
+
+    public NumberExpression() {}
 
     public NumberExpression(BigDecimal value) {
         this.value = value;
@@ -37,5 +39,21 @@ public class NumberExpression extends BaseExpression {
     @Override
     public ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
         return new ObjectExpressionData(value.floatValue());
+    }
+
+    /**
+     * 获取数值
+     * @return 数值
+     */
+    public BigDecimal getValue() {
+        return value;
+    }
+
+    /**
+     * 设置数值
+     * @param value 数值
+     */
+    public void setValue(BigDecimal value) {
+        this.value = value;
     }
 }

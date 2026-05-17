@@ -35,7 +35,7 @@ import java.util.Map;
  * @since 2016年11月1日
  */
 public class ReportDefinition implements Serializable {
-	private static final long serialVersionUID = 5934291400824773809L;
+	private static final long serialVersionUID = 1L;
 	private String reportFullName;
 	private Paper paper;
 	private CellDefinition rootCell;
@@ -46,8 +46,14 @@ public class ReportDefinition implements Serializable {
 	private List<RowDefinition> rows;
 	private List<ColumnDefinition> columns;
 	private List<DatasourceDefinition> datasources;
-	@JsonIgnore
+	@JsonIgnore // 内部重构
 	private String style;
+
+	/**
+	 * 默认无参构造器
+	 */
+	public ReportDefinition() {
+	}
 
 	public Report newReport() {
 		Report report = new Report();

@@ -23,6 +23,10 @@ import com.luck.report.core.model.Cell;
  * @since 2017年6月8日
  */
 public class LineDataset extends CategoryDataset {
+    private static final long serialVersionUID = 1L;
+
+    public LineDataset() {}
+
     private double lineTension = 0.2;
 
     @Override
@@ -47,6 +51,14 @@ public class LineDataset extends CategoryDataset {
     @Override
     public String getType() {
         return "line";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public double getLineTension() {

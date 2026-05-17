@@ -15,6 +15,7 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
+
 import com.luck.report.core.expression.model.expr.dataset.DatasetExpression;
 
 /**
@@ -22,11 +23,24 @@ import com.luck.report.core.expression.model.expr.dataset.DatasetExpression;
  * @since 2016年12月21日
  */
 public class DatasetValue extends DatasetExpression implements Value {
-    private static final long serialVersionUID = 1892973888854385049L;
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * 默认无参构造器
+     */
+    public DatasetValue() {}
 
     @Override
     public ValueType getType() {
         return ValueType.dataset;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
     }
 
     @Override
@@ -45,5 +59,13 @@ public class DatasetValue extends DatasetExpression implements Value {
         }
         sb.append(")");
         return sb.toString();
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的value字段
+     * @param value 值（忽略）
+     */
+    public void setValue(String value) {
+        // 空实现，忽略value字段
     }
 }

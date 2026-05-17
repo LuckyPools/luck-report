@@ -26,10 +26,12 @@ import com.luck.report.core.model.Cell;
  * @since 2017年1月16日
  */
 public class ElseIfExpression extends BaseExpression {
-    private static final long serialVersionUID = -198920923804292977L;
+    private static final long serialVersionUID = 1L;
     private ExpressionConditionList conditionList;
 
     private ExpressionBlock expression;
+
+    public ElseIfExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
@@ -38,6 +40,10 @@ public class ElseIfExpression extends BaseExpression {
 
     public boolean conditionsEval(Cell cell, Cell currentCell, Context context) {
         return conditionList.eval(context, cell, currentCell);
+    }
+
+    public ExpressionConditionList getConditionList() {
+        return conditionList;
     }
 
     public void setConditionList(ExpressionConditionList conditionList) {

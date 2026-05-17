@@ -33,6 +33,8 @@ public class CellExpressionCondition extends BaseCondition {
     private String cellName;
     private Expression rightExpression;
 
+    public CellExpressionCondition() {}
+
     @Override
     Object computeLeft(Cell cell, Cell currentCell, Object obj, Context context) {
         if (cellName.equals(currentCell.getName())) {
@@ -75,8 +77,24 @@ public class CellExpressionCondition extends BaseCondition {
         return type;
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type
+     */
+    public void setType(ConditionType type) {
+        // 空实现，忽略type字段
+    }
+
+    public String getCellName() {
+        return cellName;
+    }
+
     public void setCellName(String cellName) {
         this.cellName = cellName;
+    }
+
+    public Expression getRightExpression() {
+        return rightExpression;
     }
 
     public void setRightExpression(Expression rightExpression) {

@@ -15,13 +15,15 @@
  ******************************************************************************/
 package com.luck.report.core.definition.searchform.component;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年10月23日
  */
-public abstract class ContainerComponent implements Component {
+public abstract class ContainerComponent implements Component, Serializable {
+    private static final long serialVersionUID = 1L;
     protected List<Component> children;
     private String tag;
     private String tagIcon;

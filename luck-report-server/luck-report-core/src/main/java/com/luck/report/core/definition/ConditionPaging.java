@@ -15,16 +15,24 @@
  ******************************************************************************/
 package com.luck.report.core.definition;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月19日
  */
-public class ConditionPaging {
+public class ConditionPaging implements Serializable {
+    private static final long serialVersionUID = 1L;
     private PagingPosition position;
     /**
      * 当position为after时，line用来指定当前行后多少行进行分页
      */
     private int line;
+
+    /**
+     * 默认无参构造器
+     */
+    public ConditionPaging() {}
 
     public PagingPosition getPosition() {
         return position;

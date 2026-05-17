@@ -32,9 +32,11 @@ import java.util.List;
  * @since 2017年1月1日
  */
 public class CellPairExpression extends BaseExpression {
-    private static final long serialVersionUID = 775139518725235246L;
+    private static final long serialVersionUID = 1L;
     private String startCellName;
     private String endCellName;
+
+    public CellPairExpression() {}
 
     public CellPairExpression(String startCellName, String endCellName) {
         this.startCellName = startCellName;
@@ -108,6 +110,38 @@ public class CellPairExpression extends BaseExpression {
         String cellName = sb.toString();
         int number = Integer.valueOf(sb1.toString());
         return new CellName(cellName, number);
+    }
+
+    /**
+     * 获取起始单元格名称
+     * @return 起始单元格名称
+     */
+    public String getStartCellName() {
+        return startCellName;
+    }
+
+    /**
+     * 设置起始单元格名称
+     * @param startCellName 起始单元格名称
+     */
+    public void setStartCellName(String startCellName) {
+        this.startCellName = startCellName;
+    }
+
+    /**
+     * 获取结束单元格名称
+     * @return 结束单元格名称
+     */
+    public String getEndCellName() {
+        return endCellName;
+    }
+
+    /**
+     * 设置结束单元格名称
+     * @param endCellName 结束单元格名称
+     */
+    public void setEndCellName(String endCellName) {
+        this.endCellName = endCellName;
     }
 }
 

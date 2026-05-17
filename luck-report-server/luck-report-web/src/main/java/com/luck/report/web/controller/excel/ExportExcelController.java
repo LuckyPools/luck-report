@@ -7,9 +7,10 @@ import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ExportConfigure;
 import com.luck.report.core.export.ExportConfigureImpl;
 import com.luck.report.core.export.ExportManager;
+import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.excel.high.ExcelProducer;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.exception.ReportDesignException;
 import org.apache.commons.lang.StringUtils;
@@ -40,6 +41,9 @@ public class ExportExcelController {
 
     @Autowired
     private ExportManager exportManager;
+
+    @Autowired
+    private ReportRender reportRender;
 
     private final ExcelProducer excelProducer = new ExcelProducer();
 
@@ -84,10 +88,11 @@ public class ExportExcelController {
             resp.setHeader("Content-Disposition", "attachment;filename=\"" + excelName + "\"");
             Map<String, Object> parameters = buildParameters(req);
             if (isPreview) {
-                ReportDefinition reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
+                ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
                 if (reportDefinition == null) {
                     throw new ReportDesignException("Report data has expired,can not do export excel.");
                 }
+                reportRender.rebuildReportDefinition(reportDefinition);
                 Report report = reportBuilder.buildReport(reportDefinition, parameters);
                 if (withPage) {
                     excelProducer.produceWithPaging(report, outputStream);

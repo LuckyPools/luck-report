@@ -32,6 +32,9 @@ import java.util.Map;
  * @since 2017年6月8日
  */
 public class BubbleDataset extends BaseDataset {
+    private static final long serialVersionUID = 1L;
+
+    public BubbleDataset() {}
     private String datasetName;
     private String xProperty;
     private String yProperty;
@@ -105,6 +108,14 @@ public class BubbleDataset extends BaseDataset {
     @Override
     public String getType() {
         return "bubble";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public String getDatasetName() {

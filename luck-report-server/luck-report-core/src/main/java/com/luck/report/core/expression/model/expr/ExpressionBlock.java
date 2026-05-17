@@ -27,9 +27,11 @@ import java.util.List;
  * @since 2018年7月13日
  */
 public class ExpressionBlock extends BaseExpression {
-    private static final long serialVersionUID = -400528304334443664L;
+    private static final long serialVersionUID = 1L;
     private List<Expression> expressionList;
     private Expression returnExpression;
+
+    public ExpressionBlock() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {

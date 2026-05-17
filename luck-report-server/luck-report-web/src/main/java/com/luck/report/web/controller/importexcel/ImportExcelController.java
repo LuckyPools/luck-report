@@ -2,7 +2,7 @@ package com.luck.report.web.controller.importexcel;
 
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.exception.ReportException;
-import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.filter.RequestHolderFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +63,7 @@ public class ImportExcelController {
 
         if (report != null) {
             result.put("result", true);
-            TempObjectCache.putObject("classpath:template/template.ureport.xml", report);
+            ReportScopedCache.putObject("classpath:template/template.ureport.xml", report);
         } else {
             throw new ReportException("Excel文件解析失败，请检查文件格式是否正确");
         }

@@ -104,8 +104,7 @@ public class ExpressionUtils implements ApplicationContextAware {
 
     public static boolean conditionEval(Op op, Object left, Object right) {
         Assertor assertor = assertorsMap.get(op);
-        boolean result = assertor.eval(left, right);
-        return result;
+        return assertor.eval(left, right);
     }
 
     public static Expression parseExpression(String text) {

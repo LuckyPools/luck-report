@@ -161,6 +161,7 @@ export default {
   border-radius: 4px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
   background-clip: padding-box;
+  text-align: left;
 }
 
 .dropdown-menu > li > a {

@@ -4,10 +4,12 @@ import com.luck.report.core.definition.searchform.RenderContext;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public abstract class BaseInputComponent implements Component {
+public abstract class BaseInputComponent implements Component, Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String label;
     private String tag;
@@ -43,6 +45,8 @@ public abstract class BaseInputComponent implements Component {
     public String getType() {
         return null;
     }
+
+    public void setType(String type) {}
 
     public String getTag() {
         return tag;
@@ -132,7 +136,7 @@ public abstract class BaseInputComponent implements Component {
         this.renderKey = renderKey;
     }
 
-    @JsonIgnore
+    @JsonIgnore // 内部重构
     public String getVModel() {
         return vModel;
     }

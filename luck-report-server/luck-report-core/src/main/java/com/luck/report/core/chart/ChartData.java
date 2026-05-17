@@ -15,23 +15,24 @@
  ******************************************************************************/
 package com.luck.report.core.chart;
 
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.core.cache.ChartScopeCache;
 import com.luck.report.core.model.Cell;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.io.Serializable;
 
 /**
  * @author Jacky.gao
  * @since 2017年6月16日
  */
-public class ChartData {
+public class ChartData implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String id;
     private String json;
-    @JsonIgnore
     private String base64Data;
-    @JsonIgnore
     private int width;
-    @JsonIgnore
     private int height;
+
+    public ChartData() {}
 
     public ChartData(String json, Cell cell) {
         this.json = json;
@@ -42,6 +43,10 @@ public class ChartData {
         return json;
     }
 
+    public String getBase64Data() {
+        return base64Data;
+    }
+
     public void setBase64Data(String base64Data) {
         this.base64Data = base64Data;
     }
@@ -50,7 +55,7 @@ public class ChartData {
         if (base64Data != null) {
             return base64Data;
         }
-        ChartData data = CacheUtils.getChartData(id);
+        ChartData data = ChartScopeCache.getChartData(id);
         if (data != null && data != this) {
             return data.base64Data;
         }

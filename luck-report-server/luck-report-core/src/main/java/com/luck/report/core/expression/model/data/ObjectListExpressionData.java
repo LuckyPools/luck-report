@@ -15,14 +15,18 @@
  ******************************************************************************/
 package com.luck.report.core.expression.model.data;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年1月3日
  */
-public class ObjectListExpressionData implements ExpressionData<List<?>> {
+public class ObjectListExpressionData implements ExpressionData<List<?>>, Serializable {
+    private static final long serialVersionUID = 1L;
     private List<?> list;
+
+    public ObjectListExpressionData() {}
 
     public ObjectListExpressionData(List<?> list) {
         this.list = list;
@@ -31,5 +35,13 @@ public class ObjectListExpressionData implements ExpressionData<List<?>> {
     @Override
     public List<?> getData() {
         return list;
+    }
+
+    /**
+     * 设置列表数据
+     * @param list 列表数据
+     */
+    public void setData(List<?> list) {
+        this.list = list;
     }
 }

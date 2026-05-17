@@ -15,15 +15,20 @@
  ******************************************************************************/
 package com.luck.report.core.expression.model.expr.set;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年4月2日
  */
-public class CellCoordinate {
+public class CellCoordinate implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String cellName;
     private int position;
     private boolean reverse;
     private CoordinateType coordinateType;
+
+    public CellCoordinate() {}
 
     public CellCoordinate(String cellName, CoordinateType coordinateType) {
         this.cellName = cellName;
@@ -56,6 +61,14 @@ public class CellCoordinate {
 
     public CoordinateType getCoordinateType() {
         return coordinateType;
+    }
+
+    /**
+     * 设置坐标类型
+     * @param coordinateType 坐标类型
+     */
+    public void setCoordinateType(CoordinateType coordinateType) {
+        this.coordinateType = coordinateType;
     }
 
     @Override

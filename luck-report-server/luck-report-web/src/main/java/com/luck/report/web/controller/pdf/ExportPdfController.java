@@ -3,7 +3,6 @@ package com.luck.report.web.controller.pdf;
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.core.definition.ReportDefinition;
-import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ExportConfigure;
 import com.luck.report.core.export.ExportConfigureImpl;
@@ -11,7 +10,7 @@ import com.luck.report.core.export.ExportManager;
 import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.TempObjectCache;
+import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.exception.ReportDesignException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -72,10 +71,11 @@ public class ExportPdfController {
         Report report;
         Map<String, Object> parameters = buildParameters(req);
         if (isPreview) {
-            ReportDefinition reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
+            ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
             if (reportDefinition == null) {
                 throw new ReportDesignException("Report data has expired,can not do export pdf.");
             }
+            reportRender.rebuildReportDefinition(reportDefinition);
             report = reportBuilder.buildReport(reportDefinition, parameters);
         } else {
             ReportDefinition reportDefinition = reportRender.getReportDefinition(fileName);
@@ -106,10 +106,11 @@ public class ExportPdfController {
                 resp.setHeader("Content-Disposition", "attachment;filename=\"" + pdfName + "\"");
             }
             if (isPreview) {
-                ReportDefinition reportDefinition = (ReportDefinition) TempObjectCache.getObject(fileName);
+                ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
                 if (reportDefinition == null) {
                     throw new ReportDesignException("Report data has expired,can not do export pdf.");
                 }
+                reportRender.rebuildReportDefinition(reportDefinition);
                 Report report = reportBuilder.buildReport(reportDefinition, parameters);
                 pdfProducer.produce(report, outputStream);
             } else {

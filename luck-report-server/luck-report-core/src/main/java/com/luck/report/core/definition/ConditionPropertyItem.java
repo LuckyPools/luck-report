@@ -15,21 +15,22 @@
  ******************************************************************************/
 package com.luck.report.core.definition;
 
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Condition;
 import com.luck.report.core.expression.model.Expression;
+import com.luck.report.core.expression.model.condition.BaseCondition;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年4月10日
  */
-public class ConditionPropertyItem {
+public class ConditionPropertyItem implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
-
-    @JsonIgnore
-    private Condition condition;
     /**
      * 此属性给设计器使用，引擎不使用该属性
      */
@@ -47,10 +48,18 @@ public class ConditionPropertyItem {
 
     private ConditionPaging paging;
 
-    @JsonIgnore
+    private String expr;
+
+    @JsonIgnore // 内部重构 conditions
+    private Condition condition;
+
+    @JsonIgnore // 内部重构 expr
     private Expression expression;
 
-    private String expr;
+    /**
+     * 默认无参构造器
+     */
+    public ConditionPropertyItem() {}
 
     public String getName() {
         return name;
@@ -72,8 +81,30 @@ public class ConditionPropertyItem {
         return conditions;
     }
 
+    /**
+     * 设置条件列表，同时自动构建条件链表
+     * @param conditions 条件列表
+     */
     public void setConditions(List<Condition> conditions) {
         this.conditions = conditions;
+        if (conditions != null && !conditions.isEmpty()) {
+            BaseCondition topCondition = null;
+            BaseCondition prevCondition = null;
+            for (Condition cond : conditions) {
+                if (!(cond instanceof BaseCondition)) {
+                    continue;
+                }
+                BaseCondition baseCond = (BaseCondition) cond;
+                if (topCondition == null) {
+                    topCondition = baseCond;
+                    prevCondition = baseCond;
+                } else {
+                    prevCondition.setNextCondition(baseCond);
+                    prevCondition = baseCond;
+                }
+            }
+            this.condition = topCondition;
+        }
     }
 
     public String getNewValue() {
@@ -128,8 +159,15 @@ public class ConditionPropertyItem {
         return expr;
     }
 
+    /**
+     * 设置表达式字符串，同时自动解析为Expression对象
+     * @param expr 表达式字符串
+     */
     public void setExpr(String expr) {
         this.expr = expr;
+        if (expr != null && !expr.isEmpty()) {
+            this.expression = ExpressionUtils.parseExpression(expr);
+        }
     }
 
     public int getRowHeight() {

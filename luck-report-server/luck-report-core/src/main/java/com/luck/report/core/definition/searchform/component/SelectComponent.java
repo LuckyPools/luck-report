@@ -6,6 +6,7 @@ import com.luck.report.core.definition.searchform.RenderContext;
 import java.util.List;
 
 public class SelectComponent extends BaseInputComponent {
+    private static final long serialVersionUID = 1L;
     private boolean multiple;
     private boolean clearable;
     private boolean filterable;
@@ -13,6 +14,11 @@ public class SelectComponent extends BaseInputComponent {
     private boolean disabled;
     private List<Option> options;
     private String defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public SelectComponent() {}
 
     @Override
     public String initJs(RenderContext context) {

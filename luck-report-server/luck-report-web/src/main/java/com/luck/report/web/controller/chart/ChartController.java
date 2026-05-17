@@ -1,6 +1,6 @@
 package com.luck.report.web.controller.chart;
 
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.core.cache.ChartScopeCache;
 import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.utils.UnitUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +24,7 @@ public class ChartController {
     @RequestMapping("/storeData")
     public void storeData(HttpServletRequest req) {
         String chartId = req.getParameter("_chartId");
-        ChartData chartData = CacheUtils.getChartData(chartId);
+        ChartData chartData = ChartScopeCache.getChartData(chartId);
         if (chartData == null) {
             return;
         }
@@ -38,8 +38,9 @@ public class ChartController {
         chartData.setBase64Data(base64Data);
         String width = req.getParameter("_width");
         String height = req.getParameter("_height");
-        chartData.setHeight(UnitUtils.pixelToPoint(Integer.valueOf(height)));
-        chartData.setWidth(UnitUtils.pixelToPoint(Integer.valueOf(width)));
+        chartData.setHeight(UnitUtils.pixelToPoint(Integer.parseInt(height)));
+        chartData.setWidth(UnitUtils.pixelToPoint(Integer.parseInt(width)));
+        ChartScopeCache.putChartData(chartId, chartData);
     }
 
     // 辅助方法：解码

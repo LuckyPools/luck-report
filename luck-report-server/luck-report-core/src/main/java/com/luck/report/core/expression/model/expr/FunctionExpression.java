@@ -36,9 +36,11 @@ import java.util.Map;
  * @since 2016年11月18日
  */
 public class FunctionExpression extends BaseExpression {
-    private static final long serialVersionUID = -6981657541024043558L;
+    private static final long serialVersionUID = 1L;
     private String name;
     private List<BaseExpression> expressions;
+
+    public FunctionExpression() {}
 
     @Override
     public ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {

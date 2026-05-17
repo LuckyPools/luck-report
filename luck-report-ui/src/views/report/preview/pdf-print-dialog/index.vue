@@ -309,7 +309,6 @@ export default {
         this.loading = false;
 
         this.$nextTick(() => {
-          this.initIFrame();
           this.handleApply();
         });
       } catch (error) {
@@ -486,7 +485,7 @@ export default {
         this.revokeBlobUrl();
         this.currentBlobUrl = await getPdfBlobUrl(paramObj);
         this.$refs.pdfFrame.src = this.currentBlobUrl;
-        
+
         loadingInstance.close();
       } catch (error) {
         loadingInstance.close();
@@ -505,45 +504,6 @@ export default {
       } catch (e) {
         console.error('Print error:', e);
         showAlert(this.$t('preview.pdfPrint.printError'));
-      }
-    },
-
-    /**
-     * 初始化PDF预览iframe
-     * 使用 Blob URL 设置 iframe 的 PDF 预览地址
-     */
-    async initIFrame() {
-      if (!this.$refs.pdfFrame) {
-        return;
-      }
-
-      const urlParams = getUrlSearchParams();
-      const paramObj = {};
-      for (const [key, value] of urlParams) {
-        paramObj[key] = value;
-      }
-      paramObj['_r'] = 1;
-
-      const msie = window.navigator.appName.indexOf("Internet Explorer");
-      const ie11 = !!window.MSInputMethodContext && !!document.documentMode;
-
-      if (msie === -1 && !ie11) {
-        this.loadingInstance = showLoading({
-          text: '加载中...',
-        });
-      }
-
-      try {
-        this.revokeBlobUrl();
-        this.currentBlobUrl = await getPdfBlobUrl(paramObj);
-        this.$refs.pdfFrame.src = this.currentBlobUrl;
-      } catch (error) {
-        console.error('加载PDF失败:', error);
-        if (this.loadingInstance) {
-          this.loadingInstance.close();
-          this.loadingInstance = null;
-        }
-        showAlert(this.$t('preview.error.loadPdfFail') || '加载PDF失败');
       }
     },
 

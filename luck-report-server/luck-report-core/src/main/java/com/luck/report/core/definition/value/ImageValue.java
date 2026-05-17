@@ -15,13 +15,17 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
+
 import com.luck.report.core.expression.model.Expression;
+
+import java.io.Serializable;
 
 /**
  * @author Jacky.gao
  * @since 2017年1月24日
  */
-public class ImageValue implements Value {
+public class ImageValue implements Value, Serializable {
+    private static final long serialVersionUID = 1L;
     private String path;
     private String expr;
     private Expression expression;
@@ -29,9 +33,22 @@ public class ImageValue implements Value {
     private int width;
     private int height;
 
+    /**
+     * 默认无参构造器
+     */
+    public ImageValue() {}
+
     @Override
     public ValueType getType() {
         return ValueType.image;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
     }
 
     @Override
@@ -43,12 +60,24 @@ public class ImageValue implements Value {
         }
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的value字段
+     * @param value 值（忽略）
+     */
+    public void setValue(String value) {
+        // 空实现，忽略value字段
+    }
+
     public Source getSource() {
         return source;
     }
 
     public void setSource(Source source) {
         this.source = source;
+    }
+
+    public String getPath() {
+        return path;
     }
 
     public void setPath(String path) {

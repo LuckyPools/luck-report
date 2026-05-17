@@ -15,12 +15,17 @@
  ******************************************************************************/
 package com.luck.report.core.expression.model.data;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年1月1日
  */
-public class ObjectExpressionData implements ExpressionData<Object> {
+public class ObjectExpressionData implements ExpressionData<Object>, Serializable {
+    private static final long serialVersionUID = 1L;
     private Object data;
+
+    public ObjectExpressionData() {}
 
     public ObjectExpressionData(Object data) {
         this.data = data;
@@ -29,5 +34,13 @@ public class ObjectExpressionData implements ExpressionData<Object> {
     @Override
     public Object getData() {
         return data;
+    }
+
+    /**
+     * 设置数据对象
+     * @param data 数据对象
+     */
+    public void setData(Object data) {
+        this.data = data;
     }
 }

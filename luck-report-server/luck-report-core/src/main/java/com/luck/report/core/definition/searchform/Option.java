@@ -15,13 +15,21 @@
  ******************************************************************************/
 package com.luck.report.core.definition.searchform;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年10月23日
  */
-public class Option {
+public class Option implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String label;
     private String value;
+
+    /**
+     * 默认无参构造器
+     */
+    public Option() {}
 
     public String getLabel() {
         return label;

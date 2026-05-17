@@ -18,11 +18,13 @@ package com.luck.report.core.expression.model;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.model.Cell;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2016年11月18日
  */
-public interface Condition {
+public interface Condition extends Serializable {
     /**
      * @param cell        当前Condition所在的单元格
      * @param currentCell 当前Condition正在处理的单元格

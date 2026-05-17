@@ -26,6 +26,9 @@ import java.util.Map;
  * @since 2017年6月8日
  */
 public class PolarDataset extends CategoryDataset {
+    private static final long serialVersionUID = 1L;
+
+    public PolarDataset() {}
     @Override
     public String buildDataJson(Context context, Cell cell) {
         String datasetJson = buildDatasetJson(context, cell, null);
@@ -77,5 +80,13 @@ public class PolarDataset extends CategoryDataset {
     @Override
     public String getType() {
         return "polarArea";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 }

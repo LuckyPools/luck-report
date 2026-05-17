@@ -15,11 +15,14 @@
  ******************************************************************************/
 package com.luck.report.core.chart.axes;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月14日
  */
-public abstract class BaseAxes implements Axes {
+public abstract class BaseAxes implements Axes, Serializable {
+    private static final long serialVersionUID = 1L;
     private int rotation;
     private ScaleLabel scaleLabel;
 

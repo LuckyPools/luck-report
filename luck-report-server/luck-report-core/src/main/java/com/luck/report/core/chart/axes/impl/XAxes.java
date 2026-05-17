@@ -24,6 +24,9 @@ import com.luck.report.core.chart.axes.XPosition;
  * @since 2017年6月14日
  */
 public class XAxes extends BaseAxes {
+    private static final long serialVersionUID = 1L;
+
+    public XAxes() {}
     private XPosition xposition = XPosition.bottom;
 
     @Override

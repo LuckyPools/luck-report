@@ -3,12 +3,18 @@ package com.luck.report.core.definition.searchform.component;
 import com.luck.report.core.definition.searchform.RenderContext;
 
 public class SwitchComponent extends BaseInputComponent {
+    private static final long serialVersionUID = 1L;
     private String activeColor;
     private String inactiveColor;
     private boolean disabled;
     private boolean activeValue;
     private boolean inactiveValue;
     private Object defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public SwitchComponent() {}
 
     @Override
     public String initJs(RenderContext context) {

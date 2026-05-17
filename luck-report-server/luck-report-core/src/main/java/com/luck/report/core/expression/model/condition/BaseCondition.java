@@ -33,6 +33,7 @@ import java.util.logging.Logger;
  * @since 2016年11月22日
  */
 public abstract class BaseCondition implements Condition {
+    private static final long serialVersionUID = 1L;
     protected Op op;
     protected Logger log = Logger.getAnonymousLogger();
     private String operation;
@@ -111,6 +112,10 @@ public abstract class BaseCondition implements Condition {
 
     public void setOperation(String operation) {
         this.operation = operation;
+    }
+
+    public Condition getNextCondition() {
+        return nextCondition;
     }
 
     public void setNextCondition(Condition nextCondition) {

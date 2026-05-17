@@ -22,13 +22,12 @@ import java.io.Serializable;
  * @since 2017年2月26日
  */
 public class BlankCellInfo implements Serializable {
-    private static final long serialVersionUID = -7492794314898687250L;
+    private static final long serialVersionUID = 1L;
     private int offset;
     private int span;
     private boolean parent;
 
-    public BlankCellInfo() {
-    }
+    public BlankCellInfo() {}
 
     public BlankCellInfo(int offset, int span, boolean parent) {
         this.offset = offset;
@@ -40,11 +39,23 @@ public class BlankCellInfo implements Serializable {
         return offset;
     }
 
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
     public int getSpan() {
         return span;
     }
 
+    public void setSpan(int span) {
+        this.span = span;
+    }
+
     public boolean isParent() {
         return parent;
+    }
+
+    public void setParent(boolean parent) {
+        this.parent = parent;
     }
 }

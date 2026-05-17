@@ -16,22 +16,30 @@
 package com.luck.report.core.definition.value;
 
 import com.luck.report.core.expression.model.Condition;
+import com.luck.report.core.expression.model.condition.BaseCondition;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年3月28日
  */
-public class GroupItem {
+public class GroupItem implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
-    @JsonIgnore
+    @JsonIgnore // 内部重构 conditions
     private Condition condition;
     /**
      * 此属性给设计器使用，引擎不使用该属性
      */
     private List<Condition> conditions;
+
+    /**
+     * 默认无参构造器
+     */
+    public GroupItem() {}
 
     public String getName() {
         return name;
@@ -53,7 +61,29 @@ public class GroupItem {
         return conditions;
     }
 
+    /**
+     * 设置条件列表，同时自动构建条件链表
+     * @param conditions 条件列表
+     */
     public void setConditions(List<Condition> conditions) {
         this.conditions = conditions;
+        if (conditions != null && !conditions.isEmpty()) {
+            BaseCondition topCondition = null;
+            BaseCondition prevCondition = null;
+            for (Condition cond : conditions) {
+                if (!(cond instanceof BaseCondition)) {
+                    continue;
+                }
+                BaseCondition baseCond = (BaseCondition) cond;
+                if (topCondition == null) {
+                    topCondition = baseCond;
+                    prevCondition = baseCond;
+                } else {
+                    prevCondition.setNextCondition(baseCond);
+                    prevCondition = baseCond;
+                }
+            }
+            this.condition = topCondition;
+        }
     }
 }

@@ -40,12 +40,17 @@ import java.util.regex.Pattern;
  * @since 2016年12月27日
  */
 public class SqlDatasetDefinition implements DatasetDefinition {
-    private static final long serialVersionUID = -1134526105416805870L;
+    private static final long serialVersionUID = 1L;
     private String name;
     private String sql;
     private List<Parameter> parameters;
     private List<Field> fields;
     private Expression sqlExpression;
+
+    /**
+     * 默认无参构造器
+     */
+    public SqlDatasetDefinition() {}
 
     public Dataset buildDataset(Map<String, Object> parameterMap, Connection conn) {
         String sqlForUse = sql;
@@ -116,6 +121,10 @@ public class SqlDatasetDefinition implements DatasetDefinition {
 
     public void setSqlExpression(Expression sqlExpression) {
         this.sqlExpression = sqlExpression;
+    }
+
+    public Expression getSqlExpression() {
+        return sqlExpression;
     }
 
     public List<Parameter> getParameters() {
