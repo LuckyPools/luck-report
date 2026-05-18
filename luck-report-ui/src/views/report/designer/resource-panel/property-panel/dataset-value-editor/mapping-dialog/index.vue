@@ -7,24 +7,20 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
-        <label>{{ $t('dialog.mapping.key') }}：</label>
-        <div class="u-inline">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
+        <u-form-item :label="$t('dialog.mapping.key')" prop="value">
           <u-input
-            v-model="localMappingItem.value"
+            v-model="formData.value"
             :placeholder="$t('dialog.mapping.keyPlaceholder')"
           />
-        </div>
-      </div>
-      <div class="form-group">
-        <label>{{ $t('dialog.mapping.value') }}：</label>
-        <div class="u-inline">
+        </u-form-item>
+        <u-form-item :label="$t('dialog.mapping.value')" prop="label">
           <u-input
-            v-model="localMappingItem.label"
+            v-model="formData.label"
             :placeholder="$t('dialog.mapping.valuePlaceholder')"
           />
-        </div>
-      </div>
+        </u-form-item>
+      </u-form>
     </div>
 
     <div slot="footer" style="text-align: right">
@@ -35,17 +31,20 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 
 export default {
   name: 'MappingDialog',
   components: {
     UButton,
     UDialog,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {
@@ -66,9 +65,21 @@ export default {
   },
   data() {
     return {
-      localMappingItem: {
+      formData: {
         value: '',
         label: ''
+      },
+      rules: {
+        value: [{
+          required: true,
+          message: this.$t('dialog.mapping.keyPlaceholder'),
+          trigger: 'blur'
+        }],
+        label: [{
+          required: true,
+          message: this.$t('dialog.mapping.valuePlaceholder'),
+          trigger: 'blur'
+        }]
       }
     };
   },
@@ -80,7 +91,7 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.localMappingItem = {
+        this.formData = {
           value: this.mappingItem.value || '',
           label: this.mappingItem.label || ''
         };
@@ -88,26 +99,41 @@ export default {
     }
   },
   methods: {
-    handleSave() {
-      if (this.localMappingItem.value === '' || this.localMappingItem.label === '') {
-        showAlert(this.$t('dialog.mapping.tip'));
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验结果
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    /**
+     * 保存映射项
+     */
+    async handleSave() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
       this.$emit('save', {
-        value: this.localMappingItem.value,
-        label: this.localMappingItem.label
+        value: this.formData.value,
+        label: this.formData.label
       });
 
       this.handleClose();
     },
-    handleClose() {
-      this.$emit('update:visible', false);
 
-      this.localMappingItem = {
-        value: '',
-        label: ''
-      };
+    /**
+     * 关闭弹窗
+     */
+    handleClose() {
+      this.$refs.form && this.$refs.form.resetFields();
+      this.$emit('update:visible', false);
     }
   }
 };

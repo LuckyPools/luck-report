@@ -39,6 +39,7 @@ import org.springframework.util.CollectionUtils;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * @author Jacky.gao
@@ -46,6 +47,7 @@ import java.util.*;
  */
 public class ReportBuilder extends BasePagination implements ApplicationContextAware {
 	public static final String BEAN_ID = "luck-reportreportBuilder";
+	private Logger log = Logger.getGlobal();
 	private ApplicationContext applicationContext;
 	private Map<String, DatasourceProvider> datasourceProviderMap = new HashMap<String, DatasourceProvider>();
 	private Map<Expand, CellBuilder> cellBuildersMap = new HashMap<Expand, CellBuilder>();
@@ -85,22 +87,29 @@ public class ReportBuilder extends BasePagination implements ApplicationContextA
 			return;
 		}
 		for (Cell cell : cells) {
-			List<BindData> dataList = context.buildCellData(cell);
-			cell.setProcessed(true);
-			int size = dataList.size();
-			Cell lastCell = cell;
-			if (size == 1) {
-				lastCell = noneExpandBuilder.buildCell(dataList, cell, context);
-			} else if (size > 1) {
-				CellBuilder cellBuilder = cellBuildersMap.get(cell.getExpand());
-				lastCell = cellBuilder.buildCell(dataList, cell, context);
-			}
-			if (lastCell.isFillBlankRows() && lastCell.getMultiple() > 0) {
-				int result = size % lastCell.getMultiple();
-				if (result > 0) {
-					int value = lastCell.getMultiple() - result;
-					context.addFillBlankRow(lastCell.getRow(), value);
+			try {
+				List<BindData> dataList = context.buildCellData(cell);
+				cell.setProcessed(true);
+				int size = dataList.size();
+				Cell lastCell = cell;
+				if (size == 1) {
+					lastCell = noneExpandBuilder.buildCell(dataList, cell, context);
+				} else if (size > 1) {
+					CellBuilder cellBuilder = cellBuildersMap.get(cell.getExpand());
+					lastCell = cellBuilder.buildCell(dataList, cell, context);
 				}
+				if (lastCell.isFillBlankRows() && lastCell.getMultiple() > 0) {
+					int result = size % lastCell.getMultiple();
+					if (result > 0) {
+						int value = lastCell.getMultiple() - result;
+						context.addFillBlankRow(lastCell.getRow(), value);
+					}
+				}
+			} catch (Exception e) {
+				String errMsg = String.format("单元格计算异常 - 单元格名称: %s, 行号: %d, 列号: %d",
+						cell.getName(), cell.getRow().getRowNumber(), cell.getColumn().getColumnNumber());
+				log.info(errMsg);
+				throw e;
 			}
 		}
 	}

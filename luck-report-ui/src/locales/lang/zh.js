@@ -492,7 +492,9 @@ const zh = {
             "expr": "值表达式",
             "tip": "参数项请输入完整！",
             "add": "添加参数",
-            "edit": "编辑参数"
+            "edit": "编辑参数",
+            "nameRequired": "请输入参数名",
+            "valueRequired": "请输入值表达式"
         },
         "common": {
             "ok": "确定",

@@ -209,6 +209,10 @@ export default {
       })
     },
     resetField() {
+      if (!this.prop) {
+        return
+      }
+
       this.validateState = ''
       this.validateMessage = ''
 

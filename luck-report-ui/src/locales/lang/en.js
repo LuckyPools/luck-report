@@ -491,7 +491,9 @@ const en = {
             "expr": "Value Expr",
             "tip": "Parameter item cannot be null!",
             "add": "Add Parameter",
-            "edit": "Edit Parameter"
+            "edit": "Edit Parameter",
+            "nameRequired": "Please enter parameter name",
+            "valueRequired": "Please enter value expression"
         },
         "common": {
             "ok": "ok",

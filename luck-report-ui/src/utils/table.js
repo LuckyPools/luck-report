@@ -548,7 +548,7 @@ function buildConditions(conditions){
                 }
                 cellXml+=`<value><![CDATA[${condition.right}]]></value>`;
             }else{
-                cellXml+=`<condition type="${condition.type}" op="${encode(condition.operation)}" id="${condition.id}"`;
+                cellXml+=`<condition type="${condition.type}" op="${encode(condition.operation)}" `;
                 if(condition.join && size>1){
                     cellXml+=` join="${condition.join}">`;
                 }else{
@@ -779,9 +779,9 @@ export function objToXml(obj, indent = 0, defaultTag = null) {
         const value = obj[key];
         if (Array.isArray(value) || typeof value === 'object') {
             const jsonStr = JSON.stringify(value);
-            attributes += ` ${key}="${jsonStr.replace(/"/g, '&quot;')}"`;
+            attributes += ` ${key}="${jsonStr.replace(/"/g, '&quot;')}" `;
         } else {
-            attributes += ` ${key}="${value}"`;
+            attributes += ` ${key}="${value}" `;
         }
     }
 

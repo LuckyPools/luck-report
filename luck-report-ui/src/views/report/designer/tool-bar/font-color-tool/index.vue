@@ -28,6 +28,7 @@ import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 import UButton from "@/components/button/index.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
+import { hexToRgb, rgbToHex } from '@/utils/color';
 
 export default {
   name: 'FontColorTool',
@@ -83,49 +84,37 @@ export default {
         return;
       }
 
-      const rgb = this.hexToRgb(color);
-      if (rgb) {
-        const rgbStr = `${rgb.r},${rgb.g},${rgb.b}`;
-        this.currentColor = rgbStr;
+      const rgbStr = hexToRgb(color);
+      this.currentColor = rgbStr;
 
-        const table = TableManager.get();
-        const selected = table.getSelected();
-        let [startRow, startCol, endRow, endCol] = selected[0];
+      const table = TableManager.get();
+      const selected = table.getSelected();
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
-        if (startRow > endRow) {
-          [startRow, endRow] = [endRow, startRow];
-        }
-        if (startCol > endCol) {
-          [startCol, endCol] = [endCol, startCol];
-        }
-
-        const oldForeColorStyle = this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
-        table.render();
-
-        undoManager.add({
-          redo: () => {
-            this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
-            table.render();
-            setDirty();
-          },
-          undo: () => {
-            this.restoreForeColorStyle(startRow, startCol, endRow, endCol, oldForeColorStyle);
-            table.render();
-            setDirty();
-          }
-        });
-
-        setDirty();
+      if (startRow > endRow) {
+        [startRow, endRow] = [endRow, startRow];
       }
-    },
+      if (startCol > endCol) {
+        [startCol, endCol] = [endCol, startCol];
+      }
 
-    hexToRgb(hex) {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null;
+      const oldForeColorStyle = this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
+      table.render();
+
+      undoManager.add({
+        redo: () => {
+          this.updateCellsForeColorStyle(startRow, startCol, endRow, endCol, rgbStr);
+          table.render();
+          setDirty();
+        },
+        undo: () => {
+          this.restoreForeColorStyle(startRow, startCol, endRow, endCol, oldForeColorStyle);
+          table.render();
+          setDirty();
+        }
+      });
+
+      setDirty();
     },
 
     updateCellsForeColorStyle(startRow, startCol, endRow, endCol, color) {
@@ -166,7 +155,7 @@ export default {
             this.currentColor = cellStyle.forecolor || '0,0,0';
             const rgbParts = this.currentColor.split(',');
             if (rgbParts.length === 3) {
-              this.selectedColor = this.rgbToHex(
+              this.selectedColor = rgbToHex(
                 parseInt(rgbParts[0]),
                 parseInt(rgbParts[1]),
                 parseInt(rgbParts[2])
@@ -177,13 +166,6 @@ export default {
           }
         }
       }
-    },
-
-    rgbToHex(r, g, b) {
-      return '#' + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-      }).join('').toUpperCase();
     },
 
     refresh(startRow, startCol, endRow, endCol) {
@@ -206,7 +188,7 @@ export default {
 
           const rgbParts = this.currentColor.split(',');
           if (rgbParts.length === 3) {
-            this.selectedColor = this.rgbToHex(
+            this.selectedColor = rgbToHex(
               parseInt(rgbParts[0]),
               parseInt(rgbParts[1]),
               parseInt(rgbParts[2])

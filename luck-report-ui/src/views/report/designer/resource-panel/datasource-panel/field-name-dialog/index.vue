@@ -6,7 +6,7 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <u-form ref="form" :model="formData" :rules="rules" :label-width="100">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
         <u-form-item :label="$t('tree.fieldName')" prop="fieldName">
           <u-input
             :placeholder="$t('tree.inputTip')"

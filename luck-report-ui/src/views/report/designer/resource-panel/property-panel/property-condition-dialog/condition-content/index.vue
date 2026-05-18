@@ -34,7 +34,7 @@
       >
         <option
             v-for="(condition, index) in conditions"
-            :key="condition.id"
+            :key="index"
             :value="index"
         >
           {{ getConditionText(condition) }}

@@ -72,6 +72,7 @@ import UOption from '@/components/option/index.vue';
 import UCheckbox from '@/components/checkbox/index.vue';
 import UColorPicker from '@/components/color-picker/index.vue';
 import configOptions from '../constants/config-options.js';
+import { rgbToHex, hexToRgb } from '@/utils/color';
 
 export default {
   name: 'ColorConfig',
@@ -113,30 +114,11 @@ export default {
     }
   },
   methods: {
-    hexToRgb(hex) {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null;
-    },
-
-    rgbToHex(r, g, b) {
-      return '#' + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-      }).join('').toUpperCase();
-    },
-
     convertColorToRgb(color) {
       if (!color) return null;
       
       if (color.startsWith('#')) {
-        const rgb = this.hexToRgb(color);
-        if (rgb) {
-          return `${rgb.r},${rgb.g},${rgb.b}`;
-        }
+        return hexToRgb(color);
       } else if (color.length > 5 && color.startsWith('rgb')) {
         return color.substring(4, color.length - 1);
       }
@@ -148,7 +130,7 @@ export default {
       
       const rgbParts = rgbString.split(',');
       if (rgbParts.length === 3) {
-        return this.rgbToHex(parseInt(rgbParts[0]), parseInt(rgbParts[1]), parseInt(rgbParts[2]));
+        return rgbToHex(parseInt(rgbParts[0]), parseInt(rgbParts[1]), parseInt(rgbParts[2]));
       }
       return null;
     },

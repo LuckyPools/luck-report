@@ -7,14 +7,14 @@
       @close="handleClose"
   >
     <div class="dialog-content">
-      <u-form ref="form" :label-width="100">
-        <u-form-item :label="$t('dialog.sqlParam.name')">
-          <u-input v-model="name" :placeholder="$t('dialog.sqlParam.namePlaceholder')" />
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
+        <u-form-item :label="$t('dialog.sqlParam.name')" prop="name">
+          <u-input v-model="formData.name" :placeholder="$t('dialog.sqlParam.namePlaceholder')" />
         </u-form-item>
 
-        <u-form-item :label="$t('dialog.sqlParam.datatype')">
+        <u-form-item :label="$t('dialog.sqlParam.datatype')" prop="type">
           <u-select
-              v-model="type"
+              v-model="formData.type"
               :clearable="true"
           >
             <u-option
@@ -26,8 +26,8 @@
           </u-select>
         </u-form-item>
 
-        <u-form-item :label="$t('dialog.sqlParam.defaultValue')">
-          <u-input v-model="defaultValue" :placeholder="$t('dialog.sqlParam.tip')" />
+        <u-form-item :label="$t('dialog.sqlParam.defaultValue')" prop="defaultValue">
+          <u-input v-model="formData.defaultValue" :placeholder="$t('dialog.sqlParam.tip')" />
         </u-form-item>
       </u-form>
     </div>
@@ -40,7 +40,6 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
@@ -73,9 +72,23 @@ export default {
   emits: ['update:visible', 'save'],
   data() {
     return {
-      name: '',
-      type: '',
-      defaultValue: ''
+      formData: {
+        name: '',
+        type: 'String',
+        defaultValue: ''
+      },
+      rules: {
+        name: [{
+          required: true,
+          message: this.$t('dialog.sqlParam.nameTip'),
+          trigger: 'blur'
+        }],
+        type: [{
+          required: true,
+          message: this.$t('dialog.sqlParam.datatypeTip'),
+          trigger: 'change'
+        }]
+      }
     };
   },
   computed: {
@@ -94,13 +107,11 @@ export default {
     editData: {
       handler(newData) {
         if (newData) {
-          this.name = newData.name || '';
-          this.type = newData.type || '';
-          this.defaultValue = newData.defaultValue || '';
+          this.formData.name = newData.name || '';
+          this.formData.type = newData.type || '';
+          this.formData.defaultValue = newData.defaultValue || '';
         } else {
-          this.name = '';
-          this.type = 'String';
-          this.defaultValue = '';
+          this.resetFormData();
         }
       },
       immediate: true
@@ -108,31 +119,55 @@ export default {
     visible(newVal) {
       if (newVal) {
         if (this.editData) {
-          this.name = this.editData.name || '';
-          this.type = this.editData.type || '';
-          this.defaultValue = this.editData.defaultValue || '';
+          this.formData.name = this.editData.name || '';
+          this.formData.type = this.editData.type || '';
+          this.formData.defaultValue = this.editData.defaultValue || '';
         } else {
-          this.name = '';
-          this.type = 'String';
-          this.defaultValue = '';
+          this.resetFormData();
         }
       }
     }
   },
   methods: {
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验结果
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    /**
+     * 重置表单数据
+     */
+    resetFormData() {
+      this.formData.name = '';
+      this.formData.type = 'String';
+      this.formData.defaultValue = '';
+    },
+
+    /**
+     * 关闭弹窗
+     */
     handleClose() {
+      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('update:visible', false);
     },
-    handleSave() {
-      if (!this.name) {
-        showAlert(this.$t('dialog.sqlParam.nameTip'));
+
+    /**
+     * 保存数据
+     */
+    async handleSave() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
-      if (!this.type) {
-        showAlert(this.$t('dialog.sqlParam.datatypeTip'));
-        return;
-      }
-      this.$emit('save', this.name, this.type, this.defaultValue);
+
+      this.$emit('save', this.formData.name, this.formData.type, this.formData.defaultValue);
       this.$emit('update:visible', false);
     }
   }

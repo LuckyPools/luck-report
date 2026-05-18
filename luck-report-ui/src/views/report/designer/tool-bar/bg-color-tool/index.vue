@@ -28,6 +28,7 @@ import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 import UButton from "@/components/button/index.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
+import { hexToRgb, rgbToHex } from '@/utils/color';
 
 export default {
   name: 'BgColorTool',
@@ -83,53 +84,37 @@ export default {
         return;
       }
 
-      // 将十六进制颜色转换为RGB格式
-      const rgb = this.hexToRgb(color);
-      if (rgb) {
-        const rgbStr = `${rgb.r},${rgb.g},${rgb.b}`;
-        this.currentColor = rgbStr;
+      const rgbStr = hexToRgb(color);
+      this.currentColor = rgbStr;
 
-        const table = TableManager.get();
-        const selected = table.getSelected();
-        let [startRow, startCol, endRow, endCol] = selected[0];
+      const table = TableManager.get();
+      const selected = table.getSelected();
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
-        // 确保正确的行列范围
-        if (startRow > endRow) {
-          [startRow, endRow] = [endRow, startRow];
-        }
-        if (startCol > endCol) {
-          [startCol, endCol] = [endCol, startCol];
-        }
-
-        // 更新单元格背景色样式
-        const oldBgColorStyle = this.updateCellsBgColorStyle(startRow, startCol, endRow, endCol, rgbStr);
-        table.render();
-
-        // 添加撤销操作
-        undoManager.add({
-          redo: () => {
-            this.updateCellsBgColorStyle(startRow, startCol, endRow, endCol, rgbStr);
-            table.render();
-            setDirty();
-          },
-          undo: () => {
-            this.restoreBgColorStyle(startRow, startCol, endRow, endCol, oldBgColorStyle);
-            table.render();
-            setDirty();
-          }
-        });
-
-        setDirty();
+      if (startRow > endRow) {
+        [startRow, endRow] = [endRow, startRow];
       }
-    },
+      if (startCol > endCol) {
+        [startCol, endCol] = [endCol, startCol];
+      }
 
-    hexToRgb(hex) {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null;
+      const oldBgColorStyle = this.updateCellsBgColorStyle(startRow, startCol, endRow, endCol, rgbStr);
+      table.render();
+
+      undoManager.add({
+        redo: () => {
+          this.updateCellsBgColorStyle(startRow, startCol, endRow, endCol, rgbStr);
+          table.render();
+          setDirty();
+        },
+        undo: () => {
+          this.restoreBgColorStyle(startRow, startCol, endRow, endCol, oldBgColorStyle);
+          table.render();
+          setDirty();
+        }
+      });
+
+      setDirty();
     },
 
     updateCellsBgColorStyle(startRow, startCol, endRow, endCol, color) {
@@ -170,7 +155,7 @@ export default {
             this.currentColor = cellStyle.bgcolor || '255,255,255';
             const rgbParts = this.currentColor.split(',');
             if (rgbParts.length === 3) {
-              this.selectedColor = this.rgbToHex(
+              this.selectedColor = rgbToHex(
                 parseInt(rgbParts[0]),
                 parseInt(rgbParts[1]),
                 parseInt(rgbParts[2])
@@ -183,15 +168,7 @@ export default {
       }
     },
 
-    rgbToHex(r, g, b) {
-      return '#' + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-      }).join('').toUpperCase();
-    },
-
     refresh(startRow, startCol, endRow, endCol) {
-      // 确保正确的行列范围
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
       }
@@ -199,7 +176,6 @@ export default {
         [startCol, endCol] = [endCol, startCol];
       }
 
-      // 获取第一个单元格的背景色
       for (let i = startRow; i <= endRow; i++) {
         for (let j = startCol; j <= endCol; j++) {
           const cellDef = getCell(i, j);
@@ -210,10 +186,9 @@ export default {
           const cellStyle = cellDef.cellStyle;
           this.currentColor = cellStyle.bgcolor || '255,255,255';
 
-          // 同步更新颜色选择器的值
           const rgbParts = this.currentColor.split(',');
           if (rgbParts.length === 3) {
-            this.selectedColor = this.rgbToHex(
+            this.selectedColor = rgbToHex(
               parseInt(rgbParts[0]),
               parseInt(rgbParts[1]),
               parseInt(rgbParts[2])

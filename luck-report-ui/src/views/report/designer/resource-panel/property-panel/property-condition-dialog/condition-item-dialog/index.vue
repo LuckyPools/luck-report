@@ -7,11 +7,11 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <u-form ref="form" :label-width="120">
-        <u-form-item :label="$t('dialog.conditionItem.itemName')">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
+        <u-form-item :label="$t('dialog.conditionItem.itemName')" prop="name">
           <u-input
               :placeholder="$t('dialog.conditionItem.nameTip')"
-              v-model="name"
+              v-model="formData.name"
               ref="input"
               @keyup.enter="handleOk"
               @click.stop
@@ -63,8 +63,17 @@ export default {
   },
   data() {
     return {
-      name: '',
-      localConditionItem: null
+      formData: {
+        name: ''
+      },
+      localConditionItem: null,
+      rules: {
+        name: [{
+          required: true,
+          message: this.$t('dialog.conditionItem.nameTip'),
+          trigger: 'blur'
+        }]
+      }
     };
   },
   computed: {
@@ -80,7 +89,7 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal && this.conditionItem) {
-        this.name = this.conditionItem.name || '';
+        this.formData.name = this.conditionItem.name || '';
         this.localConditionItem = { ...this.conditionItem };
       }
     }
@@ -92,9 +101,24 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    handleOk() {
-      if (!this.name.trim()) {
-        showAlert(this.$t('dialog.conditionItem.nameTip'));
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验结果
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    /**
+     * 确认保存
+     */
+    async handleOk() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
@@ -102,7 +126,7 @@ export default {
         if (this.operation === 'edit' && item === this.conditionItem) {
           return false;
         }
-        return item.name === this.name;
+        return item.name === this.formData.name;
       });
 
       if (isDuplicate) {
@@ -110,7 +134,7 @@ export default {
         return;
       }
 
-      this.localConditionItem.name = this.name;
+      this.localConditionItem.name = this.formData.name;
 
       this.$emit('saveAfter', {
         item: this.localConditionItem,
@@ -119,9 +143,19 @@ export default {
 
       this.handleClose();
     },
+
+    /**
+     * 关闭弹窗
+     */
     handleClose() {
+      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('close');
     },
+
+    /**
+     * 键盘事件处理
+     * @param {KeyboardEvent} e 键盘事件对象
+     */
     handleKeydown(e) {
       if (this.visible) {
         if (e.key === 'Escape') {
@@ -135,4 +169,3 @@ export default {
 
 <style scoped>
 </style>
-

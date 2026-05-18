@@ -16,7 +16,7 @@ const mutations = {
   },
 
   // ============ CellsMap 操作 ============
-  
+
   // 添加单元格
   CONTEXT_ADD_CELL(state, { cell }) {
     if (state.context && state.context.cellsMap) {
@@ -50,7 +50,7 @@ const mutations = {
   },
 
   // ============ RowHeaders 操作 ============
-  
+
   // 添加行头
   CONTEXT_ADD_ROW_HEADER(state, { row, band }) {
     if (state.context && state.context.rowHeaders) {
@@ -100,11 +100,11 @@ const mutations = {
   // ============ 批量操作 ============
 
   // ============ 其他 ============
-  
+
   // 更新 context.reportDef
   CONTEXT_UPDATE_REPORT_DEF(state, { reportDef }) {
     if (state.context) {
-      state.context.reportDef = reportDef;
+      Object.assign(state.context.reportDef, reportDef);
     }
   },
 
@@ -143,7 +143,7 @@ const actions = {
   },
 
   // ============ CellsMap 操作的 Actions ============
-  
+
   // 添加单元格
   contextAddCell({ commit }, cell) {
     commit('CONTEXT_ADD_CELL', { cell });
@@ -165,7 +165,7 @@ const actions = {
   },
 
   // ============ RowHeaders 操作的 Actions ============
-  
+
   // 添加行头
   contextAddRowHeader({ commit }, { row, band }) {
     commit('CONTEXT_ADD_ROW_HEADER', { row, band });
@@ -184,7 +184,7 @@ const actions = {
   // ============ 批量操作 ============
 
   // ============ 其他 Actions ============
-  
+
   // 更新 context.reportDef
   contextUpdateReportDef({ commit }, reportDef) {
     commit('CONTEXT_UPDATE_REPORT_DEF', { reportDef });

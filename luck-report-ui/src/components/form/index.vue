@@ -108,7 +108,7 @@ export default {
   },
   created() {
     this.$on('form-item-add', (field) => {
-      if (field) this.fields.push(field)
+      if (field && field.prop) this.fields.push(field)
       return false
     })
     this.$on('form-item-remove', (field) => {

@@ -7,21 +7,19 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <u-form ref="form" :label-width="80">
-        <u-form-item :label="$t('dialog.paramItem.name')">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
+        <u-form-item :label="$t('dialog.paramItem.name')" prop="name">
           <u-input
-            v-model="name"
+            v-model="formData.name"
             ref="nameInput"
-            style="width: 350px;"
             @keyup.enter="handleOk"
           />
         </u-form-item>
 
-        <u-form-item :label="$t('dialog.paramItem.expr')">
+        <u-form-item :label="$t('dialog.paramItem.expr')" prop="value">
           <u-input
-            v-model="value"
+            v-model="formData.value"
             ref="valueInput"
-            style="width: 350px;"
             @keyup.enter="handleOk"
           />
         </u-form-item>
@@ -35,7 +33,6 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
@@ -68,9 +65,23 @@ export default {
   emits: ['saveAfter', 'update:visible'],
   data() {
     return {
-      name: '',
-      value: '',
-      localParamItem: null
+      formData: {
+        name: '',
+        value: ''
+      },
+      localParamItem: null,
+      rules: {
+        name: [{
+          required: true,
+          message: this.$t('dialog.paramItem.nameRequired'),
+          trigger: ''
+        }],
+        value: [{
+          required: true,
+          message: this.$t('dialog.paramItem.valueRequired'),
+          trigger: ''
+        }]
+      }
     };
   },
   computed: {
@@ -81,39 +92,62 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.name = this.paramItem?.name || '';
-        this.value = this.paramItem?.value || '';
-        this.localParamItem = this.paramItem ? { ...this.paramItem } : null;
+        this.resetFormData();
+        this.$nextTick(() => {
+          this.formData.name = this.paramItem?.name || '';
+          this.formData.value = this.paramItem?.value || '';
+          this.localParamItem = this.paramItem ? { ...this.paramItem } : null;
+        });
       }
     }
   },
   mounted() {
-    // 添加键盘事件监听
     document.addEventListener('keydown', this.handleKeydown);
   },
   beforeDestroy() {
-    // 移除事件监听
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    handleOk() {
-      if (this.name === '' || this.value === '') {
-        showAlert(this.$t('dialog.paramItem.tip'));
+    /**
+     * 重置表单数据
+     */
+    resetFormData() {
+      this.formData = { name: '', value: '' };
+      this.localParamItem = null;
+      this.$refs.form && this.$refs.form.resetFields();
+    },
+
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验结果
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    /**
+     * 确认按钮点击处理
+     */
+    async handleOk() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
-      // 更新本地参数项
       if (this.localParamItem) {
-        this.localParamItem.name = this.name;
-        this.localParamItem.value = this.value;
+        this.localParamItem.name = this.formData.name;
+        this.localParamItem.value = this.formData.value;
       } else {
         this.localParamItem = {
-          name: this.name,
-          value: this.value
+          name: this.formData.name,
+          value: this.formData.value
         };
       }
 
-      // 发出saveAfter事件
       this.$emit('saveAfter', {
         paramItem: this.localParamItem,
         operation: this.operation
@@ -121,15 +155,19 @@ export default {
 
       this.handleClose();
     },
-    handleClose() {
-      this.$emit('update:visible', false);
 
-      setTimeout(() => {
-        this.name = '';
-        this.value = '';
-      }, 300);
+    /**
+     * 关闭弹窗
+     */
+    handleClose() {
+      this.resetFormData();
+      this.$emit('update:visible', false);
     },
-    // 键盘事件处理
+
+    /**
+     * 键盘事件处理
+     * @param {KeyboardEvent} e 键盘事件对象
+     */
     handleKeydown(e) {
       if (this.visible) {
         if (e.key === 'Escape') {

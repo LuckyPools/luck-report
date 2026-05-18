@@ -1,17 +1,17 @@
 <template>
   <UDialog
     :title="dialogTitle"
-    width="400px"
+    width="500px"
     :visible="visible"
     :z-index="20000"
     @close="handleClose"
     @closed="handleClosed"
   >
     <div class="dialog-content">
-      <u-form ref="form" :label-width="80">
-        <u-form-item :label="$t('dialog.groupItem.name')">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
+        <u-form-item :label="$t('dialog.groupItem.name')" prop="name">
           <u-input
-            v-model="name"
+            v-model="formData.name"
             ref="nameInput"
             @keyup.enter="handleOk"
             style="width:240px;"
@@ -27,7 +27,6 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
@@ -59,7 +58,16 @@ export default {
   },
   data() {
     return {
-      name: ''
+      formData: {
+        name: ''
+      },
+      rules: {
+        name: [{
+          required: true,
+          message: this.$t('dialog.groupItem.nameTip'),
+          trigger: 'blur'
+        }]
+      }
     };
   },
   computed: {
@@ -72,7 +80,7 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.name = this.groupItem?.name || '';
+        this.formData.name = this.groupItem?.name || '';
       }
     }
   },
@@ -83,13 +91,28 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
-    handleOk() {
-      if (!this.name.trim()) {
-        showAlert(this.$t('dialog.groupItem.nameTip'));
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验结果
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    /**
+     * 确认操作
+     */
+    async handleOk() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
-      const updatedGroupItem = this.groupItem ? { ...this.groupItem, name: this.name } : null;
+      const updatedGroupItem = this.groupItem ? { ...this.groupItem, name: this.formData.name } : null;
 
       this.$emit('saveAfter', {
         operation: this.operation,
@@ -98,12 +121,25 @@ export default {
 
       this.handleClose();
     },
+
+    /**
+     * 关闭弹窗
+     */
     handleClose() {
       this.$emit('update:visible', false);
     },
+
+    /**
+     * 弹窗关闭后重置表单
+     */
     handleClosed() {
-      this.name = '';
+      this.$refs.form && this.$refs.form.resetFields();
     },
+
+    /**
+     * 键盘事件处理
+     * @param {KeyboardEvent} e - 键盘事件
+     */
     handleKeydown(e) {
       if (this.visible) {
         if (e.key === 'Escape') {

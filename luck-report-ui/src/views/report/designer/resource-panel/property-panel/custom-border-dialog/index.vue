@@ -146,6 +146,7 @@ import UTabPane from "@/components/tabs/pane.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
+import { rgbToHex, hexToRgb } from '@/utils/color';
 
 export default {
   name: 'CustomBorderDialog',
@@ -275,8 +276,7 @@ export default {
     },
     rgbToHexIfNeeded(color) {
       if (typeof color === 'string' && color.includes(',')) {
-        const rgb = color.split(',');
-        return this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
+        return rgbToHex(color);
       }
       return color;
     },
@@ -290,10 +290,10 @@ export default {
       const leftBorder = { ...this.localLeftBorder };
       const rightBorder = { ...this.localRightBorder };
 
-      topBorder.color = this.hexToRgb(this.localTopBorder.color);
-      bottomBorder.color = this.hexToRgb(this.localBottomBorder.color);
-      leftBorder.color = this.hexToRgb(this.localLeftBorder.color);
-      rightBorder.color = this.hexToRgb(this.localRightBorder.color);
+      topBorder.color = hexToRgb(this.localTopBorder.color);
+      bottomBorder.color = hexToRgb(this.localBottomBorder.color);
+      leftBorder.color = hexToRgb(this.localLeftBorder.color);
+      rightBorder.color = hexToRgb(this.localRightBorder.color);
 
       if (this.cellStyle) {
         this.$emit('save', {
@@ -307,24 +307,6 @@ export default {
       }
       this.$emit('close');
       this.$emit('update:visible', false);
-    },
-    hexToRgb(hex) {
-      // 如果已经是RGB格式，直接返回
-      if (typeof hex === 'string' && hex.includes(',')) {
-        return hex;
-      }
-
-      // 将十六进制转换为RGB
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ?
-        `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` :
-        '0,0,0';
-    },
-    rgbToHex(r, g, b) {
-      return "#" + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-      }).join('');
     }
   }
 };

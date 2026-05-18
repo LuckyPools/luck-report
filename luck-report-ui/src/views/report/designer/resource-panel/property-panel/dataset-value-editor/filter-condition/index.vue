@@ -43,7 +43,7 @@
         >
           <option
               v-for="(condition, index) in conditions"
-              :key="condition.id"
+              :key="index"
               :value="index"
           >
             {{ formatConditionText(condition) }}
@@ -57,6 +57,7 @@
       :visible.sync="conditionDialogVisible"
       :fields="conditionDialogFields"
       :condition="conditionDialogCondition"
+      :conditions="conditions"
       @saveAfter="handleConditionSave"
     />
   </div>
@@ -65,7 +66,6 @@
 <script>
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { setDirty } from '@/utils/table.js';
-import { v1 as uuidv1 } from 'uuid';
 import ConditionDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 
@@ -141,9 +141,6 @@ export default {
           targetCondition.operation = conditionData.operation;
           targetCondition.right = conditionData.right;
           targetCondition.join = conditionData.join;
-          if (!targetCondition.id) {
-            targetCondition.id = uuidv1();
-          }
         }
       } else {
         // 添加新条件
@@ -151,8 +148,7 @@ export default {
           left: conditionData.left,
           operation: conditionData.operation,
           right: conditionData.right,
-          join: conditionData.join,
-          id: uuidv1()
+          join: conditionData.join
         };
         conditions.push(condition);
       }

@@ -308,9 +308,6 @@ export default {
           condition.op = conditionData.operation;
           condition.right = conditionData.right;
           condition.join = conditionData.join;
-          if (!condition.id) {
-            condition.id = this.generateId();
-          }
         }
       } else {
         const condition = {
@@ -318,8 +315,7 @@ export default {
           operation: conditionData.operation,
           op: conditionData.operation,
           right: conditionData.right,
-          join: conditionData.join,
-          id: this.generateId()
+          join: conditionData.join
         };
         conditions.push(condition);
       }
@@ -352,14 +348,6 @@ export default {
       }
 
       return text;
-    },
-
-    generateId() {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
     },
 
     // 键盘事件处理
