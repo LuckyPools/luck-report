@@ -198,4 +198,12 @@ public class DatasetExpression extends BaseExpression {
     public Map<String, String> getMapping() {
         return mapping;
     }
+
+    /**
+     * @param mapping 映射
+     */
+    public void setMapping(Map<String, String> mapping) {
+        this.mapping = mapping;
+    }
+
 }

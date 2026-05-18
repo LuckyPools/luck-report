@@ -66,22 +66,10 @@ public class HeaderFooterParser implements Parser<HeaderFooterDefinition> {
             String name = ele.getName();
             if (name.equals("left")) {
                 hf.setLeft(ele.getText());
-                if (StringUtils.isNotBlank(hf.getLeft())) {
-                    Expression expr = ExpressionUtils.parseExpression(hf.getLeft());
-                    hf.setLeftExpression(expr);
-                }
             } else if (name.equals("center")) {
                 hf.setCenter(ele.getText());
-                if (StringUtils.isNotBlank(hf.getCenter())) {
-                    Expression expr = ExpressionUtils.parseExpression(hf.getCenter());
-                    hf.setCenterExpression(expr);
-                }
             } else if (name.equals("right")) {
                 hf.setRight(ele.getText());
-                if (StringUtils.isNotBlank(hf.getRight())) {
-                    Expression expr = ExpressionUtils.parseExpression(hf.getRight());
-                    hf.setRightExpression(expr);
-                }
             }
         }
         return hf;

@@ -67,7 +67,7 @@
       <!-- 表达式编辑器 -->
       <u-form-item class="property-label" :label="$t('property.expr.expr')">
       </u-form-item>
-      <div style="border: solid 1px #eeeeee;">
+      <div>
         <textarea ref="codeEditor"></textarea>
       </div>
     </u-form>

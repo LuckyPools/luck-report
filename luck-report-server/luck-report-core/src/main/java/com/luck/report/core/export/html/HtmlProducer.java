@@ -273,10 +273,10 @@ public class HtmlProducer {
         if (style != null) {
             forecolor = style.getForecolor();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getForecolor() != null) {
             forecolor = rowStyle.getForecolor();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getForecolor() != null) {
             forecolor = colStyle.getForecolor();
         }
         if (StringUtils.isNotBlank(forecolor)) {
@@ -286,10 +286,10 @@ public class HtmlProducer {
         if (style != null) {
             bgcolor = style.getBgcolor();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getBgcolor() != null) {
             bgcolor = rowStyle.getBgcolor();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getBgcolor() != null) {
             bgcolor = colStyle.getBgcolor();
         }
         if (StringUtils.isNotBlank(bgcolor)) {
@@ -299,10 +299,10 @@ public class HtmlProducer {
         if (style != null) {
             fontFamily = style.getFontFamily();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getFontFamily() != null) {
             fontFamily = rowStyle.getFontFamily();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getFontFamily() != null) {
             fontFamily = colStyle.getFontFamily();
         }
         if (StringUtils.isNotBlank(fontFamily)) {
@@ -312,10 +312,10 @@ public class HtmlProducer {
         if (style != null) {
             fontSize = style.getFontSize();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getFontSize() > 0) {
             fontSize = rowStyle.getFontSize();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getFontSize() > 0) {
             fontSize = colStyle.getFontSize();
         }
         if (fontSize > 0) {
@@ -325,10 +325,10 @@ public class HtmlProducer {
         if (style != null) {
             bold = style.getBold();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getBold() != null) {
             bold = rowStyle.getBold();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getBold() != null) {
             bold = colStyle.getBold();
         }
         if (bold != null) {
@@ -342,10 +342,10 @@ public class HtmlProducer {
         if (style != null) {
             italic = style.getItalic();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getItalic() != null) {
             italic = rowStyle.getItalic();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getItalic() != null) {
             italic = colStyle.getItalic();
         }
         if (italic != null) {
@@ -360,10 +360,10 @@ public class HtmlProducer {
         if (style != null) {
             underline = style.getUnderline();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getUnderline() != null) {
             underline = rowStyle.getUnderline();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getUnderline() != null) {
             underline = colStyle.getUnderline();
         }
         if (underline != null) {
@@ -377,10 +377,10 @@ public class HtmlProducer {
         if (style != null) {
             align = style.getAlign();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getAlign() != null) {
             align = rowStyle.getAlign();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getAlign() != null) {
             align = colStyle.getAlign();
         }
         if (align != null) {
@@ -390,10 +390,10 @@ public class HtmlProducer {
         if (style != null) {
             valign = style.getValign();
         }
-        if (rowStyle != null) {
+        if (rowStyle != null && rowStyle.getValign() != null) {
             valign = rowStyle.getValign();
         }
-        if (colStyle != null) {
+        if (colStyle != null && colStyle.getValign() != null) {
             valign = colStyle.getValign();
         }
         if (valign != null) {

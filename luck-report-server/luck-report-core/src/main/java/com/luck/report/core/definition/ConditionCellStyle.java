@@ -21,8 +21,7 @@ package com.luck.report.core.definition;
  */
 public class ConditionCellStyle extends CellStyle {
     private static final long serialVersionUID = 1L;
-    private int fontSize;
-    private String fontFamily;
+
     private Scope bgcolorScope = Scope.cell;
     private Scope forecolorScope = Scope.cell;
     private Scope fontSizeScope = Scope.cell;
@@ -108,21 +107,5 @@ public class ConditionCellStyle extends CellStyle {
 
     public void setUnderlineScope(Scope underlineScope) {
         this.underlineScope = underlineScope;
-    }
-
-    public int getFontSize() {
-        return fontSize;
-    }
-
-    public void setFontSize(int fontSize) {
-        this.fontSize = fontSize;
-    }
-
-    public String getFontFamily() {
-        return fontFamily;
-    }
-
-    public void setFontFamily(String fontFamily) {
-        this.fontFamily = fontFamily;
     }
 }

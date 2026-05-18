@@ -19,11 +19,7 @@ import com.luck.report.core.definition.*;
 import com.luck.report.core.definition.value.Value;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.exception.ReportParseException;
-import com.luck.report.core.expression.ExpressionUtils;
-import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.parser.Parser;
-import com.luck.report.core.parser.impl.value.*;
-import com.luck.report.core.definition.*;
 import com.luck.report.core.parser.impl.value.*;
 import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Element;
@@ -57,17 +53,17 @@ public class CellParser implements Parser<CellDefinition> {
     public CellDefinition parse(Element element) {
         CellDefinition cell = new CellDefinition();
         cell.setName(element.attributeValue("name"));
-        cell.setColumnNumber(Integer.valueOf(element.attributeValue("col")));
-        cell.setRowNumber(Integer.valueOf(element.attributeValue("row")));
+        cell.setColumnNumber(Integer.parseInt(element.attributeValue("col")));
+        cell.setRowNumber(Integer.parseInt(element.attributeValue("row")));
         cell.setLeftParentCellName(element.attributeValue("left-cell"));
         cell.setTopParentCellName(element.attributeValue("top-cell"));
         String rowSpan = element.attributeValue("row-span");
         if (StringUtils.isNotBlank(rowSpan)) {
-            cell.setRowSpan(Integer.valueOf(rowSpan));
+            cell.setRowSpan(Integer.parseInt(rowSpan));
         }
         String colSpan = element.attributeValue("col-span");
         if (StringUtils.isNotBlank(colSpan)) {
-            cell.setColSpan(Integer.valueOf(colSpan));
+            cell.setColSpan(Integer.parseInt(colSpan));
         }
         String expand = element.attributeValue("expand");
         if (StringUtils.isNotBlank(expand)) {
@@ -75,22 +71,15 @@ public class CellParser implements Parser<CellDefinition> {
         }
         String fillBlankRows = element.attributeValue("fill-blank-rows");
         if (StringUtils.isNotBlank(fillBlankRows)) {
-            cell.setFillBlankRows(Boolean.valueOf(fillBlankRows));
+            cell.setFillBlankRows(Boolean.parseBoolean(fillBlankRows));
             String multiple = element.attributeValue("multiple");
             if (StringUtils.isNotBlank(multiple)) {
-                cell.setMultiple(Integer.valueOf(multiple));
+                cell.setMultiple(Integer.parseInt(multiple));
             }
         }
         cell.setLinkTargetWindow(element.attributeValue("link-target-window"));
         String linkUrl = element.attributeValue("link-url");
         cell.setLinkUrl(linkUrl);
-        if (StringUtils.isNotBlank(linkUrl)) {
-            if (linkUrl.startsWith(ExpressionUtils.EXPR_PREFIX) && linkUrl.endsWith(ExpressionUtils.EXPR_SUFFIX)) {
-                String expr = linkUrl.substring(2, linkUrl.length() - 1);
-                Expression urlExpression = ExpressionUtils.parseExpression(expr);
-                cell.setLinkUrlExpression(urlExpression);
-            }
-        }
         List<LinkParameter> linkParameters = null;
         List<ConditionPropertyItem> conditionPropertyItems = null;
         for (Object obj : element.elements()) {
@@ -107,12 +96,12 @@ public class CellParser implements Parser<CellDefinition> {
                 cell.setCellStyle(cellStyle);
             } else if (parseData instanceof LinkParameter) {
                 if (linkParameters == null) {
-                    linkParameters = new ArrayList<LinkParameter>();
+                    linkParameters = new ArrayList<>();
                 }
                 linkParameters.add((LinkParameter) parseData);
             } else if (parseData instanceof ConditionPropertyItem) {
                 if (conditionPropertyItems == null) {
-                    conditionPropertyItems = new ArrayList<ConditionPropertyItem>();
+                    conditionPropertyItems = new ArrayList<>();
                 }
                 conditionPropertyItems.add((ConditionPropertyItem) parseData);
             }

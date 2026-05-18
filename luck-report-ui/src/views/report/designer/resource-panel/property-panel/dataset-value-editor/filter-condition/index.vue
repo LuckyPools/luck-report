@@ -141,6 +141,9 @@ export default {
           targetCondition.operation = conditionData.operation;
           targetCondition.right = conditionData.right;
           targetCondition.join = conditionData.join;
+          if (!targetCondition.id) {
+            targetCondition.id = uuidv1();
+          }
         }
       } else {
         // 添加新条件

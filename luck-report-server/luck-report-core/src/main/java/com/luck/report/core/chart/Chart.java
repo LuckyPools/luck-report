@@ -76,6 +76,9 @@ public class Chart implements Serializable {
             }
             sb.append("}");
         } else {
+            if (withoption) {
+                sb.append(",");
+            }
             withoption = true;
             sb.append("\"plugins\": {");
             sb.append("\"datalabels\":{\"display\":false}");

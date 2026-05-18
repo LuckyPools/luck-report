@@ -18,11 +18,7 @@ package com.luck.report.core.expression.parse.builder;
 import com.luck.report.core.Utils;
 import com.luck.report.core.dsl.ReportParserParser.*;
 import com.luck.report.core.exception.ReportParseException;
-import com.luck.report.core.expression.ExpressionUtils;
-import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.Op;
-import com.luck.report.core.expression.model.condition.*;
-import com.luck.report.core.expression.model.expr.*;
 import com.luck.report.core.expression.model.condition.*;
 import com.luck.report.core.expression.model.expr.*;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -80,11 +76,8 @@ public abstract class BaseExpressionBuilder implements ExpressionBuilder {
             List<ExprContext> exprContexts = ctx.expr();
             String left = exprContexts.get(0).getText();
             condition.setLeft(left);
-            Expression leftExpr = ExpressionUtils.parseExpression(left);
-            condition.setLeftExpression(leftExpr);
             String rightExpr = exprContexts.get(1).getText();
             condition.setRight(rightExpr);
-            condition.setRightExpression(ExpressionUtils.parseExpression(rightExpr));
             condition.setOp(parseOp(ctx.OP()));
             condition.setOperation(ctx.OP().getText());
             return condition;
@@ -93,7 +86,6 @@ public abstract class BaseExpressionBuilder implements ExpressionBuilder {
             CurrentValueExpressionCondition condition = new CurrentValueExpressionCondition();
             String rightExpr = ctx.expr().getText();
             condition.setRight(rightExpr);
-            condition.setRightExpression(ExpressionUtils.parseExpression(rightExpr));
             condition.setOp(parseOp(ctx.OP()));
             return condition;
         } else if (context instanceof PropertyConditionContext) {
@@ -104,7 +96,6 @@ public abstract class BaseExpressionBuilder implements ExpressionBuilder {
             condition.setLeftProperty(left);
             String rightExpr = ctx.expr().getText();
             condition.setRight(rightExpr);
-            condition.setRightExpression(ExpressionUtils.parseExpression(rightExpr));
             condition.setOp(parseOp(ctx.OP()));
             return condition;
         } else if (context instanceof CellNameExprConditionContext) {
@@ -115,7 +106,6 @@ public abstract class BaseExpressionBuilder implements ExpressionBuilder {
             condition.setCellName(left);
             String rightExpr = ctx.expr().getText();
             condition.setRight(rightExpr);
-            condition.setRightExpression(ExpressionUtils.parseExpression(rightExpr));
             condition.setOp(parseOp(ctx.OP()));
             return condition;
         }

@@ -187,7 +187,8 @@ export default {
           left,
           operation: op,
           right,
-          join
+          join,
+          id: uuid()
         };
         this.$emit('condition-added', newCondition);
         this.isAddingCondition = false;
@@ -200,7 +201,8 @@ export default {
             left,
             operation: op,
             right,
-            join
+            join,
+            id: condition.id || uuid()
           };
           this.$emit('condition-updated', this.selectedConditionIndex, updatedCondition);
         }

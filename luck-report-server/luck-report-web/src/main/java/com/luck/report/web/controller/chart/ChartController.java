@@ -43,19 +43,4 @@ public class ChartController {
         ChartScopeCache.putChartData(chartId, chartData);
     }
 
-    // 辅助方法：解码
-    protected String decode(String value) {
-        if (value == null) {
-            return value;
-        }
-        try {
-            value = URLDecoder.decode(value, "utf-8");
-            value = URLDecoder.decode(value, "utf-8");
-            return value;
-        } catch (Exception ex) {
-            return value;
-        }
-    }
-
-
 }

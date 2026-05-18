@@ -18,6 +18,7 @@ package com.luck.report.core.expression.model.condition;
 import com.luck.report.core.Utils;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.exception.ReportComputeException;
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
@@ -91,6 +92,18 @@ public class CellExpressionCondition extends BaseCondition {
 
     public void setCellName(String cellName) {
         this.cellName = cellName;
+    }
+
+    /**
+     * 重写父类方法，设置右侧表达式字符串并自动派生右侧Expression对象
+     * @param right 右侧表达式字符串
+     */
+    @Override
+    public void setRight(String right) {
+        super.setRight(right);
+        if (right != null && !right.isEmpty()) {
+            this.rightExpression = ExpressionUtils.parseExpression(right);
+        }
     }
 
     public Expression getRightExpression() {

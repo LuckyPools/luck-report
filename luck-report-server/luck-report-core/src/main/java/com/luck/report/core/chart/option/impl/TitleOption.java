@@ -38,19 +38,20 @@ public class TitleOption implements Option, Serializable {
     public TitleOption() {}
 
     @Override
-    public String buildOptionJson() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\"title\":{");
-        sb.append("\"display\":" + display + ",");
-        sb.append("\"text\":\"" + text + "\",");
-        sb.append("\"position\":\"" + position + "\",");
-        sb.append("\"fontSize\":" + fontSize + ",");
-        sb.append("\"fontColor\":\"" + fontColor + "\",");
-        sb.append("\"fontStyle\":\"" + fontStyle + "\",");
-        sb.append("\"padding\":\"" + padding + "\"");
-        sb.append("}");
-        return sb.toString();
-    }
+	public String buildOptionJson() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\"title\":{");
+		boolean hasText = text != null && !text.isEmpty();
+		sb.append("\"display\":" + (hasText ? display : false) + ",");
+		sb.append("\"text\":\"" + text + "\",");
+		sb.append("\"position\":\"" + position + "\",");
+		sb.append("\"fontSize\":" + fontSize + ",");
+		sb.append("\"fontColor\":\"" + fontColor + "\",");
+		sb.append("\"fontStyle\":\"" + fontStyle + "\",");
+		sb.append("\"padding\":\"" + padding + "\"");
+		sb.append("}");
+		return sb.toString();
+	}
 
     @Override
     public String getType() {

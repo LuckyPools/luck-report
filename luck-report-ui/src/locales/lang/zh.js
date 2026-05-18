@@ -311,7 +311,7 @@ const zh = {
             "delCondition": "删除选中的条件",
             "delConditionTip": "请先选中要删除的条件！",
             "selectDelCondition": "请先选择条件项！",
-            "forecolor": "字体景色",
+            "forecolor": "字体颜色",
             "scope": "作用范围",
             "currentCell": "当前单元格",
             "currentRow": "当前行",

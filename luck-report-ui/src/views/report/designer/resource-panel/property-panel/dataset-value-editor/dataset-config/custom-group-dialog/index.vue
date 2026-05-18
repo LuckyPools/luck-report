@@ -308,6 +308,9 @@ export default {
           condition.op = conditionData.operation;
           condition.right = conditionData.right;
           condition.join = conditionData.join;
+          if (!condition.id) {
+            condition.id = this.generateId();
+          }
         }
       } else {
         const condition = {

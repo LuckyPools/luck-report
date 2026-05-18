@@ -80,10 +80,10 @@
       </u-form-item>
 
       <u-form-item class="property-label" :label="$t('property.zxing.expr')" v-show="source === 'expression'">
-        <div style="border: solid 1px #eeeeee;">
-          <textarea ref="codeEditor"></textarea>
-        </div>
       </u-form-item>
+      <div v-show="source === 'expression'">
+        <textarea ref="codeEditor"></textarea>
+      </div>
     </u-form>
   </div>
 </template>
