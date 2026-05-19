@@ -17,7 +17,7 @@
       </span>
       <div class="u-inline">
         <u-input-number
-          :value="headerMargin"
+          v-model="localHeaderMargin"
           @change="handleHeaderMarginChange"
         />
       </div>
@@ -27,7 +27,7 @@
       <label class="label-align-top">{{ $t('dialog.setting.hfLeft') }}：</label>
       <textarea
         ref="leftHeader"
-        :value="localHeader.left"
+        v-model="localHeader.left"
         class="form-control editor-textarea"
         @change="handleHeaderLeftChange"
       ></textarea>
@@ -35,7 +35,7 @@
       <span class="span-align-top">{{ $t('dialog.setting.hfCenter') }}：</span>
       <textarea
         ref="centerHeader"
-        :value="localHeader.center"
+        v-model="localHeader.center"
         class="form-control editor-textarea"
         @change="handleHeaderCenterChange"
       ></textarea>
@@ -43,7 +43,7 @@
       <span class="span-align-top">{{ $t('dialog.setting.hfRight') }}：</span>
       <textarea
         ref="rightHeader"
-        :value="localHeader.right"
+        v-model="localHeader.right"
         class="form-control editor-textarea"
         @change="handleHeaderRightChange"
       ></textarea>
@@ -62,7 +62,7 @@
       </span>
       <div class="u-inline">
         <u-input-number
-          :value="footerMargin"
+          v-model="localFooterMargin"
           @change="handleFooterMarginChange"
         />
       </div>
@@ -72,7 +72,7 @@
       <label class="label-align-top">{{ $t('dialog.setting.hfLeft') }}：</label>
       <textarea
         ref="leftFooter"
-        :value="localFooter.left"
+        v-model="localFooter.left"
         class="form-control editor-textarea"
         @change="handleFooterLeftChange"
       ></textarea>
@@ -80,7 +80,7 @@
       <span class="span-align-top">{{ $t('dialog.setting.hfCenter') }}：</span>
       <textarea
         ref="centerFooter"
-        :value="localFooter.center"
+        v-model="localFooter.center"
         class="form-control editor-textarea"
         @change="handleFooterCenterChange"
       ></textarea>
@@ -88,7 +88,7 @@
       <span class="span-align-top">{{ $t('dialog.setting.hfRight') }}：</span>
       <textarea
         ref="rightFooter"
-        :value="localFooter.right"
+        v-model="localFooter.right"
         class="form-control editor-textarea"
         @change="handleFooterRightChange"
       ></textarea>
@@ -120,21 +120,16 @@ export default {
   data() {
     return {
       localHeader: { ...this.header },
-      localFooter: { ...this.footer }
+      localFooter: { ...this.footer },
+      localHeaderMargin: pointToMM(this.header.margin),
+      localFooterMargin: pointToMM(this.footer.margin)
     };
-  },
-  computed: {
-    headerMargin() {
-      return pointToMM(this.localHeader.margin);
-    },
-    footerMargin() {
-      return pointToMM(this.localFooter.margin);
-    }
   },
   watch: {
     header: {
       handler(newVal) {
         this.localHeader = { ...newVal };
+        this.localHeaderMargin = pointToMM(newVal.margin);
         this.$nextTick(() => {
           this.setHeaderEditorStyles();
         });
@@ -144,6 +139,7 @@ export default {
     footer: {
       handler(newVal) {
         this.localFooter = { ...newVal };
+        this.localFooterMargin = pointToMM(newVal.margin);
         this.$nextTick(() => {
           this.setFooterEditorStyles();
         });
@@ -162,40 +158,40 @@ export default {
     handleOpenFooterFontDialog() {
       this.$emit('open-footer-font-dialog');
     },
-    handleHeaderMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:header', { ...this.localHeader, margin: mmToPoint(value) });
+    handleHeaderMarginChange() {
+      if (!isNaN(this.localHeaderMargin)) {
+        this.$emit('update:header', { ...this.localHeader, margin: mmToPoint(this.localHeaderMargin) });
         this.$emit('header-margin-change');
       }
     },
-    handleFooterMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:footer', { ...this.localFooter, margin: mmToPoint(value) });
+    handleFooterMarginChange() {
+      if (!isNaN(this.localFooterMargin)) {
+        this.$emit('update:footer', { ...this.localFooter, margin: mmToPoint(this.localFooterMargin) });
         this.$emit('footer-margin-change');
       }
     },
-    handleHeaderLeftChange(event) {
-      this.$emit('update:header', { ...this.localHeader, left: event.target.value });
+    handleHeaderLeftChange() {
+      this.$emit('update:header', { ...this.localHeader });
       this.$emit('header-footer-change');
     },
-    handleHeaderCenterChange(event) {
-      this.$emit('update:header', { ...this.localHeader, center: event.target.value });
+    handleHeaderCenterChange() {
+      this.$emit('update:header', { ...this.localHeader });
       this.$emit('header-footer-change');
     },
-    handleHeaderRightChange(event) {
-      this.$emit('update:header', { ...this.localHeader, right: event.target.value });
+    handleHeaderRightChange() {
+      this.$emit('update:header', { ...this.localHeader });
       this.$emit('header-footer-change');
     },
-    handleFooterLeftChange(event) {
-      this.$emit('update:footer', { ...this.localFooter, left: event.target.value });
+    handleFooterLeftChange() {
+      this.$emit('update:footer', { ...this.localFooter });
       this.$emit('header-footer-change');
     },
-    handleFooterCenterChange(event) {
-      this.$emit('update:footer', { ...this.localFooter, center: event.target.value });
+    handleFooterCenterChange() {
+      this.$emit('update:footer', { ...this.localFooter });
       this.$emit('header-footer-change');
     },
-    handleFooterRightChange(event) {
-      this.$emit('update:footer', { ...this.localFooter, right: event.target.value });
+    handleFooterRightChange() {
+      this.$emit('update:footer', { ...this.localFooter });
       this.$emit('header-footer-change');
     },
     setHeaderEditorStyles() {

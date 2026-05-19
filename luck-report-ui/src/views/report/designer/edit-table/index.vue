@@ -346,3 +346,15 @@ export default {
   min-height: 500px;
 }
 </style>
+<style>
+/** 套打图 **/
+.handsontable tr{
+  background: transparent;
+}
+.handsontable td, .handsontable th{
+  background: transparent;
+}
+.handsontable table.htCore{
+  border-collapse:collapse
+}
+</style>

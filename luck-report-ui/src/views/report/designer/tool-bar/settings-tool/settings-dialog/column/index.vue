@@ -6,7 +6,7 @@
       <label>{{ $t('dialog.setting.column') }}：</label>
       <div class="u-inline">
         <u-radio-group
-            :value="localPaper.columnEnabled"
+            v-model="localPaper.columnEnabled"
             @change="handleColumnEnabledChange"
         >
           <u-radio
@@ -24,7 +24,7 @@
       <label>{{ $t('dialog.setting.columnCount') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localPaper.columnCount"
+          v-model="localPaper.columnCount"
           :disabled="!localPaper.columnEnabled"
           @change="handleColumnCountChange"
         >
@@ -42,7 +42,7 @@
       </span>
       <div class="u-inline">
         <u-input-number
-          :value="columnMargin"
+          v-model="localColumnMargin"
           :disabled="!localPaper.columnEnabled"
           @change="handleColumnMarginChange"
         />
@@ -76,13 +76,11 @@ export default {
   },
   data() {
     return {
-      localPaper: { ...this.paper }
+      localPaper: { ...this.paper },
+      localColumnMargin: pointToMM(this.paper.columnMargin)
     };
   },
   computed: {
-    columnMargin() {
-      return pointToMM(this.localPaper.columnMargin);
-    },
     columnCountOptions() {
       const options = [];
       for (let i = 1; i <= 9; i++) {
@@ -104,22 +102,23 @@ export default {
     paper: {
       handler(newVal) {
         this.localPaper = { ...newVal };
+        this.localColumnMargin = pointToMM(newVal.columnMargin);
       },
       deep: true
     }
   },
   methods: {
-    handleColumnEnabledChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, columnEnabled: value });
+    handleColumnEnabledChange() {
+      this.$emit('update:paper', { ...this.localPaper });
       this.$emit('column-enabled-change');
     },
-    handleColumnCountChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, columnCount: value });
+    handleColumnCountChange() {
+      this.$emit('update:paper', { ...this.localPaper });
       this.$emit('column-count-change');
     },
-    handleColumnMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, columnMargin: mmToPoint(value) });
+    handleColumnMarginChange() {
+      if (!isNaN(this.localColumnMargin)) {
+        this.$emit('update:paper', { ...this.localPaper, columnMargin: mmToPoint(this.localColumnMargin) });
         this.$emit('column-margin-change');
       }
     }

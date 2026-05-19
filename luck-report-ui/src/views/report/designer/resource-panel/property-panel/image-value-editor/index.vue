@@ -63,7 +63,7 @@
           :placeholder="$t('property.image.tip')"
           style="width: 250px;"
           v-model="path"
-          @change="handlePathChange"
+          @blur="handlePathChange"
         />
       </u-form-item>
 
@@ -343,6 +343,9 @@ export default {
      * 处理路径变化
      */
     handlePathChange() {
+      if (this.path){
+        this.path = this.path.trim()
+      }
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (cellDef && cellDef.value) {
         const newCellDef = deepCopy(cellDef);

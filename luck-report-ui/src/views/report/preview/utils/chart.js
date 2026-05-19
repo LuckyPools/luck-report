@@ -52,7 +52,6 @@ export function convertChartConfig(chartJson) {
  * @param {Array<Object>} chartData - 图表数据数组，每项包含 id 和 json 字段
  */
 export function buildChartDatas(chartData) {
-  console.log(chartData[0].json)
   if (!chartData) {
     return;
   }

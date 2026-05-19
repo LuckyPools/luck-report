@@ -162,9 +162,10 @@ export default {
       let pageIndex;
       if (resetToFirstPage) {
         this.currentPage = 1;
+        this.pageIndex = 1;
         pageIndex = 1;
-      } else if (this.totalPage > 0 && this.currentPage) {
-        if (this.currentPage > this.totalPage) {
+      } else if (this.pageIndex != null) {
+        if (this.totalPage > 0 && this.currentPage > this.totalPage) {
           this.currentPage = 1;
         }
         pageIndex = this.currentPage;

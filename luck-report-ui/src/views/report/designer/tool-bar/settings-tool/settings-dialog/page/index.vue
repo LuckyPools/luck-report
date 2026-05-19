@@ -4,7 +4,7 @@
       <label>{{ $t('dialog.setting.paperType') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localPaper.paperType"
+          v-model="localPaper.paperType"
           style="width: 95px"
           @change="handlePaperTypeChange"
         >
@@ -22,7 +22,7 @@
       <span>{{ $t('dialog.setting.paperWidth') }}：</span>
       <div class="u-inline">
         <u-input-number
-          :value="pageWidth"
+          v-model="localPageWidth"
           :disabled="localPaper.paperType !== 'CUSTOM'"
           @change="handlePageWidthChange"
         />
@@ -33,7 +33,7 @@
       <span>{{ $t('dialog.setting.paperHeight') }}：</span>
       <div class="u-inline">
         <u-input-number
-          :value="pageHeight"
+          v-model="localPageHeight"
           :disabled="localPaper.paperType !== 'CUSTOM'"
           @change="handlePageHeightChange"
         />
@@ -46,7 +46,7 @@
       <label>{{ $t('dialog.setting.leftMargin') }}：</label>
       <div class="u-inline">
         <u-input-number
-          :value="leftMargin"
+          v-model="localLeftMargin"
           @change="handleLeftMarginChange"
         />
       </div>
@@ -56,7 +56,7 @@
       <label>{{ $t('dialog.setting.rightMargin') }}：</label>
       <div class="u-inline">
         <u-input-number
-          :value="rightMargin"
+          v-model="localRightMargin"
           @change="handleRightMarginChange"
         />
       </div>
@@ -68,7 +68,7 @@
       <label>{{ $t('dialog.setting.topMargin') }}：</label>
       <div class="u-inline">
         <u-input-number
-          :value="topMargin"
+          v-model="localTopMargin"
           @change="handleTopMarginChange"
         />
       </div>
@@ -78,7 +78,7 @@
       <label>{{ $t('dialog.setting.bottomMargin') }}：</label>
       <div class="u-inline">
         <u-input-number
-          :value="bottomMargin"
+          v-model="localBottomMargin"
           @change="handleBottomMarginChange"
         />
       </div>
@@ -88,7 +88,7 @@
       <label>{{ $t('dialog.setting.orientation') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localPaper.orientation"
+          v-model="localPaper.orientation"
           style="width: 312px"
           @change="handleOrientationChange"
         >
@@ -106,7 +106,7 @@
       <label>{{ $t('dialog.setting.htmlAlign') }}：</label>
       <div class="u-inline">
         <u-select
-          :value="localPaper.htmlReportAlign"
+          v-model="localPaper.htmlReportAlign"
           style="width: 80px"
           @change="handleHtmlAlignChange"
         >
@@ -124,7 +124,7 @@
       </span>
       <div class="u-inline">
         <u-input-number
-          :value="localPaper.htmlIntervalRefreshValue"
+          v-model="localPaper.htmlIntervalRefreshValue"
           :placeholder="$t('dialog.setting.tip1')"
           :title="$t('dialog.setting.tip2')"
           :min="0"
@@ -137,10 +137,10 @@
       <label>{{ $t('dialog.setting.bg') }}：</label>
       <div class="u-inline">
         <u-input
-          :value="localPaper.bgImage"
+          v-model="localPaper.bgImage"
           style="width: 470px;"
           :placeholder="$t('dialog.setting.bgTip')"
-          @change="handleBgImageChange"
+          @blur="handleBgImageChange"
         />
       </div>
     </div>
@@ -171,28 +171,16 @@ export default {
   data() {
     return {
       localPaper: { ...this.paper },
-      paperSizeList: buildPageSizeList()
+      paperSizeList: buildPageSizeList(),
+      localPageWidth: pointToMM(this.paper.width),
+      localPageHeight: pointToMM(this.paper.height),
+      localLeftMargin: pointToMM(this.paper.leftMargin),
+      localRightMargin: pointToMM(this.paper.rightMargin),
+      localTopMargin: pointToMM(this.paper.topMargin),
+      localBottomMargin: pointToMM(this.paper.bottomMargin)
     };
   },
   computed: {
-    pageWidth() {
-      return pointToMM(this.localPaper.width);
-    },
-    pageHeight() {
-      return pointToMM(this.localPaper.height);
-    },
-    leftMargin() {
-      return pointToMM(this.localPaper.leftMargin);
-    },
-    rightMargin() {
-      return pointToMM(this.localPaper.rightMargin);
-    },
-    topMargin() {
-      return pointToMM(this.localPaper.topMargin);
-    },
-    bottomMargin() {
-      return pointToMM(this.localPaper.bottomMargin);
-    },
     paperTypeOptions() {
       const options = [];
       for (const [key, value] of Object.entries(this.paperSizeList)) {
@@ -225,66 +213,75 @@ export default {
     paper: {
       handler(newVal) {
         this.localPaper = { ...newVal };
+        this.localPageWidth = pointToMM(newVal.width);
+        this.localPageHeight = pointToMM(newVal.height);
+        this.localLeftMargin = pointToMM(newVal.leftMargin);
+        this.localRightMargin = pointToMM(newVal.rightMargin);
+        this.localTopMargin = pointToMM(newVal.topMargin);
+        this.localBottomMargin = pointToMM(newVal.bottomMargin);
       },
       deep: true
     }
   },
   methods: {
-    handlePaperTypeChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, paperType: value });
-      this.$emit('paper-type-change', value);
+    handlePaperTypeChange() {
+      this.$emit('update:paper', { ...this.localPaper });
+      this.$emit('paper-type-change', this.localPaper.paperType);
     },
-    handlePageWidthChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, width: mmToPoint(value) });
+    handlePageWidthChange() {
+      if (!isNaN(this.localPageWidth)) {
+        this.$emit('update:paper', { ...this.localPaper, width: mmToPoint(this.localPageWidth) });
         this.$emit('paper-size-change');
       }
     },
-    handlePageHeightChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, height: mmToPoint(value) });
+    handlePageHeightChange() {
+      if (!isNaN(this.localPageHeight)) {
+        this.$emit('update:paper', { ...this.localPaper, height: mmToPoint(this.localPageHeight) });
         this.$emit('paper-size-change');
       }
     },
-    handleLeftMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, leftMargin: mmToPoint(value) });
+    handleLeftMarginChange() {
+      if (!isNaN(this.localLeftMargin)) {
+        this.$emit('update:paper', { ...this.localPaper, leftMargin: mmToPoint(this.localLeftMargin) });
         this.$emit('margins-change');
       }
     },
-    handleRightMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, rightMargin: mmToPoint(value) });
+    handleRightMarginChange() {
+      if (!isNaN(this.localRightMargin)) {
+        this.$emit('update:paper', { ...this.localPaper, rightMargin: mmToPoint(this.localRightMargin) });
         this.$emit('margins-change');
       }
     },
-    handleTopMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, topMargin: mmToPoint(value) });
+    handleTopMarginChange() {
+      if (!isNaN(this.localTopMargin)) {
+        this.$emit('update:paper', { ...this.localPaper, topMargin: mmToPoint(this.localTopMargin) });
         this.$emit('margins-change');
       }
     },
-    handleBottomMarginChange(value) {
-      if (!isNaN(value)) {
-        this.$emit('update:paper', { ...this.localPaper, bottomMargin: mmToPoint(value) });
+    handleBottomMarginChange() {
+      if (!isNaN(this.localBottomMargin)) {
+        this.$emit('update:paper', { ...this.localPaper, bottomMargin: mmToPoint(this.localBottomMargin) });
         this.$emit('margins-change');
       }
     },
-    handleOrientationChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, orientation: value });
+    handleOrientationChange() {
+      this.$emit('update:paper', { ...this.localPaper });
       this.$emit('orientation-change');
     },
-    handleHtmlAlignChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, htmlReportAlign: value });
+    handleHtmlAlignChange() {
+      this.$emit('update:paper', { ...this.localPaper });
       this.$emit('html-align-change');
     },
-    handleHtmlIntervalRefreshValueChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, htmlIntervalRefreshValue: value });
-      this.$emit('html-interval-refresh-value-change', value);
+    handleHtmlIntervalRefreshValueChange() {
+      this.$emit('update:paper', { ...this.localPaper });
+      this.$emit('html-interval-refresh-value-change', this.localPaper.htmlIntervalRefreshValue);
     },
-    handleBgImageChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, bgImage: value });
-      this.$emit('background-image-change', value);
+    handleBgImageChange() {
+      if (this.localPaper.bgImage) {
+        this.localPaper.bgImage = this.localPaper.bgImage.trim();
+      }
+      this.$emit('update:paper', { ...this.localPaper });
+      this.$emit('background-image-change', this.localPaper.bgImage);
     }
   }
 };

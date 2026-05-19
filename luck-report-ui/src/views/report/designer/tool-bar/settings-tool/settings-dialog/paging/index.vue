@@ -4,7 +4,7 @@
       <label>{{ $t('dialog.setting.pagingType') }}：</label>
       <div class="u-inline">
         <u-radio-group
-            :value="localPaper.pagingMode"
+            v-model="localPaper.pagingMode"
             @change="handlePagingModeChange"
         >
           <u-radio

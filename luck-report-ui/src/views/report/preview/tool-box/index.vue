@@ -78,7 +78,7 @@
         />
       </div>
 
-      <u-button v-if="reportData.tools.paging && currentPage > 1"
+      <u-button v-if="reportData.tools.paging && pageEnable && currentPage > 1"
                 type="info"
                 :title="$t('preview.buttons.prevPage')"
                 class="p-button paging-button"
@@ -96,7 +96,7 @@
         />
       </div>
 
-      <u-button v-if="reportData.tools.paging && currentPage && currentPage < reportData.totalPageWithCol"
+      <u-button v-if="reportData.tools.paging && pageEnable && currentPage && currentPage < reportData.totalPageWithCol"
                 type="info"
                 :title="$t('preview.buttons.nextPage')"
                 class="p-button paging-button"
