@@ -38,19 +38,6 @@ export async function loadPagePaper(formData) {
 }
 
 /**
- * PDF分页处理
- * @param formData 表单参数
- * @returns {Promise<Object>} 分页处理结果
- */
-export async function pdfNewPaging(formData) {
-    return request.post('/pdf/newPaging', formData, {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-    });
-}
-
-/**
  * 导出PDF文件（Blob方式）
  * @param params 查询参数
  * @returns {Promise<void>}
@@ -97,11 +84,16 @@ export async function exportExcelSheetPagingBlob(params) {
 
 /**
  * 获取PDF Blob URL（用于iframe预览）
- * @param params 查询参数
+ * @param params 查询参数（URL参数）
+ * @param paperVo 纸张配置参数（可选，会进行URL编码）
  * @returns {Promise<string>} Blob URL
  */
-export async function getPdfBlobUrl(params) {
-    const queryString = buildQueryString(params);
+export async function getPdfBlobUrl(params, paperVo = null) {
+    const urlParams = { ...params };
+    if (paperVo) {
+        urlParams['_paper'] = encodeURIComponent(JSON.stringify(paperVo));
+    }
+    const queryString = buildQueryString(urlParams);
     const url = queryString ? `/pdf/show?${queryString}` : '/pdf/show';
 
     const response = await request.get(url, {
@@ -114,11 +106,16 @@ export async function getPdfBlobUrl(params) {
 
 /**
  * 获取PDF Blob（用于直接打印）
- * @param params 查询参数
+ * @param params 查询参数（URL参数）
+ * @param paperVo 纸张配置参数（可选，会进行URL编码）
  * @returns {Promise<{blobUrl: string, revoke: Function}>} Blob URL 和释放函数
  */
-export async function getPdfPrintBlob(params) {
-    const queryString = buildQueryString(params);
+export async function getPdfPrintBlob(params, paperVo = null) {
+    const urlParams = { ...params };
+    if (paperVo) {
+        urlParams['_paper'] = encodeURIComponent(JSON.stringify(paperVo));
+    }
+    const queryString = buildQueryString(urlParams);
     const url = queryString ? `/pdf/show?${queryString}` : '/pdf/show';
 
     const response = await request.get(url, {

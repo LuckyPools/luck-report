@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.pdf;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.core.definition.ReportDefinition;
@@ -13,7 +14,6 @@ import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.exception.ReportDesignException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,64 +47,46 @@ public class ExportPdfController {
     private final PdfProducer pdfProducer = new PdfProducer();
 
     /**
-     * 构建PDF报表
+     * 构建PDF报表（下载）
      */
     @RequestMapping("/build")
     public void build(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        buildPdf(req, resp, false);
+        String pdfName = req.getParameter("_n");
+        pdfName = buildDownloadFileName(ReportConstants.MODE_KEY, pdfName, ".pdf");
+        pdfName = new String(pdfName.getBytes(StandardCharsets.UTF_8), "ISO8859-1");
+        resp.setContentType("application/octet-stream;charset=ISO8859-1");
+        resp.setHeader("Content-Disposition", "attachment;filename=\"" + pdfName + "\"");
+        buildPdf(req, resp);
     }
 
     /**
-     * 显示PDF报表
+     * 显示PDF报表（POST方式，支持传递纸张参数）
+     * @param req HTTP请求对象
+     * @param resp HTTP响应对象
+     * @throws IOException IO异常
      */
     @RequestMapping("/show")
     public void show(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        buildPdf(req, resp, true);
+        resp.setContentType("application/pdf");
+        buildPdf(req, resp);
     }
 
-    @RequestMapping("/newPaging")
-    public void newPaging(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String fileName = req.getParameter("reportPath");
-        fileName = decode(fileName);
-        String mode = req.getParameter("mode");
-        boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
-        Report report;
-        Map<String, Object> parameters = buildParameters(req);
-        if (isPreview) {
-            ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
-            if (reportDefinition == null) {
-                throw new ReportDesignException("Report data has expired,can not do export pdf.");
-            }
-            reportRender.rebuildReportDefinition(reportDefinition);
-            report = reportBuilder.buildReport(reportDefinition, parameters);
-        } else {
-            ReportDefinition reportDefinition = reportRender.getReportDefinition(fileName);
-            report = reportRender.render(reportDefinition, parameters);
-        }
-        String paper = req.getParameter("_paper");
-        ObjectMapper mapper = new ObjectMapper();
-        Paper newPaper = mapper.readValue(paper, Paper.class);
-        report.rePaging(newPaper);
-    }
 
-    private void buildPdf(HttpServletRequest req, HttpServletResponse resp, boolean forPrint) throws IOException {
+    /**
+     * 构建PDF报表核心方法
+     * @param req HTTP请求对象
+     * @param resp HTTP响应对象
+     * @throws IOException IO异常
+     */
+    private void buildPdf(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String mode = req.getParameter("mode");
-        boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
         fileName = decode(fileName);
+        boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         OutputStream outputStream = null;
         try {
             Map<String, Object> parameters = buildParameters(req);
             outputStream = resp.getOutputStream();
-            if (forPrint) {
-                resp.setContentType("application/pdf");
-            } else {
-                String pdfName = req.getParameter("_n");
-                pdfName = buildDownloadFileName(ReportConstants.MODE_KEY, pdfName, ".pdf");
-                pdfName = new String(pdfName.getBytes(StandardCharsets.UTF_8), "ISO8859-1");
-                resp.setContentType("application/octet-stream;charset=ISO8859-1");
-                resp.setHeader("Content-Disposition", "attachment;filename=\"" + pdfName + "\"");
-            }
             if (isPreview) {
                 ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
                 if (reportDefinition == null) {
@@ -112,6 +94,14 @@ public class ExportPdfController {
                 }
                 reportRender.rebuildReportDefinition(reportDefinition);
                 Report report = reportBuilder.buildReport(reportDefinition, parameters);
+
+                String paperJson = req.getParameter("_paper");
+                if (paperJson != null && !paperJson.isEmpty()) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    Paper newPaper = mapper.readValue(paperJson, Paper.class);
+                    report.rePaging(newPaper);
+                }
+
                 pdfProducer.produce(report, outputStream);
             } else {
                 ExportConfigure configure = new ExportConfigureImpl(fileName, parameters, outputStream);

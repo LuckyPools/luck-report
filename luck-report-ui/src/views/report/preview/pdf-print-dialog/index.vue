@@ -163,7 +163,7 @@ import UButton from "@/components/button/index.vue";
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
-import {getPdfBlobUrl, pdfNewPaging, loadPagePaper} from '@/api/preview';
+import {getPdfBlobUrl, loadPagePaper} from '@/api/preview';
 import UCol from "@/components/col/index.vue";
 import URow from "@/components/row/index.vue";
 import UForm from '@/components/form/index.vue';
@@ -448,7 +448,7 @@ export default {
 
     /**
      * 应用纸张设置并刷新PDF预览
-     * 将当前纸张配置提交到服务端重新分页，然后更新 iframe 中的 PDF 预览内容
+     * 将当前纸张配置通过URL参数传递给服务端，直接生成新的PDF预览
      */
     async handleApply() {
       const loadingInstance = showLoading({
@@ -467,15 +467,7 @@ export default {
           bottomMargin: this.paper.bottomMargin
         };
 
-        const formData = new FormData();
-        formData.append('_paper', JSON.stringify(currentPaper));
         const urlParams = getUrlSearchParams();
-        for (const [key, value] of urlParams) {
-          formData.append(key, value);
-        }
-
-        await pdfNewPaging(formData);
-
         const paramObj = {};
         for (const [key, value] of urlParams) {
           paramObj[key] = value;
@@ -483,7 +475,7 @@ export default {
         paramObj['_r'] = this.refreshIndex++;
 
         this.revokeBlobUrl();
-        this.currentBlobUrl = await getPdfBlobUrl(paramObj);
+        this.currentBlobUrl = await getPdfBlobUrl(paramObj, currentPaper);
         this.$refs.pdfFrame.src = this.currentBlobUrl;
 
         loadingInstance.close();
