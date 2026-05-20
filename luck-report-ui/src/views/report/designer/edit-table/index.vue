@@ -372,6 +372,7 @@ export default {
 .htContextMenu table tbody tr td{
   padding: 4px 8px;
   font-size: 13px;
+  color: black;
 }
 
 .htContextMenu table tbody tr td i{

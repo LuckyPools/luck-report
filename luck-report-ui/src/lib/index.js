@@ -10,7 +10,7 @@ import '@/assets/css/common/index.css'
 
 import LuckDesignerElement from './components/LuckDesigner'
 import LuckPreviewElement from './components/LuckPreview'
-import requestAdapter from './requestAdapter'
+import { requestAdapter } from '@/utils/request'
 import navigationAdapter from './navigationAdapter'
 import { setLibMode, getLibMode } from './navigator'
 

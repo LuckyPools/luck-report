@@ -40,7 +40,7 @@ import java.util.*;
  * @since 2017年1月25日
  */
 @Controller("bean.designerController")
-@RequestMapping("${luck-report.servletPrefix:report}/designer")
+@RequestMapping("${luck-report.servletPrefix:}/designer")
 public class DesignerController implements ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);

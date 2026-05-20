@@ -14,24 +14,17 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.luck.cloud</groupId>
+            <artifactId>luck-report-core</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.oracle</groupId>
-            <artifactId>ojdbc14</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.dameng</groupId>
-            <artifactId>DmJdbcDriver18</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
@@ -48,12 +41,6 @@
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.luck.cloud</groupId>
-            <artifactId>luck-report-core</artifactId>
-            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>

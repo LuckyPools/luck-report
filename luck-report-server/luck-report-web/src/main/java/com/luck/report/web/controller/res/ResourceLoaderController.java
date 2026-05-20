@@ -17,7 +17,7 @@ import java.io.OutputStream;
  * 替代原有的ResourceLoaderServletAction，提供静态资源访问功能
  */
 @RestController("bean.resourceLoaderController")
-@RequestMapping("${luck-report.servletPrefix:report}/res")
+@RequestMapping("${luck-report.servletPrefix:}/res")
 public class ResourceLoaderController {
 
     @Autowired

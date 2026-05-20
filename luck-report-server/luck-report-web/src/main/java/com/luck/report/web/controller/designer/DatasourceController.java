@@ -50,7 +50,7 @@ import java.util.regex.Pattern;
  * 数据源控制器
  */
 @RestController("bean.datasourceController")
-@RequestMapping("${luck-report.servletPrefix:report}/datasource")
+@RequestMapping("${luck-report.servletPrefix:}/datasource")
 public class DatasourceController {
 
     private final Logger log = LoggerFactory.getLogger(getClass());

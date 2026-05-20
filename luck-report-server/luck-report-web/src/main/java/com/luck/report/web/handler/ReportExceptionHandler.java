@@ -26,16 +26,16 @@ public class ReportExceptionHandler {
     private static final Random random = new Random();
 
     /**
-     * 处理ReportException及其子类异常
+     * 处理 RuntimeException 及其子类异常
      * 仅处理报表模块抛出的异常，不会影响业务系统的异常处理
      *
-     * @param ex       ReportException异常
+     * @param ex       RuntimeException
      * @param response HttpServletResponse响应对象
      * @throws IOException IO异常
      */
-    @ExceptionHandler(ReportException.class)
+    @ExceptionHandler(RuntimeException.class)
     @ResponseBody
-    public void handleReportException(ReportException ex, HttpServletResponse response) throws IOException {
+    public void handleException(RuntimeException ex, HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         String errorMessage = getRootErrorMessage(ex);
         String auxCode = generateAuxCode();

@@ -22,7 +22,7 @@ import java.util.Map;
  * 替代原有的ImportExcelServletAction，负责导入Excel文件并解析为报表定义
  */
 @RestController("bean.importExcelController")
-@RequestMapping("${luck-report.servletPrefix:report}/import")
+@RequestMapping("${luck-report.servletPrefix:}/import")
 public class ImportExcelController {
 
     private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);

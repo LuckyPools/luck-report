@@ -29,7 +29,7 @@ import java.util.Map;
  * PDF导出控制器
  */
 @RestController("bean.exportPdfController")
-@RequestMapping("${luck-report.servletPrefix:report}/pdf")
+@RequestMapping("${luck-report.servletPrefix:}/pdf")
 public class ExportPdfController {
 
     @Autowired

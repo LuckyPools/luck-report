@@ -32,7 +32,7 @@ import java.util.Map;
  * 替代原来的ExportWordServletAction
  */
 @RestController("bean.exportWordController")
-@RequestMapping("${luck-report.servletPrefix:report}/word")
+@RequestMapping("${luck-report.servletPrefix:}/word")
 public class ExportWordController {
 
     @Autowired
