@@ -47,7 +47,6 @@ import java.util.Map;
  * @since 2015年5月20日
  */
 public class WordProducer implements Producer {
-    public static final String BEAN_ID = "luck-reportwordExporter";
 
     @Override
     public void produce(Report report, OutputStream outputStream) {

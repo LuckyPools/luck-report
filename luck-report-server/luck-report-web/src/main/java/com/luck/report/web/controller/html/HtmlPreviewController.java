@@ -35,7 +35,7 @@ import java.io.StringWriter;
 import java.util.*;
 
 @RestController("bean.htmlPreviewController")
-@RequestMapping("${luck-report.servletPrefix}/html")
+@RequestMapping("${luck-report.servletPrefix:report}/html")
 public class HtmlPreviewController {
 
     private final Logger log = LoggerFactory.getLogger(getClass());

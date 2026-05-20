@@ -34,6 +34,7 @@ import com.luck.report.core.model.Row;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.env.Environment;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.Connection;
@@ -46,7 +47,6 @@ import java.util.logging.Logger;
  * @since 2016年11月1日
  */
 public class ReportBuilder extends BasePagination implements ApplicationContextAware {
-	public static final String BEAN_ID = "luck-reportreportBuilder";
 	private Logger log = Logger.getGlobal();
 	private ApplicationContext applicationContext;
 	private Map<String, DatasourceProvider> datasourceProviderMap = new HashMap<String, DatasourceProvider>();
@@ -464,6 +464,12 @@ public class ReportBuilder extends BasePagination implements ApplicationContextA
 		for (DatasourceProvider dp : datasourceProviders) {
 			datasourceProviderMap.put(dp.getName(), dp);
 		}
-		new Splash().doPrint();
+
+		Environment env = applicationContext.getEnvironment();
+		String enableString = env.getProperty("luck-report.banner.enable", "false");
+		boolean enabled = Boolean.parseBoolean(enableString);
+		if (enabled){
+			new Splash().doPrint();
+		}
 	}
 }

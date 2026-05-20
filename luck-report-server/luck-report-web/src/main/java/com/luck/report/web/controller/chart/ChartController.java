@@ -15,7 +15,7 @@ import java.net.URLDecoder;
  * 替代原有的ChartServletAction，提供图表数据存储功能
  */
 @RestController("bean.chartController")
-@RequestMapping("${luck-report.servletPrefix}/chart")
+@RequestMapping("${luck-report.servletPrefix:report}/chart")
 public class ChartController {
 
     /**

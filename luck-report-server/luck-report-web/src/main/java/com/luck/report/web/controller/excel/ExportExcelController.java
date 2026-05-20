@@ -33,7 +33,7 @@ import java.util.Map;
  * 替代原来的ExportExcelServletAction
  */
 @RestController("bean.exportExcelController")
-@RequestMapping("${luck-report.servletPrefix}/excel")
+@RequestMapping("${luck-report.servletPrefix:report}/excel")
 public class ExportExcelController {
 
     @Autowired

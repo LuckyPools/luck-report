@@ -103,6 +103,7 @@
                     <include>**/*.md</include>
                     <include>**/*.template</include>
                     <include>**/*.jpg</include>
+                    <include>**/*.factories</include>
                 </includes>
                 <filtering>true</filtering>
             </resource>
