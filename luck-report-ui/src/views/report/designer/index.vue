@@ -1,5 +1,5 @@
 <template>
-    <div ref="container" id='container'>
+    <div ref="container" id="designer-container">
       <div class="u-designer" >
         <!-- 左侧区域：顶部工具和内容表格 -->
         <div class="left-part">
@@ -130,7 +130,7 @@ export default {
 </script>
 
 <style scoped>
-#container {
+#designer-container {
   width: 100vw;
   height: 100vh;
   overflow: hidden;

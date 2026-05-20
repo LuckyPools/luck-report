@@ -117,7 +117,9 @@ const zh = {
             "methodParameters": "方法必须包含三个参数",
             "returnObject": "返回对象",
             "className": "指定该方法返回类全名,用于生成字段,如不指定需手工添加字段",
-            "datasetExist": "已存在，请换一个数据集名称"
+            "datasetExist": "已存在，请换一个数据集名称",
+            "datasetNameRequired": "数据集名称不能为空",
+            "methodRequired": "方法名不能为空"
         },
         "buildin": {
             "selectDatasource": "内置数据源选择",
@@ -260,6 +262,7 @@ const zh = {
             "modDate": "修改日期",
             "open": "打开",
             "del": "删除",
+            "operator": "操作",
             "openConfirm": "真的要打开文件",
             "delConfirm": "真要删除文件",
             "delFail": "文件删除操作失败！",
@@ -331,7 +334,7 @@ const zh = {
             "valign": "竖直对齐",
             "top": "顶部对齐",
             "mid": "中部对齐",
-            "bottom": "下部对齐",
+            "bottom": "底部对齐",
             "border": "边框",
             "borderConfig": "边框配置",
             "newValue": "新值",
@@ -386,6 +389,7 @@ const zh = {
             "delConfirm": "真要删除文件",
             "delFail": "文件删除操作失败！",
             "save": "保存",
+            "operator": "操作",
             "nameTip": "请输入文件名！",
             "locationTip": "请选择文件保存地！",
             "file": "文件",

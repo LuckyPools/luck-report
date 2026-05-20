@@ -124,9 +124,9 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
+        this.resetForm();
         if (this.datasource) {
           this.fillForm(this.datasource);
-        this.resetForm();
         }
       }
     }
@@ -240,5 +240,5 @@ export default {
 </script>
 
 <style scoped>
-/* 样式可以根据需要自定义 */
+
 </style>

@@ -6,9 +6,8 @@
     @close="handleClose"
   >
     <div class="open-dialog-content">
-      <div class="form-group">
-        <label>{{ $t('dialog.open.source') }}：</label>
-        <div class="u-inline">
+      <u-form :label-width="80" label-position="left">
+        <u-form-item :label="$t('dialog.open.source')" class="property-label">
           <u-select
             v-model="selectedProvider"
             @change="handleProviderChange"
@@ -20,33 +19,39 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <div class="path-bar" v-if="currentPath || canGoBack">
-        <div class="path-display">
-          <span class="path-label">{{ $t('dialog.save.currentPath') }}：</span>
-          <span class="path-text">{{ currentPath || '/' }}</span>
-        </div>
-        <u-button
-          v-if="canGoBack"
-          @click="goBack"
-          type="primary"
-          size="small"
-          icon="icon-left"
-        >
-          {{ $t('dialog.save.backToParent') }}
-        </u-button>
-      </div>
+        <u-form-item :label="$t('dialog.save.currentPath')" class="property-label">
+          <div class="path-content">
+            <div class="path-breadcrumb">
+              <span class="path-segment" @click="navigateToPath(-1)">/</span>
+              <template v-for="(segment, index) in pathSegments">
+                <span class="path-segment" :key="'seg-' + index" @click="navigateToPath(index)">
+                  {{ segment }}
+                </span>
+                <span class="path-separator" :key="'sep-' + index">/</span>
+              </template>
+            </div>
+            <u-button
+              v-if="canGoBack"
+              @click="goBack"
+              type="info"
+              size="small"
+              icon="icon-undo"
+            >
+              {{ $t('dialog.save.backToParent') }}
+            </u-button>
+          </div>
+        </u-form-item>
+      </u-form>
 
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr class="data-table-header">
-              <td><span>{{ $t('dialog.open.fileName') }}</span></td>
-              <td style="width:200px;"><span>{{ $t('dialog.open.modDate') }}</span></td>
-              <td style="width:50px;"><span>{{ $t('dialog.open.open') }}</span></td>
-              <td style="width:50px;"><span>{{ $t('dialog.open.del') }}</span></td>
+      <div class="file-list-container table-wrapper">
+        <table class="table-container">
+          <thead class="table-container-header">
+            <tr>
+              <th><span>{{ $t('dialog.open.fileName') }}</span></th>
+              <th style="width:200px;"><span>{{ $t('dialog.open.modDate') }}</span></th>
+              <th style="width:80px;"><span>{{ $t('dialog.open.operator') }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -62,17 +67,23 @@
                </span>
              </td>
              <td><span>{{ formatDate(file.updateDate) }}</span></td>
-              <td class="data-table-btn">
-                <a @click.stop="openFile(file)">
-                  <i :class="file.directory ? 'iconfont icon-folder-open' : 'iconfont icon-open'" class="open-button"></i>
-                </a>
+              <td>
+                <u-button
+                    type="info"
+                    icon="icon-open"
+                    :title="$t('dialog.open.open')"
+                    @click="openFile(file)"
+                    style="border: none">
+                </u-button>
+                <u-button
+                    v-if="!file.directory"
+                    type="info"
+                    icon="icon-delete"
+                    :title="$t('dialog.open.del')"
+                    @click="deleteFile(file, index)"
+                    style="border: none;color: red">
+                </u-button>
               </td>
-              <td class="data-table-btn" v-if="!file.directory">
-                <a @click.stop="deleteFile(file, index)">
-                  <i class="iconfont icon-delete del-button"></i>
-                </a>
-              </td>
-              <td v-else></td>
             </tr>
           </tbody>
         </table>
@@ -93,6 +104,8 @@ import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UButton from "@/components/button/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import { createNavigator, getLibMode } from '@/lib/navigator';
 
 export default {
@@ -101,7 +114,9 @@ export default {
     UButton,
     UDialog,
     USelect,
-    UOption
+    UOption,
+    UForm,
+    UFormItem
   },
   props: {
     visible: {
@@ -128,6 +143,10 @@ export default {
     },
     canGoBack() {
       return this.pathHistory.length > 0;
+    },
+    pathSegments() {
+      if (!this.currentPath) return [];
+      return this.currentPath.split('/').filter(Boolean);
     },
     isLibMode() {
       return getLibMode();
@@ -247,6 +266,21 @@ export default {
         }
       }
     },
+    navigateToPath(index) {
+      if (index === -1) {
+        this.currentPath = '';
+        this.pathHistory = [];
+        this.onProviderChange();
+        return;
+      }
+      const segments = this.pathSegments.slice(0, index + 1);
+      const newPath = segments.join('/');
+      if (newPath !== this.currentPath) {
+        this.currentPath = newPath;
+        this.pathHistory = [];
+        this.loadProvidersByPath(this.currentPath);
+      }
+    },
     deleteFile(file, index) {
       const _this = this;
       showConfirm(`${this.$t('dialog.open.delConfirm')}` + file.name).then(function() {
@@ -287,51 +321,9 @@ export default {
 .open-dialog-content {
   padding: 15px;
 }
-.form-group {
-  margin-bottom: 15px;
-}
-.path-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  margin-bottom: 10px;
-  border-radius: 4px;
-}
-.path-display {
-  display: flex;
-  align-items: center;
-}
-.path-label {
-  font-weight: bold;
-  margin-right: 8px;
-  color: #333;
-}
-.path-text {
-  color: #666;
-  font-family: monospace;
-}
-.table-container {
+.file-list-container {
   height: 300px;
   overflow-y: auto;
-  border: 1px solid #ddd;
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.data-table td {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-.data-table-header {
-  background: #f4f4f4;
-  height: 30px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 .folder-name {
   color: #008ed3;
@@ -344,18 +336,5 @@ export default {
 .icon-folder {
   margin-right: 5px;
   color: #ffc107;
-}
-.icon-folder-open {
-  margin-right: 5px;
-  color: #ffc107;
-}
-.open-button{
-  color: #008ed3;
-  font-size: 14pt;
-}
-.del-button{
-  color: red;
-  font-size: 14pt;
-  cursor: pointer
 }
 </style>

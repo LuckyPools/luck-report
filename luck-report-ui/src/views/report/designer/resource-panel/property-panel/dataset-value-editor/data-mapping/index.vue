@@ -19,7 +19,7 @@
           </u-radio-group>
         </u-form-item>
 
-        <div v-show="showMappingOptions && localMappingType === 'simple'" class="form-group">
+        <div v-show="showMappingOptions && localMappingType === 'simple'" class="form-group table-wrapper">
           <div class="top-button">
             <u-button
                 type="info"
@@ -29,12 +29,12 @@
             >
             </u-button>
           </div>
-          <table class="data-table" style="margin-top: 10px">
+          <table class="table-container" style="margin-top: 10px">
             <thead>
-              <tr style="background-color: #f5f5f5;height: 30px;">
-                <td style="width: 130px;"><span>{{ $t('property.dataset.realValue') }}</span></td>
-                <td style="width: 150px;"><span>{{ $t('property.dataset.displayValue') }}</span></td>
-                <td style="width: 80px;"><span>{{ $t('property.dataset.op') }}</span></td>
+              <tr>
+                <th style="width: 130px;"><span>{{ $t('property.dataset.realValue') }}</span></th>
+                <th style="width: 150px;"><span>{{ $t('property.dataset.displayValue') }}</span></th>
+                <th style="width: 80px;"><span>{{ $t('property.dataset.op') }}</span></th>
               </tr>
             </thead>
             <tbody style="font-size: 12px">
@@ -54,7 +54,7 @@
                       icon="icon-delete"
                       :title="$t('dialog.urlParam.delete')"
                       @click="handleDeleteMapping(index)"
-                      style="border: none">
+                      style="border: none;color: red">
                   </u-button>
                 </td>
               </tr>

@@ -10,9 +10,9 @@
       {{ $t('dialog.methodSelect.load') }}
     </div>
     <div v-else>
-      <table class="data-table">
+      <table class="table-container">
         <thead>
-        <tr style="background: #f4f4f4; height: 30px;">
+        <tr>
           <td><span>{{ $t('dialog.methodSelect.methodName') }}</span></td>
           <td><span>{{ $t('dialog.methodSelect.select') }}</span></td>
         </tr>
@@ -21,7 +21,7 @@
         <tr v-for="(methodItem, index) in methods" :key="index" style="height: 35px;">
           <td><span>{{ methodItem }}</span></td>
           <td>
-            <u-button type="text" icon="icon-hand-up" @click="selectMethod(methodItem)"></u-button>
+            <u-button type="info" icon="icon-hand-up" style="border: none;" @click="selectMethod(methodItem)"></u-button>
           </td>
         </tr>
         </tbody>

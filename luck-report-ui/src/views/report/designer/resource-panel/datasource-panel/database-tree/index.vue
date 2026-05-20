@@ -183,7 +183,7 @@ export default {
      */
     initDatasetExpanded() {
       this.datasets.forEach((dataset, index) => {
-        this.$set(this.datasetExpanded, index, true);
+        this.$set(this.datasetExpanded, index, false);
         // 如果字段不存在，则构建字段
         if (!dataset.fields) {
           this.buildFields(dataset, index);

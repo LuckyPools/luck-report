@@ -58,6 +58,9 @@ public class DatasourceController {
     @Autowired
     private ApplicationContext applicationContext;
 
+    @Autowired
+    private DialectFactory dialectFactory;
+
     /**
      * 加载内置数据源
      */
@@ -212,50 +215,59 @@ public class DatasourceController {
         String sql = req.getParameter("sql");
         String parameters = req.getParameter("parameters");
         Map<String, Object> map = buildParameters(parameters);
-        sql = parseSql(sql, map);
+        String originalSql = parseSql(sql, map);
         Connection conn = null;
         try {
             conn = buildConnection(req);
             DatabaseMetaData metaData = conn.getMetaData();
             String dbProductName = metaData.getDatabaseProductName();
             DbType dbType = DbType.getDbType(dbProductName);
-            IPageDialect dialect = DialectFactory.getDialect(dbType);
+            IPageDialect dialect = dialectFactory.getDialect(dbType);
             long offset = 0;
             long limit = 15;
-            if (dialect != null) {
-                sql = dialect.buildPaginationSql(sql, offset, limit);
+            int total = 0;
+            // 统计数据
+            DataSource dataSource = new SingleConnectionDataSource(conn, false);
+            NamedParameterJdbcTemplate jdbc = new NamedParameterJdbcTemplate(dataSource);
+            boolean isProcedure = ProcedureUtils.isProcedure(originalSql);
+            if (dialect != null && !isProcedure) {
+                String countSql = dialect.buildCountSql(originalSql);
+                Integer count = jdbc.queryForObject(countSql, map, Integer.class);
+                total = count != null ? count : 0;
             }
-            List<Map<String, Object>> list = null;
-            if (ProcedureUtils.isProcedure(sql)) {
-                list = ProcedureUtils.procedureQuery(sql, map, conn);
+            // 查询数据
+            List<Map<String, Object>> list;
+            if (isProcedure) {
+                list = ProcedureUtils.procedureQuery(originalSql, map, conn);
+                total = list.size();
             } else {
-                DataSource dataSource = new SingleConnectionDataSource(conn, false);
-                NamedParameterJdbcTemplate jdbc = new NamedParameterJdbcTemplate(dataSource);
-                list = jdbc.queryForList(sql, map);
+                String paginationSql = originalSql;
+                if (dialect != null) {
+                    paginationSql = dialect.buildPaginationSql(originalSql, offset, limit);
+                }
+                list = jdbc.queryForList(paginationSql, map);
             }
-            int size = list.size();
-            int currentTotal = size;
-            if (currentTotal > 500) {
-                currentTotal = 500;
+            int currentTotal = list.size();
+            if (currentTotal > limit) {
+                currentTotal = (int) limit;
             }
-            List<Map<String, Object>> ls = new ArrayList<>();
+            List<Map<String, Object>> dataList = new ArrayList<>();
             for (int i = 0; i < currentTotal; i++) {
-                ls.add(list.get(i));
+                dataList.add(list.get(i));
             }
             DataResult result = new DataResult();
             List<String> fields = new ArrayList<>();
-            if (size > 0) {
+            if (currentTotal > 0) {
                 Map<String, Object> item = list.get(0);
-                for (String name : item.keySet()) {
-                    fields.add(name);
-                }
+                fields.addAll(item.keySet());
             }
             result.setFields(fields);
             result.setCurrentTotal(currentTotal);
-            result.setData(ls);
-            result.setTotal(size);
+            result.setData(dataList);
+            result.setTotal(total);
             ResponseUtils.writeObjectToJson(resp, result);
         } catch (Exception ex) {
+            log.error("预览数据异常：{}", ex);
             throw new ReportServiceException(ex);
         } finally {
             if (conn != null) {

@@ -116,7 +116,9 @@ const en = {
             "methodParameters": "Method must be contain three Parameters",
             "returnObject": "Return Object",
             "className": "Class full name for generate fields,if not specified,you need add field manually",
-            "datasetExist": "already exist,please change dataset name"
+            "datasetExist": "already exist,please change dataset name",
+            "datasetNameRequired": "Dataset name is required",
+            "methodRequired": "Method name is required"
         },
         "buildin": {
             "selectDatasource": "Select Buildin Datasource",
@@ -259,6 +261,7 @@ const en = {
             "modDate": "Modify Date",
             "open": "Open",
             "del": "Delete",
+            "operator": "Operator",
             "openConfirm": "Are you sure open file ",
             "delConfirm": "Are you sure delete file ",
             "delFail": "File delete fail",
@@ -385,6 +388,7 @@ const en = {
             "delConfirm": "Are you sure delete the file ",
             "delFail": "File delete failed",
             "save": "Save",
+            "operator": "Operator",
             "nameTip": "File name can not be null",
             "locationTip": "Please select destination to store file",
             "file": "File",

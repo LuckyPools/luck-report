@@ -17,12 +17,12 @@
           </u-button>
       </div>
     </div>
-    <div class="table-container">
-      <table class="data-table" style="font-size: 12px;">
+    <div class="table-wrapper">
+      <table class="table-container" style="font-size: 12px;">
         <thead>
-          <tr style="height: 30px;background: #fafafa">
-            <td style="width: 135px;"><span>{{ $t('dialog.sql.tableName') }}</span></td>
-            <td style="width: 30px;"><span>{{ $t('dialog.sql.type') }}</span></td>
+          <tr>
+            <th style="width: 135px;"><span>{{ $t('dialog.sql.tableName') }}</span></th>
+            <th style="width: 30px;"><span>{{ $t('dialog.sql.type') }}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -141,27 +141,13 @@ export default {
 </script>
 
 <style scoped>
-.search-btn{
-    vertical-align: middle;
-    margin-left: 5px
-}
 
 .table-container {
-    height: 380px; /* 减去搜索框和表头的高度 */
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid #ddd;
-    border-top: none;
-}
-
-.data-table {
     width: 100%;
-    border-collapse: collapse;
     table-layout: fixed;
 }
 
-.data-table td {
-    border: 1px solid #ddd;
+.table-container td {
     padding: 4px;
     word-wrap: break-word;
 }

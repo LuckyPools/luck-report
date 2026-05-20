@@ -125,16 +125,19 @@ export default {
 .context-menu {
   position: fixed;
   background: #fff;
-  border: 1px solid #ccc;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow:
+      0 3px 6px rgba(0, 0, 0, 0.10),
+      0 6px 12px rgba(0, 0, 0, 0.08),
+      0 10px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   z-index: 10000;
   min-width: 180px;
   padding: 4px 0;
 }
 
 .context-menu-item {
-  padding: 6px 16px;
+  padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
   color: #333;

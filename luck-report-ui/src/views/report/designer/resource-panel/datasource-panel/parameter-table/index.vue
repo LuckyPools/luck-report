@@ -1,5 +1,5 @@
 <template>
-  <div class="parameter-table-container">
+  <div>
     <div class="header-row">
       <div class="text-section">
         {{ $t('dialog.sql.fiterParam') }}
@@ -12,20 +12,21 @@
         {{ $t('dialog.paramTable.addParam') }}
       </u-button>
     </div>
-    <table class="data-table" style="margin-top: 5px">
-      <thead>
-        <tr style="background: #f4f4f4;height: 30px;">
-          <td><span>{{ $t('dialog.paramTable.paramName') }}</span></td>
-          <td><span>{{ $t('dialog.paramTable.paramDatatype') }}</span></td>
-          <td><span>{{ $t('dialog.paramTable.defaultValue') }}</span></td>
-          <td style="width: 80px;"><span>{{ $t('dialog.paramTable.operator') }}</span></td>
+    <div class="table-wrapper" style="margin-top: 5px">
+      <table class="table-container">
+        <thead>
+        <tr>
+          <th><span>{{ $t('dialog.paramTable.paramName') }}</span></th>
+          <th><span>{{ $t('dialog.paramTable.paramDatatype') }}</span></th>
+          <th><span>{{ $t('dialog.paramTable.defaultValue') }}</span></th>
+          <th style="width: 80px;"><span>{{ $t('dialog.paramTable.operator') }}</span></th>
         </tr>
-      </thead>
-      <tbody>
+        </thead>
+        <tbody>
         <tr
-          v-for="(param, index) in data"
-          :key="index"
-          style="height: 35px;"
+            v-for="(param, index) in data"
+            :key="index"
+            style="height: 35px;"
         >
           <td><span>{{ param.name }}</span></td>
           <td><span>{{ param.type }}</span></td>
@@ -47,8 +48,9 @@
             </u-button>
           </td>
         </tr>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
     <ParameterDialog
       :visible="parameterDialogVisible"
       :edit-data="currentEditData"
@@ -135,5 +137,9 @@ export default {
 
 .text-section{
   flex: 1;
+}
+
+.table-wrapper{
+  height: 116px;
 }
 </style>

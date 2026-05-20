@@ -5,34 +5,36 @@
       :visible="visible"
       @close="closeDialog"
     >
+      <div class="table-wrapper">
         <div v-if="loading" style="padding: 20px; text-align: center;">
           {{ $t('dialog.buildin.loading') }}
         </div>
-        <table v-else class="data-table">
-            <thead>
-                <tr style="background: #f4f4f4;height: 30px;">
-                    <td>
-                      <span>{{ $t('dialog.buildin.datasourceName') }}</span>
-                    </td>
-                    <td>
-                      <span>{{ $t('dialog.buildin.select') }}</span>
-                    </td>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="name in buildinDatasources" :key="name" style="height: 35px;">
-                    <td>
-                      <span>{{ name }}</span>
-                    </td>
-                    <td>
-                        <u-button type="text" icon="icon-hand-up" @click="selectDatasource(name)"></u-button>
-                    </td>
-                </tr>
-            </tbody>
+        <table v-else class="table-container">
+          <thead>
+          <tr>
+            <td>
+              <span>{{ $t('dialog.buildin.datasourceName') }}</span>
+            </td>
+            <td>
+              <span>{{ $t('dialog.buildin.select') }}</span>
+            </td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="name in buildinDatasources" :key="name" style="height: 35px;">
+            <td>
+              <span>{{ name }}</span>
+            </td>
+            <td>
+              <u-button type="info" icon="icon-hand-up" style="border: none;" @click="selectDatasource(name)"></u-button>
+            </td>
+          </tr>
+          </tbody>
         </table>
-        <div slot="footer" style="text-align: right">
-            <u-button @click="closeDialog" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-        </div>
+      </div>
+      <div slot="footer" style="text-align: right">
+        <u-button @click="closeDialog" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
+      </div>
     </UDialog>
 </template>
 

@@ -3,6 +3,7 @@
     <UDialog
       :title="$t('dialog.sql.title')"
       width="1080px"
+      top="10vh"
       :visible="visible"
       :z-index="20000"
       @close="closeDialog"

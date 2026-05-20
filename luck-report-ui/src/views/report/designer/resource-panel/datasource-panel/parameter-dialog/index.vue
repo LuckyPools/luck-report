@@ -104,26 +104,13 @@ export default {
     }
   },
   watch: {
-    editData: {
-      handler(newData) {
-        if (newData) {
-          this.formData.name = newData.name || '';
-          this.formData.type = newData.type || '';
-          this.formData.defaultValue = newData.defaultValue || '';
-        } else {
-          this.resetFormData();
-        }
-      },
-      immediate: true
-    },
     visible(newVal) {
       if (newVal) {
+        this.resetFormData();
         if (this.editData) {
           this.formData.name = this.editData.name || '';
           this.formData.type = this.editData.type || '';
           this.formData.defaultValue = this.editData.defaultValue || '';
-        } else {
-          this.resetFormData();
         }
       }
     }
@@ -145,9 +132,8 @@ export default {
      * 重置表单数据
      */
     resetFormData() {
-      this.formData.name = '';
-      this.formData.type = 'String';
-      this.formData.defaultValue = '';
+      let that = this;
+      that.$refs.form && that.$refs.form.resetFields();
     },
 
     /**

@@ -24,4 +24,13 @@ public interface IPageDialect {
      * @return 分页模型
      */
     String buildPaginationSql(String originalSql, long offset, long limit);
+
+    /**
+     * 构建统计总数的SQL语句
+     * 将原始SQL包装为 SELECT COUNT(*) FROM (原始SQL) tmp 形式
+     *
+     * @param originalSql 原始SQL语句，不能为空
+     * @return 统计总数的SQL语句
+     */
+    String buildCountSql(String originalSql);
 }

@@ -2,7 +2,9 @@ package com.luck.report.web.sql;
 
 import com.luck.report.web.sql.enums.DbType;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
+@Component
 public class SQLServerDialect implements IPageDialect {
     public SQLServerDialect() {
     }
@@ -48,5 +50,16 @@ public class SQLServerDialect implements IPageDialect {
         long secondParam = offset + limit;
         String sql = "WITH selectTemp AS (SELECT " + distinctStr + "TOP 100 PERCENT  ROW_NUMBER() OVER (" + orderby + ") as __row_number__, " + pagingBuilder + ") SELECT * FROM selectTemp WHERE __row_number__ BETWEEN " + firstParam + " AND " + secondParam + " ORDER BY __row_number__";
         return sql;
+    }
+
+    /**
+     * 构建统计总数的SQL语句
+     *
+     * @param originalSql 原始SQL语句，不能为空
+     * @return 统计总数的SQL语句
+     */
+    @Override
+    public String buildCountSql(String originalSql) {
+        return "SELECT COUNT(*) FROM (" + originalSql + ") tmp";
     }
 }

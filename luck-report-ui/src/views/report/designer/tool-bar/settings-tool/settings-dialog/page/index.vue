@@ -89,7 +89,6 @@
       <div class="u-inline">
         <u-select
           v-model="localPaper.orientation"
-          style="width: 312px"
           @change="handleOrientationChange"
         >
           <u-option

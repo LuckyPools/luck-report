@@ -5,9 +5,6 @@ import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.exception.ReportException;
-import com.luck.report.core.export.ExportConfigure;
-import com.luck.report.core.export.ExportConfigureImpl;
-import com.luck.report.core.export.ExportManager;
 import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.model.Report;
@@ -37,9 +34,6 @@ public class ExportPdfController {
 
     @Autowired
     private ReportBuilder reportBuilder;
-
-    @Autowired
-    private ExportManager exportManager;
 
     @Autowired
     private ReportRender reportRender;
@@ -87,26 +81,26 @@ public class ExportPdfController {
         try {
             Map<String, Object> parameters = buildParameters(req);
             outputStream = resp.getOutputStream();
+            ReportDefinition reportDefinition;
             if (isPreview) {
-                ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
+                reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
                 if (reportDefinition == null) {
                     throw new ReportDesignException("Report data has expired,can not do export pdf.");
                 }
                 reportRender.rebuildReportDefinition(reportDefinition);
-                Report report = reportBuilder.buildReport(reportDefinition, parameters);
-
-                String paperJson = req.getParameter("_paper");
-                if (paperJson != null && !paperJson.isEmpty()) {
-                    ObjectMapper mapper = new ObjectMapper();
-                    Paper newPaper = mapper.readValue(paperJson, Paper.class);
-                    report.rePaging(newPaper);
-                }
-
-                pdfProducer.produce(report, outputStream);
             } else {
-                ExportConfigure configure = new ExportConfigureImpl(fileName, parameters, outputStream);
-                exportManager.exportPdf(configure);
+                reportDefinition = reportRender.getReportDefinition(fileName);
             }
+
+            Report report = reportBuilder.buildReport(reportDefinition, parameters);
+            String paperJson = req.getParameter("_paper");
+            if (paperJson != null && !paperJson.isEmpty()) {
+                ObjectMapper mapper = new ObjectMapper();
+                Paper newPaper = mapper.readValue(paperJson, Paper.class);
+                report.rePaging(newPaper);
+            }
+
+            pdfProducer.produce(report, outputStream);
         } catch (Exception ex) {
             throw new ReportException(ex);
         } finally {

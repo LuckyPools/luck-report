@@ -6,7 +6,7 @@
     :z-index="20000"
     @close="handleClose"
   >
-    <div class="dialog-content">
+    <div class="dialog-content table-wrapper">
        <div class="top-button">
            <u-button
              type="info"
@@ -15,12 +15,12 @@
              icon="icon-plus-circle"
            />
        </div>
-      <table class="data-table" style="margin-top: 5px">
+      <table class="table-container" style="margin-top: 5px">
         <thead>
-          <tr style="background-color: #eeeeee; height: 30px;">
-            <td style="width: 150px;"><span>{{ $t('dialog.urlParam.name') }}</span></td>
-            <td style="width: 350px;"><span>{{ $t('dialog.urlParam.expr') }}</span></td>
-            <td style="width: 100px;"><span>{{ $t('dialog.urlParam.op') }}</span></td>
+          <tr>
+            <th style="width: 150px;"><span>{{ $t('dialog.urlParam.name') }}</span></th>
+            <th style="width: 350px;"><span>{{ $t('dialog.urlParam.expr') }}</span></th>
+            <th style="width: 100px;"><span>{{ $t('dialog.urlParam.op') }}</span></th>
           </tr>
         </thead>
         <tbody>

@@ -160,10 +160,9 @@ export default {
     }
   },
   created() {
-    // 初始化数据集展开状态
     if (this.datasets && this.datasets.length > 0) {
       for (let i = 0; i < this.datasets.length; i++) {
-        this.$set(this.datasetExpanded, i, true);
+        this.$set(this.datasetExpanded, i, false);
       }
     }
   },

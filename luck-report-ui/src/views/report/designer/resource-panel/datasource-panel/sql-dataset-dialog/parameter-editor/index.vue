@@ -26,7 +26,7 @@ export default {
   components: {
     ParameterTable
   },
-  // 移除直接修改子组件props的watch监听器，子组件的data prop会通过Vue的响应式系统自动更新
+
   methods: {
     handleAddParameter(newParam) {
       this.$emit('add-parameter', newParam);

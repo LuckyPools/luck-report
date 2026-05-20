@@ -12,7 +12,7 @@
         'u-input-input-icon-suffix': prefixIcon,
         [`u-input-input-${size}-size`]: true,
       }"
-        :type="type"
+        :type="inputType"
         :value="currentValue"
         @input="handleInput"
         @focus="handleFocus"
@@ -36,6 +36,13 @@
           class="iconfont icon-close"
           v-if="clearable && currentValue && !disabled"
           @click="handleClean"
+      />
+      <!-- 密码显示/隐藏切换图标 -->
+      <i
+          v-else-if="type === 'password' && !disabled"
+          class="iconfont"
+          :class="showPassword ? 'icon-browse' : 'icon-hide'"
+          @click="togglePassword"
       />
       <i
           v-else
@@ -86,6 +93,7 @@ export default {
       panelVisible: false, // 鼠标在hover阶段
       options: [], // 输入建议可选项
       loading: false, // 是否正在加载中
+      showPassword: false, // 密码是否可见
     }
   },
   props: {
@@ -163,6 +171,13 @@ export default {
     needPaddingRight() {
       return this.clearable && this.suffixIcon
     },
+    // 计算实际输入框类型，密码框支持切换显示/隐藏
+    inputType() {
+      if (this.type === 'password') {
+        return this.showPassword ? 'text' : 'password'
+      }
+      return this.type
+    },
   },
   mounted() {
     // 绑定点击事件
@@ -209,6 +224,12 @@ export default {
         this.$emit('change', '')
         this.getSuggesitions()
       }
+    },
+    /**
+     * @description 切换密码显示/隐藏状态
+     */
+    togglePassword() {
+      this.showPassword = !this.showPassword
     },
     /**
      * @description input的hover事件，该函数作用是控制输入提示的显示
@@ -328,7 +349,7 @@ export default {
   position: absolute;
   width: 16px;
   height: 16px;
-  right: 6px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 14px;

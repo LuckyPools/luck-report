@@ -13,14 +13,14 @@
             <div style="height: 30px; background: #fdfdfd;">
               <span style="margin: 4px;">{{ $t('dialog.preview.total') }}{{ resultData.total }}{{ $t('dialog.preview.totalMid') }}{{ resultData.currentTotal }}{{ $t('dialog.preview.item') }}</span>
             </div>
-            <div class="table-container">
-              <table class="table table-bordered" style="margin-top: 2px; table-layout: fixed;">
+            <div class="preview-body-content table-wrapper" style="margin-top: 2px;">
+              <table class="table-container" style="table-layout: fixed;">
                 <thead>
-                <tr style="background: #f3f3f3;">
-                  <td v-for="field in resultData.fields" :key="field" style="word-wrap: break-word; width: 120px;">
-                    {{ field }}
-                  </td>
-                </tr>
+                  <tr style="background: #f3f3f3;">
+                    <th v-for="field in resultData.fields" :key="field" style="word-wrap: break-word; width: 120px;">
+                      {{ field }}
+                    </th>
+                  </tr>
                 </thead>
                 <tbody>
                 <tr v-for="(item, index) in resultData.data" :key="index">
@@ -120,28 +120,18 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  color: black;
 }
 
-.table-container {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: auto;
+.preview-body-content {
   min-height: 0;
   max-height: var(--dialog-height);
+  overflow-x: scroll;
 }
 
-.preview-body-container table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 0;
+.table-container td{
+  padding: 0 5px;
+  color: black;
 }
 
-.preview-body-container table td, .data-table th {
-  border: 1px solid #ddd;
-}
-
-.preview-body-container table thead th {
-  vertical-align: bottom;
-  border-bottom: 2px solid #ddd;
-}
 </style>

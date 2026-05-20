@@ -357,4 +357,25 @@ export default {
 .handsontable table.htCore{
   border-collapse:collapse
 }
+
+.htContextMenu table.htCore{
+  display: block;
+  padding: 4px 0;
+  width: 200px;
+  box-shadow:
+      0 3px 6px rgba(0, 0, 0, 0.10),
+      0 6px 12px rgba(0, 0, 0, 0.08),
+      0 10px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.htContextMenu table tbody tr td{
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.htContextMenu table tbody tr td i{
+  margin-right: 8px;
+}
+
 </style>
