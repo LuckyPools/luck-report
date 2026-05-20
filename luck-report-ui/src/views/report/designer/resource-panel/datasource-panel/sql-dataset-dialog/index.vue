@@ -192,6 +192,11 @@ export default {
      */
     handlePreview() {
       const sql = this.sql || '';
+      if (!sql || sql === '') {
+        showAlert(this.$t('dialog.sql.sqlTip'));
+        return;
+      }
+
       const type = this.db.type;
       const parameters = {
         sql,
