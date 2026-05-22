@@ -1,6 +1,5 @@
 package com.luck.report.web.controller.designer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.core.cache.ReportDefinitionCache;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.dsl.ReportParserLexer;
@@ -13,6 +12,7 @@ import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.filter.RequestHolderFilter;
+import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.utils.ResponseUtils;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -132,7 +132,7 @@ public class DesignerController implements ApplicationContextAware {
         if (filePath == null) {
             throw new ReportDesignException("Report file can not be null.");
         }
-        String fileName = ReportUtils.decodeFileName(filePath);
+        String fileName = UrlParameterUtils.doubleDecode(filePath);
         Object obj = ReportScopedCache.getObject(fileName);
         if (obj instanceof ReportDefinition) {
             ReportDefinition reportDef = (ReportDefinition) obj;
@@ -172,7 +172,7 @@ public class DesignerController implements ApplicationContextAware {
     @RequestMapping("/saveReportFile")
     public void saveReportFile(HttpServletRequest req, HttpServletResponse resp) {
         String file = req.getParameter("file");
-        file = ReportUtils.decodeFileName(file);
+        file = UrlParameterUtils.doubleDecode(file);
         String content = req.getParameter("content");
         content = decode(content);
         ReportProvider targetReportProvider = null;

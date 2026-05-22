@@ -1,8 +1,9 @@
 <template>
   <div
+    v-show="showPrintLine"
     ref="printLine"
     title="打印线"
-    class="ureport-right-hr-for-print"
+    class="right-hr-for-print"
     :style="lineStyle"
   ></div>
 </template>
@@ -15,7 +16,30 @@ export default {
      * 从vuex获取context
      */
     context: function() {
-      return this.$store.getters['report/getContext'] || {};
+      return this.$store.getters['report/getContext'];
+    },
+    /**
+     * 获取打印线刷新标志
+     */
+    printLineShouldRefresh() {
+      return this.$store.getters['report/getPrintLineShouldRefresh'];
+    },
+    /**
+     * 获取打印线显示状态
+     */
+    showPrintLine() {
+      return this.$store.getters['report/getShowPrintLine'];
+    }
+  },
+  watch: {
+    /**
+     * 监听打印线刷新标志，为true时刷新打印线并重置标志
+     */
+    printLineShouldRefresh(newVal) {
+      if (newVal) {
+        this.refresh();
+        this.$store.dispatch('report/setPrintLineShouldRefresh', false);
+      }
     }
   },
   data() {
@@ -36,8 +60,6 @@ export default {
     window.addEventListener('resize', this.updateLineHeight);
     // 初始化打印线高度
     this.updateLineHeight();
-    // 初始化打印线位置
-    this.refresh();
   },
   beforeUnmount() {
     // 清理事件监听
@@ -57,6 +79,9 @@ export default {
      * 刷新打印线位置
      */
     refresh() {
+      if (!this.context || !this.context.reportDef || !this.context.reportDef.paper) {
+        return;
+      }
       const paper = this.context.reportDef.paper;
       const orientation = paper.orientation;
       let width = paper.width;

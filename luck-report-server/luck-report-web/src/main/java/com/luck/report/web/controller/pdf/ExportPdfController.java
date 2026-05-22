@@ -10,6 +10,8 @@ import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.utils.DownloadUtils;
+import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.exception.ReportDesignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,10 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -45,11 +43,9 @@ public class ExportPdfController {
      */
     @RequestMapping("/build")
     public void build(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String fileName = req.getParameter("reportPath");
         String pdfName = req.getParameter("_n");
-        pdfName = buildDownloadFileName(ReportConstants.MODE_KEY, pdfName, ".pdf");
-        pdfName = new String(pdfName.getBytes(StandardCharsets.UTF_8), "ISO8859-1");
-        resp.setContentType("application/octet-stream;charset=ISO8859-1");
-        resp.setHeader("Content-Disposition", "attachment;filename=\"" + pdfName + "\"");
+        DownloadUtils.buildDownloadHeader(resp, fileName, pdfName, ".pdf");
         buildPdf(req, resp);
     }
 
@@ -75,13 +71,13 @@ public class ExportPdfController {
     private void buildPdf(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String mode = req.getParameter("mode");
         String fileName = req.getParameter("reportPath");
-        fileName = decode(fileName);
+        fileName = UrlParameterUtils.doubleDecode(fileName);
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         OutputStream outputStream = null;
         try {
-            Map<String, Object> parameters = buildParameters(req);
             outputStream = resp.getOutputStream();
             ReportDefinition reportDefinition;
+            Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
             if (isPreview) {
                 reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
                 if (reportDefinition == null) {
@@ -108,57 +104,6 @@ public class ExportPdfController {
                 outputStream.flush();
                 outputStream.close();
             }
-        }
-    }
-
-    protected String decode(String value) {
-        if (value == null) {
-            return value;
-        }
-        try {
-            value = URLDecoder.decode(value, "utf-8");
-            value = URLDecoder.decode(value, "utf-8");
-            return value;
-        } catch (Exception ex) {
-            return value;
-        }
-    }
-
-    protected Map<String, Object> buildParameters(HttpServletRequest req) {
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        Enumeration<?> enumeration = req.getParameterNames();
-        while (enumeration.hasMoreElements()) {
-            Object obj = enumeration.nextElement();
-            if (obj == null) {
-                continue;
-            }
-            String name = obj.toString();
-            String value = req.getParameter(name);
-            if (name == null || value == null || name.startsWith("_")) {
-                continue;
-            }
-            parameters.put(name, decode(value));
-        }
-        return parameters;
-    }
-
-    protected String buildDownloadFileName(String reportFileName, String fileName, String extName) {
-        if (org.apache.commons.lang3.StringUtils.isNotBlank(fileName)) {
-            fileName = decode(fileName);
-            if (!fileName.toLowerCase().endsWith(extName)) {
-                fileName = fileName + extName;
-            }
-            return fileName;
-        } else {
-            int pos = reportFileName.indexOf(":");
-            if (pos > 0) {
-                reportFileName = reportFileName.substring(pos + 1);
-            }
-            pos = reportFileName.toLowerCase().indexOf(".ureport.xml");
-            if (pos > 0) {
-                reportFileName = reportFileName.substring(0, pos);
-            }
-            return "ureport-" + reportFileName + extName;
         }
     }
 }

@@ -2,7 +2,7 @@
   <div>
     <div class="header-row">
       <div class="text-section">
-        {{ $t('dialog.sql.fiterParam') }}
+        {{ $t('dialog.sql.searchParam') }}
         <span class="text-info">{{ $t('dialog.sql.paramDesc') }}</span>
       </div>
       <u-button

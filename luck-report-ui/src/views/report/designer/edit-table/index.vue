@@ -2,6 +2,8 @@
   <div class="ud-page">
 <!--    <div class="ud-slider"></div>-->
     <div class="ud-table" ref="contentTable"></div>
+    <!-- 打印线 -->
+    <PrintLine ref="printLine" />
   </div>
 </template>
 
@@ -18,9 +20,11 @@ import { showAlert } from '@/utils/comnon.js';
 import { addRowHeader } from "@/utils/contextActions";
 import TableManager from './manager.js';
 import { getLibMode } from '@/lib/navigator';
+import PrintLine from "@/views/report/designer/print-line/index.vue";
 
 export default {
   name: 'ContentTable',
+  components: {PrintLine},
   props: {
     reportPath: {
       type: String,
@@ -59,7 +63,8 @@ export default {
   },
   methods: {
     ...mapActions('report', [
-      'setContext'
+      'setContext',
+      'setPrintLineShouldRefresh'
     ]),
     initTable() {
       utils.undoManager.setLimit(100);
@@ -199,9 +204,8 @@ export default {
       this.context = new Context(this);
 
       this.setContext(this.context);
-
+      this.setPrintLineShouldRefresh(true);
       this.$emit('context-created', this.context);
-
       this.processRowHeaders();
     },
 
@@ -355,7 +359,8 @@ export default {
   background: transparent;
 }
 .handsontable table.htCore{
-  border-collapse:collapse
+  border-collapse:collapse;
+  cursor: cell;
 }
 
 .htContextMenu table.htCore{

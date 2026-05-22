@@ -375,7 +375,7 @@ export default {
 }
 
 .group-items-section {
-  width: 250px;
+  width: 200px;
   margin-right: 20px;
 }
 
@@ -385,21 +385,21 @@ export default {
 
 .group-select{
   width: 200px;
-  height: 285px;
+  height: 280px;
   display: inline-block;
   outline: none
 }
 
 .condition-select{
-  height: 250px;
+  height: 280px;
   outline: none;
+  margin-top: 5px;
 }
 
 .condition-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 .condition-header label {

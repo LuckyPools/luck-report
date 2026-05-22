@@ -1,7 +1,7 @@
 package com.luck.report.web.handler;
 
-import com.luck.report.core.exception.ReportException;
 import com.luck.report.web.utils.ResponseUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -39,7 +39,9 @@ public class ReportExceptionHandler {
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         String errorMessage = getRootErrorMessage(ex);
         String auxCode = generateAuxCode();
-
+        if(StringUtils.isBlank(errorMessage)){
+            errorMessage = "Unknown Error";
+        }
         logger.error("报表异常 [auxCode={}]: {}", auxCode, errorMessage, ex);
 
         Map<String, Object> result = new HashMap<>();

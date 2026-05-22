@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="condition-style">
     <ColorConfig
       :cell-style="localItem.cellStyle"
       @color-change="handleColorChange"
@@ -253,3 +253,9 @@ export default {
   }
 };
 </script>
+<style scoped>
+.condition-style{
+  height: 446px;
+  overflow-y: scroll;
+}
+</style>

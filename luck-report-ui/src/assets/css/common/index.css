@@ -71,8 +71,8 @@ label {
     margin-bottom: 10px !important;
 }
 
-.property-label .u-form-item-label {
-
+.solo-label{
+    margin-bottom: 0 !important;
 }
 
 .property-quote {

@@ -12,7 +12,7 @@
     </div>
 
     <div class="row" style="margin:10px;">
-      SQL(<span style="color: #999999;font-size: 12px;">{{ $t('dialog.sql.desc') }}：</span>)
+      SQL(<span style="color: #999999;font-size: 12px;">{{ $t('dialog.sql.desc') }}</span>)
       <textarea
         ref="sqlTextarea"
         placeholder="select username,dept_id from employee where dept_id=:deptId"

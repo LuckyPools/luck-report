@@ -370,9 +370,6 @@ export default {
         return;
       }
       this.paper.width = mmToPoint(value);
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
     },
 
     /**
@@ -399,9 +396,6 @@ export default {
         return;
       }
       this.paper.leftMargin = mmToPoint(value);
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
     },
 
     /**
@@ -415,9 +409,6 @@ export default {
         return;
       }
       this.paper.rightMargin = mmToPoint(value);
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
     },
 
     /**

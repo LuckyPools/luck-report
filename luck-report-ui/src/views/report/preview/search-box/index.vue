@@ -88,7 +88,7 @@ export default {
 .tools-content {
   border: solid 1px #ddd;
   border-radius: 5px;
-  height: 40px;
+  height: 42px;
   width: 100%;
   background: #f8f8f8;
   box-sizing: border-box;

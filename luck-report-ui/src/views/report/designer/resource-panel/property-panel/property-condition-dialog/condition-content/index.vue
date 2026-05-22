@@ -269,7 +269,7 @@ export default {
 }
 
 .condition-select{
-  height: 500px;
+  height: 400px;
   padding: 3px;
   outline: none;
 }

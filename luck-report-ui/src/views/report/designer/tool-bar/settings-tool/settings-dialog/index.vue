@@ -132,7 +132,6 @@ export default {
       dialogVisible: false,
       activeTab: 'page',
       paperSizeList: buildPageSizeList(),
-      initializing: false, // 添加初始化标志
       paper: {
         paperType: 'A4',
         width: mmToPoint(210),
@@ -176,7 +175,8 @@ export default {
         underline: false
       },
       headerFontDialogVisible: false,
-      footerFontDialogVisible: false
+      footerFontDialogVisible: false,
+      printLineShouldRefresh: false
     };
   },
   computed: {
@@ -218,9 +218,6 @@ export default {
         return;
       }
 
-      // 设置初始化标志
-      this.initializing = true;
-
       const reportDefCopy = deepCopy(this.context.reportDef);
 
       // 初始化数据
@@ -241,8 +238,8 @@ export default {
       this.header = { ...reportDefCopy.header };
       this.footer = { ...reportDefCopy.footer };
 
-      // 初始化完成后，清除初始化标志
-      this.initializing = false;
+      this.printLineShouldRefresh = false;
+
     },
     handleClose() {
       this.dialogVisible = false;
@@ -268,6 +265,10 @@ export default {
         footer: newFooter
       });
 
+      if (this.printLineShouldRefresh) {
+        this.$store.dispatch('report/setPrintLineShouldRefresh', true);
+      }
+
       this.dialogVisible = false;
       this.$emit('ok');
     },
@@ -275,16 +276,11 @@ export default {
       if (this.paper.paperType !== 'CUSTOM') {
         return;
       }
-
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
+      this.printLineShouldRefresh = true;
       setDirty();
     },
     updateMargins() {
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
+      this.printLineShouldRefresh = true;
       setDirty();
     },
     updateBackgroundImage() {
@@ -320,10 +316,6 @@ export default {
       this.footer = value;
     },
     handleFixRowsChange(value) {
-      if (this.initializing) {
-        return;
-      }
-
       if (this.paper.pagingMode === 'fixrows' && value < 1) {
         showAlert(this.$t('dialog.setting.fixRowsTip'));
         return;
@@ -381,16 +373,12 @@ export default {
         const pageSize = this.paperSizeList[value];
         this.paper.width = mmToPoint(pageSize.width);
         this.paper.height = mmToPoint(pageSize.height);
-        if (this.context && this.context.printLine) {
-          this.context.printLine.refresh();
-        }
+        this.printLineShouldRefresh = true;
       }
       setDirty();
     },
     handleOrientationChange() {
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
+      this.printLineShouldRefresh = true;
       setDirty();
     },
     handleHtmlAlignChange() {
@@ -426,4 +414,5 @@ export default {
 .btn-cancel {
   margin-right: 10px;
 }
+
 </style>

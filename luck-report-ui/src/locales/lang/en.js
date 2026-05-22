@@ -105,6 +105,10 @@ const en = {
             "title": "Barcode/QRCode",
             "qrcode": "QRCode",
             "barcode": "Barcode"
+        },
+        "printLine": {
+            "showPrintLine": "Show Print Line",
+            "hidePrintLine": "Hide Print Line"
         }
     },
     "dialog": {
@@ -464,9 +468,9 @@ const en = {
             "tableName": "Table Name",
             "type": "Type",
             "datasetName": "Dataset Name",
-            "desc": "SQL support expression，like：${expr...}</span>)",
+            "desc": "SQL support expression，like：${expr...}",
             "syntaxCheckError": "Syntax check failed!",
-            "fiterParam": "Search Parameters",
+            "searchParam": "Search Parameters",
             "paramDesc": "(Please define parameters in the below table)",
             "preview": "Preview Data",
             "previewFail": "Preview data fail!",

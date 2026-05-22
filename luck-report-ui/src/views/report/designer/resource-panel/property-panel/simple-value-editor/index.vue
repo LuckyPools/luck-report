@@ -168,6 +168,7 @@ export default {
 <style scoped>
 textarea:focus {
   outline: none;
+  border-color: #00554a;
 }
 </style>
 

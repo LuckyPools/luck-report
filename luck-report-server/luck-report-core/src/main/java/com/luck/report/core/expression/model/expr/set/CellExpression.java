@@ -50,17 +50,20 @@ public class CellExpression extends BaseExpression {
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
         List<Cell> targetCells = Utils.fetchTargetCells(cell, context, cellName);
+        if (targetCells == null || targetCells.isEmpty()) {
+            return new NoneExpressionData();
+        }
+        if (targetCells.size() == 1) {
+            return new ObjectExpressionData(targetCells.get(0).getData());
+        }
         if (targetCells.size() > 1) {
             List<Object> list = new ArrayList<Object>();
             for (Cell targetCell : targetCells) {
                 list.add(targetCell.getData());
             }
             return new ObjectListExpressionData(list);
-        } else if (targetCells.size() == 1) {
-            return new ObjectExpressionData(targetCells.get(0).getData());
-        } else {
-            return new NoneExpressionData();
         }
+        return new NoneExpressionData();
     }
 
     public ExpressionData<?> computePageCells(Cell cell, Cell currentCell, Context context) {

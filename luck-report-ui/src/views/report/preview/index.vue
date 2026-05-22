@@ -3,6 +3,7 @@
     <div class="preview-left">
       <ToolBox
           :reportData="reportData"
+          :reportName="currentReportName"
           :currentPage="currentPage"
           :pageEnable="pageEnable"
           :searchFormParameters="searchFormParameters"

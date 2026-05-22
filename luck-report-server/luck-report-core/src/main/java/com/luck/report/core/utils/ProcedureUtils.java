@@ -81,7 +81,8 @@ public class ProcedureUtils {
                 Map<String, Object> map = new HashMap<String, Object>();
                 for (int i = 1; i <= columnCount; i++) {
                     String columnName = metadata.getColumnLabel(i);
-                    map.put(columnName, rs.getObject(columnName));
+                    Object value = JdbcUtils.getResultSetValue(rs, i);
+                    map.put(columnName, value);
                 }
                 result.add(map);
             }

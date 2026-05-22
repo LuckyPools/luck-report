@@ -47,9 +47,11 @@
               :label="option.label"
           />
         </u-select>
+      </u-form-item>
+
+      <u-form-item class="property-label" v-show="internalSelectedAggregate === 'customgroup'">
         <u-button
-            style="margin-left: 5px"
-            v-show="internalSelectedAggregate === 'customgroup'"
+            type="info"
             @click="handleCustomGroupConfig"
         >
           {{ $t('property.dataset.configCustomGroup') }}
@@ -133,7 +135,6 @@
       <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
         <u-button
             type="info"
-            size="mini"
             icon="icon-filter"
             @click="handleConditionPropertyConfig"
         >

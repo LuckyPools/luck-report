@@ -10,8 +10,9 @@ import com.luck.report.core.export.excel.low.Excel97Producer;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.utils.DownloadUtils;
+import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.exception.ReportDesignException;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,9 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URLDecoder;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -61,18 +59,12 @@ public class ExportExcel97Controller {
 
     private void buildExcel(HttpServletRequest req, HttpServletResponse resp, boolean withPage, boolean withSheet) throws IOException {
         String fileName = req.getParameter("reportPath");
-        fileName = decode(fileName);
         String mode = req.getParameter("mode");
-        boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String excelName = req.getParameter("_n");
-        if (StringUtils.isNotBlank(excelName)) {
-            excelName = decode(excelName);
-        } else {
-            excelName = "luck-report.xls";
-        }
-        resp.setContentType("application/octet-stream;charset=ISO8859-1");
-        resp.setHeader("Content-Disposition", "attachment;filename=\"" + excelName + "\"");
-        Map<String, Object> parameters = buildParameters(req);
+        DownloadUtils.buildDownloadHeader(resp, fileName, excelName, ".xls");
+        fileName = UrlParameterUtils.doubleDecode(fileName);
+        Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
+        boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         OutputStream outputStream = resp.getOutputStream();
         if (isPreview) {
             ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
@@ -100,36 +92,5 @@ public class ExportExcel97Controller {
         }
         outputStream.flush();
         outputStream.close();
-    }
-
-    protected String decode(String value) {
-        if (value == null) {
-            return value;
-        }
-        try {
-            value = URLDecoder.decode(value, "utf-8");
-            value = URLDecoder.decode(value, "utf-8");
-            return value;
-        } catch (Exception ex) {
-            return value;
-        }
-    }
-
-    protected Map<String, Object> buildParameters(HttpServletRequest req) {
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        Enumeration<?> enumeration = req.getParameterNames();
-        while (enumeration.hasMoreElements()) {
-            Object obj = enumeration.nextElement();
-            if (obj == null) {
-                continue;
-            }
-            String name = obj.toString();
-            String value = req.getParameter(name);
-            if (name == null || value == null || name.startsWith("_")) {
-                continue;
-            }
-            parameters.put(name, decode(value));
-        }
-        return parameters;
     }
 }

@@ -1,12 +1,14 @@
 // report模块 - 管理报表设计器的状态
 const state = {
-  // 报表上下文对象
   context: null,
-  // 报表名称
   fileName: '',
   saveBtnDisable: true,
   // 报表是否已保存
-  saveStatus: false
+  saveStatus: false,
+  // 打印线是否显示
+  showPrintLine: true,
+  // 打印先是否刷新
+  printLineShouldRefresh: false,
 };
 
 const mutations = {
@@ -133,6 +135,19 @@ const mutations = {
   // 设置报表保存状态
   SET_SAVE_STATUS(state, saveStatus) {
     state.saveStatus = saveStatus;
+  },
+
+  SET_PRINT_LINE_SHOULD_REFRESH(state, shouldRefresh) {
+    state.printLineShouldRefresh = shouldRefresh;
+  },
+
+  /**
+   * 设置打印线显示状态
+   * @param {Object} state - Vuex状态对象
+   * @param {boolean} showPrintLine - 是否显示打印线
+   */
+  SET_SHOW_PRINT_LINE(state, showPrintLine) {
+    state.showPrintLine = showPrintLine;
   }
 };
 
@@ -219,6 +234,19 @@ const actions = {
   // 设置报表保存状态的 Action
   setSaveStatus({ commit }, saveStatus) {
     commit('SET_SAVE_STATUS', saveStatus);
+  },
+
+  setPrintLineShouldRefresh({ commit }, shouldRefresh) {
+    commit('SET_PRINT_LINE_SHOULD_REFRESH', shouldRefresh);
+  },
+
+  /**
+   * 设置打印线显示状态
+   * @param {Object} param0 - Vuex上下文对象
+   * @param {boolean} showPrintLine - 是否显示打印线
+   */
+  setShowPrintLine({ commit }, showPrintLine) {
+    commit('SET_SHOW_PRINT_LINE', showPrintLine);
   }
 };
 
@@ -236,7 +264,13 @@ const getters = {
   getSaveBtnDisable: state => state.saveBtnDisable,
 
   // 获取报表保存状态
-  getSaveStatus: state => state.saveStatus
+  getSaveStatus: state => state.saveStatus,
+
+  // 打印线是否需要刷新
+  getPrintLineShouldRefresh: state => state.printLineShouldRefresh,
+
+  // 获取打印线显示状态
+  getShowPrintLine: state => state.showPrintLine
 };
 
 export default {

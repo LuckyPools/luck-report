@@ -13,10 +13,11 @@
             <div style="height: 30px; background: #fdfdfd;">
               <span style="margin: 4px;">{{ $t('dialog.preview.total') }}{{ resultData.total }}{{ $t('dialog.preview.totalMid') }}{{ resultData.currentTotal }}{{ $t('dialog.preview.item') }}</span>
             </div>
-            <div class="preview-body-content table-wrapper" style="margin-top: 2px;">
+            <div v-if="resultData.fields && resultData.fields.length > 0"
+                 class="preview-body-content table-wrapper">
               <table class="table-container" style="table-layout: fixed;">
                 <thead>
-                  <tr style="background: #f3f3f3;">
+                  <tr>
                     <th v-for="field in resultData.fields" :key="field" style="word-wrap: break-word; width: 120px;">
                       {{ field }}
                     </th>
@@ -127,6 +128,7 @@ export default {
   min-height: 0;
   max-height: var(--dialog-height);
   overflow-x: scroll;
+  margin-top: 2px
 }
 
 .table-container td{

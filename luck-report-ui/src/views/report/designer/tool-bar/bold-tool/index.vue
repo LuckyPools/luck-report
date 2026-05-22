@@ -5,7 +5,7 @@
       class="info-button"
       @click="handleClick"
   >
-    <i class="iconfont iconfont icon-font-bold" :style="{ color: isActive ? 'black' : '#666' }"></i>
+    <i class="iconfont icon-font-bold" :style="{ color: isActive ? 'black' : '#666' }"></i>
   </u-button>
 </template>
 

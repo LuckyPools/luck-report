@@ -7,6 +7,7 @@
     <div>
       <label>{{ $t('dialog.setting.header') }}：</label>
       <u-button
+          type="text"
           class="btn-hf-setting"
           @click="handleOpenHeaderFontDialog">
         {{ $t('dialog.setting.fontStyleSetting') }}
@@ -52,6 +53,7 @@
     <div class="div-footer-section">
       <label>{{ $t('dialog.setting.footer') }}：</label>
       <u-button
+          type="text"
           class="btn-hf-setting"
           @click="handleOpenFooterFontDialog">
         {{ $t('dialog.setting.fontStyleSetting') }}
@@ -266,5 +268,10 @@ export default {
 
 .div-footer-section {
   margin-top: 10px;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #00554a;
 }
 </style>

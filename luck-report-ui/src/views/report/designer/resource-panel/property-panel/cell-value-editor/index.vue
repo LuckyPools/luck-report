@@ -147,7 +147,7 @@
           </u-select>
 
           <u-button
-              type="primary"
+              type="text"
               style="margin-left: 10px;"
               @click="handleUrlParameterConfig"
           >

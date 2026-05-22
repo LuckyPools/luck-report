@@ -7,7 +7,7 @@
   >
     <div class="dialog-content">
       <u-form ref="form" :model="formData" :rules="rules" :label-width="100">
-        <u-form-item :label="isRow ? $t('dialog.rowColNumber.rowCount') : $t('dialog.rowColNumber.colCount')" prop="num">
+        <u-form-item class="solo-label" :label="isRow ? $t('dialog.rowColNumber.rowCount') : $t('dialog.rowColNumber.colCount')" prop="num">
           <u-input-number
             :placeholder="$t('dialog.rowColNumber.tip')"
             v-model="formData.num"

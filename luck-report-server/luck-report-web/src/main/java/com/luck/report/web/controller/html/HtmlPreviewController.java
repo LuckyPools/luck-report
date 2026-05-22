@@ -1,7 +1,6 @@
 package com.luck.report.web.controller.html;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.build.paging.Page;
@@ -16,13 +15,13 @@ import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.domain.vo.ChartDataVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -74,8 +73,8 @@ public class HtmlPreviewController {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
-        fileName = decode(fileName);
-        Map<String, Object> parameters = buildParameters(req);
+        fileName = UrlParameterUtils.doubleDecode(fileName);
+        Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         ReportDefinition reportDefinition;
         if (isPreview) {
             reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
@@ -129,7 +128,7 @@ public class HtmlPreviewController {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
-        fileName = decode(fileName);
+        fileName = UrlParameterUtils.doubleDecode(fileName);
         ReportDefinition report;
         if (isPreview) {
             report = (ReportDefinition) ReportScopedCache.getObject(fileName);
@@ -166,13 +165,13 @@ public class HtmlPreviewController {
 
 
     private HtmlReport loadReport(HttpServletRequest req) throws JsonProcessingException {
-        Map<String, Object> parameters = buildParameters(req);
+        Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         HtmlReport htmlReport;
         String pageIndex = req.getParameter("_i");
         String fileName = req.getParameter("reportPath");
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
-        fileName = decode(fileName);
+        fileName = UrlParameterUtils.doubleDecode(fileName);
         if (StringUtils.isBlank(fileName)) {
             throw new ReportComputeException("Report file can not be null");
         }
@@ -254,37 +253,6 @@ public class HtmlPreviewController {
             return throwable;
         }
         return buildRootException(throwable.getCause());
-    }
-
-    protected Map<String, Object> buildParameters(HttpServletRequest req) {
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        Enumeration<?> enumeration = req.getParameterNames();
-        while (enumeration.hasMoreElements()) {
-            Object obj = enumeration.nextElement();
-            if (obj == null) {
-                continue;
-            }
-            String name = obj.toString();
-            String value = req.getParameter(name);
-            if (name == null || value == null || name.startsWith("_")) {
-                continue;
-            }
-            parameters.put(name, decode(value));
-        }
-        return parameters;
-    }
-
-    protected String decode(String value) {
-        if (value == null) {
-            return value;
-        }
-        try {
-            value = java.net.URLDecoder.decode(value, "utf-8");
-            value = java.net.URLDecoder.decode(value, "utf-8");
-            return value;
-        } catch (Exception ex) {
-            return value;
-        }
     }
 
 }

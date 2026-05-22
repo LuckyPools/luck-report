@@ -12,6 +12,7 @@
       <ImportTool ref="importTool" />
       <UndoTool ref="undoTool" />
       <RedoTool ref="redoTool" />
+      <PrintLineTool ref="printLineTool" />
       <SearchFormSwitchTool ref="searchFormSwitchTool" />
       <SettingsTool ref="settingsTool" />
     </div>
@@ -46,6 +47,7 @@ import PreviewPageTool from '@/views/report/designer/tool-bar/preview-page-tool/
 import OpenTool from '@/views/report/designer/tool-bar/open-tool/index.vue';
 import UndoTool from '@/views/report/designer/tool-bar/undo-tool/index.vue';
 import RedoTool from '@/views/report/designer/tool-bar/redo-tool/index.vue';
+import PrintLineTool from '@/views/report/designer/tool-bar/print-line-tool/index.vue';
 import AlignLeftTool from '@/views/report/designer/tool-bar/align-left-tool/index.vue';
 import AlignTopTool from '@/views/report/designer/tool-bar/align-tool/index.vue';
 import MergeTool from '@/views/report/designer/tool-bar/merge-tool/index.vue';
@@ -76,6 +78,7 @@ export default {
     OpenTool,
     UndoTool,
     RedoTool,
+    PrintLineTool,
     AlignLeftTool,
     AlignTopTool,
     MergeTool,

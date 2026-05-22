@@ -81,24 +81,23 @@ export function buildQueryString(params) {
 
 /**
  * 从 Content-Disposition 头中提取文件名
+ * 优先解析 RFC 5987 标准的 filename* 参数，兼容中文文件名
  * @param {string} contentDisposition Content-Disposition 头的值
  * @param {string} defaultName 默认文件名
  * @returns {string} 文件名
  */
 function extractFilename(contentDisposition, defaultName) {
-    if (!contentDisposition) {
-        return defaultName;
+    if (!contentDisposition) return defaultName;
+
+    const starMatch = /filename\*\s*=\s*UTF-8''(.+?)(?:;|$)/i.exec(contentDisposition);
+    if (starMatch) {
+        try { return decodeURIComponent(starMatch[1]); } catch (e) {}
     }
-    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-    const matches = filenameRegex.exec(contentDisposition);
-    if (matches && matches[1]) {
-        let filename = matches[1].replace(/['"]/g, '');
-        try {
-            filename = decodeURIComponent(filename);
-        } catch (e) {
-            // 解码失败则使用原始值
-        }
-        return filename;
+
+    const match = /filename\s*=\s*["']?([^"';\n]+)["']?/i.exec(contentDisposition);
+    if (match) {
+        const name = match[1].trim().replace(/['"]/g, '');
+        try { return decodeURIComponent(name); } catch (e) { return name; }
     }
     return defaultName;
 }

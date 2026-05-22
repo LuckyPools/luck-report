@@ -106,6 +106,10 @@ const zh = {
             "title": "二维码/条码",
             "qrcode": "二维码",
             "barcode": "条码"
+        },
+        "printLine": {
+            "showPrintLine": "显示打印线",
+            "hidePrintLine": "隐藏打印线"
         }
     },
     "dialog": {
@@ -465,9 +469,9 @@ const zh = {
             "tableName": "表名",
             "type": "类型",
             "datasetName": "数据集名称",
-            "desc": "SQL支持表达式，格式为：${表达式...}</span>)",
+            "desc": "SQL支持表达式，格式为：${表达式...}",
             "syntaxCheckError": "语法检查操作失败！",
-            "fiterParam": "查询参数",
+            "searchParam": "查询参数",
             "paramDesc": "(请将上述SQL中用到的查询参数名定义在下面的表格中)",
             "preview": "预览数据",
             "previewFail": "数据预览失败，请检查配置是否正确",
@@ -788,8 +792,8 @@ const zh = {
             "exportExcel": "导出EXCEL",
             "exportExcelPaging": "分页导出EXCEL",
             "exportExcelSheetPaging": "分页分Sheet导出EXCEL",
-            "prevPage": "前一页",
-            "nextPage": "后一页"
+            "prevPage": "上一页",
+            "nextPage": "下一页"
         },
         "loading": {
             "report": "加载报表中...",

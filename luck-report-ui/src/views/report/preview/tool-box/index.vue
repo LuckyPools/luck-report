@@ -1,109 +1,119 @@
 <template>
   <div v-if="reportData && reportData.tools && reportData.tools.show"
        class="tools-content">
-    <div :style="{ textAlign: reportData.reportAlign }">
-      <u-button v-if="reportData.tools.print"
-                type="info"
-                :title="$t('preview.buttons.print')"
-                class="p-button"
-                @click="print"
-      >
-        <img src="@/assets/icons/print.svg" width="20px" height="20px">
-      </u-button>
+    <u-row type="flex" align="middle" class="tools-row">
+      <u-col :span="10" class="tools-left">
+        <div class="btn-group" v-if="reportData.tools.paging">
+          <ButtonGroup
+              :buttonText="pageEnable ? $t('preview.paging.pagingPreview') : $t('preview.paging.preview')"
+              :showText="true"
+              :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
+              :menuItems="pagingMenuItems"
+              :customClass="'p-tool-button'"
+          />
+        </div>
 
-      <u-button v-if="reportData.tools.pdfPrint"
-                type="info"
-                :title="$t('preview.buttons.pdfDirectPrint')"
-                class="p-button"
-                @click="printDirectPdf">
-        <img src="@/assets/icons/pdf-direct-print.svg" width="20px" height="20px">
-      </u-button>
+        <u-button v-if="reportData.tools.paging && pageEnable"
+                  type="info"
+                  :disabled="currentPage <= 1"
+                  :title="$t('preview.buttons.prevPage')"
+                  class="p-button paging-button"
+                  @click="goToPrevPage">
+          {{ $t('preview.buttons.prevPage') }}
+        </u-button>
 
-      <u-button v-if="reportData.tools.pdfPreviewPrint"
-                type="info"
-                :title="$t('preview.buttons.pdfPreviewPrint')"
-                class="p-button"
-                @click="printPdf">
-        <img src="@/assets/icons/pdf-print.svg" width="20px" height="20px">
-      </u-button>
+        <div v-if="pageEnable" class="btn-group">
+          <ButtonGroup
+              :buttonText="`共${reportData.totalPageWithCol}页，当前第${currentPage}页`"
+              :showText="true"
+              :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
+              :menuItems="pageMenuItems"
+              :customClass="'p-tool-button'"
+          />
+        </div>
 
-      <u-button v-if="reportData.tools.pdf"
-                type="info"
-                :title="$t('preview.buttons.exportPdf')"
-                class="p-button"
-                @click="exportPdf">
-        <img src="@/assets/icons/pdf.svg" width="20px" height="20px">
-      </u-button>
+        <u-button v-if="reportData.tools.paging && pageEnable"
+                  type="info"
+                  :disabled="currentPage >= reportData.totalPageWithCol"
+                  :title="$t('preview.buttons.nextPage')"
+                  class="p-button paging-button"
+                  @click="goToNextPage">
+          {{ $t('preview.buttons.nextPage') }}
+        </u-button>
+      </u-col>
 
-      <u-button v-if="reportData.tools.word"
-                type="info"
-                :title="$t('preview.buttons.exportWord')"
-                class="p-button"
-                @click="exportWord">
-        <img src="@/assets/icons/word.svg" width="20px" height="20px">
-      </u-button>
+      <u-col :span="4" class="tools-center">
+        <span class="report-name">{{ displayReportName }}</span>
+      </u-col>
 
-      <u-button v-if="reportData.tools.excel"
-                type="info"
-                :title="$t('preview.buttons.exportExcel')"
-                class="p-button"
-                @click="exportExcel">
-        <img src="@/assets/icons/excel.svg" width="20px" height="20px">
-      </u-button>
+      <u-col :span="10" class="tools-right">
+        <u-button v-if="reportData.tools.print"
+                  type="info"
+                  :title="$t('preview.buttons.print')"
+                  class="p-button"
+                  @click="print"
+        >
+          <img src="@/assets/icons/print.svg" width="20px" height="20px">
+        </u-button>
 
-      <u-button v-if="reportData.tools.pagingExcel"
-                type="info"
-                :title="$t('preview.buttons.exportExcelPaging')"
-                class="p-button"
-                @click="exportExcelPaging">
-        <img src="@/assets/icons/excel-paging.svg" width="20px" height="20px">
-      </u-button>
+        <u-button v-if="reportData.tools.pdfPrint"
+                  type="info"
+                  :title="$t('preview.buttons.pdfDirectPrint')"
+                  class="p-button"
+                  @click="printDirectPdf">
+          <img src="@/assets/icons/pdf-direct-print.svg" width="20px" height="20px">
+        </u-button>
 
-      <u-button v-if="reportData.tools.sheetPagingExcel"
-                type="info"
-                class="p-button"
-                :title="$t('preview.buttons.exportExcelSheetPaging')"
-                @click="exportExcelPagingSheet"
-      >
-        <img src="@/assets/icons/excel-with-paging-sheet.svg" width="20px" height="20px">
-      </u-button>
+        <u-button v-if="reportData.tools.pdfPreviewPrint"
+                  type="info"
+                  :title="$t('preview.buttons.pdfPreviewPrint')"
+                  class="p-button"
+                  @click="printPdf">
+          <img src="@/assets/icons/pdf-print.svg" width="20px" height="20px">
+        </u-button>
 
-      <div v-if="reportData.tools.paging" class="btn-group">
-        <ButtonGroup
-            :buttonText="pageEnable ? $t('preview.paging.pagingPreview') : $t('preview.paging.preview')"
-            :showText="true"
-            :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
-            :menuItems="pagingMenuItems"
-            :customClass="'p-tool-button'"
-        />
-      </div>
+        <u-button v-if="reportData.tools.pdf"
+                  type="info"
+                  :title="$t('preview.buttons.exportPdf')"
+                  class="p-button"
+                  @click="exportPdf">
+          <img src="@/assets/icons/pdf.svg" width="20px" height="20px">
+        </u-button>
 
-      <u-button v-if="reportData.tools.paging && pageEnable && currentPage > 1"
-                type="info"
-                :title="$t('preview.buttons.prevPage')"
-                class="p-button paging-button"
-                @click="goToPrevPage">
-        {{ $t('preview.buttons.prevPage') }}
-      </u-button>
+        <u-button v-if="reportData.tools.word"
+                  type="info"
+                  :title="$t('preview.buttons.exportWord')"
+                  class="p-button"
+                  @click="exportWord">
+          <img src="@/assets/icons/word.svg" width="20px" height="20px">
+        </u-button>
 
-      <div v-if="pageEnable" class="btn-group">
-        <ButtonGroup
-            :buttonText="`共${reportData.totalPageWithCol}页，当前第${currentPage}页`"
-            :showText="true"
-            :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
-            :menuItems="pageMenuItems"
-            :customClass="'p-tool-button'"
-        />
-      </div>
+        <u-button v-if="reportData.tools.excel"
+                  type="info"
+                  :title="$t('preview.buttons.exportExcel')"
+                  class="p-button"
+                  @click="exportExcel">
+          <img src="@/assets/icons/excel.svg" width="20px" height="20px">
+        </u-button>
 
-      <u-button v-if="reportData.tools.paging && pageEnable && currentPage && currentPage < reportData.totalPageWithCol"
-                type="info"
-                :title="$t('preview.buttons.nextPage')"
-                class="p-button paging-button"
-                @click="goToNextPage">
-        {{ $t('preview.buttons.nextPage') }}
-      </u-button>
-    </div>
+        <u-button v-if="reportData.tools.pagingExcel"
+                  type="info"
+                  :title="$t('preview.buttons.exportExcelPaging')"
+                  class="p-button"
+                  @click="exportExcelPaging">
+          <img src="@/assets/icons/excel-paging.svg" width="20px" height="20px">
+        </u-button>
+
+        <u-button v-if="reportData.tools.sheetPagingExcel"
+                  type="info"
+                  class="p-button"
+                  :title="$t('preview.buttons.exportExcelSheetPaging')"
+                  @click="exportExcelPagingSheet"
+        >
+          <img src="@/assets/icons/excel-with-paging-sheet.svg" width="20px" height="20px">
+        </u-button>
+      </u-col>
+    </u-row>
 
     <PDFPrintDialog
         :visible="pdfPrintDialogVisible"
@@ -124,7 +134,7 @@ import {
   exportExcelBlob,
   exportExcelPagingBlob,
   exportExcelSheetPagingBlob,
-  getPdfPrintBlob
+  getPdfPrintBlob, loadPagePaper
 } from '@/api/preview'
 
 import {pointToMM} from '@/utils/table.js';
@@ -133,6 +143,8 @@ import {showAlert} from '@/utils/comnon.js';
 import PDFPrintDialog from '@/views/report/preview/pdf-print-dialog/index.vue';
 import ButtonGroup from "@/components/button-group/index.vue";
 import UButton from "@/components/button/index.vue";
+import URow from "@/components/row/index.vue";
+import UCol from "@/components/col/index.vue";
 import {buildLocationSearchParameters} from '@/views/report/preview/utils/render.js';
 
 export default {
@@ -140,12 +152,18 @@ export default {
   components: {
     UButton,
     ButtonGroup,
+    URow,
+    UCol,
     PDFPrintDialog
   },
   props: {
     reportData: {
       type: Object,
       default: () => null
+    },
+    reportName: {
+      type: String,
+      default: ''
     },
     currentPage: {
       type: Number,
@@ -168,6 +186,24 @@ export default {
     }
   },
   computed: {
+    /**
+     * 显示的报表名称
+     * 去掉文件名前缀（如 "file:"、"db:" 等）和后缀（.ureport.xml）
+     */
+    displayReportName() {
+      if (!this.reportName) {
+        return '';
+      }
+      let name = this.reportName;
+      const colonIndex = name.indexOf(':');
+      if (colonIndex > -1) {
+        name = name.substring(colonIndex + 1);
+      }
+      if (name.endsWith('.ureport.xml')) {
+        name = name.replace('.ureport.xml', '');
+      }
+      return name;
+    },
     pdfPrintParameters() {
       const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
       const params = new URLSearchParams(urlParameters);
@@ -307,7 +343,7 @@ export default {
       const loadingInstance = showLoading({
         text: this.$t('preview.loading.default'),
       });
-      
+
       try {
         const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
         const params = new URLSearchParams(urlParameters);
@@ -319,7 +355,7 @@ export default {
         paramObj['_i'] = this.printIndex++;
 
         const { blobUrl, revoke } = await getPdfPrintBlob(paramObj);
-        
+
         const iframe = window.frames['print_pdf_frame'];
         const pdfFrame = document.querySelector("iframe[name='print_pdf_frame']");
 
@@ -519,12 +555,43 @@ export default {
 .tools-content {
   border: solid 1px #ddd;
   border-radius: 5px;
-  height: 40px;
+  height: 42px;
   width: 100%;
   background: #f8f8f8;
   box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.tools-row {
+  width: 100%;
+  height: 100%;
+}
+
+.tools-left {
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  justify-content: flex-start;
+}
+
+.tools-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tools-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.report-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 </style>

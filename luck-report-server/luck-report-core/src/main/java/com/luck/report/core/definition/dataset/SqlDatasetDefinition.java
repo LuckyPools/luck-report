@@ -54,7 +54,8 @@ public class SqlDatasetDefinition implements DatasetDefinition {
 
     public Dataset buildDataset(Map<String, Object> parameterMap, Connection conn) {
         String sqlForUse = sql;
-        Context context = new Context(null, parameterMap);
+        Map<String, Object> pmap = buildParameters(parameterMap);
+        Context context = new Context(null, pmap);
         if (sqlExpression != null) {
             sqlForUse = executeSqlExpr(sqlExpression, context);
         } else {
@@ -69,7 +70,6 @@ public class SqlDatasetDefinition implements DatasetDefinition {
             }
         }
         Utils.logToConsole("RUNTIME SQL:" + sqlForUse);
-        Map<String, Object> pmap = buildParameters(parameterMap);
         if (ProcedureUtils.isProcedure(sqlForUse)) {
             List<Map<String, Object>> result = ProcedureUtils.procedureQuery(sqlForUse, pmap, conn);
             return new Dataset(name, result);

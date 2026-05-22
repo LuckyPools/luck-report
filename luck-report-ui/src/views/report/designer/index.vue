@@ -20,9 +20,6 @@
           <ResourcePanel v-if="contextCreated" ref="sidePanel" :selectedCells="selectedCells" />
         </div>
       </div>
-      <!-- 打印线 -->
-      <PrintLine v-if="false" ref="printLine" />
-
     </div>
 </template>
 
@@ -36,7 +33,6 @@ import '../../../assets/css/designer/tree.css';
 import 'codemirror/mode/javascript/javascript.js';
 
 import ResourcePanel from '@/views/report/designer/resource-panel/index.vue';
-import PrintLine from './print-line/index.vue';
 import TopToolBar from '@/views/report/designer/tool-bar/index.vue';
 import ContentTable from '@/views/report/designer/edit-table/index.vue';
 import { createNavigator, getLibMode } from '@/lib/navigator';
@@ -44,7 +40,6 @@ import { createNavigator, getLibMode } from '@/lib/navigator';
 export default {
   name: 'DesignerPage',
   components: {
-    PrintLine,
     TopToolBar,
     ResourcePanel,
     ContentTable

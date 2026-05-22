@@ -1,7 +1,7 @@
 <template>
   <UDialog
     :title="$t('dialog.propCondition.title')"
-    width="1200px"
+    width="1120px"
     top="50px"
     :visible="visible"
     @close="handleClose"
@@ -34,11 +34,7 @@
         />
       </fieldset>
 
-      <fieldset
-        ref="propGroup"
-        class="fieldset-large"
-        v-show="showPropertyGroup"
-      >
+      <fieldset class="fieldset-large" v-show="showPropertyGroup">
         <legend class="legend-style">{{ $t('dialog.propCondition.propConfig') }}</legend>
         <condition-config
           :item="selectedItem"
@@ -272,8 +268,6 @@ export default {
 <style scoped>
 .condition-body-container {
   padding: 10px;
-  height: 560px;
-  overflow: auto;
 }
 
 .fieldset-small {
@@ -288,7 +282,7 @@ export default {
   padding: 10px;
   border: solid 1px #dddddd;
   border-radius: 8px;
-  width: 325px;
+  width: 250px;
   display: inline-block;
   vertical-align: top;
   margin-left: 10px;
