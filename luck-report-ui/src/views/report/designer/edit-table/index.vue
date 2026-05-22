@@ -37,7 +37,8 @@ export default {
       reportDef: null,
       cellsMap: new Map(),
       context: null,
-      internalReportPath: this.reportPath
+      internalReportPath: this.reportPath,
+      defaultReportPath: 'classpath:template/template.ureport.xml'
     };
   },
   computed: {
@@ -49,7 +50,7 @@ export default {
     reportPath(val) {
       this.internalReportPath = val;
       if (val) {
-        this.loadFile(val, this.handleReportLoaded.bind(this));
+        this.loadFile(val);
       }
     }
   },
@@ -73,19 +74,19 @@ export default {
 
       let filePath = '';
       if (this.isLibMode) {
-        filePath = this.internalReportPath || 'classpath:template/template.ureport.xml';
+        filePath = this.internalReportPath || this.defaultReportPath;
       } else {
         filePath = utils.getParameter("reportPath");
         if (!filePath || filePath === '') {
-          filePath = 'classpath:template/template.ureport.xml';
+          filePath = this.defaultReportPath;
         }
       }
 
-      if (filePath && filePath !== 'classpath:template/template.ureport.xml') {
+      if (filePath && filePath !== this.defaultReportPath) {
         this.$store.dispatch('report/setSaveStatus', true);
       }
 
-      this.loadFile(filePath, this.handleReportLoaded.bind(this));
+      this.loadFile(filePath);
     },
 
     initHandsontable() {
@@ -202,10 +203,8 @@ export default {
 
     handleReportLoaded() {
       this.context = new Context(this);
-
       this.setContext(this.context);
       this.setPrintLineShouldRefresh(true);
-      this.$emit('context-created', this.context);
       this.processRowHeaders();
     },
 
@@ -223,23 +222,18 @@ export default {
       }
     },
 
-    async loadFile(filePath, callback) {
+    async loadFile(filePath) {
       try {
         let formData = new FormData();
         formData.append('filePath', filePath);
         const reportDef = await loadReport(formData);
 
         this.reportDef = reportDef;
-        this._buildReportData(reportDef);
-        this.hot.render();
-
+        this.buildReportData(reportDef);
         this.buildMenu();
+        this.handleReportLoaded();
 
-        if (callback) {
-          callback.call(this, reportDef);
-        }
-
-        if (filePath !== 'classpath:template/template.ureport.xml') {
+        if (filePath !== this.defaultReportPath) {
           this.$store.dispatch('report/setFileName', filePath);
         } else {
           this.$store.dispatch('report/setFileName', `${this.$t('table.report.tip')}`);
@@ -263,7 +257,7 @@ export default {
       }
     },
 
-    _buildReportData(data) {
+    buildReportData(data) {
       this.cellsMap.clear();
       const rows = data.rows;
       const rowHeights = [];

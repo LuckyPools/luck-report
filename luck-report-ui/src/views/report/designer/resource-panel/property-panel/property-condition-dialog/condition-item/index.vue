@@ -1,69 +1,70 @@
 <template>
   <div>
-    <div>
+    <div class="top-button">
       <u-button
-          type="info"
-          icon="icon-plus-circle"
-          :title="$t('dialog.propCondition.addItem')"
-          @click="addItem"
+        type="info"
+        icon="icon-plus-circle"
+        :title="$t('dialog.propCondition.addValue')"
+        @click="addCondition"
       >
       </u-button>
       <u-button
-          type="info"
-          icon="icon-edit"
-          :title="$t('dialog.propCondition.editItem')"
-          @click="editItem"
+        type="info"
+        icon="icon-edit"
+        :title="$t('dialog.propCondition.editConditionItem')"
+        @click="editCondition"
       >
       </u-button>
       <u-button
-          type="info"
-          icon="icon-delete"
-          :title="$t('dialog.propCondition.delItem')"
-          @click="deleteItem"
+        type="info"
+        icon="icon-delete"
+        :title="$t('dialog.propCondition.delCondition')"
+        @click="deleteCondition"
       >
       </u-button>
     </div>
 
     <div style="margin-top: 10px;">
       <select
-        ref="itemSelect"
-        size="10"
-        class="form-control item-select"
-        :value="selectedItemIndex"
-        @change="onItemSelectChange"
+          ref="conditionList"
+          class="form-control condition-select"
+          size="100"
+          v-model="selectedConditionIndex"
+          @change="onConditionSelectChange"
       >
-      <option
-          v-for="(item, index) in propertyConditions"
-          :key="item.id"
-          :value="index"
-      >
-        {{ item.name }}
-      </option>
-    </select>
+        <option
+            v-for="(condition, index) in conditions"
+            :key="index"
+            :value="index"
+        >
+          {{ getConditionText(condition) }}
+        </option>
+      </select>
     </div>
 
-    <property-condition-item-dialog
-        :visible="dialogVisible"
-        :conditionItem="currentConditionItem"
-        :operation="currentOperation"
-        :propertyConditions="propertyConditions"
-        @saveAfter="handleSaveAfter"
-        @close="handleDialogClose"
+    <condition-item-dialog
+      :visible="dialogVisible"
+      :fields="fields"
+      :condition="condition"
+      :conditions="groupConditions"
+      @saveAfter="handleSaveAfter"
+      @close="dialogVisible = false"
     />
   </div>
 </template>
 
 <script>
-import {showAlert, showConfirm} from '@/utils/comnon.js';
-import {setDirty} from '@/utils/table.js';
-import PropertyConditionItemDialog
-  from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item-dialog/index.vue';
+import { mapGetters } from 'vuex';
+import { showAlert } from '@/utils/comnon.js';
+import { setDirty } from '@/utils/table.js';
+import { v1 as uuid } from 'uuid';
+import ConditionItemDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item-dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 
 export default {
   name: 'ConditionItem',
   components: {
-    PropertyConditionItemDialog,
+    ConditionItemDialog,
     UButton
   },
   props: {
@@ -71,89 +72,183 @@ export default {
       type: Array,
       default: () => []
     },
-    selectedItemIndex: {
-      type: Number,
-      default: -1
+    selectedGroup: {
+      type: Object,
+      default: null
+    },
+    datasetName: {
+      type: String,
+      default: ''
+    },
+    conditions: {
+      type: Array,
+      default: () => []
+    },
+    resetSelection: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
     return {
-      selectedItem: null,
+      selectedConditionIndex: -1,
+      isAddingCondition: false,
       dialogVisible: false,
-      currentConditionItem: null,
-      currentOperation: 'add'
+      fields: [],
+      condition: null,
+      groupConditions: []
     };
   },
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext || {};
+    },
+    datasources() {
+      return this.context.reportDef?.datasources || [];
+    }
+  },
   watch: {
-    selectedItemIndex: {
+    resetSelection(newVal) {
+      if (newVal) {
+        this.selectedConditionIndex = -1;
+      }
+    },
+    conditions: {
       handler(newVal) {
-        if (newVal < 0 || newVal >= this.propertyConditions.length) {
-          this.selectedItem = null;
-          this.$emit('item-selected', null);
-        } else {
-          this.selectedItem = this.propertyConditions[newVal];
-          this.$emit('item-selected', this.selectedItem);
+        if (newVal) {
+          this.selectedConditionIndex = -1;
         }
       },
       immediate: true
     }
   },
   methods: {
-    addItem() {
-      this.currentConditionItem = {name: ''};
-      this.currentOperation = 'add';
-      this.dialogVisible = true;
+    getConditionText(condition) {
+      let text = condition.left + ' ' + condition.operation + ' ' + condition.right;
+      if (condition.type === 'property' && (!condition.left || condition.left === '')) {
+        text = this.$t('dialog.propCondition.currentValue') + ' ' + condition.operation + ' ' + (condition.right || condition.expr);
+      }
+      if (condition.join && this.conditions.indexOf(condition) > 0) {
+        text = condition.join + ' ' + text;
+      }
+      return text;
     },
-    editItem() {
-      if (this.selectedItemIndex < 0 || this.selectedItemIndex >= this.propertyConditions.length) {
-        showAlert(this.$t('dialog.propCondition.editTip'));
+    addCondition() {
+      if (!this.selectedGroup) {
+        showAlert(this.$t('dialog.propCondition.selectItem'));
         return;
       }
 
-      const item = this.propertyConditions[this.selectedItemIndex];
-      this.currentConditionItem = item;
-      this.currentOperation = 'edit';
+      const fields = this.buildFields();
+      const conditions = this.selectedGroup.conditions || [];
+
+      this.isAddingCondition = true;
+      this.fields = fields;
+      this.condition = null;
+      this.groupConditions = conditions;
       this.dialogVisible = true;
     },
-    deleteItem() {
-      if (this.selectedItemIndex < 0 || this.selectedItemIndex >= this.propertyConditions.length) {
-        showAlert(this.$t('dialog.propCondition.delTip'));
+    editCondition() {
+      if (this.selectedConditionIndex < 0 || this.selectedConditionIndex >= this.conditions.length) {
+        showAlert(this.$t('dialog.propCondition.editConditionTip'));
         return;
       }
 
-      const item = this.propertyConditions[this.selectedItemIndex];
-      const itemName = item.name || '';
+      if (!this.selectedGroup) {
+        showAlert(this.$t('dialog.propCondition.selectConditionItem'));
+        return;
+      }
 
-      showConfirm(`${this.$t('dialog.propCondition.delConfirm')}[${itemName}]?`).then(() => {
-        this.$emit('item-deleted', this.selectedItemIndex);
-        setDirty();
+      const fields = this.buildFields();
+      const condition = this.conditions[this.selectedConditionIndex];
+      const conditions = this.selectedGroup.conditions || [];
+
+      this.isAddingCondition = false;
+      this.fields = fields;
+      this.condition = condition;
+      this.groupConditions = conditions;
+      this.dialogVisible = true;
+    },
+
+    handleSaveAfter(type, left, op, right, join) {
+      if (!this.selectedGroup) {
+        return;
+      }
+
+      if (this.isAddingCondition) {
+        const newCondition = {
+          type,
+          left,
+          operation: op,
+          right,
+          join,
+          id: uuid()
+        };
+        this.$emit('condition-added', newCondition);
+        this.isAddingCondition = false;
+      } else {
+        if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
+          const condition = this.conditions[this.selectedConditionIndex];
+          const updatedCondition = {
+            ...condition,
+            type,
+            left,
+            operation: op,
+            right,
+            join,
+            id: condition.id || uuid()
+          };
+          this.$emit('condition-updated', this.selectedConditionIndex, updatedCondition);
+        }
+        this.isAddingCondition = false;
+      }
+
+      setDirty();
+    },
+    deleteCondition() {
+      if (this.selectedConditionIndex < 0 || this.selectedConditionIndex >= this.conditions.length) {
+        showAlert(this.$t('dialog.propCondition.delConditionTip'));
+        return;
+      }
+
+      if (!this.selectedGroup) {
+        showAlert(this.$t('dialog.propCondition.selectDelCondition'));
+        return;
+      }
+
+      this.$emit('condition-deleted', this.selectedConditionIndex);
+      this.selectedConditionIndex = -1;
+      setDirty();
+    },
+    buildFields() {
+      let fields = [];
+      if (!this.datasetName || this.datasetName === '') {
+        return fields;
+      }
+
+      for (let ds of this.datasources) {
+        let datasets = ds.datasets || [];
+        for (let dataset of datasets) {
+          if (dataset.name === this.datasetName) {
+            fields = dataset.fields || [];
+            break;
+          }
+        }
+        if (fields.length > 0) {
+          break;
+        }
+      }
+      return fields;
+    },
+    onConditionSelectChange() {
+      this.$nextTick(() => {
+        if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
+          const selectedCondition = this.conditions[this.selectedConditionIndex];
+          this.$emit('condition-selected', selectedCondition);
+        }
       });
-    },
-    onItemSelectChange(event) {
-      const newIndex = parseInt(event.target.value);
-      this.$emit('item-index-changed', newIndex);
-      setDirty();
-    },
-    handleSaveAfter({ item, operation }) {
-      if (operation === 'add') {
-        this.currentConditionItem.name = item.name;
-        this.$emit('item-added', this.currentConditionItem);
-        const newIndex = this.propertyConditions.length - 1;
-        this.$emit('item-index-changed', newIndex);
-      } else if (operation === 'edit') {
-        this.currentConditionItem.name = item.name;
-        this.$emit('item-updated', this.selectedItemIndex, this.currentConditionItem);
-      }
-      setDirty();
-    },
-    // 处理弹窗关闭事件
-    handleDialogClose() {
-      this.dialogVisible = false;
-      setTimeout(() => {
-        this.currentConditionItem = null;
-        this.currentOperation = 'add';
-      }, 300);
-    },
+    }
   }
 };
 </script>
@@ -163,8 +258,14 @@ export default {
   margin-left: 5px;
 }
 
-.item-select{
+.top-button{
+  display: flex;
+  justify-content: end;
+}
+
+.condition-select{
   height: 400px;
+  padding: 3px;
   outline: none;
 }
 </style>

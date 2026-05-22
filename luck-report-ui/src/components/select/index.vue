@@ -75,20 +75,48 @@
     <transition name="fade-bottom">
       <div
           class="u-select-options"
-          :style="{ 
+          :class="{ 'u-select-options-virtual': virtual }"
+          :style="{
             top: panelHeight ? `${panelHeight + 6}px` : undefined,
             width: optionsWidth ? `${optionsWidth}px` : undefined
           }"
           v-show="visible"
           v-loading="filterable && loading"
       >
-        <slot> </slot>
-        <div
-            class="u-select-options-no-data"
-            v-show="!$slots.default || !hasOptions"
-        >
-          无数据
-        </div>
+        <template v-if="virtual">
+          <u-virtual-scroll
+            ref="virtualScroll"
+            :items="filteredVirtualOptions"
+            :item-size="32"
+            :visible-count="5"
+            :value-key="valueKey"
+            :label-key="labelKey"
+            @select="handleVirtualSelect"
+          >
+            <template #default="{ item }">
+              <div
+                class="u-virtual-option"
+                :class="{
+                  'u-virtual-option-selected': isVirtualOptionSelected(item)
+                }"
+              >
+                {{ item[labelKey] }}
+              </div>
+            </template>
+          </u-virtual-scroll>
+          <div class="u-select-options-no-data" v-show="filteredVirtualOptions.length === 0">
+            无数据
+          </div>
+        </template>
+        <template v-else>
+          <slot> </slot>
+          <div
+              class="u-select-options-no-data"
+              v-show="!$slots.default || !hasOptions"
+          >
+            无数据
+          </div>
+        </template>
       </div>
     </transition>
   </div>
@@ -99,11 +127,13 @@ import { oneOf, debounce } from "../utils";
 import Emitter from "../mixins/emitter";
 import { LoadingDirective } from "../loading/instance";
 import Tag from "../tag/index.vue";
+import UVirtualScroll from "../virtual-scroll/index.vue";
 
 export default {
   name: "USelect",
   components: {
-    Tag
+    Tag,
+    UVirtualScroll
   },
   mixins: [Emitter],
   directives: {
@@ -116,14 +146,12 @@ export default {
       currentLabel: "",
       currentValue: "",
       currentTags: [],
-      // 整个面板的高度
       panelHeight: "",
       hasOptions: true,
       currentPlaceholder: "",
-      // 鼠标是否在父级元素上，该属性会影响清空按钮的显示
       onHover: false,
-      // 下拉选项宽度
-      optionsWidth: null
+      optionsWidth: null,
+      virtualQuery: ""
     };
   },
   props: {
@@ -186,17 +214,41 @@ export default {
     multipleLimit: {
       type: Number,
       default: 0
+    },
+    virtual: {
+      type: Boolean,
+      default: false
+    },
+    virtualOptions: {
+      type: Array,
+      default: () => []
+    },
+    valueKey: {
+      type: String,
+      default: "value"
+    },
+    labelKey: {
+      type: String,
+      default: "label"
     }
   },
   computed: {
-    /**
-     * @description 占位符显示文案
-     */
     placeholderLabel() {
       let x = this.currentPlaceholder
           ? this.currentPlaceholder
           : this.placeholder;
       return x;
+    },
+    filteredVirtualOptions() {
+      if (!this.virtual) return [];
+      if (!this.filterable || !this.virtualQuery) {
+        return this.virtualOptions;
+      }
+      const query = this.virtualQuery.toLowerCase();
+      return this.virtualOptions.filter(item => {
+        const label = String(item[this.labelKey] || '').toLowerCase();
+        return label.includes(query);
+      });
     }
   },
   watch: {
@@ -262,7 +314,7 @@ export default {
 
     this.$refs.myInput.addEventListener("mouseenter", this.setHoverAttr);
     this.$refs.myInput.addEventListener("mouseleave", this.setHoverAttr);
-    
+
     this.updateOptionsWidth();
   },
   // 移除时，删除根元素点击事件
@@ -348,6 +400,10 @@ export default {
      */
     handleInput(_e) {
       this.currentLabel = _e.target.value;
+      if (this.virtual) {
+        this.virtualQuery = _e.target.value;
+        return;
+      }
       debounce(
           () => {
             // 远程搜索
@@ -486,6 +542,46 @@ export default {
           }
         }
       });
+    },
+    handleVirtualSelect(item) {
+      if (this.multiple) {
+        this.handleVirtualMultiSelect(item);
+      } else {
+        this.currentValue = item[this.valueKey];
+        this.currentLabel = item[this.labelKey];
+        this.visible = false;
+        this.$emit("input", this.currentValue);
+        this.$emit("change", this.currentValue);
+      }
+    },
+    handleVirtualMultiSelect(item) {
+      const value = item[this.valueKey];
+      const index = this.currentTags.findIndex(tag => tag.value === value);
+      if (index > -1) {
+        this.currentTags.splice(index, 1);
+        this.$emit("remove-tag", value);
+      } else {
+        if (
+          this.multipleLimit > 0 &&
+          this.currentTags.length >= this.multipleLimit
+        ) {
+          return;
+        }
+        this.currentTags.push({
+          value: item[this.valueKey],
+          label: item[this.labelKey]
+        });
+      }
+      const values = this.currentTags.map(tag => tag.value);
+      this.$emit("input", values);
+      this.$emit("change", values);
+    },
+    isVirtualOptionSelected(item) {
+      const value = item[this.valueKey];
+      if (this.multiple) {
+        return this.currentTags.some(tag => tag.value === value);
+      }
+      return this.currentValue === value;
     }
   }
 };
@@ -683,5 +779,33 @@ export default {
 
 :-ms-input-placeholder {
   color: #bbbcc0
+}
+
+.u-select-options-virtual {
+  height: 160px;
+  max-height: 160px;
+  padding: 0;
+}
+
+.u-virtual-option {
+  height: 100%;
+  padding: 0 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: #606266;
+  box-sizing: border-box;
+}
+
+.u-virtual-option:hover {
+  background-color: #f5f7fa;
+}
+
+.u-virtual-option-selected {
+  font-weight: 700;
+  color: #00554a;
+  background-color: #f5f7fa;
 }
 </style>

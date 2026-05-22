@@ -1,23 +1,15 @@
 <template>
-  <div class="form-group" style="margin-bottom: 5px;">
-    <div class="u-inline">
-      <u-checkbox v-model="linkChecked" @change="onLinkChange">
-        {{ $t('dialog.propCondition.link') }}
-      </u-checkbox>
-    </div>
-    <span v-show="linkChecked" style="margin-left: 10px">
-        <div class="u-inline">
-          <u-input
-              v-model="localLinkUrl"
-              :placeholder="$t('dialog.propCondition.linkUrlPlaceholder')"
-              @change="onLinkUrlChange" />
-        </div>
-    </span>
-    <div v-show="linkChecked" style="margin-left: 10px;margin-top: 5px">
-      <span>{{ $t('dialog.propCondition.target') }}</span>
-      <div class="u-inline" style="margin-left: 10px">
+  <div>
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
+        <u-checkbox v-model="linkChecked" @change="onLinkChange">
+          {{ $t('dialog.propCondition.link') }}
+        </u-checkbox>
+      </u-col>
+      <u-col :span="8">
         <u-select
             v-model="localLinkTargetWindow"
+            style="width: 120px"
             :clearable="true"
             @change="onLinkTargetChange"
         >
@@ -28,12 +20,26 @@
               :label="option.label"
           />
         </u-select>
-
-        <u-button @click="configLinkParameter" style="margin-left: 5px">
-            {{ $t('dialog.propCondition.urlParameter') }}
+      </u-col>
+      <u-col :span="8">
+        <u-button type="info" @click="configLinkParameter">
+          {{ $t('dialog.propCondition.urlParameter') }}
         </u-button>
-      </div>
-    </div>
+      </u-col>
+    </u-row>
+
+    <u-row v-show="linkChecked" style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
+      </u-col>
+      <u-col :span="8">
+        <u-input
+            v-show="linkChecked"
+            v-model="localLinkUrl"
+            style="width: 250px"
+            :placeholder="$t('dialog.propCondition.linkUrlPlaceholder')"
+            @change="onLinkUrlChange" />
+      </u-col>
+    </u-row>
 
     <URLParameterDialog
       :visible="urlParameterDialogVisible"
@@ -51,6 +57,8 @@ import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UCheckbox from '@/components/checkbox/index.vue';
 import UButton from '@/components/button/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 import URLParameterDialog from '../../../url-parameter-dialog/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import configOptions from '../constants/config-options.js';
@@ -63,6 +71,8 @@ export default {
     UOption,
     UCheckbox,
     UButton,
+    URow,
+    UCol,
     URLParameterDialog
   },
   props: {

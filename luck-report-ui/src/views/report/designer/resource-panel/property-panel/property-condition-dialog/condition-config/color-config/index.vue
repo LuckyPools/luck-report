@@ -1,68 +1,66 @@
 <template>
   <div>
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="forceChecked" @change="onForceChange">
           {{ $t('dialog.propCondition.forecolor') }}
         </u-checkbox>
-      </div>
-
-      <span v-show="forceChecked">
-        <div class="u-inline">
-          <UColorPicker
-              v-model="forceColor"
-              @input="onForceColorChange"
+      </u-col>
+      <u-col :span="8">
+        <UColorPicker
+            v-show="forceChecked"
+            v-model="forceColor"
+            @input="onForceColorChange"
+        />
+      </u-col>
+      <u-col :span="8">
+        <u-select
+            v-show="forceChecked"
+            v-model="forceScope"
+            style="width: 120px"
+            :clearable="true"
+            @change="onForceScopeChange"
+        >
+          <u-option
+              v-for="option in scopeOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
           />
-        </div>
+        </u-select>
+      </u-col>
+    </u-row>
 
-        <span>{{ $t('dialog.propCondition.scope') }}</span>
-        <div class="u-inline" style="margin-left: 10px">
-          <u-select
-              v-model="forceScope"
-              :clearable="true"
-              @change="onForceScopeChange"
-          >
-            <u-option
-                v-for="option in scopeOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </div>
-      </span>
-    </div>
-
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="bgcolorChecked" @change="onBgcolorChange">
           {{ $t('dialog.propCondition.bgcolor') }}
         </u-checkbox>
-      </div>
-      <span v-show="bgcolorChecked">
-        <div class="u-inline">
-          <UColorPicker
-              v-model="bgColor"
-              @input="onBgColorChange"
+      </u-col>
+      <u-col :span="8">
+        <UColorPicker
+            v-show="bgcolorChecked"
+            v-model="bgColor"
+            @input="onBgColorChange"
+        />
+      </u-col>
+      <u-col :span="8">
+        <u-select
+            v-show="bgcolorChecked"
+            v-model="bgcolorScope"
+            style="width: 120px"
+            :clearable="true"
+            @change="onBgcolorScopeChange"
+        >
+          <u-option
+              v-for="option in scopeOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
           />
-        </div>
-        <span>{{ $t('dialog.propCondition.scope') }}</span>
-        <div class="u-inline" style="margin-left: 10px">
-          <u-select
-              v-model="bgcolorScope"
-              :clearable="true"
-              @change="onBgcolorScopeChange"
-          >
-            <u-option
-                v-for="option in scopeOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </div>
-      </span>
-    </div>
+        </u-select>
+      </u-col>
+    </u-row>
   </div>
 </template>
 
@@ -71,6 +69,8 @@ import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UCheckbox from '@/components/checkbox/index.vue';
 import UColorPicker from '@/components/color-picker/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 import configOptions from '../constants/config-options.js';
 import { rgbToHex, hexToRgb } from '@/utils/color';
 
@@ -80,7 +80,9 @@ export default {
     USelect,
     UOption,
     UCheckbox,
-    UColorPicker
+    UColorPicker,
+    URow,
+    UCol
   },
   props: {
     cellStyle: {
@@ -116,7 +118,7 @@ export default {
   methods: {
     convertColorToRgb(color) {
       if (!color) return null;
-      
+
       if (color.startsWith('#')) {
         return hexToRgb(color);
       } else if (color.length > 5 && color.startsWith('rgb')) {
@@ -127,7 +129,7 @@ export default {
 
     convertRgbToHex(rgbString) {
       if (!rgbString) return null;
-      
+
       const rgbParts = rgbString.split(',');
       if (rgbParts.length === 3) {
         return rgbToHex(parseInt(rgbParts[0]), parseInt(rgbParts[1]), parseInt(rgbParts[2]));

@@ -1,5 +1,9 @@
 server:
   port: 8050
+  # Tomcat 配置
+  tomcat:
+    # 表单参数最大大小（用于处理大报表数据）
+    max-http-form-post-size: 100MB
 
 spring:
   application:
@@ -7,3 +11,12 @@ spring:
 
   profiles:
     active: dev
+
+  servlet:
+    multipart:
+      # 单个文件最大大小
+      max-file-size: 100MB
+      # 单次请求所有文件总大小
+      max-request-size: 100MB
+      # 启用文件上传
+      enabled: true

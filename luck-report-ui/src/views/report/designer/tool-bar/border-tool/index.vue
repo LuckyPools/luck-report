@@ -241,10 +241,13 @@ export default {
       const defaultBorderStyle = { style: 'solid', width: 1, color: '#000000' };
 
       const convertColorToHex = (borderStyle) => {
-        if (!borderStyle) {
-          return { ...defaultBorderStyle };
+        if (!borderStyle || borderStyle === '') {
+          return { style: 'none', width: 1, color: '#000000' };
         }
         const result = { ...borderStyle };
+        if (result.style === 'none') {
+          return { style: 'none', width: 1, color: '#000000' };
+        }
         if (typeof result.color === 'string' && result.color.includes(',')) {
           const rgb = result.color.split(',');
           result.color = this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
@@ -300,20 +303,6 @@ export default {
     // 更新自定义边框样式
     updateCustomBorderStyle(startRow, startCol, endRow, endCol, leftBorderStyle, rightBorderStyle, topBorderStyle, bottomBorderStyle) {
       const hot = TableManager.get();
-      let left = leftBorderStyle, right = rightBorderStyle, top = topBorderStyle, bottom = bottomBorderStyle;
-
-      if (leftBorderStyle.style === 'none') {
-        left = "";
-      }
-      if (rightBorderStyle.style === 'none') {
-        right = "";
-      }
-      if (topBorderStyle.style === 'none') {
-        top = "";
-      }
-      if (bottomBorderStyle.style === 'none') {
-        bottom = "";
-      }
 
       const oldBorderStyle = {};
 
@@ -334,10 +323,10 @@ export default {
             bottomBorder: cellStyle.bottomBorder
           };
 
-          cellStyle.leftBorder = this.cloneBorder(left);
-          cellStyle.rightBorder = this.cloneBorder(right);
-          cellStyle.topBorder = this.cloneBorder(top);
-          cellStyle.bottomBorder = this.cloneBorder(bottom);
+          cellStyle.leftBorder = this.cloneBorder(leftBorderStyle);
+          cellStyle.rightBorder = this.cloneBorder(rightBorderStyle);
+          cellStyle.topBorder = this.cloneBorder(topBorderStyle);
+          cellStyle.bottomBorder = this.cloneBorder(bottomBorderStyle);
 
           setCell( i, j, newCellDef );
         }

@@ -52,7 +52,9 @@ const en = {
             "dashed": "Dashed",
             "none": "None",
             "size": "Size",
-            "color": "Color"
+            "color": "Color",
+            "preset": "Preset",
+            "text": "Text"
         },
         "chart": {
             "chart": "Chart",
@@ -306,6 +308,9 @@ const en = {
             "delItem": "Delete Item",
             "delTip": "Please select a item first!",
             "delConfirm": "Are you sure delete item ",
+            "addGroup": "Add New Group",
+            "editGroup": "Edit Selected Group",
+            "delGroup": "Delete Selected Group",
             "conditionConfig": "Condition Config",
             "propConfig": "Property Config",
             "currentValue": "Current Value",
@@ -364,6 +369,14 @@ const en = {
             "nameTip": "Please input Condition Item Name!",
             "add": "Add Condition Item",
             "edit": "Edit Condition Item",
+            "nameExists": "The name already exists, please use a different name"
+        },
+        "conditionGroup": {
+            "title": "Add Condition Group",
+            "groupName": "Condition Group Name",
+            "nameTip": "Please input Condition Group Name!",
+            "add": "Add Condition Group",
+            "edit": "Edit Condition Group",
             "nameExists": "The name already exists, please use a different name"
         },
         "rowColWidthHeight": {

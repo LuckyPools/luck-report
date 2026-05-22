@@ -1,14 +1,16 @@
 <template>
-  <div class="form-group" style="margin-bottom: 5px;">
-    <div class="u-inline">
-      <u-checkbox v-model="pagingBreakChecked" @change="onPagingBreakChange">
-        {{ $t('dialog.propCondition.paging') }}
-      </u-checkbox>
-    </div>
-    <span v-show="pagingBreakChecked" style="margin-left: 10px;">
-      <div class="u-inline">
+  <div>
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
+        <u-checkbox v-model="pagingBreakChecked" @change="onPagingBreakChange">
+          {{ $t('dialog.propCondition.paging') }}
+        </u-checkbox>
+      </u-col>
+      <u-col :span="8">
         <u-select
+            v-show="pagingBreakChecked"
             v-model="pagingPosition"
+            style="width: 120px"
             :clearable="true"
             @change="onPagingPositionChange"
         >
@@ -19,12 +21,15 @@
               :label="option.label"
           />
         </u-select>
-      </div>
-      <div class="u-inline" style="margin-left: 10px">
-        <u-input-number v-model="pagingLine" @change="onPagingLineChange">
+      </u-col>
+      <u-col :span="8">
+        <u-input-number
+            v-show="pagingBreakChecked"
+            v-model="pagingLine"
+            @change="onPagingLineChange">
         </u-input-number>
-      </div>
-    </span>
+      </u-col>
+    </u-row>
   </div>
 </template>
 
@@ -33,6 +38,8 @@ import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
 import UCheckbox from '@/components/checkbox/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 import configOptions from '../constants/config-options.js';
 
 export default {
@@ -41,7 +48,9 @@ export default {
     USelect,
     UOption,
     UInputNumber,
-    UCheckbox
+    UCheckbox,
+    URow,
+    UCol
   },
   props: {
     paging: {

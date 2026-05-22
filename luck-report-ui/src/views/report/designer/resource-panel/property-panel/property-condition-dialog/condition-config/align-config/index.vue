@@ -1,86 +1,84 @@
 <template>
   <div>
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="alignChecked" @change="onAlignChange">
           {{ $t('dialog.propCondition.align') }}
         </u-checkbox>
-      </div>
-      <span v-show="alignChecked" style="margin-left: 10px">
-        <div class="u-inline">
-          <u-select
-              v-model="align"
-              :clearable="true"
-              @change="onAlignValueChange"
-              style="width: 120px"
-          >
-            <u-option
-                v-for="option in alignOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </div>
-        <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
-        <div class="u-inline" style="margin-left: 10px">
-          <u-select
-              v-model="alignScope"
-              :clearable="true"
-              @change="onAlignScopeChange"
-              style="width: 120px"
-          >
-            <u-option
-                v-for="option in scopeOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </div>
-      </span>
-    </div>
+      </u-col>
+      <u-col :span="8">
+        <u-select
+            v-show="alignChecked"
+            v-model="align"
+            :clearable="true"
+            @change="onAlignValueChange"
+            style="width: 120px"
+        >
+          <u-option
+              v-for="option in alignOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+          />
+        </u-select>
+      </u-col>
+      <u-col :span="8">
+        <u-select
+            v-show="alignChecked"
+            v-model="alignScope"
+            :clearable="true"
+            @change="onAlignScopeChange"
+            style="width: 120px"
+        >
+          <u-option
+              v-for="option in scopeOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+          />
+        </u-select>
+      </u-col>
+    </u-row>
 
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="valignChecked" @change="onValignChange">
           {{ $t('dialog.propCondition.valign') }}
         </u-checkbox>
-      </div>
-      <span v-show="valignChecked" style="margin-left: 10px">
-        <div class="u-inline">
-          <u-select
-              v-model="valign"
-              :clearable="true"
-              @change="onValignValueChange"
-              style="width: 120px"
-          >
-            <u-option
-                v-for="option in valignOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </div>
-        <span style="margin-left: 15px;">{{ $t('dialog.propCondition.scope') }}</span>
-        <div class="u-inline" style="margin-left: 10px">
-          <u-select
-              v-model="valignScope"
-              :clearable="true"
-              @change="onValignScopeChange"
-              style="width: 120px"
-          >
-            <u-option
-                v-for="option in scopeOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </div>
-      </span>
-    </div>
+      </u-col>
+      <u-col :span="8">
+        <u-select
+            v-show="valignChecked"
+            v-model="valign"
+            :clearable="true"
+            @change="onValignValueChange"
+            style="width: 120px"
+        >
+          <u-option
+              v-for="option in valignOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+          />
+        </u-select>
+      </u-col>
+      <u-col :span="8">
+        <u-select
+            v-show="valignChecked"
+            v-model="valignScope"
+            :clearable="true"
+            @change="onValignScopeChange"
+            style="width: 120px"
+        >
+          <u-option
+              v-for="option in scopeOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+          />
+        </u-select>
+      </u-col>
+    </u-row>
   </div>
 </template>
 
@@ -88,6 +86,8 @@
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UCheckbox from '@/components/checkbox/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 import configOptions from '../constants/config-options.js';
 
 export default {
@@ -95,7 +95,9 @@ export default {
   components: {
     USelect,
     UOption,
-    UCheckbox
+    UCheckbox,
+    URow,
+    UCol
   },
   props: {
     cellStyle: {

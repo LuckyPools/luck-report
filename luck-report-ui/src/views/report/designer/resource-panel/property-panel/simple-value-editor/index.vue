@@ -75,13 +75,11 @@ export default {
   },
   watch: {
     rowIndex: {
-      immediate: true,
       handler() {
         this.loadCellData();
       }
     },
     colIndex: {
-      immediate: true,
       handler() {
         this.loadCellData();
       }

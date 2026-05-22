@@ -4,12 +4,11 @@
         <!-- 左侧区域：顶部工具和内容表格 -->
         <div class="left-part">
           <!-- 顶部工具 -->
-          <TopToolBar v-if="contextCreated" ref="topToolBar" :selectedCells="selectedCells" />
+          <TopToolBar ref="topToolBar" :selectedCells="selectedCells" />
           <!-- 内容表格组件 -->
           <ContentTable
             :reportPath="internalReportPath"
             @cell-selected="handleCellSelected"
-            @context-created="handleContextCreated"
             @navigate="handleNavigate"
             @save="handleSave"
             @error="handleError"
@@ -17,7 +16,7 @@
         </div>
         <!-- 右侧区域：侧边栏 -->
         <div class="right-part">
-          <ResourcePanel v-if="contextCreated" ref="sidePanel" :selectedCells="selectedCells" />
+          <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" />
         </div>
       </div>
     </div>
@@ -52,7 +51,6 @@ export default {
   },
   data() {
     return {
-      contextCreated: false,
       selectedCells: {
         rowIndex: null,
         colIndex: null,
@@ -76,9 +74,6 @@ export default {
     }
   },
   methods: {
-    handleContextCreated() {
-      this.contextCreated = true;
-    },
 
     handleCellSelected({rowIndex, colIndex, row2Index, col2Index}) {
       this.selectedCells = {

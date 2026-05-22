@@ -52,7 +52,9 @@ const zh = {
             "dashed": "虚线",
             "none": "无",
             "size": "尺寸",
-            "color": "颜色"
+            "color": "颜色",
+            "preset": "预设",
+            "text": "预设"
         },
         "chart": {
             "chart": "图表",
@@ -307,6 +309,9 @@ const zh = {
             "delItem": "删除选中项目",
             "delTip": "请先选中要删除的项目！",
             "delConfirm": "真的要删除条件项",
+            "addGroup": "添加新分组",
+            "editGroup": "编辑选中分组",
+            "delGroup": "删除选中分组",
             "conditionConfig": "条件配置",
             "propConfig": "属性配置",
             "currentValue": "当前值",
@@ -365,6 +370,14 @@ const zh = {
             "nameTip": "请输入条件项名称！",
             "add": "添加条件项",
             "edit": "修改条件项",
+            "nameExists": "名称已存在，请使用其他名称"
+        },
+        "conditionGroup": {
+            "title": "新增条件分组",
+            "groupName": "条件分组名称",
+            "nameTip": "请输入条件分组名称！",
+            "add": "添加条件分组",
+            "edit": "修改条件分组",
             "nameExists": "名称已存在，请使用其他名称"
         },
         "rowColWidthHeight": {

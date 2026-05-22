@@ -40,13 +40,10 @@
               :disabled="leftParentType !== 'custom' || leftParentCellName === 'root'"
               @change="handleLeftParentRowNumberChange"
               style="margin-left:10px;width: 100px"
+              virtual
+              filterable
+              :virtual-options="leftParentRowNumberOptionsFormatted"
           >
-            <u-option
-                v-for="option in leftParentRowNumberOptionsFormatted"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
           </u-select>
         </u-form-item>
 
@@ -85,13 +82,10 @@
               :disabled="topParentType !== 'custom' || topParentCellName === 'root'"
               @change="handleTopParentRowNumberChange"
               style="margin-left:10px;width: 100px"
+              virtual
+              filterable
+              :virtual-options="topParentRowNumberOptionsFormatted"
           >
-            <u-option
-                v-for="option in topParentRowNumberOptionsFormatted"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
           </u-select>
         </u-form-item>
       </div>
@@ -147,7 +141,7 @@
           </u-select>
 
           <u-button
-              type="text"
+              type="info"
               style="margin-left: 10px;"
               @click="handleUrlParameterConfig"
           >
@@ -450,7 +444,6 @@ export default {
 
       this.leftParentRowNumberOptions = [];
       this.topParentRowNumberOptions = [];
-
       for (let j = 0; j < countRows; j++) {
         this.leftParentRowNumberOptions.push(j + 1);
         this.topParentRowNumberOptions.push(j + 1);

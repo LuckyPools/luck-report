@@ -1,17 +1,19 @@
 <template>
   <div>
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="borderChecked" @change="onBorderChange">
           {{ $t('dialog.propCondition.border') }}
         </u-checkbox>
-      </div>
-      <span v-show="borderChecked" style="margin-left: 10px;">
-        <u-button @click="configBorder">
+      </u-col>
+      <u-col :span="8">
+        <u-button type="info" v-show="borderChecked" @click="configBorder">
           <i class="iconfont icon-setting"></i> {{ $t('dialog.propCondition.borderConfig') }}
         </u-button>
-      </span>
-    </div>
+      </u-col>
+      <u-col :span="8">
+      </u-col>
+    </u-row>
 
     <CustomBorderDialog
       :visible="customBorderDialogVisible"
@@ -26,6 +28,8 @@
 <script>
 import UCheckbox from '@/components/checkbox/index.vue';
 import UButton from '@/components/button/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 import CustomBorderDialog from '@/views/report/designer/resource-panel/property-panel/custom-border-dialog/index.vue';
 
 export default {
@@ -33,6 +37,8 @@ export default {
   components: {
     UCheckbox,
     UButton,
+    URow,
+    UCol,
     CustomBorderDialog
   },
   props: {
@@ -90,17 +96,20 @@ export default {
     configBorder() {
       this.localCellStyle = JSON.parse(JSON.stringify(this.cellStyle));
 
-      if (!this.localCellStyle.leftBorder) {
-        this.localCellStyle.leftBorder = { color: '0,0,0', width: "1", style: 'solid' };
+      const defaultBorder = { color: '0,0,0', width: "1", style: 'solid' };
+      const noneBorder = { color: '0,0,0', width: "1", style: 'none' };
+
+      if (!this.localCellStyle.leftBorder || this.localCellStyle.leftBorder === '') {
+        this.localCellStyle.leftBorder = { ...noneBorder };
       }
-      if (!this.localCellStyle.rightBorder) {
-        this.localCellStyle.rightBorder = { color: '0,0,0', width: "1", style: 'solid' };
+      if (!this.localCellStyle.rightBorder || this.localCellStyle.rightBorder === '') {
+        this.localCellStyle.rightBorder = { ...noneBorder };
       }
-      if (!this.localCellStyle.topBorder) {
-        this.localCellStyle.topBorder = { color: '0,0,0', width: "1", style: 'solid' };
+      if (!this.localCellStyle.topBorder || this.localCellStyle.topBorder === '') {
+        this.localCellStyle.topBorder = { ...noneBorder };
       }
-      if (!this.localCellStyle.bottomBorder) {
-        this.localCellStyle.bottomBorder = { color: '0,0,0', width: "1", style: 'solid' };
+      if (!this.localCellStyle.bottomBorder || this.localCellStyle.bottomBorder === '') {
+        this.localCellStyle.bottomBorder = { ...noneBorder };
       }
 
       this.customBorderDialogVisible = true;
