@@ -19,6 +19,7 @@ import com.luck.report.core.build.Context;
 import com.luck.report.core.model.Cell;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * @author Jacky.gao
@@ -33,4 +34,10 @@ public interface Condition extends Serializable {
      * @return 返回是否符合条件
      */
     boolean filter(Cell cell, Cell currentCell, Object obj, Context context);
+
+    /**
+     * 从条件中提取引用的单元格名称
+     * @return 引用的单元格名称列表
+     */
+    List<String> fetchCellName();
 }

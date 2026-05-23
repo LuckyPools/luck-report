@@ -119,6 +119,15 @@ public class Cell implements ReportCell {
     private Map<String, BlankCellInfo> newBlankCellsMap;
     private List<String> newCellNames;
 
+    /**
+     * 当前单元格行子格名称集合（用于预过滤，优化 addRowChild 递归性能）
+     */
+    private Set<String> rowChildCellNames;
+    /**
+     * 当前单元格列子格名称集合（用于预过滤，优化 addColumnChild 递归性能）
+     */
+    private Set<String> columnChildCellNames;
+
     public Cell newRowBlankCell(Context context, BlankCellInfo blankCellInfo, ReportCell mainCell) {
         Cell blankCell = newCell();
         blankCell.setBlankCell(true);
@@ -174,6 +183,8 @@ public class Cell implements ReportCell {
         cell.setCellStyle(cellStyle);
         cell.setNewBlankCellsMap(newBlankCellsMap);
         cell.setNewCellNames(newCellNames);
+        cell.setRowChildCellNames(rowChildCellNames);
+        cell.setColumnChildCellNames(columnChildCellNames);
         cell.setIncreaseSpanCellNames(increaseSpanCellNames);
         cell.setDuplicateRange(duplicateRange);
         cell.setLinkParameters(linkParameters);
@@ -189,12 +200,12 @@ public class Cell implements ReportCell {
 
     public void addRowChild(Cell child) {
         String name = child.getName();
-        List<Cell> cells = rowChildrenCellsMap.get(name);
-        if (cells == null) {
-            cells = new ArrayList<Cell>();
-            rowChildrenCellsMap.put(name, cells);
-        }
-        if (!cells.contains(child)) {
+        if (rowChildCellNames != null && rowChildCellNames.contains(name)) {
+            List<Cell> cells = rowChildrenCellsMap.get(name);
+            if (cells == null) {
+                cells = new ArrayList<Cell>();
+                rowChildrenCellsMap.put(name, cells);
+            }
             cells.add(child);
         }
         if (leftParentCell != null) {
@@ -205,12 +216,12 @@ public class Cell implements ReportCell {
 
     public void addColumnChild(Cell child) {
         String name = child.getName();
-        List<Cell> cells = columnChildrenCellsMap.get(name);
-        if (cells == null) {
-            cells = new ArrayList<Cell>();
-            columnChildrenCellsMap.put(name, cells);
-        }
-        if (!cells.contains(child)) {
+        if (columnChildCellNames != null && columnChildCellNames.contains(name)) {
+            List<Cell> cells = columnChildrenCellsMap.get(name);
+            if (cells == null) {
+                cells = new ArrayList<Cell>();
+                columnChildrenCellsMap.put(name, cells);
+            }
             cells.add(child);
         }
         if (topParentCell != null) {
@@ -273,7 +284,7 @@ public class Cell implements ReportCell {
     }
 
     private void doComputeConditionProperty(Context context) {
-        if (conditionPropertyItems == null || conditionPropertyItems.size() == 0) {
+        if (conditionPropertyItems == null || conditionPropertyItems.isEmpty()) {
             return;
         }
         for (ConditionPropertyItem item : conditionPropertyItems) {
@@ -283,7 +294,7 @@ public class Cell implements ReportCell {
             }
             Object obj = null;
             List<Object> bindDataList = this.bindData;
-            if (bindDataList != null && bindDataList.size() > 0) {
+            if (bindDataList != null && !bindDataList.isEmpty()) {
                 obj = bindDataList.get(0);
             }
             if (!condition.filter(this, this, obj, context)) {
@@ -856,6 +867,19 @@ public class Cell implements ReportCell {
     }
     public void setNewCellNames(List<String> newCellNames) {
         this.newCellNames = newCellNames;
+    }
+
+    public Set<String> getRowChildCellNames() {
+        return rowChildCellNames;
+    }
+    public void setRowChildCellNames(Set<String> rowChildCellNames) {
+        this.rowChildCellNames = rowChildCellNames;
+    }
+    public Set<String> getColumnChildCellNames() {
+        return columnChildCellNames;
+    }
+    public void setColumnChildCellNames(Set<String> columnChildCellNames) {
+        this.columnChildCellNames = columnChildCellNames;
     }
 
     public String getLinkUrl() {

@@ -140,10 +140,13 @@ public class Utils implements ApplicationContextAware {
             list.add(leftParentCell);
             return list;
         }
-        Map<String, List<Cell>> childrenCellsMap = leftParentCell.getRowChildrenCellsMap();
-        List<Cell> targetCells = childrenCellsMap.get(cellName);
-        if (targetCells != null) {
-            return targetCells;
+        Set<String> rowChildCellNames = leftParentCell.getRowChildCellNames();
+        if (rowChildCellNames != null && rowChildCellNames.contains(cellName)) {
+            Map<String, List<Cell>> childrenCellsMap = leftParentCell.getRowChildrenCellsMap();
+            List<Cell> targetCells = childrenCellsMap.get(cellName);
+            if (targetCells != null) {
+                return targetCells;
+            }
         }
         return fetchCellsByLeftParent(context, leftParentCell, cellName);
     }
@@ -158,10 +161,13 @@ public class Utils implements ApplicationContextAware {
             list.add(topParentCell);
             return list;
         }
-        Map<String, List<Cell>> childrenCellsMap = topParentCell.getColumnChildrenCellsMap();
-        List<Cell> targetCells = childrenCellsMap.get(cellName);
-        if (targetCells != null) {
-            return targetCells;
+        Set<String> columnChildCellNames = topParentCell.getColumnChildCellNames();
+        if (columnChildCellNames != null && columnChildCellNames.contains(cellName)) {
+            Map<String, List<Cell>> childrenCellsMap = topParentCell.getColumnChildrenCellsMap();
+            List<Cell> targetCells = childrenCellsMap.get(cellName);
+            if (targetCells != null) {
+                return targetCells;
+            }
         }
         return fetchCellsByTopParent(context, topParentCell, cellName);
     }

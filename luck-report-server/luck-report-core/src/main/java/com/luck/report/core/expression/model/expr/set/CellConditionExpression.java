@@ -93,4 +93,16 @@ public class CellConditionExpression extends CellExpression {
     public void setCondition(Condition condition) {
         this.condition = condition;
     }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
+        }
+        if (condition != null) {
+            list.addAll(condition.fetchCellName());
+        }
+        return list;
+    }
 }

@@ -341,4 +341,35 @@ public class CellCoordinateExpression extends CellExpression {
     public void setTopCoordinate(CellCoordinateSet topCoordinate) {
         this.topCoordinate = topCoordinate;
     }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (condition != null) {
+            list.addAll(condition.fetchCellName());
+        }
+        if (leftCoordinate != null) {
+            List<CellCoordinate> cellCoordinates = leftCoordinate.getCellCoordinates();
+            if (cellCoordinates != null && cellCoordinates.size() > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (CellCoordinate c : cellCoordinates) {
+                    sb.append(c.getCellName()).append(":");
+                }
+                sb.append(cellName);
+                list.add(sb.toString());
+            }
+        }
+        if (topCoordinate != null) {
+            List<CellCoordinate> cellCoordinates = topCoordinate.getCellCoordinates();
+            if (cellCoordinates != null && cellCoordinates.size() > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (CellCoordinate c : cellCoordinates) {
+                    sb.append(c.getCellName()).append(":");
+                }
+                sb.append(cellName);
+                list.add(sb.toString());
+            }
+        }
+        return list;
+    }
 }

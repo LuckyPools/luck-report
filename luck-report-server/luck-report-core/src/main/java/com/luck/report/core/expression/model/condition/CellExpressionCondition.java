@@ -23,6 +23,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -112,5 +113,18 @@ public class CellExpressionCondition extends BaseCondition {
 
     public void setRightExpression(Expression rightExpression) {
         this.rightExpression = rightExpression;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
+        }
+        if (rightExpression != null) {
+            list.addAll(rightExpression.fetchCellName());
+        }
+        list.addAll(super.fetchCellName());
+        return list;
     }
 }

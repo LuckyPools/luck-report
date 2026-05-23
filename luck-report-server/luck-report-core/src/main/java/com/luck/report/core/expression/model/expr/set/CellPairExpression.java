@@ -143,6 +143,27 @@ public class CellPairExpression extends BaseExpression {
     public void setEndCellName(String endCellName) {
         this.endCellName = endCellName;
     }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        List<String> cellNameList = ExpressionUtils.getCellNameList();
+        CellName startName = parseCellName(startCellName);
+        int startPos = cellNameList.indexOf(startName.getName());
+
+        CellName endName = parseCellName(endCellName);
+        int endPos = cellNameList.indexOf(endName.getName());
+
+        if (startPos > endPos) {
+            int tmp = startPos;
+            startPos = endPos;
+            endPos = tmp;
+        }
+        for (int i = startPos; i <= endPos; i++) {
+            list.add(cellNameList.get(i));
+        }
+        return list;
+    }
 }
 
 class CellName {

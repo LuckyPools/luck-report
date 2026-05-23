@@ -20,6 +20,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -61,5 +62,19 @@ public class ExpressionBlock extends BaseExpression {
 
     public void setReturnExpression(Expression returnExpression) {
         this.returnExpression = returnExpression;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expressionList != null) {
+            for (Expression expr : expressionList) {
+                list.addAll(expr.fetchCellName());
+            }
+        }
+        if (returnExpression != null) {
+            list.addAll(returnExpression.fetchCellName());
+        }
+        return list;
     }
 }

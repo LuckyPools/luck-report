@@ -8,8 +8,8 @@ import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.service.ReportDefinitionService;
 import com.luck.report.web.utils.DownloadUtils;
 import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.exception.ReportDesignException;
@@ -35,6 +35,9 @@ public class ExportPdfController {
 
     @Autowired
     private ReportRender reportRender;
+
+    @Autowired
+    private ReportDefinitionService reportDefinitionService;
 
     private final PdfProducer pdfProducer = new PdfProducer();
 
@@ -79,11 +82,7 @@ public class ExportPdfController {
             ReportDefinition reportDefinition;
             Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
             if (isPreview) {
-                reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
-                if (reportDefinition == null) {
-                    throw new ReportDesignException("Report data has expired,can not do export pdf.");
-                }
-                reportRender.rebuildReportDefinition(reportDefinition);
+                reportDefinition = reportDefinitionService.getReportDefinition(fileName);
             } else {
                 reportDefinition = reportRender.getReportDefinition(fileName);
             }

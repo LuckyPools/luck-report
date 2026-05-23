@@ -31,6 +31,7 @@ import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.model.Cell;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,6 +205,17 @@ public class DatasetExpression extends BaseExpression {
      */
     public void setMapping(Map<String, String> mapping) {
         this.mapping = mapping;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (conditions != null && conditions.size() > 0) {
+            for (Condition cond : conditions) {
+                list.addAll(cond.fetchCellName());
+            }
+        }
+        return list;
     }
 
 }

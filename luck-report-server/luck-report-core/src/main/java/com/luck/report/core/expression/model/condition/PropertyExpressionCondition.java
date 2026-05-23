@@ -24,6 +24,9 @@ import com.luck.report.core.model.Cell;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Jacky.gao
  * @since 2016年11月22日
@@ -101,5 +104,15 @@ public class PropertyExpressionCondition extends BaseCondition {
         if (StringUtils.isNotBlank(right)) {
             this.rightExpression = ExpressionUtils.parseExpression(right);
         }
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (rightExpression != null) {
+            list.addAll(rightExpression.fetchCellName());
+        }
+        list.addAll(super.fetchCellName());
+        return list;
     }
 }

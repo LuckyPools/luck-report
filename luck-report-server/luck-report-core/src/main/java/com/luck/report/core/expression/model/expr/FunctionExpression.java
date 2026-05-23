@@ -97,4 +97,15 @@ public class FunctionExpression extends BaseExpression {
     public void setExpressions(List<BaseExpression> expressions) {
         this.expressions = expressions;
     }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expressions != null) {
+            for (BaseExpression expr : expressions) {
+                list.addAll(expr.fetchCellName());
+            }
+        }
+        return list;
+    }
 }

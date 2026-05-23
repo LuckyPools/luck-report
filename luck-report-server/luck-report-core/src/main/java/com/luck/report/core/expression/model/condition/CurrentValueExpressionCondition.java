@@ -22,6 +22,9 @@ import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Jacky.gao
  * @since 2017年12月8日
@@ -75,5 +78,15 @@ public class CurrentValueExpressionCondition extends BaseCondition {
         if (right != null && !right.isEmpty()) {
             this.rightExpression = ExpressionUtils.parseExpression(right);
         }
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (rightExpression != null) {
+            list.addAll(rightExpression.fetchCellName());
+        }
+        list.addAll(super.fetchCellName());
+        return list;
     }
 }

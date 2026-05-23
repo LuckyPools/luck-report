@@ -8,8 +8,8 @@ import com.luck.report.core.export.ExportManager;
 import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.excel.low.Excel97Producer;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.service.ReportDefinitionService;
 import com.luck.report.web.utils.DownloadUtils;
 import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.exception.ReportDesignException;
@@ -40,6 +40,9 @@ public class ExportExcel97Controller {
     @Autowired
     private ReportRender reportRender;
 
+    @Autowired
+    private ReportDefinitionService reportDefinitionService;
+
     private final Excel97Producer excelProducer = new Excel97Producer();
 
     @RequestMapping("/build")
@@ -67,11 +70,7 @@ public class ExportExcel97Controller {
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         OutputStream outputStream = resp.getOutputStream();
         if (isPreview) {
-            ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
-            if (reportDefinition == null) {
-                throw new ReportDesignException("Report data has expired,can not do export excel.");
-            }
-            reportRender.rebuildReportDefinition(reportDefinition);
+            ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             if (withPage) {
                 excelProducer.produceWithPaging(report, outputStream);

@@ -20,6 +20,7 @@ import com.luck.report.core.expression.model.condition.Join;
 import com.luck.report.core.model.Cell;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -89,5 +90,16 @@ public class ExpressionConditionList implements Serializable {
      */
     public void setJoins(List<Join> joins) {
         this.joins = joins;
+    }
+
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (conditions == null || conditions.size() == 0) {
+            return list;
+        }
+        for (ExpressionCondition condition : conditions) {
+            list.addAll(condition.fetchCellName());
+        }
+        return list;
     }
 }

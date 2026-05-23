@@ -22,6 +22,7 @@ import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.expression.model.expr.ExpressionBlock;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -88,5 +89,25 @@ public class IfExpression extends BaseExpression {
 
     public void setElseIfExpressions(List<ElseIfExpression> elseIfExpressions) {
         this.elseIfExpressions = elseIfExpressions;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (conditionList != null) {
+            list.addAll(conditionList.fetchCellName());
+        }
+        if (expression != null) {
+            list.addAll(expression.fetchCellName());
+        }
+        if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
+            for (ElseIfExpression elseIfExpr : elseIfExpressions) {
+                list.addAll(elseIfExpr.fetchCellName());
+            }
+        }
+        if (elseExpression != null) {
+            list.addAll(elseExpression.fetchCellName());
+        }
+        return list;
     }
 }

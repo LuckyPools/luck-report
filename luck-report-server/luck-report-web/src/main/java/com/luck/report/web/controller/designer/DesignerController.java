@@ -111,14 +111,13 @@ public class DesignerController implements ApplicationContextAware {
      * 保存预览文件
      */
     @RequestMapping("/savePreviewFile")
-    public void savePreviewFile(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void savePreviewFile(HttpServletRequest req, HttpServletResponse resp) {
         String content = req.getParameter("content");
         String fileName = req.getParameter("fileName");
         content = decode(content);
         fileName = decode(fileName);
         InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
         ReportDefinition reportDef = reportParser.parse(inputStream, fileName);
-        // reportRender.rebuildReportDefinition(reportDef);
         IOUtils.closeQuietly(inputStream);
         ReportScopedCache.putObject(fileName, reportDef);
     }

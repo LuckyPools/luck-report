@@ -127,4 +127,13 @@ public class CellExpression extends BaseExpression {
     public void setCellName(String cellName) {
         this.cellName = cellName;
     }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
+        }
+        return list;
+    }
 }

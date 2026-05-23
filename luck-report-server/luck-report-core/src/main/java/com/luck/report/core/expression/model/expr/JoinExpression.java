@@ -132,4 +132,15 @@ public class JoinExpression extends BaseExpression {
 	public void setOperators(List<Operator> operators) {
 		this.operators = operators;
 	}
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expressions != null) {
+            for (BaseExpression expr : expressions) {
+                list.addAll(expr.fetchCellName());
+            }
+        }
+        return list;
+    }
 }

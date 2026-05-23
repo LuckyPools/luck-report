@@ -26,6 +26,7 @@ import com.luck.report.core.expression.model.data.*;
 import com.luck.report.core.model.Cell;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -129,5 +130,16 @@ public class ExpressionCondition implements Serializable {
      */
     public void setRight(Expression right) {
         this.right = right;
+    }
+
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (left != null) {
+            list.addAll(left.fetchCellName());
+        }
+        if (right != null) {
+            list.addAll(right.fetchCellName());
+        }
+        return list;
     }
 }

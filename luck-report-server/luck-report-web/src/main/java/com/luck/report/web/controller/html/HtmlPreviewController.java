@@ -13,8 +13,8 @@ import com.luck.report.core.export.*;
 import com.luck.report.core.export.html.HtmlProducer;
 import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.model.Report;
-import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.constant.ReportConstants;
+import com.luck.report.web.service.ReportDefinitionService;
 import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.domain.vo.ChartDataVo;
 import com.luck.report.web.exception.ReportDesignException;
@@ -46,6 +46,8 @@ public class HtmlPreviewController {
     private ReportBuilder reportBuilder;
     @Autowired
     private ReportRender reportRender;
+    @Autowired
+    private ReportDefinitionService reportDefinitionService;
 
     @RequestMapping("/loadHtml")
     public void loadHtml(HttpServletRequest req, HttpServletResponse resp) throws Exception {
@@ -54,7 +56,6 @@ public class HtmlPreviewController {
         htmlReport = loadReport(req);
         if (htmlReport != null) {
             Collection<ChartDataVo> chartDataVoList = convertToChartDataVo(htmlReport.getChartDatas());
-
             result.put("searchForm", htmlReport.getSearchForm());
             result.put("content", htmlReport.getContent());
             result.put("style", htmlReport.getStyle());
@@ -77,11 +78,7 @@ public class HtmlPreviewController {
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         ReportDefinition reportDefinition;
         if (isPreview) {
-            reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
-            if (reportDefinition == null) {
-                throw new ReportDesignException("Report data has expired,can not do export excel.");
-            }
-            reportRender.rebuildReportDefinition(reportDefinition);
+            reportDefinition = reportDefinitionService.getReportDefinition(fileName);
         } else {
             reportDefinition = reportRender.getReportDefinition(fileName);
         }
@@ -129,17 +126,13 @@ public class HtmlPreviewController {
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
         fileName = UrlParameterUtils.doubleDecode(fileName);
-        ReportDefinition report;
+        ReportDefinition reportDefinition;
         if (isPreview) {
-            report = (ReportDefinition) ReportScopedCache.getObject(fileName);
-            if (report == null) {
-                throw new ReportDesignException("Report data has expired.");
-            }
-            reportRender.rebuildReportDefinition(report);
+            reportDefinition = reportDefinitionService.getReportDefinition(fileName);
         } else {
-            report = reportRender.getReportDefinition(fileName);
+            reportDefinition = reportRender.getReportDefinition(fileName);
         }
-        Paper paper = report.getPaper();
+        Paper paper = reportDefinition.getPaper();
         ResponseUtils.writeObjectToJson(resp, paper);
     }
 
@@ -164,7 +157,7 @@ public class HtmlPreviewController {
     }
 
 
-    private HtmlReport loadReport(HttpServletRequest req) throws JsonProcessingException {
+    private HtmlReport loadReport(HttpServletRequest req) {
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         HtmlReport htmlReport;
         String pageIndex = req.getParameter("_i");
@@ -176,11 +169,7 @@ public class HtmlPreviewController {
             throw new ReportComputeException("Report file can not be null");
         }
         if (isPreview) {
-            ReportDefinition reportDefinition = (ReportDefinition) ReportScopedCache.getObject(fileName);
-            if (reportDefinition == null) {
-                throw new ReportDesignException("Report data has expired,can not do preview");
-            }
-            reportRender.rebuildReportDefinition(reportDefinition);
+            ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
             if (!CollectionUtils.isEmpty(chartMap)) {

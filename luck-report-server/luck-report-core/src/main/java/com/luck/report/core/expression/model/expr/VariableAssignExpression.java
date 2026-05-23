@@ -24,6 +24,7 @@ import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -84,5 +85,14 @@ public class VariableAssignExpression extends BaseExpression {
 
     public void setExpression(Expression expression) {
         this.expression = expression;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expression != null) {
+            list.addAll(expression.fetchCellName());
+        }
+        return list;
     }
 }

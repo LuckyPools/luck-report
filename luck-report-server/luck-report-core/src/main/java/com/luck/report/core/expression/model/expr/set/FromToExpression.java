@@ -95,4 +95,16 @@ public class FromToExpression extends BaseExpression {
     public void setToExpression(BaseExpression toExpression) {
         this.toExpression = toExpression;
     }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (fromExpression != null) {
+            list.addAll(fromExpression.fetchCellName());
+        }
+        if (toExpression != null) {
+            list.addAll(toExpression.fetchCellName());
+        }
+        return list;
+    }
 }
