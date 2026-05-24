@@ -96,22 +96,18 @@ export default {
       slashes: []
     };
   },
+  computed: {
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
+    }
+  },
   watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadSlashes();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadSlashes();
       }
     }
-  },
-  mounted() {
-    this.loadSlashes();
   },
   methods: {
     loadSlashes() {

@@ -16,10 +16,11 @@
 package com.luck.report.core.export;
 
 import com.luck.report.core.build.ReportBuilder;
-import com.luck.report.core.cache.ReportDefinitionCache;
+import com.luck.report.core.cache.ReportDefinitionWrapperCache;
 import com.luck.report.core.definition.CellDefinition;
 import com.luck.report.core.definition.Expand;
 import com.luck.report.core.definition.ReportDefinition;
+import com.luck.report.core.definition.ReportDefinitionWrapper;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.exception.ReportParseException;
 import com.luck.report.core.export.builder.down.DownCellbuilder;
@@ -60,15 +61,26 @@ public class ReportRender implements ApplicationContextAware {
     }
 
     public ReportDefinition getReportDefinition(String file) {
-        ReportDefinition reportDefinition = ReportDefinitionCache.getObject(file);
-        if (reportDefinition == null) {
+        ReportDefinitionWrapper wrapper = ReportDefinitionWrapperCache.getObject(file);
+        ReportDefinition reportDefinition;
+        if (wrapper == null) {
             reportDefinition = parseReport(file);
-            ReportDefinitionCache.putObject(file, reportDefinition);
+            wrapper = new ReportDefinitionWrapper(reportDefinition);
+            ReportDefinitionWrapperCache.putObject(file, wrapper);
         }
-        rebuildReportDefinition(reportDefinition);
+        reportDefinition = wrapper.getReportDefinition();
+        if (wrapper.checkNotBuilt()) {
+            rebuildReportDefinition(reportDefinition);
+            wrapper.markBuilt();
+        }
         return reportDefinition;
     }
 
+    /**
+     * 重建报表定义的父子引用关系。
+     *
+     * @param reportDefinition 报表定义
+     */
     public void rebuildReportDefinition(ReportDefinition reportDefinition) {
         List<CellDefinition> cells = reportDefinition.getCells();
         rebuildParentCell(cells);

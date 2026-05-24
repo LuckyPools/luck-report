@@ -227,23 +227,18 @@ export default {
     // 监听props变化，更新本地数据
     mappingType(newVal) {
       this.localMappingType = newVal;
-      this.$emit('mapping-type-change', newVal);
     },
     mappingItems(newVal) {
       this.localMappingItems = [...newVal];
-      this.$emit('mapping-items-change', newVal);
     },
     mappingDataset(newVal) {
       this.localMappingDataset = newVal;
-      this.$emit('mapping-dataset-change', newVal);
     },
     mappingKeyProperty(newVal) {
       this.localMappingKeyProperty = newVal;
-      this.$emit('mapping-key-property-change', newVal);
     },
     mappingValueProperty(newVal) {
       this.localMappingValueProperty = newVal;
-      this.$emit('mapping-value-property-change', newVal);
     },
     localMappingDataset: {
       handler() {
@@ -262,8 +257,8 @@ export default {
 
       // 加载选中数据集的字段
       if (this.localMappingDataset) {
-        for (let ds of this.datasources) {
-          let datasets = ds.datasets || [];
+        for (let datasource of this.datasources) {
+          let datasets = datasource.datasets || [];
           for (let dataset of datasets) {
             if (dataset.name === this.localMappingDataset) {
               this.mappingFields = dataset.fields || [];

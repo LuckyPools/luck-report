@@ -68,7 +68,7 @@
 
     <SqlDatasetDialog
       :visible="sqlDatasetDialogVisible"
-      :db="currentDbInfo"
+      :datasourceData="currentDatasourceData"
       :datasetData="currentDatasetData"
       @save="handleSqlDatasetSave"
       @close="sqlDatasetDialogVisible = false"
@@ -89,7 +89,6 @@
 </template>
 
 <script>
-/* eslint-disable */
 import { v1 as uuidv1 } from 'uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
@@ -132,11 +131,11 @@ export default {
         currentDataset: null,
         fieldNameDialogVisible: false,
         sqlDatasetDialogVisible: false,
-        currentDbInfo: null,
+        currentDatasourceData: null,
         currentDatasetData: null
       };
   },
-  created() {
+  mounted() {
     // 初始化数据集展开状态
     if (this.datasets && this.datasets.length > 0) {
       for (let i = 0; i < this.datasets.length; i++) {
@@ -189,7 +188,7 @@ export default {
      * 添加数据集操作
      */
     addDatasetAction() {
-      this.currentDbInfo = {
+      this.currentDatasourceData = {
         type: 'buildin',
         name: this.name
       };
@@ -257,7 +256,7 @@ export default {
         }
 
         const newDatasets = deepCopy(this.datasets);
-        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
         if (!targetDataset.fields) {
           targetDataset.fields = [];
         }
@@ -282,7 +281,7 @@ export default {
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-      this.currentDbInfo = {
+      this.currentDatasourceData = {
         type: 'buildin',
         name: this.name
       };
@@ -344,7 +343,7 @@ export default {
       let that = this;
       showConfirm(`${this.$t('tree.delFieldConfirm')}[${field.name}]？`).then(() => {
         const newDatasets = deepCopy(this.datasets);
-        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
         if (targetDataset && targetDataset.fields) {
           targetDataset.fields.splice(fieldIndex, 1);
           that.$emit('update-datasource', {
@@ -360,7 +359,7 @@ export default {
      * 字段双击事件
      */
     handleFieldDoubleClick(dataset, field) {
-      this._buildClickEvent(dataset, field, this.context);
+      this.buildClickEvent(dataset, field, this.context);
     },
 
     /**
@@ -383,7 +382,7 @@ export default {
       try {
         const fields = await buildFields(parameters);
         const newDatasets = deepCopy(this.datasets);
-        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
         if (targetDataset) {
           targetDataset.fields = fields;
           this.$emit('update-datasource', {
@@ -402,9 +401,9 @@ export default {
     },
 
     /**
-     * BaseTree 的 _buildClickEvent 方法
+     * BaseTree 的 buildClickEvent 方法
      */
-    _buildClickEvent(dataset, field, context) {
+    buildClickEvent(dataset, field, context) {
       const hot = TableManager.get();
       if (!hot) {
         showAlert(this.$t('tree.cellTip'));

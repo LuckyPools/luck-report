@@ -37,7 +37,7 @@ export default {
       reportDef: null,
       cellsMap: new Map(),
       context: null,
-      internalReportPath: this.reportPath,
+      localReportPath: this.reportPath,
       defaultReportPath: 'classpath:template/template.ureport.xml'
     };
   },
@@ -48,7 +48,7 @@ export default {
   },
   watch: {
     reportPath(val) {
-      this.internalReportPath = val;
+      this.localReportPath = val;
       if (val) {
         this.loadFile(val);
       }
@@ -74,7 +74,7 @@ export default {
 
       let filePath = '';
       if (this.isLibMode) {
-        filePath = this.internalReportPath || this.defaultReportPath;
+        filePath = this.localReportPath || this.defaultReportPath;
       } else {
         filePath = utils.getParameter("reportPath");
         if (!filePath || filePath === '') {

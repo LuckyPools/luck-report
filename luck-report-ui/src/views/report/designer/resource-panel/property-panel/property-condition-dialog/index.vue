@@ -10,7 +10,7 @@
       <fieldset class="fieldset-small">
         <legend class="legend-style">{{ $t('dialog.propCondition.config') }}</legend>
         <condition-group
-            :property-conditions="localPropertyConditions"
+            :condition-groups="localConditionGroups"
             :selected-group-index="selectedGroupIndex"
             @group-added="onGroupAdded"
             @group-updated="onGroupUpdated"
@@ -23,9 +23,8 @@
       <fieldset class="fieldset-medium">
         <legend class="legend-style">{{ $t('dialog.propCondition.conditionConfig') }}</legend>
         <condition-item
-          :property-conditions="localPropertyConditions"
           :selected-group="selectedGroup"
-          :dataset-name="localDatasetName"
+          :fields="fields"
           :conditions="currentConditions"
           :reset-selection="resetConditionSelection"
           @condition-added="onConditionAdded"
@@ -57,6 +56,7 @@ import ConditionConfig from '@/views/report/designer/resource-panel/property-pan
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import { mapGetters } from 'vuex';
+import {deepClone} from "@/views/report/designer/search-form/utils";
 
 export default {
   name: 'ConditionBody',
@@ -72,15 +72,11 @@ export default {
       type: Boolean,
       default: false
     },
-    datasetName: {
-      type: String,
-      default: ''
-    },
-    conditionPropertyItems: {
+    fields: {
       type: Array,
       default: () => []
     },
-    propertyConditions: {
+    conditionGroups: {
       type: Array,
       default: () => []
     }
@@ -96,29 +92,17 @@ export default {
       selectedGroup: null,
       selectedGroupIndex: -1,
       showPropertyGroup: false,
-      localPropertyConditions: [],
-      localDatasetName: '',
+      localConditionGroups: [],
       currentConditions: [],
       resetConditionSelection: true
     };
   },
   watch: {
-    propertyConditions: {
-      handler(newVal) {
-        this.localPropertyConditions = [...newVal];
-      },
-      deep: true,
-      immediate: true
-    },
     visible(newVal) {
       if (newVal) {
-        this.localDatasetName = this.datasetName;
-        this.localPropertyConditions.splice(0, this.localPropertyConditions.length);
-        this.conditionPropertyItems.forEach(group => {
-          this.localPropertyConditions.push(group);
-        });
-
-        if (this.localPropertyConditions.length > 0) {
+        const conditionGroups = this.conditionGroups;
+        this.localConditionGroups = Array.isArray(conditionGroups) ? deepClone(conditionGroups) : [];
+        if (this.localConditionGroups.length > 0) {
           this.selectFirstGroup();
         } else {
           this.clearSelection();
@@ -129,23 +113,23 @@ export default {
   methods: {
 
     onGroupAdded(newGroup) {
-      this.localPropertyConditions.push(newGroup);
+      this.localConditionGroups.push(newGroup);
       setDirty();
     },
 
     onGroupUpdated(index, group) {
-      if (index >= 0 && index < this.localPropertyConditions.length) {
-        this.$set(this.localPropertyConditions, index, group);
+      if (index >= 0 && index < this.localConditionGroups.length) {
+        this.$set(this.localConditionGroups, index, group);
       }
       setDirty();
     },
 
     onGroupDeleted(index) {
-      if (index >= 0 && index < this.localPropertyConditions.length) {
-        this.localPropertyConditions.splice(index, 1);
+      if (index >= 0 && index < this.localConditionGroups.length) {
+        this.localConditionGroups.splice(index, 1);
 
         if (this.selectedGroupIndex === index) {
-          if (this.localPropertyConditions.length > 0) {
+          if (this.localConditionGroups.length > 0) {
             this.$nextTick(() => {
               this.selectedGroupIndex = 0;
             });
@@ -228,7 +212,7 @@ export default {
     },
 
     selectFirstGroup() {
-      if (this.localPropertyConditions.length > 0) {
+      if (this.localConditionGroups.length > 0) {
         this.selectedGroupIndex = 0;
       }
     },
@@ -248,12 +232,8 @@ export default {
 
     handleOk() {
       this.$emit('update:visible', false);
-
-      const conditionsToReturn = this.localPropertyConditions.map(group => {
-        return JSON.parse(JSON.stringify(group));
-      });
-
-      this.$emit('saveAfter', conditionsToReturn);
+      const conditionGroups = deepClone(this.localConditionGroups);
+      this.$emit('saveAfter', conditionGroups);
     }
   }
 };

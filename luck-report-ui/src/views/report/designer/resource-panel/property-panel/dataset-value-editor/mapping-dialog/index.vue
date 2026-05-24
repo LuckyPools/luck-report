@@ -91,14 +91,24 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.formData = {
-          value: this.mappingItem.value || '',
-          label: this.mappingItem.label || ''
-        };
+        this.resetForm();
+        this.initData();
       }
     }
   },
   methods: {
+
+    initData() {
+      this.formData = {
+        value: this.mappingItem?.value || '',
+        label: this.mappingItem?.label || ''
+      };
+    },
+
+    resetForm() {
+      this.$refs.form && this.$refs.form.resetFields();
+    },
+
     /**
      * 校验表单
      * @returns {Promise<boolean>} 校验结果
@@ -132,7 +142,6 @@ export default {
      * 关闭弹窗
      */
     handleClose() {
-      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('update:visible', false);
     }
   }

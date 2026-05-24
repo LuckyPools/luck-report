@@ -231,14 +231,6 @@ export default {
       if (newVal) {
         this.loadBorderData();
       }
-    },
-    cellStyle: {
-      handler(newVal) {
-        if (newVal) {
-          this.loadBorderData();
-        }
-      },
-      deep: true
     }
   },
   methods: {

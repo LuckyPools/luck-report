@@ -26,13 +26,10 @@
               :disabled="leftParentType !== 'custom'"
               @change="handleLeftParentCellNameChange"
               style="width: 100px"
+              virtual
+              filterable
+              :virtual-options="leftParentCellNameOptions"
           >
-            <u-option
-                v-for="option in leftParentCellNameOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
           </u-select>
           <u-select
               v-model="leftParentRowNumber"
@@ -42,7 +39,7 @@
               style="margin-left:10px;width: 100px"
               virtual
               filterable
-              :virtual-options="leftParentRowNumberOptionsFormatted"
+              :virtual-options="leftParentRowNumberOptions"
           >
           </u-select>
         </u-form-item>
@@ -68,13 +65,10 @@
               :clearable="true"
               @change="handleTopParentCellNameChange"
               style="width: 100px"
+              virtual
+              filterable
+              :virtual-options="topParentCellNameOptions"
           >
-            <u-option
-                v-for="option in topParentCellNameOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
           </u-select>
           <u-select
               v-model="topParentRowNumber"
@@ -84,7 +78,7 @@
               style="margin-left:10px;width: 100px"
               virtual
               filterable
-              :virtual-options="topParentRowNumberOptionsFormatted"
+              :virtual-options="topParentRowNumberOptions"
           >
           </u-select>
         </u-form-item>
@@ -261,18 +255,6 @@ export default {
         { label: this.$t('property.prop.custom'), value: 'custom' }
       ];
     },
-    leftParentRowNumberOptionsFormatted() {
-      return this.leftParentRowNumberOptions.map(num => ({
-        label: num,
-        value: num.toString()
-      }));
-    },
-    topParentRowNumberOptionsFormatted() {
-      return this.topParentRowNumberOptions.map(num => ({
-        label: num,
-        value: num.toString()
-      }));
-    },
     linkTargetOptions() {
       return [
         { label: this.$t('property.prop.newWindow'), value: '_blank' },
@@ -292,24 +274,17 @@ export default {
         { label: this.$t('property.prop.barcode'), value: 'barcode' },
         { label: this.$t('property.prop.chart'), value: 'chart' }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   watch: {
-    rowIndex() {
-      this.buildParentCellNameOptions();
-      this.buildParentRowNumberOptions();
-      this.updateLinkParameters();
-    },
-    colIndex() {
+    cellPosition() {
       this.buildParentCellNameOptions();
       this.buildParentRowNumberOptions();
       this.updateLinkParameters();
     }
-  },
-  mounted() {
-    this.buildParentCellNameOptions();
-    this.buildParentRowNumberOptions();
-    this.updateLinkParameters();
   },
   methods: {
     updateLinkParameters() {
@@ -445,8 +420,8 @@ export default {
       this.leftParentRowNumberOptions = [];
       this.topParentRowNumberOptions = [];
       for (let j = 0; j < countRows; j++) {
-        this.leftParentRowNumberOptions.push(j + 1);
-        this.topParentRowNumberOptions.push(j + 1);
+        this.leftParentRowNumberOptions.push({ label: j + 1, value: String(j + 1) });
+        this.topParentRowNumberOptions.push({ label: j + 1, value: String(j + 1) });
       }
     },
 

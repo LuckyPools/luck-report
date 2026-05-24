@@ -33,7 +33,7 @@
         @change="onGroupSelectChange"
       >
       <option
-          v-for="(group, index) in propertyConditions"
+          v-for="(group, index) in conditionGroups"
           :key="group.id"
           :value="index"
       >
@@ -46,7 +46,7 @@
         :visible="dialogVisible"
         :conditionGroup="currentConditionGroup"
         :operation="currentOperation"
-        :propertyConditions="propertyConditions"
+        :conditionGroups="conditionGroups"
         @saveAfter="handleSaveAfter"
         @close="handleDialogClose"
     />
@@ -67,7 +67,7 @@ export default {
     UButton
   },
   props: {
-    propertyConditions: {
+    conditionGroups: {
       type: Array,
       default: () => []
     },
@@ -87,11 +87,11 @@ export default {
   watch: {
     selectedGroupIndex: {
       handler(newVal) {
-        if (newVal < 0 || newVal >= this.propertyConditions.length) {
+        if (newVal < 0 || newVal >= this.conditionGroups.length) {
           this.selectedGroup = null;
           this.$emit('group-selected', null);
         } else {
-          this.selectedGroup = this.propertyConditions[newVal];
+          this.selectedGroup = this.conditionGroups[newVal];
           this.$emit('group-selected', this.selectedGroup);
         }
       },
@@ -105,23 +105,22 @@ export default {
       this.dialogVisible = true;
     },
     editGroup() {
-      if (this.selectedGroupIndex < 0 || this.selectedGroupIndex >= this.propertyConditions.length) {
+      if (this.selectedGroupIndex < 0 || this.selectedGroupIndex >= this.conditionGroups.length) {
         showAlert(this.$t('dialog.propCondition.editTip'));
         return;
       }
 
-      const group = this.propertyConditions[this.selectedGroupIndex];
-      this.currentConditionGroup = group;
+      this.currentConditionGroup = this.conditionGroups[this.selectedGroupIndex];
       this.currentOperation = 'edit';
       this.dialogVisible = true;
     },
     deleteGroup() {
-      if (this.selectedGroupIndex < 0 || this.selectedGroupIndex >= this.propertyConditions.length) {
+      if (this.selectedGroupIndex < 0 || this.selectedGroupIndex >= this.conditionGroups.length) {
         showAlert(this.$t('dialog.propCondition.delTip'));
         return;
       }
 
-      const group = this.propertyConditions[this.selectedGroupIndex];
+      const group = this.conditionGroups[this.selectedGroupIndex];
       const groupName = group.name || '';
 
       showConfirm(`${this.$t('dialog.propCondition.delConfirm')}[${groupName}]?`).then(() => {
@@ -138,7 +137,7 @@ export default {
       if (operation === 'add') {
         this.currentConditionGroup.name = group.name;
         this.$emit('group-added', this.currentConditionGroup);
-        const newIndex = this.propertyConditions.length - 1;
+        const newIndex = this.conditionGroups.length - 1;
         this.$emit('group-index-changed', newIndex);
       } else if (operation === 'edit') {
         this.currentConditionGroup.name = group.name;

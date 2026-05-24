@@ -46,7 +46,7 @@
       :visible="dialogVisible"
       :fields="fields"
       :condition="condition"
-      :conditions="groupConditions"
+      :conditions="localConditions"
       @saveAfter="handleSaveAfter"
       @close="dialogVisible = false"
     />
@@ -68,17 +68,13 @@ export default {
     UButton
   },
   props: {
-    propertyConditions: {
-      type: Array,
-      default: () => []
-    },
     selectedGroup: {
       type: Object,
       default: null
     },
-    datasetName: {
-      type: String,
-      default: ''
+    fields: {
+      type: Array,
+      default: () => []
     },
     conditions: {
       type: Array,
@@ -94,18 +90,14 @@ export default {
       selectedConditionIndex: -1,
       isAddingCondition: false,
       dialogVisible: false,
-      fields: [],
       condition: null,
-      groupConditions: []
+      localConditions: []
     };
   },
   computed: {
     ...mapGetters('report', ['getContext']),
     context() {
       return this.getContext || {};
-    },
-    datasources() {
-      return this.context.reportDef?.datasources || [];
     }
   },
   watch: {
@@ -140,13 +132,11 @@ export default {
         return;
       }
 
-      const fields = this.buildFields();
       const conditions = this.selectedGroup.conditions || [];
 
       this.isAddingCondition = true;
-      this.fields = fields;
       this.condition = null;
-      this.groupConditions = conditions;
+      this.localConditions = conditions;
       this.dialogVisible = true;
     },
     editCondition() {
@@ -160,14 +150,12 @@ export default {
         return;
       }
 
-      const fields = this.buildFields();
       const condition = this.conditions[this.selectedConditionIndex];
       const conditions = this.selectedGroup.conditions || [];
 
       this.isAddingCondition = false;
-      this.fields = fields;
       this.condition = condition;
-      this.groupConditions = conditions;
+      this.localConditions = conditions;
       this.dialogVisible = true;
     },
 
@@ -220,26 +208,6 @@ export default {
       this.$emit('condition-deleted', this.selectedConditionIndex);
       this.selectedConditionIndex = -1;
       setDirty();
-    },
-    buildFields() {
-      let fields = [];
-      if (!this.datasetName || this.datasetName === '') {
-        return fields;
-      }
-
-      for (let ds of this.datasources) {
-        let datasets = ds.datasets || [];
-        for (let dataset of datasets) {
-          if (dataset.name === this.datasetName) {
-            fields = dataset.fields || [];
-            break;
-          }
-        }
-        if (fields.length > 0) {
-          break;
-        }
-      }
-      return fields;
     },
     onConditionSelectChange() {
       this.$nextTick(() => {

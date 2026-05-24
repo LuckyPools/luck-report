@@ -161,7 +161,7 @@ export function tableToXml(context){
                 cellXml+='>';
                 cellXml+=buildConditions(value.conditions);
                 if(value.aggregate==='customgroup'){
-                    const groupItems=value.groupItems;
+                    const groupItems=Array.isArray(value.groupItems) ? value.groupItems : [];
                     for(let groupItem of groupItems){
                         cellXml+=`<group-item name="${groupItem.name}">`;
                         for(let condition of groupItem.conditions){

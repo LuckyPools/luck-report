@@ -7,7 +7,7 @@
           <TopToolBar ref="topToolBar" :selectedCells="selectedCells" />
           <!-- 内容表格组件 -->
           <ContentTable
-            :reportPath="internalReportPath"
+            :reportPath="localReportPath"
             @cell-selected="handleCellSelected"
             @navigate="handleNavigate"
             @save="handleSave"
@@ -57,7 +57,7 @@ export default {
         row2Index: null,
         col2Index: null
       },
-      internalReportPath: this.reportPath
+      localReportPath: this.reportPath
     };
   },
   computed: {
@@ -70,7 +70,7 @@ export default {
   },
   watch: {
     reportPath(val) {
-      this.internalReportPath = val;
+      this.localReportPath = val;
     }
   },
   methods: {
@@ -109,7 +109,7 @@ export default {
     },
 
     setReportPath(path) {
-      this.internalReportPath = path;
+      this.localReportPath = path;
     },
 
     setLocale(locale) {

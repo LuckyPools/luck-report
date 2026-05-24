@@ -56,7 +56,7 @@ export default {
       type: String,
       default: 'add'
     },
-    propertyConditions: {
+    conditionGroups: {
       type: Array,
       default: () => []
     }
@@ -66,7 +66,6 @@ export default {
       formData: {
         name: ''
       },
-      localConditionGroup: null,
       rules: {
         name: [{
           required: true,
@@ -88,9 +87,9 @@ export default {
   },
   watch: {
     visible(newVal) {
-      if (newVal && this.conditionGroup) {
-        this.formData.name = this.conditionGroup.name || '';
-        this.localConditionGroup = { ...this.conditionGroup };
+      if (newVal) {
+        this.resetForm();
+        this.initData();
       }
     }
   },
@@ -101,6 +100,17 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
+
+    initData(){
+      if (this.conditionGroup){
+        this.formData.name = this.conditionGroup.name || '';
+      }
+    },
+
+    resetForm() {
+      this.$refs.form && this.$refs.form.resetFields();
+    },
+
     /**
      * 校验表单
      * @returns {Promise<boolean>} 校验结果
@@ -122,7 +132,7 @@ export default {
         return;
       }
 
-      const isDuplicate = this.propertyConditions.some(item => {
+      const isDuplicate = this.conditionGroups.some(item => {
         if (this.operation === 'edit' && item === this.conditionGroup) {
           return false;
         }
@@ -134,10 +144,10 @@ export default {
         return;
       }
 
-      this.localConditionGroup.name = this.formData.name;
+      const group = { ...this.conditionGroup, name: this.formData.name };
 
       this.$emit('saveAfter', {
-        group: this.localConditionGroup,
+        group: group,
         operation: this.operation
       });
 
@@ -148,7 +158,6 @@ export default {
      * 关闭弹窗
      */
     handleClose() {
-      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('close');
     },
 

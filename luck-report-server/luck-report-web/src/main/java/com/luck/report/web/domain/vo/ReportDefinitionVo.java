@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.web.controller.designer;
+package com.luck.report.web.domain.vo;
 
 import com.luck.report.core.definition.*;
 import com.luck.report.core.definition.datasource.DatasourceDefinition;
@@ -27,7 +27,7 @@ import java.util.Map;
  * @author Jacky.gao
  * @since 2017年1月29日
  */
-public class ReportDefinitionWrapper {
+public class ReportDefinitionVo {
     private final Paper paper;
     private final HeaderFooterDefinition header;
     private final HeaderFooterDefinition footer;
@@ -37,7 +37,7 @@ public class ReportDefinitionWrapper {
     private final Map<String, CellDefinition> cellsMap = new HashMap<String, CellDefinition>();
     private SearchForm searchForm;
 
-    public ReportDefinitionWrapper(ReportDefinition report) {
+    public ReportDefinitionVo(ReportDefinition report) {
         this.paper = report.getPaper();
         this.header = report.getHeader();
         this.footer = report.getFooter();

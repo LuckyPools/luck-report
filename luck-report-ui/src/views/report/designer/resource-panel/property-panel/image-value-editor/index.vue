@@ -138,12 +138,15 @@ export default {
         { value: 'text', label: this.$t('property.image.path') },
         { value: 'expression', label: this.$t('property.image.expr') }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   data() {
     return {
       codeMirror: null,
-      initialized: false,
+      loadingCellData: false,
       width: '',
       height: '',
       source: 'text',
@@ -152,21 +155,12 @@ export default {
     };
   },
   watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadCellData();
       }
     }
-  },
-  mounted() {
-    this.loadCellData();
   },
   beforeDestroy() {
     if (this.codeMirror) {
@@ -200,9 +194,7 @@ export default {
       this.codeMirror.setSize('auto', '120px');
 
       this.codeMirror.on('change', (cm, changes) => {
-        if (this.initialized) {
-          return;
-        }
+        if (this.loadingCellData) return;
         const expr = cm.getValue();
         if (expr === 'undefined' || expr === undefined || expr === null) {
           return;
@@ -223,8 +215,6 @@ export default {
      * 加载单元格数据
      */
     loadCellData() {
-      this.initialized = true;
-
       const currentCellDef = getCell(this.rowIndex, this.colIndex);
       if (!currentCellDef || !currentCellDef.value) return;
 
@@ -241,7 +231,9 @@ export default {
           if (valueToSet === 'undefined') {
             valueToSet = '';
           }
+          this.loadingCellData = true;
           this.codeMirror.setValue(valueToSet);
+          this.loadingCellData = false;
         }
       }
 
@@ -255,9 +247,10 @@ export default {
           if (valueToSet === 'undefined') {
             valueToSet = '';
           }
+          this.loadingCellData = true;
           this.codeMirror.setValue(valueToSet);
+          this.loadingCellData = false;
         }
-        this.initialized = false;
       });
     },
 

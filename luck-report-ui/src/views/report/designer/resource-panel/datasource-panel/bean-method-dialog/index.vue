@@ -107,16 +107,17 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.initData();
-      }
-    },
-    dataset(newVal) {
-      if (newVal) {
+        this.resetForm();
         this.initData();
       }
     }
   },
   methods: {
+
+    resetForm() {
+      this.$refs.form && this.$refs.form.resetFields();
+    },
+
     /**
      * 校验表单
      * @returns {Promise<boolean>} 校验结果
@@ -150,7 +151,6 @@ export default {
      * 关闭弹窗
      */
     closeDialog() {
-      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('close');
     },
 

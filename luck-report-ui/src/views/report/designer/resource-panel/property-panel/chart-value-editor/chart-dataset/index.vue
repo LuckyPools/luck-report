@@ -118,7 +118,6 @@ import UOption from '@/components/option/index.vue';
 import UInput from '@/components/input/index.vue';
 import UForm from "@/components/form/index.vue";
 import UFormItem from "@/components/form-item/index.vue";
-import { mapGetters } from 'vuex';
 
 export default {
   name: 'ChartDataset',
@@ -135,12 +134,18 @@ export default {
     datasetConfig: {
       type: Object,
       required: true
+    },
+    fields: {
+      type: Array,
+      default: () => []
+    },
+    datasets: {
+      type: Array,
+      default: () => []
     }
   },
   data() {
     return {
-      availableDatasets: [],
-      availableFields: [],
       localDatasetConfig: {
         datasetName: '',
         categoryProperty: '',
@@ -154,18 +159,14 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    },
     datasetOptions() {
-      return this.availableDatasets.map(dataset => ({
+      return this.datasets.map(dataset => ({
         value: dataset.name,
         label: dataset.name
       }));
     },
     fieldOptions() {
-      return this.availableFields.map(field => ({
+      return this.fields.map(field => ({
         value: field.name,
         label: field.name
       }));
@@ -190,48 +191,9 @@ export default {
       },
       deep: true,
       immediate: true
-    },
-    'localDatasetConfig.datasetName': {
-      handler(newVal) {
-        if (newVal) {
-          this.loadAvailableFields();
-        }
-      },
-      immediate: true
     }
   },
-  mounted() {
-    this.loadAvailableDatasets();
-  },
   methods: {
-    loadAvailableDatasets() {
-      this.availableDatasets = [];
-      for (let ds of this.context.reportDef.datasources) {
-        let datasets = ds.datasets || [];
-        for (let dataset of datasets) {
-          this.availableDatasets.push(dataset);
-        }
-      }
-    },
-    loadAvailableFields() {
-      this.availableFields = [];
-      const datasetName = this.datasetConfig.datasetName;
-
-      if (!datasetName) return;
-
-      for (let ds of this.context.reportDef.datasources) {
-        let datasets = ds.datasets || [];
-        for (let dataset of datasets) {
-          if (dataset.name === datasetName) {
-            this.availableFields = dataset.fields || [];
-            break;
-          }
-        }
-        if (this.availableFields.length > 0) {
-          break;
-        }
-      }
-    },
     handleDatasetChange(value) {
       this.$emit('dataset-change', value);
       setDirty();

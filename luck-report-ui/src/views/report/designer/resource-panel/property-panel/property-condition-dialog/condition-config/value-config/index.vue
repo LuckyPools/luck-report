@@ -30,7 +30,7 @@
             :list="suggestionList"
             :filter-by-query="true"
             class="simple-suggest"
-            @input="onFormatInputChange"
+            @blur="onFormatInputChange"
         ></vue-simple-suggest>
       </u-col>
     </u-row>

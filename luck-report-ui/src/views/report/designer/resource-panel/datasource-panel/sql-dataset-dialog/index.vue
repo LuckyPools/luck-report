@@ -13,7 +13,7 @@
           <!-- 左侧容器：搜索表格 -->
           <div class="left-panel">
             <SearchTable
-                :db="db"
+                :datasourceData="datasourceData"
                 :trigger-load="triggerLoadSearchTable"
                 @add="handleAddSql"
                 @load-complete="handleSearchTableLoadComplete"
@@ -79,7 +79,7 @@ export default {
       type: Boolean,
       default: false
     },
-    db: {
+    datasourceData: {
       type: Object,
       default: null
     },
@@ -109,12 +109,12 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.initDialog();
+        this.initData();
       }
     }
   },
   methods: {
-    initDialog() {
+    initData() {
       this.currentData = {};
       this.datasetName = '';
       this.sql = '';
@@ -197,7 +197,7 @@ export default {
         return;
       }
 
-      const type = this.db.type;
+      const type = this.datasourceData.type;
       const parameters = {
         sql,
         type,
@@ -205,12 +205,12 @@ export default {
       };
 
       if (type === 'jdbc') {
-        parameters.username = this.db.username;
-        parameters.password = this.db.password;
-        parameters.driver = this.db.driver;
-        parameters.url = this.db.url;
+        parameters.username = this.datasourceData.username;
+        parameters.password = this.datasourceData.password;
+        parameters.driver = this.datasourceData.driver;
+        parameters.url = this.datasourceData.url;
       } else if (type === 'buildin') {
-        parameters.name = this.db.name;
+        parameters.name = this.datasourceData.name;
       }
 
       this.previewParameters = parameters;

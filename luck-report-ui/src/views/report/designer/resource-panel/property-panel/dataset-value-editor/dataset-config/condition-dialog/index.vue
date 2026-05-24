@@ -134,12 +134,12 @@ export default {
         propertyValue: [{
           required: true,
           message: this.$t('dialog.condition.selectProperty'),
-          trigger: 'change'
+          trigger: 'blur'
         }],
         operatorValue: [{
           required: true,
           message: this.$t('dialog.condition.selectOp'),
-          trigger: 'change'
+          trigger: 'blur'
         }],
         valueExpr: [{
           required: true,
@@ -152,32 +152,9 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.initDialogData();
+        this.resetFormData();
+        this.initData();
       }
-    },
-    condition: {
-      handler() {
-        if (this.visible) {
-          this.initDialogData();
-        }
-      },
-      deep: true
-    },
-    fields: {
-      handler() {
-        if (this.visible) {
-          this.initDialogData();
-        }
-      },
-      deep: true
-    },
-    conditions: {
-      handler() {
-        if (this.visible) {
-          this.initDialogData();
-        }
-      },
-      deep: true
     }
   },
   computed: {
@@ -207,7 +184,8 @@ export default {
     }
   },
   methods: {
-    initDialogData() {
+
+    initData() {
       const fields = this.fields || [];
       const condition = this.condition;
 
@@ -228,6 +206,13 @@ export default {
         this.formData.operatorValue = '==';
         this.formData.valueExpr = '';
       }
+    },
+
+    /**
+     * 重置表单数据
+     */
+    resetFormData() {
+      this.$refs.form && this.$refs.form.resetFields();
     },
 
     /**
@@ -262,7 +247,6 @@ export default {
     },
 
     handleClose() {
-      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('update:visible', false);
     }
   }

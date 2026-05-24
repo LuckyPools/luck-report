@@ -49,7 +49,7 @@
             :filter-by-query="true"
             :placeholder="$t('property.base.formatTip')"
             class="simple-suggest"
-            @input="handleFormatChange"
+            @blur="handleFormatChange"
         ></vue-simple-suggest>
       </u-form-item>
 
@@ -76,8 +76,8 @@
     <PropertyConditionDialog
         ref="propertyConditionDialog"
         :visible.sync="propertyConditionDialogVisible"
-        :dataset-name="propertyConditionDialogDatasetName"
-        :condition-property-items="propertyConditionDialogItems"
+        :fields="[]"
+        :conditionGroups="conditionGroups"
         @saveAfter="handlePropertyConditionSave"
     />
   </div>
@@ -88,7 +88,7 @@ import CodeMirror from 'codemirror';
 import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/lint/lint.js';
 import { setDirty } from '@/utils/table.js';
-import { scriptValidation, parseDatasetName } from '@/api/designer/index.js';
+import { scriptValidation } from '@/api/designer/index.js';
 import PropertyConditionDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/index.vue';
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
@@ -143,6 +143,9 @@ export default {
         { value: 'Right', label: this.$t('property.dataset.right') },
         { value: 'None', label: this.$t('property.dataset.noneExpand') }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   data() {
@@ -175,18 +178,11 @@ export default {
       ],
       loadingCellData: false,
       propertyConditionDialogVisible: false,
-      propertyConditionDialogDatasetName: '',
-      propertyConditionDialogItems: []
+      conditionGroups: []
     };
   },
   watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadCellData();
@@ -234,6 +230,7 @@ export default {
 
       // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
+        if (this.loadingCellData) return;
         const expr = cm.getValue();
         if (expr === 'undefined' || expr === undefined || expr === null) {
           return;
@@ -259,21 +256,17 @@ export default {
      * 加载单元格数据
      */
     loadCellData() {
-      if (this.loadingCellData) return;
+      this.loadingCellData = true;
 
       const cellDef = getCell(this.rowIndex, this.colIndex);
 
       // 如果编辑器已经初始化，立即设置值
       if (this.codeMirror && cellDef && cellDef.value) {
-        this.loadingCellData = true;
         let valueToSet = cellDef.value.value || '';
         if (valueToSet === 'undefined') {
           valueToSet = '';
         }
         this.codeMirror.setValue(valueToSet);
-        this.$nextTick(() => {
-          this.loadingCellData = false;
-        });
       }
 
       // 设置展开选项
@@ -302,6 +295,7 @@ export default {
         } else {
           this.codeMirror.refresh();
         }
+        this.loadingCellData = false;
       });
     },
 
@@ -386,6 +380,7 @@ export default {
      * 处理格式变化
      */
     handleFormatChange(format) {
+      if (this.loadingCellData) return;
       const hot = TableManager.get();
       if (!hot) return;
       this.format = format;
@@ -412,43 +407,30 @@ export default {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (!cellDef) return;
 
-      const conditionPropertyItems = cellDef.conditionPropertyItems
+      const conditionGroups = cellDef.conditionPropertyItems
           ? deepCopy(cellDef.conditionPropertyItems)
           : [];
 
-      let datasetName = '';
-      const expr = this.codeMirror ? this.codeMirror.getValue() : '';
-
-      if (expr && expr !== '') {
-        try {
-          const result = await parseDatasetName(expr);
-          datasetName = result.datasetName;
-        } catch (error) {
-          console.error('Parse dataset name error:', error);
-        }
-      }
-
-      this.showPropertyConditionDialog(datasetName, conditionPropertyItems);
+      this.showPropertyConditionDialog(conditionGroups);
     },
 
     /**
      * 显示条件属性对话框
      */
-    showPropertyConditionDialog(datasetName, conditionPropertyItems) {
-      this.propertyConditionDialogDatasetName = datasetName;
-      this.propertyConditionDialogItems = conditionPropertyItems;
+    showPropertyConditionDialog(conditionGroups) {
+      this.conditionGroups = conditionGroups;
       this.propertyConditionDialogVisible = true;
     },
 
     /**
      * 处理属性条件保存后的回调
      */
-    handlePropertyConditionSave(propertyConditions) {
+    handlePropertyConditionSave(conditionGroups) {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (!cellDef) return;
 
       const newCellDef = deepCopy(cellDef);
-      newCellDef.conditionPropertyItems = deepCopy(propertyConditions);
+      newCellDef.conditionPropertyItems = deepCopy(conditionGroups);
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {

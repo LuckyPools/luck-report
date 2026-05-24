@@ -14,7 +14,7 @@
             style="margin-right:2px"
           ></i>
           <i class="iconfont icon-database"></i>
-          <a href="###" class="ds_name">{{ name }}</a>
+          <a href="###" class="ds_name">{{ datasource.name }}</a>
         </span>
 
         <!-- 数据集列表 -->
@@ -23,7 +23,7 @@
           class="node-list"
         >
           <li
-            v-for="(dataset, index) in datasets"
+            v-for="(dataset, index) in dsDatasets"
             :key="dataset.name + '_' + index"
           >
             <!-- 数据集节点 -->
@@ -69,7 +69,7 @@
     <!-- SQL数据集对话框 -->
     <SqlDatasetDialog
       :visible="sqlDatasetDialogVisible"
-      :db="currentDbInfo"
+      :datasourceData="currentDatasourceData"
       :datasetData="currentDatasetData"
       @save="handleSqlDatasetSave"
       @close="sqlDatasetDialogVisible = false"
@@ -121,7 +121,7 @@ export default {
     ContextMenu
   },
   props: {
-    ds: {
+    datasource: {
       type: Object,
       required: true
     },
@@ -134,18 +134,15 @@ export default {
     ...mapGetters('report', ['getContext']),
     context() {
       return this.getContext;
+    },
+    dsDatasets() {
+      return this.datasource.datasets || [];
     }
   },
   data() {
     return {
       type: 'jdbc',
       id: uuidv1(),
-      name: this.ds.name,
-      username: this.ds.username,
-      password: this.ds.password,
-      driver: this.ds.driver,
-      url: this.ds.url,
-      datasets: this.ds.datasets || [],
       datasourceExpanded: true,
       datasetExpanded: {},
       contextMenus: {},
@@ -154,42 +151,11 @@ export default {
       currentDatasource: null,
       fieldNameDialogVisible: false,
       sqlDatasetDialogVisible: false,
-      currentDbInfo: null,
+      currentDatasourceData: null,
       currentDatasetData: null
     };
   },
-  mounted() {
-    this.initDatasetExpanded();
-  },
-  watch: {
-    ds: {
-      handler(newDs) {
-        if (newDs) {
-          this.name = newDs.name;
-          this.username = newDs.username;
-          this.password = newDs.password;
-          this.driver = newDs.driver;
-          this.url = newDs.url;
-          this.datasets = newDs.datasets || [];
-          this.initDatasetExpanded();
-        }
-      },
-      deep: true
-    }
-  },
   methods: {
-    /**
-     * 初始化数据集展开状态
-     */
-    initDatasetExpanded() {
-      this.datasets.forEach((dataset, index) => {
-        this.$set(this.datasetExpanded, index, false);
-        // 如果字段不存在，则构建字段
-        if (!dataset.fields) {
-          this.buildFields(dataset, index);
-        }
-      });
-    },
 
     /**
      * 切换数据源展开/折叠
@@ -273,17 +239,16 @@ export default {
       });
     },
 
-
     /**
      * 编辑数据源操作
      */
     editDatasourceAction() {
       this.currentDatasource = {
-        name: this.name,
-        username: this.username,
-        password: this.password,
-        driver: this.driver,
-        url: this.url,
+        name: this.datasource.name,
+        username: this.datasource.username,
+        password: this.datasource.password,
+        driver: this.datasource.driver,
+        url: this.datasource.url,
         type: this.type
       };
       this.datasourceDialogVisible = true;
@@ -293,14 +258,6 @@ export default {
      * 处理数据源保存事件
      */
     handleDatasourceSave(datasourceData) {
-      // 更新本地数据
-      this.name = datasourceData.name;
-      this.username = datasourceData.username;
-      this.password = datasourceData.password;
-      this.driver = datasourceData.driver;
-      this.url = datasourceData.url;
-
-      // 通过事件通知父组件更新 ds 对象
       this.$emit('update-datasource', datasourceData);
     },
 
@@ -308,8 +265,8 @@ export default {
      * 删除数据源操作
      */
     deleteDatasourceAction() {
-      showConfirm(this.$t('tree.delConfirm') + `[${this.name}]？`).then(() => {
-        this.$emit('remove', this.name);
+      showConfirm(this.$t('tree.delConfirm') + `[${this.datasource.name}]？`).then(() => {
+        this.$emit('remove', this.datasource.name);
       });
     },
 
@@ -326,20 +283,29 @@ export default {
      */
     handleFieldNameSave(fieldName, dataset) {
       if (fieldName) {
-        if (!dataset.fields) {
-          dataset.fields = [];
+        const newDatasets = deepCopy(this.dsDatasets);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
+        if (!targetDataset.fields) {
+          targetDataset.fields = [];
         }
 
-        // 检查字段是否已存在
-        const exists = dataset.fields.some(field => field.name === fieldName);
+        const exists = targetDataset.fields.some(field => field.name === fieldName);
         if (exists) {
           showAlert(this.$t('tree.fieldExist'));
           return;
         }
 
-        const field = { name: fieldName };
-        dataset.fields.push(field);
-        this.$forceUpdate();
+        targetDataset.fields.push({ name: fieldName });
+        this.$emit('update-datasource', {
+          name: this.datasource.name,
+          oldName: this.datasource.name,
+          username: this.datasource.username,
+          password: this.datasource.password,
+          driver: this.datasource.driver,
+          url: this.datasource.url,
+          type: this.type,
+          datasets: newDatasets
+        });
       }
     },
 
@@ -347,12 +313,12 @@ export default {
      * 添加数据集操作
      */
     addDatasetAction() {
-      this.currentDbInfo = {
-        name: this.name,
-        username: this.username,
-        password: this.password,
-        driver: this.driver,
-        url: this.url,
+      this.currentDatasourceData = {
+        name: this.datasource.name,
+        username: this.datasource.username,
+        password: this.datasource.password,
+        driver: this.datasource.driver,
+        url: this.datasource.url,
         type: this.type,
         datasources: this.datasources
       };
@@ -364,12 +330,12 @@ export default {
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-      this.currentDbInfo = {
-        name: this.name,
-        username: this.username,
-        password: this.password,
-        driver: this.driver,
-        url: this.url,
+      this.currentDatasourceData = {
+        name: this.datasource.name,
+        username: this.datasource.username,
+        password: this.datasource.password,
+        driver: this.datasource.driver,
+        url: this.datasource.url,
         type: this.type,
         datasources: this.datasources
       };
@@ -382,8 +348,19 @@ export default {
      */
     deleteDatasetAction(dataset, index) {
       showConfirm(this.$t('tree.delDatasetConfirm') + `[${dataset.name}]?`).then(() => {
-        this.datasets.splice(index, 1);
+        const newDatasets = deepCopy(this.dsDatasets);
+        newDatasets.splice(index, 1);
         this.$delete(this.datasetExpanded, index);
+        this.$emit('update-datasource', {
+          name: this.datasource.name,
+          oldName: this.datasource.name,
+          username: this.datasource.username,
+          password: this.datasource.password,
+          driver: this.datasource.driver,
+          url: this.datasource.url,
+          type: this.type,
+          datasets: newDatasets
+        });
       });
     },
 
@@ -391,8 +368,24 @@ export default {
      * 刷新数据集操作
      */
     refreshDatasetAction(dataset, index) {
-      dataset.fields = null;
-      this.buildFields(dataset, index);
+      const newDatasets = deepCopy(this.dsDatasets);
+      const targetDataset = newDatasets.find(item => item.name === dataset.name);
+      if (targetDataset) {
+        targetDataset.fields = null;
+        this.$emit('update-datasource', {
+          name: this.datasource.name,
+          oldName: this.datasource.name,
+          username: this.datasource.username,
+          password: this.datasource.password,
+          driver: this.datasource.driver,
+          url: this.datasource.url,
+          type: this.type,
+          datasets: newDatasets
+        });
+        this.$nextTick(() => {
+          this.buildFields(targetDataset, index);
+        });
+      }
     },
 
     /**
@@ -400,9 +393,20 @@ export default {
      */
     deleteFieldAction(dataset, field, fieldIndex) {
       showConfirm(this.$t('tree.delFieldConfirm') + `[${field.name}]?`).then(() => {
-        if (dataset.fields) {
-          dataset.fields.splice(fieldIndex, 1);
-          this.$forceUpdate();
+        const newDatasets = deepCopy(this.dsDatasets);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
+        if (targetDataset && targetDataset.fields) {
+          targetDataset.fields.splice(fieldIndex, 1);
+          this.$emit('update-datasource', {
+            name: this.datasource.name,
+            oldName: this.datasource.name,
+            username: this.datasource.username,
+            password: this.datasource.password,
+            driver: this.datasource.driver,
+            url: this.datasource.url,
+            type: this.type,
+            datasets: newDatasets
+          });
         }
       });
     },
@@ -411,7 +415,7 @@ export default {
      * 字段双击事件
      */
     handleFieldDoubleClick(dataset, field) {
-      this._buildClickEvent(dataset, field, this.context);
+      this.buildClickEvent(dataset, field, this.context);
     },
 
     /**
@@ -421,25 +425,36 @@ export default {
       const defaultFields = dataset.fields;
 
       if (defaultFields) {
-        // 字段已存在，直接显示
-        this.$forceUpdate();
         return;
       }
-      // 从服务器获取字段
+
       const params = {
         sql: dataset.sql,
         parameters: JSON.stringify(dataset.parameters || []),
-        username: this.username,
-        password: this.password,
-        driver: this.driver,
-        url: this.url,
+        username: this.datasource.username,
+        password: this.datasource.password,
+        driver: this.datasource.driver,
+        url: this.datasource.url,
         type: 'jdbc'
       };
 
       try {
         const fields = await buildJdbcFields(params);
-        dataset.fields = fields;
-        this.$forceUpdate();
+        const newDatasets = deepCopy(this.dsDatasets);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
+        if (targetDataset) {
+          targetDataset.fields = fields;
+          this.$emit('update-datasource', {
+            name: this.datasource.name,
+            oldName: this.datasource.name,
+            username: this.datasource.username,
+            password: this.datasource.password,
+            driver: this.datasource.driver,
+            url: this.datasource.url,
+            type: this.type,
+            datasets: newDatasets
+          });
+        }
       } catch (error) {
         if (error.msg) {
           showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
@@ -451,41 +466,41 @@ export default {
 
     /**
      * 处理SQL数据集保存事件
-     * 参数 name 是数据集的 name，this.name 是数据源的 name
+     * 参数 name 是数据集的 name，this.datasource.name 是数据源的 name
      */
     handleSqlDatasetSave(name, oldName, sql, parameters) {
-      const datasourceData = {
-        name: this.name,
-        oldName: this.name,
-        username: this.username,
-        password: this.password,
-        driver: this.driver,
-        url: this.url,
-        type: this.type,
-        datasets: this.datasets.map(dataset => ({ ...dataset })) // 深拷贝当前数据集数组
-      };
+      const newDatasets = deepCopy(this.dsDatasets);
 
-      // 查找正在编辑的数据集
-      let dataset = datasourceData.datasets.find(dataset => dataset.name === oldName);
+      let dataset = newDatasets.find(item => item.name === oldName);
       if (dataset) {
-        // 编辑现有数据集
         dataset.name = name;
         dataset.sql = sql;
         dataset.parameters = parameters;
         dataset.fields = null;
       } else {
-        // 添加新数据集
         dataset = { name, sql, parameters };
-        datasourceData.datasets.push(dataset);
+        newDatasets.push(dataset);
       }
-      this.$emit('update-datasource', datasourceData);
-      this.buildFields(dataset, );
+
+      this.$emit('update-datasource', {
+        name: this.datasource.name,
+        oldName: this.datasource.name,
+        username: this.datasource.username,
+        password: this.datasource.password,
+        driver: this.datasource.driver,
+        url: this.datasource.url,
+        type: this.type,
+        datasets: newDatasets
+      });
+      this.$nextTick(() => {
+        this.buildFields(dataset);
+      });
     },
 
     /**
      * 构建点击事件（从 BaseTree 继承）
      */
-    _buildClickEvent(dataset, field, context) {
+    buildClickEvent(dataset, field, context) {
       const hot = TableManager.get();
       if (!hot) {
         showAlert(this.$t('tree.cellTip'));
@@ -530,19 +545,16 @@ export default {
       setCell( rowIndex, colIndex, newCellDef )
       hot.setDataAtCell(rowIndex, colIndex, text);
 
-      // 设置脏标记
       if (window.setDirty) {
         window.setDirty();
       }
 
       hot.render();
 
-      // 触发选择结束事件
       if (window.Handsontable && window.Handsontable.hooks) {
         window.Handsontable.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
       }
 
-      // 添加到撤销管理器
       if (window.undoManager) {
         window.undoManager.add({
           redo: () => {
@@ -605,4 +617,3 @@ export default {
   }
 }
 </style>
-

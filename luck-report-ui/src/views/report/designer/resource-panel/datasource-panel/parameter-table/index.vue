@@ -81,19 +81,8 @@ export default {
       parameterDialogVisible: false
     };
   },
-  watch: {
-    data: {
-      handler(newData) {
-        // 数据变化时自动响应
-      },
-      deep: true
-    }
-  },
   methods: {
-      refreshData() {
-        // 触发数据更新事件
-        this.$emit('update');
-      },
+
       handleDialogSave(name, type, defaultValue) {
         if ((this.currentIndex === -1 || this.data[this.currentIndex].name !== name) &&
             this.data.some(param => param.name === name)) {

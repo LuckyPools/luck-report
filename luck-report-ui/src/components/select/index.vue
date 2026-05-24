@@ -78,7 +78,8 @@
           :class="{ 'u-select-options-virtual': virtual }"
           :style="{
             top: panelHeight ? `${panelHeight + 6}px` : undefined,
-            width: optionsWidth ? `${optionsWidth}px` : undefined
+            width: optionsWidth ? `${optionsWidth}px` : undefined,
+            height: virtual ? virtualOptionsHeight : undefined
           }"
           v-show="visible"
           v-loading="filterable && loading"
@@ -249,6 +250,14 @@ export default {
         const label = String(item[this.labelKey] || '').toLowerCase();
         return label.includes(query);
       });
+    },
+    virtualOptionsHeight() {
+      if (!this.virtual) return undefined;
+      const itemSize = 32;
+      const maxHeight = 160;
+      const borderWidth = 2;
+      const actualHeight = this.filteredVirtualOptions.length * itemSize + borderWidth;
+      return actualHeight > 0 ? `${Math.min(actualHeight, maxHeight + borderWidth)}px` : `${maxHeight}px`;
     }
   },
   watch: {
@@ -507,18 +516,24 @@ export default {
      * @description 同步单选的选择值
      */
     __syncSimpleValue(value) {
-      let that = this;
+      const that = this;
+      const options = this.virtual ? this.virtualOptions : this.options;
       let found = false;
-      this.options.forEach(d => {
-        if (d.value === value) {
-          d.selected = true;
-          that.currentValue = value;
-          that.currentLabel = d.label
+
+      options.forEach(d => {
+        const optionValue = this.virtual ? d[this.valueKey] : d.value;
+        if (optionValue === value) {
           found = true;
-        } else {
+          that.currentValue = value;
+          that.currentLabel = this.virtual ? d[this.labelKey] : d.label;
+          if (!this.virtual) {
+            d.selected = true;
+          }
+        } else if (!this.virtual) {
           d.selected = false;
         }
       });
+
       if (!found) {
         that.currentValue = value;
         that.currentLabel = value;
@@ -782,7 +797,6 @@ export default {
 }
 
 .u-select-options-virtual {
-  height: 160px;
   max-height: 160px;
   padding: 0;
 }

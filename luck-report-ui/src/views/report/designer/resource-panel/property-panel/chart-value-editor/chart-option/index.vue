@@ -156,7 +156,6 @@
   </div>
 </template>
 <script>
-import { deepCopy } from '@/components/utils';
 import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import USelect from '@/components/select/index.vue';
@@ -219,9 +218,18 @@ export default {
   watch: {
     chartConfig: {
       handler(newVal) {
-        this.localChartConfig = deepCopy(newVal);
+        if (newVal) {
+          this.localChartConfig = {
+            title: { display: true, position: 'top', text: '', ...(newVal.title || {}) },
+            legend: { display: true, position: 'bottom', ...(newVal.legend || {}) },
+            dataLabels: { display: false, ...(newVal.dataLabels || {}) },
+            animation: { duration: 1000, easing: 'linear', ...(newVal.animation || {}) },
+            layout: { top: 0, bottom: 0, left: 0, right: 0, ...(newVal.layout || {}) }
+          };
+        }
       },
-      deep: true
+      deep: true,
+      immediate: true
     }
   },
   computed: {

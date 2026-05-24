@@ -62,7 +62,7 @@ export default {
     UInput
   },
   props: {
-    db: {
+    datasourceData: {
       type: Object
     },
     triggerLoad: {
@@ -108,19 +108,19 @@ export default {
      * 加载数据库表格列表
      */
     async loadDatabaseTables() {
-      if (!this.db) return;
+      if (!this.datasourceData) return;
 
       this.searchKeyword = '';
-      const type = this.db.type;
+      const type = this.datasourceData.type;
       const parameters = { type };
 
       if (type === 'jdbc') {
-        parameters.username = this.db.username;
-        parameters.password = this.db.password;
-        parameters.driver = this.db.driver;
-        parameters.url = this.db.url;
+        parameters.username = this.datasourceData.username;
+        parameters.password = this.datasourceData.password;
+        parameters.driver = this.datasourceData.driver;
+        parameters.url = this.datasourceData.url;
       } else if (type === 'buildin') {
-        parameters.name = this.db.name;
+        parameters.name = this.datasourceData.name;
         // 确保 type 参数被正确设置
         parameters.type = 'buildin';
       }

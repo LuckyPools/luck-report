@@ -5,7 +5,6 @@
     :visible="visible"
     :z-index="20000"
     @close="handleClose"
-    @closed="handleClosed"
   >
     <div class="dialog-content">
       <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
@@ -80,7 +79,8 @@ export default {
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.formData.name = this.groupItem?.name || '';
+        this.resetFormData();
+        this.initData();
       }
     }
   },
@@ -91,6 +91,18 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
+
+    initData(){
+      this.formData.name = this.groupItem?.name || '';
+    },
+
+    /**
+     * 重置表单数据
+     */
+    resetFormData() {
+      this.$refs.form && this.$refs.form.resetFields();
+    },
+
     /**
      * 校验表单
      * @returns {Promise<boolean>} 校验结果
@@ -127,13 +139,6 @@ export default {
      */
     handleClose() {
       this.$emit('update:visible', false);
-    },
-
-    /**
-     * 弹窗关闭后重置表单
-     */
-    handleClosed() {
-      this.$refs.form && this.$refs.form.resetFields();
     },
 
     /**

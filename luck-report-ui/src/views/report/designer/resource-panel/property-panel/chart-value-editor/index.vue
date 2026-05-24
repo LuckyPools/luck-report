@@ -6,6 +6,8 @@
         <!-- 数据集绑定选项卡 -->
         <ChartDataset
             :datasetConfig="datasetConfig"
+            :fields="currentFields"
+            :datasets="currentDatasets"
             @dataset-change="handleDatasetChange"
             @category-property-change="handleCategoryPropertyChange"
             @value-property-change="handleValuePropertyChange"
@@ -149,24 +151,50 @@ export default {
       ...mapGetters('report', ['getContext']),
       context() {
           return this.getContext;
+      },
+      cellPosition() {
+        return `${this.rowIndex},${this.colIndex}`;
+      },
+      /**
+       * 根据当前 datasetName 获取对应数据集的字段列表
+       * @return {Array} 字段数组，未选择数据集时返回空数组
+       */
+      currentFields() {
+        const datasetName = this.datasetConfig.datasetName;
+        if (!datasetName) return [];
+        for (let datasource of this.context.reportDef.datasources) {
+          let datasets = datasource.datasets || [];
+          for (let dataset of datasets) {
+            if (dataset.name === datasetName) {
+              return dataset.fields || [];
+            }
+          }
+        }
+        return [];
+      },
+      /**
+       * 获取所有可用数据集列表
+       * @return {Array} 数据集数组
+       */
+      currentDatasets() {
+        if (!this.context?.reportDef?.datasources) return [];
+        const result = [];
+        for (let datasource of this.context.reportDef.datasources) {
+          let datasets = datasource.datasets || [];
+          for (let dataset of datasets) {
+            result.push(dataset);
+          }
+        }
+        return result;
       }
   },
   watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadChartConfig();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadChartConfig();
       }
     }
-  },
-  mounted() {
-    this.loadChartConfig();
   },
   methods: {
     getCell,

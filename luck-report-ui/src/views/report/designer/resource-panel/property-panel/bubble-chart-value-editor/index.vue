@@ -6,11 +6,13 @@
         <!-- 数据集绑定选项卡 -->
         <ChartDataConfig
             ref="datasetTab"
-            :selectedDataset="datasetValues.selectedDataset"
-            :selectedCategoryProperty="datasetValues.selectedCategoryProperty"
-            :selectedXProperty="datasetValues.selectedXProperty"
-            :selectedYProperty="datasetValues.selectedYProperty"
-            :selectedRProperty="datasetValues.selectedRProperty"
+            :dataset="datasetValues.dataset"
+            :categoryProperty="datasetValues.categoryProperty"
+            :xProperty="datasetValues.xProperty"
+            :yProperty="datasetValues.yProperty"
+            :rProperty="datasetValues.rProperty"
+            :datasets="currentDatasets"
+            :fields="currentFields"
             @update-dataset="handleDatasetUpdate"
         />
       </u-tab-pane>
@@ -80,11 +82,11 @@ export default {
 
       // 数据集相关 - 使用一个对象来管理所有数据集相关的值
       datasetValues: {
-        selectedDataset: '',
-        selectedCategoryProperty: '',
-        selectedXProperty: '',
-        selectedYProperty: '',
-        selectedRProperty: ''
+        dataset: '',
+        categoryProperty: '',
+        xProperty: '',
+        yProperty: '',
+        rProperty: ''
       },
 
       // X轴配置 - 适配ChartAxis组件
@@ -139,24 +141,50 @@ export default {
     ...mapGetters('report', ['getContext']),
     context() {
       return this.getContext;
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
+    },
+    /**
+     * 获取所有可用数据集列表
+     * @return {Array} 数据集数组
+     */
+    currentDatasets() {
+      if (!this.context?.reportDef?.datasources) return [];
+      const result = [];
+      for (let datasource of this.context.reportDef.datasources) {
+        let datasets = datasource.datasets || [];
+        for (let dataset of datasets) {
+          result.push(dataset);
+        }
+      }
+      return result;
+    },
+    /**
+     * 根据当前选中的数据集获取对应字段列表
+     * @return {Array} 字段数组，未选择数据集时返回空数组
+     */
+    currentFields() {
+      const datasetName = this.datasetValues.dataset;
+      if (!datasetName) return [];
+      for (let datasource of this.context.reportDef.datasources) {
+        let datasets = datasource.datasets || [];
+        for (let dataset of datasets) {
+          if (dataset.name === datasetName) {
+            return dataset.fields || [];
+          }
+        }
+      }
+      return [];
     }
   },
   watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadChartConfig();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadChartConfig();
       }
     }
-  },
-  mounted() {
-    this.loadChartConfig();
   },
   methods: {
     getCell,
@@ -169,11 +197,11 @@ export default {
       // 加载数据集配置
       const dataset = chart.dataset || {};
       this.datasetValues = {
-        selectedDataset: dataset.datasetName || '',
-        selectedCategoryProperty: dataset.categoryProperty || '',
-        selectedXProperty: dataset.xProperty || '',
-        selectedYProperty: dataset.yProperty || '',
-        selectedRProperty: dataset.rProperty || ''
+        dataset: dataset.datasetName || '',
+        categoryProperty: dataset.categoryProperty || '',
+        xProperty: dataset.xProperty || '',
+        yProperty: dataset.yProperty || '',
+        rProperty: dataset.rProperty || ''
       };
       this.xAxisFormat = dataset.format || '';
 

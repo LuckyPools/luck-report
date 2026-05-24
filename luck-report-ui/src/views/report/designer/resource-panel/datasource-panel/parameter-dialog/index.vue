@@ -86,7 +86,7 @@ export default {
         type: [{
           required: true,
           message: this.$t('dialog.sqlParam.datatypeTip'),
-          trigger: 'change'
+          trigger: 'blur'
         }]
       }
     };
@@ -107,15 +107,18 @@ export default {
     visible(newVal) {
       if (newVal) {
         this.resetFormData();
-        if (this.editData) {
-          this.formData.name = this.editData.name || '';
-          this.formData.type = this.editData.type || '';
-          this.formData.defaultValue = this.editData.defaultValue || '';
-        }
+        this.initData();
       }
     }
   },
   methods: {
+
+    initData(){
+      this.formData.name = this.editData?.name || '';
+      this.formData.type = this.editData?.type || '';
+      this.formData.defaultValue = this.editData?.defaultValue || '';
+    },
+
     /**
      * 校验表单
      * @returns {Promise<boolean>} 校验结果
@@ -132,15 +135,13 @@ export default {
      * 重置表单数据
      */
     resetFormData() {
-      let that = this;
-      that.$refs.form && that.$refs.form.resetFields();
+      this.$refs.form && this.$refs.form.resetFields();
     },
 
     /**
      * 关闭弹窗
      */
     handleClose() {
-      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('update:visible', false);
     },
 

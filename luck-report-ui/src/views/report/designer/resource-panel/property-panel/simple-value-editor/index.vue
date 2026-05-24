@@ -71,22 +71,17 @@ export default {
     ...mapGetters('report', ['getContext']),
     context() {
       return this.getContext;
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   watch: {
-    rowIndex: {
-      handler() {
-        this.loadCellData();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       handler() {
         this.loadCellData();
       }
     }
-  },
-  mounted() {
-    this.loadCellData();
   },
   methods: {
     loadCellData() {

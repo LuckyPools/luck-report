@@ -6,10 +6,12 @@
         <!-- 数据集绑定选项卡 -->
         <ChartDataConfig
             ref="datasetTab"
-            :selectedDataset="datasetValues.selectedDataset"
-            :selectedCategoryProperty="datasetValues.selectedCategoryProperty"
-            :selectedXProperty="datasetValues.selectedXProperty"
-            :selectedYProperty="datasetValues.selectedYProperty"
+            :dataset="datasetValues.dataset"
+            :categoryProperty="datasetValues.categoryProperty"
+            :xProperty="datasetValues.xProperty"
+            :yProperty="datasetValues.yProperty"
+            :datasets="currentDatasets"
+            :fields="currentFields"
             :showRProperty="false"
             @update-dataset="handleDatasetUpdate"
         />
@@ -47,6 +49,8 @@ import ChartDataConfig from '@/views/report/designer/resource-panel/property-pan
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
 
+import { mapGetters } from 'vuex';
+
 export default {
   name: 'ScatterChartValueEditor',
   components: {
@@ -80,10 +84,10 @@ export default {
 
       // 数据集相关 - 使用一个对象来管理所有数据集相关的值
       datasetValues: {
-        selectedDataset: '',
-        selectedCategoryProperty: '',
-        selectedXProperty: '',
-        selectedYProperty: ''
+        dataset: '',
+        categoryProperty: '',
+        xProperty: '',
+        yProperty: ''
       },
 
       // 标题相关
@@ -144,22 +148,54 @@ export default {
       }
     };
   },
-  watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadChartConfig();
-      }
+  computed: {
+    ...mapGetters('report', ['getContext']),
+    context() {
+      return this.getContext;
     },
-    colIndex: {
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
+    },
+    /**
+     * 获取所有可用数据集列表
+     * @return {Array} 数据集数组
+     */
+    currentDatasets() {
+      if (!this.context?.reportDef?.datasources) return [];
+      const result = [];
+      for (let datasource of this.context.reportDef.datasources) {
+        let datasets = datasource.datasets || [];
+        for (let dataset of datasets) {
+          result.push(dataset);
+        }
+      }
+      return result;
+    },
+    /**
+     * 根据当前选中的数据集获取对应字段列表
+     * @return {Array} 字段数组，未选择数据集时返回空数组
+     */
+    currentFields() {
+      const datasetName = this.datasetValues.dataset;
+      if (!datasetName) return [];
+      for (let datasource of this.context.reportDef.datasources) {
+        let datasets = datasource.datasets || [];
+        for (let dataset of datasets) {
+          if (dataset.name === datasetName) {
+            return dataset.fields || [];
+          }
+        }
+      }
+      return [];
+    }
+  },
+  watch: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadChartConfig();
       }
     }
-  },
-  mounted() {
-    this.loadChartConfig();
   },
   methods: {
     // 加载图表配置
@@ -172,10 +208,10 @@ export default {
       // 加载数据集配置
       const dataset = chart.dataset || {};
       this.datasetValues = {
-        selectedDataset: dataset.datasetName || '',
-        selectedCategoryProperty: dataset.categoryProperty || '',
-        selectedXProperty: dataset.xProperty || '',
-        selectedYProperty: dataset.yProperty || ''
+        dataset: dataset.datasetName || '',
+        categoryProperty: dataset.categoryProperty || '',
+        xProperty: dataset.xProperty || '',
+        yProperty: dataset.yProperty || ''
       };
       this.xAxisFormat = dataset.format || '';
 
@@ -421,19 +457,4 @@ export default {
 </script>
 
 <style scoped>
-.chart-fieldset {
-  padding: 10px;
-  border: solid 1px #dddddd;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  margin-top: 10px;
-}
-
-.chart-fieldset legend {
-  width: auto;
-  margin-bottom: 1px;
-  border-bottom: none;
-  font-size: inherit;
-  color: #4b4b4b;
-}
 </style>

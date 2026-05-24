@@ -125,28 +125,23 @@ export default {
     visible(newVal) {
       if (newVal) {
         this.resetForm();
-        if (this.datasource) {
-          this.fillForm(this.datasource);
-        }
+        this.initData();
       }
     }
   },
   methods: {
     resetForm() {
-      let that = this;
-      that.$refs.form && that.$refs.form.resetFields();
+      this.$refs.form && this.$refs.form.resetFields();
       this.oldName = null;
     },
 
-    fillForm(ds) {
-      if (ds) {
-        this.oldName = ds.name;
-        this.formData.dsName = ds.name;
-        this.formData.username = ds.username || '';
-        this.formData.password = ds.password || '';
-        this.formData.driver = ds.driver || '';
-        this.formData.url = ds.url || '';
-      }
+    initData() {
+      this.oldName = this.datasource?.name;
+      this.formData.dsName = this.datasource?.name;
+      this.formData.username = this.datasource?.username || '';
+      this.formData.password = this.datasource?.password || '';
+      this.formData.driver = this.datasource?.driver || '';
+      this.formData.url = this.datasource?.url || '';
     },
 
     closeDialog() {

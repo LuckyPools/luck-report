@@ -91,8 +91,8 @@ export default {
       }
     },
     selectDatasource(name) {
-      for (let ds of this.datasources) {
-        if (ds.name === name) {
+      for (let datasource of this.datasources) {
+        if (datasource.name === name) {
           showAlert(`${this.$t('dialog.buildin.datasource')}[${name}]${this.$t('dialog.buildin.datasourceExist')}`);
           return;
         }

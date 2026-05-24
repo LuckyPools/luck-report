@@ -86,7 +86,7 @@ export default {
         type: [{
           required: true,
           message: this.$t('searchForm.generateType') + '不能为空',
-          trigger: 'change'
+          trigger: 'blur'
         }]
       }
     }

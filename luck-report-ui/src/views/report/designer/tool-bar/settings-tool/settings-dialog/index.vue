@@ -2,7 +2,7 @@
   <UDialog
     :title="$t('dialog.setting.title')"
     width="800px"
-    :visible="dialogVisible"
+    :visible="visible"
     @close="handleClose"
   >
     <div class="settings-dialog">
@@ -129,7 +129,6 @@ export default {
   },
   data() {
     return {
-      dialogVisible: false,
       activeTab: 'page',
       paperSizeList: buildPageSizeList(),
       paper: {
@@ -185,23 +184,9 @@ export default {
       return this.getContext;
     }
   },
-  created() {
-    // 初始化dialogVisible
-    this.dialogVisible = this.visible;
-
-    if (this.visible && this.context) {
-      this.initializeData();
-    }
-  },
   watch: {
     visible(newVal) {
-      this.dialogVisible = newVal;
       if (newVal && this.context) {
-        this.initializeData();
-      }
-    },
-    context(newVal) {
-      if (newVal) {
         this.initializeData();
       }
     }
@@ -242,13 +227,11 @@ export default {
 
     },
     handleClose() {
-      this.dialogVisible = false;
       this.$emit('close');
     },
     handleOk() {
       // 检查 reportDef 是否存在
       if (!this.context || !this.context.reportDef) {
-        this.dialogVisible = false;
         this.$emit('ok');
         return;
       }
@@ -269,7 +252,6 @@ export default {
         this.$store.dispatch('report/setPrintLineShouldRefresh', true);
       }
 
-      this.dialogVisible = false;
       this.$emit('ok');
     },
     updatePaperSize() {

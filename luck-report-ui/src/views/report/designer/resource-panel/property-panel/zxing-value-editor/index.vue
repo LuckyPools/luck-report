@@ -166,11 +166,15 @@ export default {
         { value: 'text', label: this.$t('property.zxing.text') },
         { value: 'expression', label: this.$t('property.zxing.expr') }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   data() {
     return {
       codeMirror: null,
+      loadingCellData: false,
       width: 100,
       height: 100,
       format: 'QR_CODE',
@@ -181,21 +185,12 @@ export default {
     };
   },
   watch: {
-    rowIndex: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
-      }
-    },
-    colIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadCellData();
       }
     }
-  },
-  mounted() {
-    this.loadCellData();
   },
   beforeDestroy() {
     if (this.codeMirror) {
@@ -238,6 +233,7 @@ export default {
 
       // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
+        if (this.loadingCellData) return;
         const expr = cm.getValue();
         if (expr === 'undefined' || expr === undefined || expr === null) {
           return;
@@ -292,7 +288,9 @@ export default {
             if (valueToSet === 'undefined') {
               valueToSet = '';
             }
+            this.loadingCellData = true;
             this.codeMirror.setValue(valueToSet);
+            this.loadingCellData = false;
             this.codeMirror.refresh();
           }
         });
@@ -399,7 +397,9 @@ export default {
               this.initCodeEditor();
             } else {
               const currentCellDef = getCell(this.rowIndex, this.colIndex);
+              this.loadingCellData = true;
               this.codeMirror.setValue(currentCellDef.value.value || '');
+              this.loadingCellData = false;
               this.codeMirror.refresh();
             }
           });

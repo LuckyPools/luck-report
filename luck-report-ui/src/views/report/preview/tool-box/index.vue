@@ -231,11 +231,9 @@ export default {
       handler() {
         this.initPageMenuItems();
       },
-      deep: true
+      deep: true,
+      immediate: true
     }
-  },
-  mounted() {
-    this.initPageMenuItems();
   },
   methods: {
     /**

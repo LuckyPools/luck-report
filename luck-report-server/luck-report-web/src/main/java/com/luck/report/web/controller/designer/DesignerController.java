@@ -1,7 +1,8 @@
 package com.luck.report.web.controller.designer;
 
-import com.luck.report.core.cache.ReportDefinitionCache;
+import com.luck.report.core.cache.ReportDefinitionWrapperCache;
 import com.luck.report.core.definition.ReportDefinition;
+import com.luck.report.core.definition.ReportDefinitionWrapper;
 import com.luck.report.core.dsl.ReportParserLexer;
 import com.luck.report.core.dsl.ReportParserParser;
 import com.luck.report.core.export.ReportRender;
@@ -10,6 +11,7 @@ import com.luck.report.core.expression.ScriptErrorListener;
 import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.ReportScopedCache;
+import com.luck.report.web.domain.vo.ReportDefinitionVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.utils.UrlParameterUtils;
@@ -119,7 +121,8 @@ public class DesignerController implements ApplicationContextAware {
         InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
         ReportDefinition reportDef = reportParser.parse(inputStream, fileName);
         IOUtils.closeQuietly(inputStream);
-        ReportScopedCache.putObject(fileName, reportDef);
+        ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
+        ReportScopedCache.putObject(fileName, wrapper);
     }
 
     /**
@@ -133,14 +136,15 @@ public class DesignerController implements ApplicationContextAware {
         }
         String fileName = UrlParameterUtils.doubleDecode(filePath);
         Object obj = ReportScopedCache.getObject(fileName);
-        if (obj instanceof ReportDefinition) {
-            ReportDefinition reportDef = (ReportDefinition) obj;
+        ReportDefinition reportDef;
+        if (obj instanceof ReportDefinitionWrapper) {
+            ReportDefinitionWrapper wrapper = (ReportDefinitionWrapper) obj;
+            reportDef = wrapper.getReportDefinition();
             ReportScopedCache.removeObject(fileName);
-            ResponseUtils.writeObjectToJson(resp, new ReportDefinitionWrapper(reportDef));
         } else {
-            ReportDefinition reportDef = reportRender.parseReport(fileName);
-            ResponseUtils.writeObjectToJson(resp, new ReportDefinitionWrapper(reportDef));
+            reportDef = reportRender.parseReport(fileName);
         }
+        ResponseUtils.writeObjectToJson(resp, new ReportDefinitionVo(reportDef));
     }
 
     /**
@@ -193,8 +197,8 @@ public class DesignerController implements ApplicationContextAware {
             logger.error("保存报表异常",e);
             throw e;
         }
-        // reportRender.rebuildReportDefinition(reportDef);
-        ReportDefinitionCache.putObject(file, reportDef);
+        ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
+        ReportDefinitionWrapperCache.putObject(file, wrapper);
         targetReportProvider.saveReport(file, content);
     }
 

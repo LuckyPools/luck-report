@@ -69,17 +69,16 @@ export default {
         name: '',
         value: ''
       },
-      localParamItem: null,
       rules: {
         name: [{
           required: true,
           message: this.$t('dialog.paramItem.nameRequired'),
-          trigger: ''
+          trigger: 'blur'
         }],
         value: [{
           required: true,
           message: this.$t('dialog.paramItem.valueRequired'),
-          trigger: ''
+          trigger: 'blur'
         }]
       }
     };
@@ -93,11 +92,7 @@ export default {
     visible(newVal) {
       if (newVal) {
         this.resetFormData();
-        this.$nextTick(() => {
-          this.formData.name = this.paramItem?.name || '';
-          this.formData.value = this.paramItem?.value || '';
-          this.localParamItem = this.paramItem ? { ...this.paramItem } : null;
-        });
+        this.initData();
       }
     }
   },
@@ -108,12 +103,16 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
+
+    initData(){
+      this.formData.name = this.paramItem?.name || '';
+      this.formData.value = this.paramItem?.value || '';
+    },
+
     /**
      * 重置表单数据
      */
     resetFormData() {
-      this.formData = { name: '', value: '' };
-      this.localParamItem = null;
       this.$refs.form && this.$refs.form.resetFields();
     },
 
@@ -138,18 +137,10 @@ export default {
         return;
       }
 
-      if (this.localParamItem) {
-        this.localParamItem.name = this.formData.name;
-        this.localParamItem.value = this.formData.value;
-      } else {
-        this.localParamItem = {
-          name: this.formData.name,
-          value: this.formData.value
-        };
-      }
+      const paramItem = { name: this.formData.name, value: this.formData.value };
 
       this.$emit('saveAfter', {
-        paramItem: this.localParamItem,
+        paramItem: paramItem,
         operation: this.operation
       });
 

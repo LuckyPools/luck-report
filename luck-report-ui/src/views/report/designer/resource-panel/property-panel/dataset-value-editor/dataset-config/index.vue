@@ -3,7 +3,7 @@
     <u-form :label-width="100" labelPosition="left">
       <u-form-item class="property-label" :label="$t('property.dataset.dataset')" style="margin-top: 10px">
         <u-select
-            v-model="internalSelectedDataset"
+            v-model="localDataset"
             :clearable="true"
             style="width:250px"
             @change="handleDatasetChange"
@@ -19,7 +19,7 @@
 
       <u-form-item class="property-label" :label="$t('property.dataset.property')">
         <u-select
-            v-model="internalSelectedProperty"
+            v-model="localProperty"
             :clearable="true"
             style="width:250px"
             @change="handlePropertyChange"
@@ -35,7 +35,7 @@
 
       <u-form-item class="property-label" :label="$t('property.dataset.aggregateType')">
         <u-select
-            v-model="internalSelectedAggregate"
+            v-model="localAggregate"
             :clearable="true"
             style="width:250px"
             @change="handleAggregateChange"
@@ -49,7 +49,7 @@
         </u-select>
       </u-form-item>
 
-      <u-form-item class="property-label" v-show="internalSelectedAggregate === 'customgroup'">
+      <u-form-item class="property-label" v-show="localAggregate === 'customgroup'">
         <u-button
             type="info"
             @click="handleCustomGroupConfig"
@@ -58,8 +58,8 @@
         </u-button>
       </u-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.dataset.sortType')" v-show="internalShowSortOptions">
-        <u-radio-group v-model="internalSelectedSort" @change="handleSortChange">
+      <u-form-item class="property-label" :label="$t('property.dataset.sortType')" v-show="localShowSortOptions">
+        <u-radio-group v-model="localSort" @change="handleSortChange">
           <u-radio
               v-for="option in sortOptions"
               :key="option.value"
@@ -70,8 +70,8 @@
         </u-radio-group>
       </u-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.dataset.expand')" v-show="internalShowExpandOptions">
-        <u-radio-group :value="internalSelectedExpand" @change="handleExpandChange">
+      <u-form-item class="property-label" :label="$t('property.dataset.expand')" v-show="localShowExpandOptions">
+        <u-radio-group v-model="localExpand" @change="handleExpandChange">
           <u-radio
               v-for="option in expandOptions"
               :key="option.value"
@@ -85,13 +85,13 @@
       <u-form-item class="property-label" :label="$t('property.dataset.lineHeight')">
         <u-input-number
             :placeholder="$t('property.dataset.lineHeightTip')"
-            v-model="internalLineHeight"
+            v-model="localLineHeight"
             @change="handleLineHeightChange"
         />
       </u-form-item>
 
       <u-form-item class="property-label" :label="$t('property.base.newLineCompute')">
-        <u-radio-group v-model="internalWrapCompute" @change="handleWrapComputeChange">
+        <u-radio-group v-model="localWrapCompute" @change="handleWrapComputeChange">
           <u-radio
               v-for="option in wrapComputeOptions"
               :key="option.value"
@@ -104,7 +104,7 @@
 
       <u-form-item class="property-label" :label="$t('property.base.format')">
         <vue-simple-suggest
-            :value="internalFormat"
+            v-model="localFormat"
             :list="suggestionList"
             :filter-by-query="true"
             :placeholder="$t('property.base.formatTip')"
@@ -114,7 +114,7 @@
       </u-form-item>
 
       <u-form-item class="property-label" :label="$t('property.base.fillBlank')">
-        <u-radio-group v-model="internalFillBlankRows" @change="handleFillBlankRowsChange">
+        <u-radio-group v-model="localFillBlankRows" @change="handleFillBlankRowsChange">
           <u-radio
               v-for="option in fillBlankRowsOptions"
               :key="option.value"
@@ -125,9 +125,9 @@
         </u-radio-group>
       </u-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.base.rowTimes')" v-show="internalFillBlankRows === 'default'">
+      <u-form-item class="property-label" :label="$t('property.base.rowTimes')" v-show="localFillBlankRows === 'default'">
         <u-input-number
-            v-model="internalMultiple"
+            v-model="localMultiple"
             @change="handleMultipleChange"
         />
       </u-form-item>
@@ -147,7 +147,7 @@
     <CustomGroupDialog
       :visible.sync="customGroupDialogVisible"
       :group-items="groupItems"
-      :fields="customGroupDialogFields"
+      :fields="fields"
       @save="handleCustomGroupSave"
     />
 
@@ -155,8 +155,8 @@
     <PropertyConditionDialog
         ref="propertyConditionDialog"
         :visible.sync="propertyConditionDialogVisible"
-        :dataset-name="propertyConditionDialogDatasetName"
-        :condition-property-items="propertyConditionDialogItems"
+        :fields="fields"
+        :conditionGroups="conditionGroups"
         @saveAfter="handlePropertyConditionSave"
     />
   </div>
@@ -175,7 +175,6 @@ import PropertyConditionDialog from '@/views/report/designer/resource-panel/prop
 import CustomGroupDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-dialog/index.vue';
 import { setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
-import { deepCopy } from '@/components/utils/index.js';
 import VueSimpleSuggest from 'vue-simple-suggest'
 import 'vue-simple-suggest/dist/styles.css'
 import { mapGetters } from 'vuex';
@@ -200,7 +199,7 @@ export default {
       type: Array,
       default: () => []
     },
-    currentFields: {
+    fields: {
       type: Array,
       default: () => []
     },
@@ -209,23 +208,23 @@ export default {
       default: () => []
     },
     // 数据集配置相关属性
-    selectedDataset: {
+    dataset: {
       type: String,
       default: ''
     },
-    selectedProperty: {
+    property: {
       type: String,
       default: ''
     },
-    selectedAggregate: {
+    aggregate: {
       type: String,
       default: 'select'
     },
-    selectedSort: {
+    sort: {
       type: String,
       default: 'none'
     },
-    selectedExpand: {
+    expand: {
       type: String,
       default: 'None'
     },
@@ -257,32 +256,28 @@ export default {
       type: Boolean,
       default: true
     },
-    // 新增属性：条件属性项
-    conditionPropertyItems: {
+    conditionGroups: {
       type: Array,
       default: () => []
     }
   },
   data() {
     return {
-      internalSelectedDataset: '',
-      internalSelectedProperty: '',
-      internalSelectedAggregate: 'select',
-      internalSelectedSort: 'none',
-      internalSelectedExpand: 'None',
-      internalLineHeight: 10,
-      internalWrapCompute: 'custom',
-      internalFormat: '',
-      internalFillBlankRows: 'custom',
-      internalMultiple: 0,
-      internalShowSortOptions: true,
-      internalShowExpandOptions: true,
+      localDataset: '',
+      localProperty: '',
+      localAggregate: 'select',
+      localSort: 'none',
+      localExpand: 'None',
+      localLineHeight: 10,
+      localWrapCompute: 'custom',
+      localFormat: '',
+      localFillBlankRows: 'custom',
+      localMultiple: 0,
+      localShowSortOptions: true,
+      localShowExpandOptions: true,
       isInitialized: false,
       propertyConditionDialogVisible: false,
-      propertyConditionDialogDatasetName: '',
-      propertyConditionDialogItems: [],
       customGroupDialogVisible: false,
-      customGroupDialogFields: null,
       suggestionList:[
         "yyyy/MM/dd",
         "yyyy/MM",
@@ -311,9 +306,6 @@ export default {
     context() {
       return this.getContext;
     },
-    datasources() {
-      return this.context.reportDef.datasources || [];
-    },
     datasetOptions() {
       return this.datasets.map(dataset => ({
         value: dataset.name,
@@ -321,7 +313,7 @@ export default {
       }));
     },
     propertyOptions() {
-      return this.currentFields.map(field => ({
+      return this.fields.map(field => ({
         value: field.name,
         label: field.name
       }));
@@ -367,41 +359,41 @@ export default {
   },
   watch: {
     // 监听外部props变化，同步到内部状态
-    selectedDataset(val) {
-      this.internalSelectedDataset = val;
+    dataset(val) {
+      this.localDataset = val;
     },
-    selectedProperty(val) {
-      this.internalSelectedProperty = val;
+    property(val) {
+      this.localProperty = val;
     },
-    selectedAggregate(val) {
-      this.internalSelectedAggregate = val;
+    aggregate(val) {
+      this.localAggregate = val;
     },
-    selectedSort(val) {
-      this.internalSelectedSort = val;
+    sort(val) {
+      this.localSort = val;
     },
-    selectedExpand(val) {
-      this.internalSelectedExpand = val;
+    expand(val) {
+      this.localExpand = val;
     },
     lineHeight(val) {
-      this.internalLineHeight = val;
+      this.localLineHeight = val;
     },
     wrapCompute(val) {
-      this.internalWrapCompute = val;
+      this.localWrapCompute = val;
     },
     format(val) {
-      this.internalFormat = val;
+      this.localFormat = val;
     },
     fillBlankRows(val) {
-      this.internalFillBlankRows = val;
+      this.localFillBlankRows = val;
     },
     multiple(val) {
-      this.internalMultiple = val;
+      this.localMultiple = val;
     },
     showSortOptions(val) {
-      this.internalShowSortOptions = val;
+      this.localShowSortOptions = val;
     },
     showExpandOptions(val) {
-      this.internalShowExpandOptions = val;
+      this.localShowExpandOptions = val;
     }
   },
   created() {
@@ -420,28 +412,28 @@ export default {
      * 初始化数据
      */
     initData(){
-      this.internalSelectedDataset = this.selectedDataset;
-      this.internalSelectedProperty = this.selectedProperty;
-      this.internalSelectedAggregate = this.selectedAggregate;
-      this.internalSelectedSort = this.selectedSort;
-      this.internalSelectedExpand = this.selectedExpand;
-      this.internalLineHeight = this.lineHeight;
-      this.internalWrapCompute = this.wrapCompute;
-      this.internalFormat = this.format;
-      this.internalFillBlankRows = this.fillBlankRows;
-      this.internalMultiple = this.multiple;
-      this.internalShowSortOptions = this.showSortOptions;
-      this.internalShowExpandOptions = this.showExpandOptions;
+      this.localDataset = this.dataset;
+      this.localProperty = this.property;
+      this.localAggregate = this.aggregate;
+      this.localSort = this.sort;
+      this.localExpand = this.expand;
+      this.localLineHeight = this.lineHeight;
+      this.localWrapCompute = this.wrapCompute;
+      this.localFormat = this.format;
+      this.localFillBlankRows = this.fillBlankRows;
+      this.localMultiple = this.multiple;
+      this.localShowSortOptions = this.showSortOptions;
+      this.localShowExpandOptions = this.showExpandOptions;
     },
 
     /**
      * 处理数据集变化
      */
     handleDatasetChange(value) {
-      this.internalSelectedDataset = value;
+      this.localDataset = value;
       // 触发事件，通知父组件
-      this.$emit('update:selectedDataset', this.internalSelectedDataset);
-      this.$emit('dataset-change', this.internalSelectedDataset);
+      this.$emit('update:dataset', this.localDataset);
+      this.$emit('dataset-change', this.localDataset);
     },
 
     /**
@@ -449,32 +441,32 @@ export default {
      */
     handlePropertyChange() {
       // 触发事件，通知父组件
-      this.$emit('update:selectedProperty', this.internalSelectedProperty);
-      this.$emit('property-change', this.internalSelectedProperty);
+      this.$emit('update:property', this.localProperty);
+      this.$emit('property-change', this.localProperty);
     },
 
     /**
      * 处理聚合类型变化
      */
     handleAggregateChange() {
-      if (this.internalSelectedAggregate === 'sum' || this.internalSelectedAggregate === 'count' ||
-          this.internalSelectedAggregate === 'max' || this.internalSelectedAggregate === 'min' ||
-          this.internalSelectedAggregate === 'avg') {
-        this.internalShowSortOptions = false;
-        this.internalShowExpandOptions = false;
+      if (this.localAggregate === 'sum' || this.localAggregate === 'count' ||
+          this.localAggregate === 'max' || this.localAggregate === 'min' ||
+          this.localAggregate === 'avg') {
+        this.localShowSortOptions = false;
+        this.localShowExpandOptions = false;
       } else {
-        this.internalShowSortOptions = true;
-        this.internalShowExpandOptions = true;
+        this.localShowSortOptions = true;
+        this.localShowExpandOptions = true;
       }
 
       // 触发事件，通知父组件
-      this.$emit('update:selectedAggregate', this.internalSelectedAggregate);
-      this.$emit('update:showSortOptions', this.internalShowSortOptions);
-      this.$emit('update:showExpandOptions', this.internalShowExpandOptions);
+      this.$emit('update:aggregate', this.localAggregate);
+      this.$emit('update:showSortOptions', this.localShowSortOptions);
+      this.$emit('update:showExpandOptions', this.localShowExpandOptions);
       this.$emit('aggregate-change', {
-        aggregate: this.internalSelectedAggregate,
-        showSortOptions: this.internalShowSortOptions,
-        showExpandOptions: this.internalShowExpandOptions
+        aggregate: this.localAggregate,
+        showSortOptions: this.localShowSortOptions,
+        showExpandOptions: this.localShowExpandOptions
       });
     },
 
@@ -482,38 +474,38 @@ export default {
      * 处理排序变化
      */
     handleSortChange(value) {
-      this.internalSelectedSort = value;
+      this.localSort = value;
       // 触发事件，通知父组件
-      this.$emit('update:selectedSort', this.internalSelectedSort);
-      this.$emit('sort-change', this.internalSelectedSort);
+      this.$emit('update:sort', this.localSort);
+      this.$emit('sort-change', this.localSort);
     },
 
     /**
      * 处理展开方向变化
      */
     handleExpandChange(value) {
-      this.internalSelectedExpand = value;
+      this.localExpand = value;
       // 触发事件，通知父组件
-      this.$emit('update:selectedExpand', this.internalSelectedExpand);
-      this.$emit('expand-change', this.internalSelectedExpand);
+      this.$emit('update:expand', this.localExpand);
+      this.$emit('expand-change', this.localExpand);
     },
 
     /**
      * 处理行高变化
      */
     handleLineHeightChange(value) {
-      this.internalLineHeight = value;
+      this.localLineHeight = value;
       // 触发事件，通知父组件
-      this.$emit('update:lineHeight', this.internalLineHeight);
-      this.$emit('line-height-change', this.internalLineHeight);
+      this.$emit('update:lineHeight', this.localLineHeight);
+      this.$emit('line-height-change', this.localLineHeight);
     },
 
     /**
      * 处理换行计算变化
      */
     handleWrapComputeChange() {
-      this.$emit('update:wrapCompute', this.internalWrapCompute);
-      this.$emit('wrap-compute-change', this.internalWrapCompute);
+      this.$emit('update:wrapCompute', this.localWrapCompute);
+      this.$emit('wrap-compute-change', this.localWrapCompute);
     },
 
     /**
@@ -523,9 +515,9 @@ export default {
       if (!this.isInitialized) {
         return;
       }
-      this.internalFormat = value;
-      this.$emit('update:format', this.internalFormat);
-      this.$emit('format-change', this.internalFormat);
+      this.localFormat = value;
+      this.$emit('update:format', this.localFormat);
+      this.$emit('format-change', this.localFormat);
     },
 
     /**
@@ -533,8 +525,8 @@ export default {
      */
     handleFillBlankRowsChange() {
       // 触发事件，通知父组件
-      this.$emit('update:fillBlankRows', this.internalFillBlankRows);
-      this.$emit('fill-blank-rows-change', this.internalFillBlankRows);
+      this.$emit('update:fillBlankRows', this.localFillBlankRows);
+      this.$emit('fill-blank-rows-change', this.localFillBlankRows);
     },
 
     /**
@@ -545,30 +537,23 @@ export default {
         return;
       }
       // 触发事件，通知父组件
-      this.$emit('update:multiple', this.internalMultiple);
-      this.$emit('multiple-change', this.internalMultiple);
+      this.$emit('update:multiple', this.localMultiple);
+      this.$emit('multiple-change', this.localMultiple);
     },
 
     /**
      * 处理条件属性配置
      */
     handleConditionPropertyConfig() {
-      const conditionPropertyItems = this.conditionPropertyItems
-        ? deepCopy(this.conditionPropertyItems)
-        : [];
-
-      this.propertyConditionDialogDatasetName = this.internalSelectedDataset;
-      this.propertyConditionDialogItems = conditionPropertyItems;
       this.propertyConditionDialogVisible = true;
     },
 
     /**
      * 处理属性条件保存后的回调
      */
-    handlePropertyConditionSave(propertyConditions) {
-      const updatedConditions = deepCopy(propertyConditions);
-      this.$emit('update:conditionPropertyItems', updatedConditions);
-      this.$emit('condition-property-items-change', updatedConditions);
+    handlePropertyConditionSave(conditionGroups) {
+      this.$emit('update:conditionGroups', conditionGroups);
+      this.$emit('condition-groups-change', conditionGroups);
       setDirty();
     },
 
@@ -576,11 +561,11 @@ export default {
      * 处理自定义分组配置
      */
     handleCustomGroupConfig() {
-      const fields = this._buildFields();
-      if (fields) {
-        this.customGroupDialogFields = fields;
-        this.customGroupDialogVisible = true;
+      if (this.fields.length === 0) {
+        showAlert(this.$t('property.dataset.bindDatasetTip'));
+        return;
       }
+      this.customGroupDialogVisible = true;
       setDirty();
     },
 
@@ -590,31 +575,7 @@ export default {
     handleCustomGroupSave(groupItems) {
       this.$emit('update-custom-group', groupItems);
       setDirty();
-    },
-
-    /**
-     * 构建字段列表
-     */
-    _buildFields() {
-      let fields = [];
-      if (this.internalSelectedDataset === '') {
-        showAlert(this.$t('property.dataset.bindDatasetTip'));
-        return null;
-      }
-      for (let ds of this.datasources) {
-        let datasets = ds.datasets || [];
-        for (let dataset of datasets) {
-          if (dataset.name === this.internalSelectedDataset) {
-            fields = dataset.fields || [];
-            break;
-          }
-        }
-        if (fields.length > 0) {
-          break;
-        }
-      }
-      return fields;
-    },
+    }
 
   }
 };

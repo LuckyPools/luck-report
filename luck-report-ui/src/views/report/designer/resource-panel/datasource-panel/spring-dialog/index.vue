@@ -7,8 +7,8 @@
       @close="closeDialog"
     >
         <u-form ref="form" :model="formData" :rules="rules">
-            <u-form-item :label="$t('dialog.springDS.name')" :label-width="120" prop="dsName">
-                <u-input v-model="formData.dsName" />
+            <u-form-item :label="$t('dialog.springDS.name')" :label-width="120" prop="name">
+                <u-input v-model="formData.name" />
             </u-form-item>
             <u-form-item :label="$t('dialog.springDS.bean')" :label-width="120" prop="beanId">
                 <u-input v-model="formData.beanId" />
@@ -56,12 +56,12 @@ export default {
   data() {
     return {
       formData: {
-        dsName: '',
+        name: '',
         beanId: ''
       },
       oldName: null,
       rules: {
-        dsName: [{
+        name: [{
           required: true,
           message: this.$t('dialog.springDS.nameTip'),
           trigger: 'blur'
@@ -78,9 +78,7 @@ export default {
     visible(newVal) {
       if (newVal) {
         this.resetForm();
-        if (this.datasource) {
-          this.fillForm(this.datasource);
-        }
+        this.initData();
       }
     }
   },
@@ -101,21 +99,18 @@ export default {
      * 重置表单数据
      */
     resetForm() {
-      this.formData.dsName = '';
+      this.formData.name = '';
       this.formData.beanId = '';
       this.oldName = null;
     },
 
     /**
      * 填充表单数据
-     * @param {Object} ds 数据源对象
      */
-    fillForm(ds) {
-      if (ds) {
-        this.oldName = ds.name;
-        this.formData.dsName = ds.name;
-        this.formData.beanId = ds.beanId;
-      }
+    initData() {
+      this.oldName = this.datasource?.name ?? null;
+      this.formData.name = this.datasource?.name ?? '';
+      this.formData.beanId = this.datasource?.beanId ?? '';
     },
 
     /**
@@ -128,21 +123,21 @@ export default {
       }
 
       let check = false;
-      if (!this.oldName || this.formData.dsName !== this.oldName) {
+      if (!this.oldName || this.formData.name !== this.oldName) {
         check = true;
       }
 
       if (check) {
         for (let source of this.datasources) {
-          if (source.name === this.formData.dsName) {
-            showAlert(`${this.$t('dialog.springDS.ds')}[${this.formData.dsName}]${this.$t('dialog.springDS.exist')}`);
+          if (source.name === this.formData.name) {
+            showAlert(`${this.$t('dialog.springDS.ds')}[${this.formData.name}]${this.$t('dialog.springDS.exist')}`);
             return;
           }
         }
       }
 
       this.$emit('save', {
-        name: this.formData.dsName,
+        name: this.formData.name,
         beanId: this.formData.beanId,
         type: 'spring',
         datasets: [],
@@ -156,7 +151,6 @@ export default {
      * 关闭弹窗
      */
     closeDialog() {
-      this.$refs.form && this.$refs.form.resetFields();
       this.$emit('close');
     }
   }

@@ -14,7 +14,7 @@
             style="margin-right:2px"
           ></i>
           <i class="iconfont icon-leaf"></i>
-          <a href="###" class="ds_name">{{ localName }}</a>
+          <a href="###" class="ds_name">{{ name }}</a>
         </span>
 
         <!-- 数据集列表 -->
@@ -71,7 +71,7 @@
         :visible="beanMethodDialogVisible"
         :dataset="currentDataset"
         :datasources="datasources"
-        :beanId="localBeanId"
+        :beanId="beanId"
         @save="handleBeanMethodSave"
         @close="beanMethodDialogVisible = false"
       />
@@ -144,8 +144,6 @@ export default {
       id: 'spring_' + uuidv1(),
       datasourceExpanded: true,
       datasetExpanded: {},
-      localName: this.name,
-      localBeanId: this.beanId,
       currentDataset: null,
       beanMethodDialogVisible: false,
       springDialogVisible: false,
@@ -164,14 +162,6 @@ export default {
       for (let i = 0; i < this.datasets.length; i++) {
         this.$set(this.datasetExpanded, i, false);
       }
-    }
-  },
-  watch: {
-    name(newName) {
-      this.localName = newName;
-    },
-    beanId(newBeanId) {
-      this.localBeanId = newBeanId;
     }
   },
   methods: {
@@ -240,8 +230,8 @@ export default {
      */
     editDatasourceAction() {
       this.currentSpringDatasource = {
-        name: this.localName,
-        beanId: this.localBeanId
+        name: this.name,
+        beanId: this.beanId
       };
       this.springDialogVisible = true;
     },
@@ -422,7 +412,7 @@ export default {
      * 字段双击事件
      */
     handleFieldDoubleClick(dataset, field) {
-      this._buildClickEvent(dataset, field, this.context);
+      this.buildClickEvent(dataset, field, this.context);
     },
 
     /**
@@ -454,7 +444,7 @@ export default {
       }
     },
 
-    _buildClickEvent(dataset, field, context) {
+    buildClickEvent(dataset, field, context) {
       const hot = TableManager.get();
       if (!hot) {
         showAlert(this.$t('tree.cellTip'));
@@ -492,7 +482,7 @@ export default {
       value.property = field.name;
       value.order = 'none';
 
-      const text = value.datasetName + "." + value.aggregate + "(";
+      let text = value.datasetName + "." + value.aggregate + "(";
       const prop = value.property;
       text += prop + ')';
       hot.setDataAtCell(rowIndex, colIndex, text);
@@ -508,11 +498,6 @@ export default {
      * 处理Spring数据源保存事件
      */
     handleSpringDatasourceSave(datasourceData) {
-      // 更新本地数据源名称和beanId
-      this.localName = datasourceData.name;
-      this.localBeanId = datasourceData.beanId;
-
-      // 通过事件通知父组件更新
       this.$emit('update-datasource', datasourceData);
     }
   }
