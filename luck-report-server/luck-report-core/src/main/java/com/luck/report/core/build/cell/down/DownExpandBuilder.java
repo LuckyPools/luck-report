@@ -27,6 +27,7 @@ import com.luck.report.core.model.Row;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Jacky.gao
@@ -65,24 +66,48 @@ public class DownExpandBuilder extends ExpandBuilder {
             if (useBlankCell) {
                 continue;
             }
-            Cell newCell = cell.newCell();
+            Cell newCell = null;
+            Cell newBlankCell = newBlankCell(cell, context, i);
+            if (newBlankCell != null) {
+                newCell = newBlankCell;
+            } else {
+                newCell = cell.newCell();
+            }
+            Cell leftParentCell = newCell.getLeftParentCell();
+            if (leftParentCell != null) {
+                leftParentCell.addRowChild(newCell);
+            }
+            Cell topParentCell = newCell.getTopParentCell();
+            if (topParentCell != null) {
+                topParentCell.addColumnChild(newCell);
+            }
             newCell.setData(bindData.getValue());
             newCell.setFormatData(bindData.getLabel());
             newCell.setBindData(bindData.getDataList());
             newCell.setProcessed(true);
-            Cell leftParentCell = cell.getLeftParentCell();
-            if (leftParentCell != null) {
-                leftParentCell.addRowChild(newCell);
+            if (newBlankCell == null) {
+                unit.duplicate(newCell, i);
             }
-            Cell topParentCell = cell.getTopParentCell();
-            if (topParentCell != null) {
-                topParentCell.addColumnChild(newCell);
-            }
-            unit.duplicate(newCell, i);
             lastCell = newCell;
         }
         unit.complete();
         return lastCell;
+    }
+
+    private Cell newBlankCell(Cell cell, Context context, int index) {
+        Cell leftParentCell = cell.getLeftParentCell();
+        if (leftParentCell == null) {
+            Row row = context.getRow(cell.getRow().getRowNumber() + index);
+            if (row != null) {
+                List<Cell> cells = row.getCells();
+                for (Cell c : cells) {
+                    if (c.getName().equals(cell.getName())) {
+                        return c;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private Range buildRowRange(int mainCellRowNumber, Range range) {
@@ -119,8 +144,8 @@ public class DownExpandBuilder extends ExpandBuilder {
         }
         String name = currentCell.getName();
         Map<String, BlankCellInfo> newBlankCellNamesMap = mainCell.getNewBlankCellsMap();
-        List<String> increaseCellNames = mainCell.getIncreaseSpanCellNames();
-        List<String> newCellNames = mainCell.getNewCellNames();
+        Set<String> increaseCellNames = mainCell.getIncreaseSpanCellNames();
+        Set<String> newCellNames = mainCell.getNewCellNames();
         if (newBlankCellNamesMap.containsKey(name)) {
             if (!duplicatorWrapper.contains(currentCell)) {
                 CellDownDuplicator cellDuplicator = new CellDownDuplicator(currentCell, DuplicateType.Blank, newBlankCellNamesMap.get(name), rowNumber);

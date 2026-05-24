@@ -22,6 +22,7 @@ import com.luck.report.core.parser.BuildUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Jacky.gao
@@ -153,8 +154,8 @@ public class RightCellbuilder {
     }
 
     private boolean cellPrcessed(CellDefinition cell, String name) {
-        List<String> newCellNames = cell.getNewCellNames();
-        List<String> increaseCellNames = cell.getIncreaseSpanCellNames();
+        Set<String> newCellNames = cell.getNewCellNames();
+        Set<String> increaseCellNames = cell.getIncreaseSpanCellNames();
         Map<String, BlankCellInfo> blankCellNamesMap = cell.getNewBlankCellsMap();
         boolean contain = false;
         if (cell.getName().equals(name)) {

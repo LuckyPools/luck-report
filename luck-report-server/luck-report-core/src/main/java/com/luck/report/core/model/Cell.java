@@ -115,9 +115,9 @@ public class Cell implements ReportCell {
     private Map<String, List<Cell>> columnChildrenCellsMap = new HashMap<String, List<Cell>>();
 
 
-    private List<String> increaseSpanCellNames;
+    private Set<String> increaseSpanCellNames;
     private Map<String, BlankCellInfo> newBlankCellsMap;
-    private List<String> newCellNames;
+    private Set<String> newCellNames;
 
     /**
      * 当前单元格行子格名称集合（用于预过滤，优化 addRowChild 递归性能）
@@ -850,10 +850,10 @@ public class Cell implements ReportCell {
     public void setBindData(List<Object> bindData) {
         this.bindData = bindData;
     }
-    public List<String> getIncreaseSpanCellNames() {
+    public Set<String> getIncreaseSpanCellNames() {
         return increaseSpanCellNames;
     }
-    public void setIncreaseSpanCellNames(List<String> increaseSpanCellNames) {
+    public void setIncreaseSpanCellNames(Set<String> increaseSpanCellNames) {
         this.increaseSpanCellNames = increaseSpanCellNames;
     }
     public Map<String, BlankCellInfo> getNewBlankCellsMap() {
@@ -862,10 +862,10 @@ public class Cell implements ReportCell {
     public void setNewBlankCellsMap(Map<String, BlankCellInfo> newBlankCellsMap) {
         this.newBlankCellsMap = newBlankCellsMap;
     }
-    public List<String> getNewCellNames() {
+    public Set<String> getNewCellNames() {
         return newCellNames;
     }
-    public void setNewCellNames(List<String> newCellNames) {
+    public void setNewCellNames(Set<String> newCellNames) {
         this.newCellNames = newCellNames;
     }
 

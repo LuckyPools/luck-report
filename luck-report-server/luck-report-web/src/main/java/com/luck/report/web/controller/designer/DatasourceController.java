@@ -162,6 +162,7 @@ public class DatasourceController {
 
     /**
      * 构建字段
+     * 区分存储过程和普通SQL，普通SQL使用分页查询避免全表扫描
      */
     @RequestMapping("/buildFields")
     public void buildFields(HttpServletRequest req, HttpServletResponse resp) {
@@ -179,7 +180,15 @@ public class DatasourceController {
             } else {
                 DataSource dataSource = new SingleConnectionDataSource(conn, false);
                 NamedParameterJdbcTemplate jdbc = new NamedParameterJdbcTemplate(dataSource);
-                PreparedStatementCreator statementCreator = getPreparedStatementCreator(sql, new MapSqlParameterSource(map));
+                DatabaseMetaData metaData = conn.getMetaData();
+                String dbProductName = metaData.getDatabaseProductName();
+                DbType dbType = DbType.getDbType(dbProductName);
+                IPageDialect dialect = dialectFactory.getDialect(dbType);
+                String paginationSql = sql;
+                if (dialect != null) {
+                    paginationSql = dialect.buildPaginationSql(sql, 0, 1);
+                }
+                PreparedStatementCreator statementCreator = getPreparedStatementCreator(paginationSql, new MapSqlParameterSource(map));
                 jdbc.getJdbcOperations().execute(statementCreator, new PreparedStatementCallback<Object>() {
                     @Override
                     public Object doInPreparedStatement(PreparedStatement ps) throws SQLException, DataAccessException {

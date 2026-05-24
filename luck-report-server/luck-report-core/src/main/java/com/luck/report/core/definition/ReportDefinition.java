@@ -241,7 +241,7 @@ public class ReportDefinition implements Serializable {
 		if (leftParentCell.getName().equals(cellName)) {
 			return leftParentCell;
 		}
-		List<String> newCellNames = leftParentCell.getNewCellNames();
+		Set<String> newCellNames = leftParentCell.getNewCellNames();
 		if (newCellNames != null && newCellNames.contains(cellName)) {
 			return leftParentCell;
 		}
@@ -259,7 +259,7 @@ public class ReportDefinition implements Serializable {
 		if (topParentCell.getName().equals(cellName)) {
 			return topParentCell;
 		}
-		List<String> newCellNames = topParentCell.getNewCellNames();
+		Set<String> newCellNames = topParentCell.getNewCellNames();
 		if (newCellNames != null && newCellNames.contains(cellName)) {
 			return topParentCell;
 		}

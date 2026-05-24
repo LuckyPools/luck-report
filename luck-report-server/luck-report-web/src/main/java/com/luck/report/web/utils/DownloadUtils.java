@@ -36,7 +36,7 @@ public class DownloadUtils {
             if (pos > 0) {
                 decodedReportFileName = decodedReportFileName.substring(0, pos);
             }
-            result.append("ureport-").append(decodedReportFileName).append(extName);
+            result.append(decodedReportFileName).append(extName);
         }
         return result.toString();
     }
@@ -54,21 +54,21 @@ public class DownloadUtils {
      */
     public static String buildDownloadHeader(HttpServletResponse response, String reportFileName, String fileName, String extName) {
         String downloadFileName = buildDownloadFileName(reportFileName, fileName, extName);
-        
+
         try {
             String encodedFileName = URLEncoder.encode(downloadFileName, StandardCharsets.UTF_8.name())
                     .replaceAll("\\+", "%20");
-            
+
             String fallbackFileName = new String(downloadFileName.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
-            
+
             response.setContentType("application/octet-stream;charset=UTF-8");
-            response.setHeader("Content-Disposition", 
+            response.setHeader("Content-Disposition",
                     "attachment;filename=\"" + fallbackFileName + "\";filename*=UTF-8''" + encodedFileName);
         } catch (UnsupportedEncodingException e) {
             response.setContentType("application/octet-stream;charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment;filename=\"" + downloadFileName + "\"");
         }
-        
+
         return downloadFileName;
     }
 }

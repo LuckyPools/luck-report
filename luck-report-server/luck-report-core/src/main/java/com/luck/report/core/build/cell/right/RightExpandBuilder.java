@@ -27,6 +27,7 @@ import com.luck.report.core.model.Column;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Jacky.gao
@@ -62,24 +63,48 @@ public class RightExpandBuilder extends ExpandBuilder {
             if (useBlank) {
                 continue;
             }
-            Cell newCell = cell.newCell();
+            Cell newCell = null;
+            Cell newBlankCell = newBlankCell(cell, context, i);
+            if (newBlankCell != null) {
+                newCell = newBlankCell;
+            } else {
+                newCell = cell.newCell();
+            }
+            Cell leftParentCell = newCell.getLeftParentCell();
+            if (leftParentCell != null) {
+                leftParentCell.addRowChild(newCell);
+            }
+            Cell topParentCell = newCell.getTopParentCell();
+            if (topParentCell != null) {
+                topParentCell.addColumnChild(newCell);
+            }
             newCell.setData(bindData.getValue());
             newCell.setFormatData(bindData.getLabel());
             newCell.setBindData(bindData.getDataList());
             newCell.setProcessed(true);
-            Cell topParentCell = cell.getTopParentCell();
-            if (topParentCell != null) {
-                topParentCell.addColumnChild(newCell);
+            if (newBlankCell == null) {
+                unit.duplicate(newCell, i);
             }
-            Cell leftParentCell = cell.getLeftParentCell();
-            if (leftParentCell != null) {
-                leftParentCell.addRowChild(newCell);
-            }
-            unit.duplicate(newCell, i);
             lastCell = newCell;
         }
         unit.complete();
         return lastCell;
+    }
+
+    private Cell newBlankCell(Cell cell, Context context, int index) {
+        Cell topParentCell = cell.getTopParentCell();
+        if (topParentCell == null) {
+            Column column = context.getColumn(cell.getColumn().getColumnNumber() + index);
+            if (column != null) {
+                List<Cell> cells = column.getCells();
+                for (Cell c : cells) {
+                    if (c.getName().equals(cell.getName())) {
+                        return c;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private Range buildColRange(Cell cell, Range range, int mainCellColNumber) {
@@ -116,8 +141,8 @@ public class RightExpandBuilder extends ExpandBuilder {
         }
         String name = currentCell.getName();
         Map<String, BlankCellInfo> newBlankCellNamesMap = mainCell.getNewBlankCellsMap();
-        List<String> increaseCellNames = mainCell.getIncreaseSpanCellNames();
-        List<String> newCellNames = mainCell.getNewCellNames();
+        Set<String> increaseCellNames = mainCell.getIncreaseSpanCellNames();
+        Set<String> newCellNames = mainCell.getNewCellNames();
         if (newBlankCellNamesMap.containsKey(name)) {
             if (!duplicatorWrapper.contains(currentCell)) {
                 CellRightDuplicator cellDuplicator = new CellRightDuplicator(currentCell, DuplicateType.Blank, newBlankCellNamesMap.get(name), currentCellColNumber);

@@ -24,10 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -61,11 +58,11 @@ public class CellDefinition implements Serializable {
     @JsonIgnore // 序列化会丢失
     private Range duplicateRange;
     @JsonIgnore // 序列化会丢失
-    private List<String> increaseSpanCellNames = new ArrayList<String>();
+    private Set<String> increaseSpanCellNames = new HashSet<String>();
     @JsonIgnore // 序列化会丢失
     private Map<String, BlankCellInfo> newBlankCellsMap = new HashMap<String, BlankCellInfo>();
     @JsonIgnore // 序列化会丢失
-    private List<String> newCellNames = new ArrayList<String>();
+    private Set<String> newCellNames = new HashSet<String>();
 
     /**
      * 当前单元格左父格名
@@ -89,7 +86,7 @@ public class CellDefinition implements Serializable {
      * 当前单无格所在行的所有子格
      */
     @JsonIgnore // 序列化会丢失
-    private List<CellDefinition> rowChildrenCells = new ArrayList<CellDefinition>();
+    private List<CellDefinition> rowChildrenCells = new ArrayList<>();
     /**
      * 当前单无格所在列的所有子格
      */
@@ -253,7 +250,7 @@ public class CellDefinition implements Serializable {
         return columnChildrenCells;
     }
 
-    public List<String> getIncreaseSpanCellNames() {
+    public Set<String> getIncreaseSpanCellNames() {
         return increaseSpanCellNames;
     }
 
@@ -261,7 +258,7 @@ public class CellDefinition implements Serializable {
         return newBlankCellsMap;
     }
 
-    public List<String> getNewCellNames() {
+    public Set<String> getNewCellNames() {
         return newCellNames;
     }
 
