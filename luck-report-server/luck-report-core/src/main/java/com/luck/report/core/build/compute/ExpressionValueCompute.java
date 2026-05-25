@@ -27,6 +27,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.expr.BaseExpression;
+import com.luck.report.core.expression.model.expr.ExpressionBlock;
 import com.luck.report.core.expression.model.expr.FunctionExpression;
 import com.luck.report.core.expression.model.expr.JoinExpression;
 import com.luck.report.core.expression.model.expr.ifelse.*;
@@ -148,6 +149,17 @@ public class ExpressionValueCompute implements ValueCompute {
                 boolean has = hasPageFunction(baseExpr);
                 if (has) {
                     return has;
+                }
+            }
+        } else if (expr instanceof ExpressionBlock) {
+            ExpressionBlock blockExpr = (ExpressionBlock) expr;
+            List<Expression> expressions = blockExpr.getExpressionList();
+            if (expressions != null && expressions.size() > 0) {
+                for (Expression expression : expressions) {
+                    boolean has = hasPageFunction(expression);
+                    if (has) {
+                        return has;
+                    }
                 }
             }
         }

@@ -69,7 +69,7 @@ public class ReportRender implements ApplicationContextAware {
             ReportDefinitionWrapperCache.putObject(file, wrapper);
         }
         reportDefinition = wrapper.getReportDefinition();
-        if (wrapper.checkNotBuilt()) {
+        if (wrapper.notBuilt()) {
             rebuildReportDefinition(reportDefinition);
             wrapper.markBuilt();
         }

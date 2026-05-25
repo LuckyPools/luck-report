@@ -539,6 +539,9 @@ public class Cell implements ReportCell {
                         column.getCustomCellStyle().setValign(valign);
                     }
                 }
+                if (this.customCellStyle == null) {
+                    this.customCellStyle = new CellStyle();
+                }
                 Border leftBorder = style.getLeftBorder();
                 if (leftBorder != null) {
                     this.customCellStyle.setLeftBorder(leftBorder);

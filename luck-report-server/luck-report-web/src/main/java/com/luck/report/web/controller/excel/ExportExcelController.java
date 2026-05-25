@@ -7,14 +7,12 @@ import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.export.ExportConfigure;
 import com.luck.report.core.export.ExportConfigureImpl;
 import com.luck.report.core.export.ExportManager;
-import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.export.excel.high.ExcelProducer;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.service.ReportDefinitionService;
 import com.luck.report.web.utils.DownloadUtils;
 import com.luck.report.web.utils.UrlParameterUtils;
-import com.luck.report.web.exception.ReportDesignException;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,9 +37,6 @@ public class ExportExcelController {
 
     @Autowired
     private ExportManager exportManager;
-
-    @Autowired
-    private ReportRender reportRender;
 
     @Autowired
     private ReportDefinitionService reportDefinitionService;

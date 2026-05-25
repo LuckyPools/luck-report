@@ -43,11 +43,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Word报表导出生产器
  * @author Jacky.gao
  * @since 2015年5月20日
  */
 public class WordProducer implements Producer {
+    private HeaderFooterBuilder headerFooterBuilder = new HeaderFooterBuilder();
 
+    /**
+     * 生成Word报表
+     * @param report 报表对象
+     * @param outputStream 输出流
+     */
     @Override
     public void produce(Report report, OutputStream outputStream) {
         XWPFDocument document = new XWPFDocument();
@@ -128,6 +135,7 @@ public class WordProducer implements Producer {
                 }
                 pageIndex++;
             }
+            headerFooterBuilder.build(document, sectpr, report);
             document.write(outputStream);
         } catch (Exception ex) {
             throw new ReportComputeException(ex);

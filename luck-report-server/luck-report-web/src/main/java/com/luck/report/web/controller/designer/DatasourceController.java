@@ -139,12 +139,13 @@ public class DatasourceController {
             conn = buildConnection(req);
             DatabaseMetaData metaData = conn.getMetaData();
             String url = metaData.getURL();
+            String dataBaseName = conn.getCatalog();
             String schema = null;
             if (url.toLowerCase().contains("oracle")) {
                 schema = metaData.getUserName();
             }
             List<Map<String, String>> tables = new ArrayList<>();
-            rs = metaData.getTables(null, schema, "%", new String[]{"TABLE", "VIEW"});
+            rs = metaData.getTables(dataBaseName, schema, "%", new String[] { "TABLE", "VIEW" });
             while (rs.next()) {
                 Map<String, String> table = new HashMap<>();
                 table.put("name", rs.getString("TABLE_NAME"));

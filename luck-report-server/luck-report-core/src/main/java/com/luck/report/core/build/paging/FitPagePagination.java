@@ -30,6 +30,7 @@ import java.util.List;
  * @since 2017年1月17日
  */
 public class FitPagePagination extends BasePagination implements Pagination {
+    
     @Override
     public List<Page> doPaging(Report report) {
         Paper paper = report.getPaper();
@@ -58,6 +59,12 @@ public class FitPagePagination extends BasePagination implements Pagination {
         while (row != null) {
             int rowRealHeight = row.getRealHeight();
             if (rowRealHeight == 0) {
+                i++;
+                if (i < rowSize) {
+                    row = rows.get(i);
+                } else {
+                    row = null;
+                }
                 continue;
             }
             Band band = row.getBand();
@@ -84,6 +91,12 @@ public class FitPagePagination extends BasePagination implements Pagination {
                     }
                     pageRepeatFooters.remove(index);
                     pageRepeatFooters.add(index, row);
+                }
+                i++;
+                if (i < rowSize) {
+                    row = rows.get(i);
+                } else {
+                    row = null;
                 }
                 continue;
             }

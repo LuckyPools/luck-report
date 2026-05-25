@@ -65,11 +65,11 @@ public class ReportDefinitionWrapper implements Serializable {
     }
 
     /**
-     * 检查是否已构建
+     * 检查是否未构建
      *
-     * @return true 表示已构建，false 表示未构建
+     * @return true 表示未构建，false 表示已构建
      */
-    public boolean checkNotBuilt() {
+    public boolean notBuilt() {
         return !built;
     }
 }
