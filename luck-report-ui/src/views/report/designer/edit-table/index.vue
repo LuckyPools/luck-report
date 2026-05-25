@@ -17,7 +17,8 @@ import { afterRenderer } from './utils/CellRenderer.js';
 import { renderRowHeader } from './utils/HeaderUtils.js';
 import { loadReport } from '@/api/designer';
 import { showAlert } from '@/utils/comnon.js';
-import { addRowHeader } from "@/utils/contextActions";
+import { addRowHeader, getCell, setCell } from "@/utils/contextActions";
+import { deepCopy } from '@/components/utils/index.js';
 import TableManager from './manager.js';
 import { getLibMode } from '@/lib/navigator';
 import PrintLine from "@/views/report/designer/print-line/index.vue";
@@ -58,6 +59,11 @@ export default {
     this.initTable();
   },
   beforeUnmount() {
+    const tableElement = this.$refs.contentTable;
+    if (tableElement) {
+      tableElement.removeEventListener('dragover', this.handleDragOver);
+      tableElement.removeEventListener('drop', this.handleDrop);
+    }
     if (this.hot) {
       this.hot.destroy();
     }
@@ -114,6 +120,7 @@ export default {
       this.bindRowResizeEvent();
       this.bindColumnResizeEvent();
       this.bindSelectionEvent();
+      this.bindDropEvent();
     },
 
     bindRowResizeEvent() {
@@ -190,6 +197,171 @@ export default {
       Handsontable.hooks.add("afterSelectionEnd", function(rowIndex, colIndex, row2Index, col2Index) {
         _this.handleCellSelected(rowIndex, colIndex, row2Index, col2Index);
       }, this.hot);
+    },
+
+    /**
+     * 绑定拖放事件
+     * 处理从数据集树拖拽字段到表格单元格的操作
+     */
+    bindDropEvent() {
+      const tableElement = this.$refs.contentTable;
+      tableElement.addEventListener('dragover', this.handleDragOver);
+      tableElement.addEventListener('drop', this.handleDrop);
+    },
+
+    /**
+     * 处理拖拽经过事件
+     * @param {DragEvent} event - 拖拽事件对象
+     */
+    handleDragOver(event) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    },
+
+    /**
+     * 处理拖放事件
+     * 将数据集字段拖放到单元格时设置单元格类型
+     * @param {DragEvent} event - 拖拽事件对象
+     */
+    handleDrop(event) {
+      event.preventDefault();
+      const jsonData = event.dataTransfer.getData('application/json');
+      if (!jsonData) {
+        return;
+      }
+      let dragData;
+      try {
+        dragData = JSON.parse(jsonData);
+      } catch (e) {
+        return;
+      }
+      if (dragData.type !== 'dataset-field') {
+        return;
+      }
+      const targetCell = this.getCellFromPoint(event.clientX, event.clientY);
+      if (!targetCell) {
+        return;
+      }
+      const { row, col } = targetCell;
+      this.applyDatasetFieldToCell(row, col, dragData.datasetName, dragData.fieldName);
+    },
+
+    /**
+     * 根据鼠标坐标获取单元格位置
+     * @param {number} clientX - 鼠标 X 坐标
+     * @param {number} clientY - 鼠标 Y 坐标
+     * @returns {Object|null} 包含 row 和 col 的对象，或 null
+     */
+    getCellFromPoint(clientX, clientY) {
+      const element = document.elementFromPoint(clientX, clientY);
+      if (!element) {
+        return null;
+      }
+      const td = element.closest('td');
+      if (!td) {
+        return null;
+      }
+      let cellCoords = null;
+      if (this.hot.getCoords) {
+        cellCoords = this.hot.getCoords(td);
+      } else if (this.hot.view && this.hot.view.wt && this.hot.view.wt.wtTable) {
+        cellCoords = this.hot.view.wt.wtTable.getCoords(td);
+      }
+      if (!cellCoords || cellCoords.row < 0 || cellCoords.col < 0) {
+        return null;
+      }
+      return { row: cellCoords.row, col: cellCoords.col };
+    },
+
+    /**
+     * 将数据集字段应用到单元格
+     * @param {number} rowIndex - 行索引
+     * @param {number} colIndex - 列索引
+     * @param {string} datasetName - 数据集名称
+     * @param {string} fieldName - 字段名称
+     */
+    applyDatasetFieldToCell(rowIndex, colIndex, datasetName, fieldName) {
+      const cellDef = getCell(rowIndex, colIndex);
+      if (!cellDef) {
+        return;
+      }
+      const oldCellDef = deepCopy(cellDef);
+      let newCellDef;
+      if (cellDef.value.type !== 'dataset') {
+        newCellDef = {
+          value: { type: 'dataset', conditions: [] },
+          rowNumber: cellDef.rowNumber,
+          columnNumber: cellDef.columnNumber,
+          cellStyle: cellDef.cellStyle
+        };
+      } else {
+        newCellDef = deepCopy(cellDef);
+      }
+      newCellDef.expand = 'Down';
+      const value = newCellDef.value;
+      value.aggregate = 'group';
+      value.datasetName = datasetName;
+      value.property = fieldName;
+      value.order = 'none';
+      let text = value.datasetName + '.' + value.aggregate + '(';
+      text += value.property + ')';
+      setCell(rowIndex, colIndex, newCellDef);
+      this.hot.setDataAtCell(rowIndex, colIndex, text);
+      if (window.setDirty) {
+        window.setDirty();
+      }
+      this.hot.render();
+      if (window.Handsontable && window.Handsontable.hooks) {
+        window.Handsontable.hooks.run(this.hot, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex);
+      }
+      if (window.undoManager) {
+        window.undoManager.add({
+          redo: () => {
+            const currentCellDef = getCell(rowIndex, colIndex);
+            let redoCellDef;
+            if (currentCellDef.value.type !== 'dataset') {
+              redoCellDef = {
+                value: { type: 'dataset', conditions: [] },
+                rowNumber: currentCellDef.rowNumber,
+                columnNumber: currentCellDef.columnNumber,
+                cellStyle: currentCellDef.cellStyle
+              };
+            } else {
+              redoCellDef = deepCopy(currentCellDef);
+            }
+            redoCellDef.expand = 'Down';
+            const redoValue = redoCellDef.value;
+            redoValue.aggregate = 'group';
+            redoValue.datasetName = datasetName;
+            redoValue.property = fieldName;
+            redoValue.order = 'none';
+            let redoText = redoValue.datasetName + '.' + redoValue.aggregate + '(';
+            redoText += redoValue.property + ')';
+            setCell(rowIndex, colIndex, redoCellDef);
+            this.hot.setDataAtCell(rowIndex, colIndex, redoText);
+            if (window.setDirty) window.setDirty();
+            this.hot.render();
+            if (window.Handsontable && window.Handsontable.hooks) {
+              window.Handsontable.hooks.run(this.hot, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex);
+            }
+          },
+          undo: () => {
+            setCell(rowIndex, colIndex, oldCellDef);
+            const value = oldCellDef.value;
+            let text = value.value || '';
+            if (value.type === 'dataset') {
+              text = value.datasetName + '.' + value.aggregate + '(';
+              text += value.property + ')';
+            }
+            this.hot.setDataAtCell(rowIndex, colIndex, text);
+            if (window.setDirty) window.setDirty();
+            this.hot.render();
+            if (window.Handsontable && window.Handsontable.hooks) {
+              window.Handsontable.hooks.run(this.hot, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex);
+            }
+          }
+        });
+      }
     },
 
     handleCellSelected(rowIndex, colIndex, row2Index, col2Index) {
@@ -303,7 +475,37 @@ export default {
         colWidths,
         rowHeights,
         mergeCells,
-        readOnly: true
+        cells: (row, col) => {
+          const cellProperties = {};
+          const cellDef = getCell(row, col);
+          if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
+            cellProperties.readOnly = false;
+          } else {
+            cellProperties.readOnly = true;
+          }
+          return cellProperties;
+        }
+      });
+      this.bindAfterChangeEvent();
+    },
+
+    /**
+     * 绑定单元格编辑完成事件
+     * 当 simple 类型单元格编辑完成后，更新单元格定义并标记脏数据
+     */
+    bindAfterChangeEvent() {
+      this.hot.addHook('afterChange', (changes, source) => {
+        if (source === 'edit' && changes) {
+          changes.forEach(([row, col, oldValue, newValue]) => {
+            const cellDef = getCell(row, col);
+            if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
+              const newCellDef = deepCopy(cellDef);
+              newCellDef.value.value = newValue;
+              setCell(row, col, newCellDef);
+              utils.setDirty();
+            }
+          });
+        }
       });
     },
 

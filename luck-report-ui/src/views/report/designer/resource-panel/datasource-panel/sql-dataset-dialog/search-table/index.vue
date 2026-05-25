@@ -33,7 +33,7 @@
             @dblclick="addSql(table.name)"
           >
             <td>
-              <a href="###" :title="$t('dialog.sql.addSql')" @click="addSql(table.name)">
+              <a href="javascript:void(0)" :title="$t('dialog.sql.addSql')" @click="addSql(table.name)">
                 {{ table.name }}
               </a>
             </td>

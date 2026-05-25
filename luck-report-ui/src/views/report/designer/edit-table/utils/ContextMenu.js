@@ -376,7 +376,7 @@ export default function buildMenuConfigure(){
                     hot.setDataAtCell(i,j,'');
                 }else if(type==='style'){
                     removeCellsMap.set(key,cell.cellStyle);
-                    cell.cellStyle={fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'};
+                    cell.cellStyle={fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'};
                 }else if(type==='all'){
                     removeCell(cell);
                     removeCellsMap.set(key,cell);
@@ -388,7 +388,7 @@ export default function buildMenuConfigure(){
                             type:'simple',
                             value:''
                         },
-                        cellStyle:{fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}
+                        cellStyle:{fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}
                     };
                     addCell(newCell);
                     hot.setDataAtCell(i,j,'');

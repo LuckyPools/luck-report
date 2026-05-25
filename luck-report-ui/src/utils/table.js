@@ -49,7 +49,7 @@ export function resetTableData(hot){
 };
 
 export function buildNewCellDef(rowNumber,columnNumber){
-    let cellDef = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
+    let cellDef = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
     return cellDef;
 };
 

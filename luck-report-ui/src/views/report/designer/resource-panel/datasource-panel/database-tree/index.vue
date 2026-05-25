@@ -14,7 +14,7 @@
             style="margin-right:2px"
           ></i>
           <i class="iconfont icon-database"></i>
-          <a href="###" class="ds_name">{{ datasource.name }}</a>
+          <a href="javascript:void(0)" class="ds_name">{{ datasource.name }}</a>
         </span>
 
         <!-- 数据集列表 -->
@@ -38,7 +38,7 @@
                 style="margin-right:2px"
               ></i>
               <i class="iconfont icon-sqlds"></i>
-              <a href="###" class="dataset_name">{{ dataset.name }}</a>
+              <a href="javascript:void(0)" class="dataset_name">{{ dataset.name }}</a>
             </span>
 
             <!-- 字段列表 -->
@@ -53,11 +53,13 @@
                 <span
                   :id="'field_' + dataset.name + '_' + field.name + '_' + fieldIndex"
                   :title="$t('tree.doubleClick')"
+                  draggable="true"
                   @dblclick="handleFieldDoubleClick(dataset, field)"
+                  @dragstart="handleFieldDragStart($event, dataset, field)"
                   @contextmenu.prevent.stop="showFieldContextMenu($event, dataset, field, fieldIndex)"
                 >
                   <i class="iconfont icon-property"></i>
-                  <a href="###">{{ field.name }}</a>
+                  <a href="javascript:void(0)">{{ field.name }}</a>
                 </span>
               </li>
             </ul>
@@ -416,6 +418,22 @@ export default {
      */
     handleFieldDoubleClick(dataset, field) {
       this.buildClickEvent(dataset, field, this.context);
+    },
+
+    /**
+     * 字段拖拽开始事件
+     * @param {DragEvent} event - 拖拽事件对象
+     * @param {Object} dataset - 数据集对象
+     * @param {Object} field - 字段对象
+     */
+    handleFieldDragStart(event, dataset, field) {
+      const dragData = {
+        datasetName: dataset.name,
+        fieldName: field.name,
+        type: 'dataset-field'
+      };
+      event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+      event.dataTransfer.effectAllowed = 'copy';
     },
 
     /**
