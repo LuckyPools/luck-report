@@ -1,54 +1,55 @@
 <template>
-  <div>
-    <div class="div-col-desc">{{ $t('dialog.setting.colDesc') }}</div>
+  <u-form :label-width="100" label-position="left">
+    <div class="form-desc">{{ $t('dialog.setting.colDesc') }}</div>
 
-    <div class="form-group form-group-col-enabled">
-      <label>{{ $t('dialog.setting.column') }}：</label>
-      <div class="u-inline">
-        <u-radio-group
+    <u-row>
+      <u-col :span="24">
+        <u-form-item class="property-label" :label="$t('dialog.setting.column')">
+          <u-radio-group
             v-model="localPaper.columnEnabled"
             @change="handleColumnEnabledChange"
-        >
-          <u-radio
+          >
+            <u-radio
               v-for="option in columnEnabledOptions"
               :key="option.value"
               :label="option.value"
+            >
+              {{ option.label }}
+            </u-radio>
+          </u-radio-group>
+        </u-form-item>
+      </u-col>
+    </u-row>
+
+    <u-row style="margin-top: 5px;">
+      <u-col :span="10">
+        <u-form-item class="property-label" :label="$t('dialog.setting.columnCount')">
+          <u-select
+            v-model="localPaper.columnCount"
+            :disabled="!localPaper.columnEnabled"
+            @change="handleColumnCountChange"
+            style="width: 140px"
           >
-            {{ option.label }}
-          </u-radio>
-        </u-radio-group>
-      </div>
-    </div>
-
-    <div class="form-group form-group-col-config">
-      <label>{{ $t('dialog.setting.columnCount') }}：</label>
-      <div class="u-inline">
-        <u-select
-          v-model="localPaper.columnCount"
-          :disabled="!localPaper.columnEnabled"
-          @change="handleColumnCountChange"
-        >
-          <u-option
-            v-for="option in columnCountOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
+            <u-option
+              v-for="option in columnCountOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
+      </u-col>
+      <u-col :span="10">
+        <u-form-item class="property-label" :label="$t('dialog.setting.columnMargin')">
+          <u-input-number
+            v-model="localColumnMargin"
+            :disabled="!localPaper.columnEnabled"
+            @change="handleColumnMarginChange"
           />
-        </u-select>
-      </div>
-
-      <span class="span-col-margin">
-        <label>{{ $t('dialog.setting.columnMargin') }}：</label>
-      </span>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localColumnMargin"
-          :disabled="!localPaper.columnEnabled"
-          @change="handleColumnMarginChange"
-        />
-      </div>
-    </div>
-  </div>
+        </u-form-item>
+      </u-col>
+    </u-row>
+  </u-form>
 </template>
 
 <script>
@@ -57,7 +58,11 @@ import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
-import UInputNumber from "@/components/input-number/index.vue";
+import UInputNumber from '@/components/input-number/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 
 export default {
   name: 'ColumnSettings',
@@ -66,7 +71,11 @@ export default {
     URadio,
     USelect,
     UOption,
-    UInputNumber
+    UInputNumber,
+    UForm,
+    UFormItem,
+    URow,
+    UCol
   },
   props: {
     paper: {
@@ -127,22 +136,9 @@ export default {
 </script>
 
 <style scoped>
-.div-col-desc {
+.form-desc {
   margin: 0 5px 10px 5px;
   color: #999999;
   font-size: 12px;
-}
-
-.form-group-col-enabled {
-  margin-top: 8px;
-}
-
-.form-group-col-config {
-  margin-top: 1px;
-  display: inline-block;
-}
-
-.span-col-margin {
-  margin-left: 20px;
 }
 </style>

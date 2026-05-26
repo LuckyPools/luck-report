@@ -102,7 +102,7 @@ import UButton from "@/components/button/index.vue";
 import UTabs from "@/components/tabs/index.vue";
 import UTabPane from "@/components/tabs/pane.vue";
 import PageSettings from './page/index.vue';
-import HeaderFooterSettings from './headerFooter/index.vue';
+import HeaderFooterSettings from '@/views/report/designer/tool-bar/settings-tool/settings-dialog/header-footer/index.vue';
 import PagingSettings from './paging/index.vue';
 import ColumnSettings from './column/index.vue';
 import { mapGetters } from 'vuex';

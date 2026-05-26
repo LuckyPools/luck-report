@@ -165,6 +165,7 @@ export default {
         this.currentPage = 1;
         this.pageIndex = 1;
         pageIndex = 1;
+        updateUrlParams({ _i: 1 }, true);
       } else if (this.pageIndex != null) {
         if (this.totalPage > 0 && this.currentPage > this.totalPage) {
           this.currentPage = 1;

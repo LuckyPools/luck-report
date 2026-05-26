@@ -1,157 +1,154 @@
 <template>
-  <div>
-    <div class="form-group form-group-inline">
-      <label>{{ $t('dialog.setting.paperType') }}：</label>
-      <div class="u-inline">
-        <u-select
-          v-model="localPaper.paperType"
-          style="width: 95px"
-          @change="handlePaperTypeChange"
-        >
-          <u-option
-            v-for="option in paperTypeOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
+  <u-form :label-width="100" label-position="left">
+    <u-row>
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.paperType')">
+          <u-select
+            v-model="localPaper.paperType"
+            style="width: 140px"
+            @change="handlePaperTypeChange"
+          >
+            <u-option
+              v-for="option in paperTypeOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
+      </u-col>
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.orientation')">
+          <u-select
+              v-model="localPaper.orientation"
+              @change="handleOrientationChange"
+              style="width: 140px"
+          >
+            <u-option
+                v-for="option in orientationOptions"
+                :key="option.value"
+                :value="option.value"
+                :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
+      </u-col>
+    </u-row>
+
+    <u-row style="margin-top: 5px;">
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.paperWidth')">
+          <u-input-number
+              v-model="localPageWidth"
+              :disabled="localPaper.paperType !== 'CUSTOM'"
+              @change="handlePageWidthChange"
           />
-        </u-select>
-      </div>
-    </div>
-
-    <div class="form-group form-group-inline form-group-ml25">
-      <span>{{ $t('dialog.setting.paperWidth') }}：</span>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localPageWidth"
-          :disabled="localPaper.paperType !== 'CUSTOM'"
-          @change="handlePageWidthChange"
-        />
-      </div>
-    </div>
-
-    <div class="form-group form-group-inline form-group-ml15">
-      <span>{{ $t('dialog.setting.paperHeight') }}：</span>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localPageHeight"
-          :disabled="localPaper.paperType !== 'CUSTOM'"
-          @change="handlePageHeightChange"
-        />
-      </div>
-    </div>
-
-    <div></div>
-
-    <div class="form-group form-group-inline form-group-mt5">
-      <label>{{ $t('dialog.setting.leftMargin') }}：</label>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localLeftMargin"
-          @change="handleLeftMarginChange"
-        />
-      </div>
-    </div>
-
-    <div class="form-group form-group-inline form-group-mt5 form-group-ml25">
-      <label>{{ $t('dialog.setting.rightMargin') }}：</label>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localRightMargin"
-          @change="handleRightMarginChange"
-        />
-      </div>
-    </div>
-
-    <div></div>
-
-    <div class="form-group form-group-inline form-group-mt5">
-      <label>{{ $t('dialog.setting.topMargin') }}：</label>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localTopMargin"
-          @change="handleTopMarginChange"
-        />
-      </div>
-    </div>
-
-    <div class="form-group form-group-inline form-group-mt5 form-group-ml25">
-      <label>{{ $t('dialog.setting.bottomMargin') }}：</label>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localBottomMargin"
-          @change="handleBottomMarginChange"
-        />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>{{ $t('dialog.setting.orientation') }}：</label>
-      <div class="u-inline">
-        <u-select
-          v-model="localPaper.orientation"
-          @change="handleOrientationChange"
-        >
-          <u-option
-            v-for="option in orientationOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
+        </u-form-item>
+      </u-col>
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.paperHeight')">
+          <u-input-number
+              v-model="localPageHeight"
+              :disabled="localPaper.paperType !== 'CUSTOM'"
+              @change="handlePageHeightChange"
           />
-        </u-select>
-      </div>
-    </div>
+        </u-form-item>
+      </u-col>
+    </u-row>
 
-    <div class="form-group">
-      <label>{{ $t('dialog.setting.htmlAlign') }}：</label>
-      <div class="u-inline">
-        <u-select
-          v-model="localPaper.htmlReportAlign"
-          style="width: 80px"
-          @change="handleHtmlAlignChange"
-        >
-          <u-option
-            v-for="option in htmlAlignOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
+    <u-row style="margin-top: 5px;">
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.leftMargin')">
+          <u-input-number
+            v-model="localLeftMargin"
+            @change="handleLeftMarginChange"
           />
-        </u-select>
-      </div>
+        </u-form-item>
+      </u-col>
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.rightMargin')">
+          <u-input-number
+            v-model="localRightMargin"
+            @change="handleRightMarginChange"
+          />
+        </u-form-item>
+      </u-col>
+    </u-row>
 
-      <span style="margin-left: 35px;">
-        <label>{{ $t('dialog.setting.refreshSecond') }}：</label>
-      </span>
-      <div class="u-inline">
-        <u-input-number
-          v-model="localPaper.htmlIntervalRefreshValue"
-          :placeholder="$t('dialog.setting.tip1')"
-          :title="$t('dialog.setting.tip2')"
-          :min="0"
-          @change="handleHtmlIntervalRefreshValueChange"
-        />
-      </div>
-    </div>
+    <u-row style="margin-top: 5px;">
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.topMargin')">
+          <u-input-number
+            v-model="localTopMargin"
+            @change="handleTopMarginChange"
+          />
+        </u-form-item>
+      </u-col>
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.bottomMargin')">
+          <u-input-number
+            v-model="localBottomMargin"
+            @change="handleBottomMarginChange"
+          />
+        </u-form-item>
+      </u-col>
+    </u-row>
 
-    <div class="form-group">
-      <label>{{ $t('dialog.setting.bg') }}：</label>
-      <div class="u-inline">
-        <u-input
-          v-model="localPaper.bgImage"
-          style="width: 470px;"
-          :placeholder="$t('dialog.setting.bgTip')"
-          @blur="handleBgImageChange"
-        />
-      </div>
-    </div>
-  </div>
+    <u-row style="margin-top: 5px;">
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.htmlAlign')">
+          <u-select
+            v-model="localPaper.htmlReportAlign"
+            style="width: 140px"
+            @change="handleHtmlAlignChange"
+          >
+            <u-option
+              v-for="option in htmlAlignOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+            />
+          </u-select>
+        </u-form-item>
+      </u-col>
+      <u-col :span="12">
+        <u-form-item class="property-label" :label="$t('dialog.setting.refreshSecond')">
+          <u-input-number
+            v-model="localPaper.htmlIntervalRefreshValue"
+            :placeholder="$t('dialog.setting.tip1')"
+            :title="$t('dialog.setting.tip2')"
+            :min="0"
+            @change="handleHtmlIntervalRefreshValueChange"
+          />
+        </u-form-item>
+      </u-col>
+    </u-row>
+
+    <u-row style="margin-top: 5px;">
+      <u-col :span="24">
+        <u-form-item class="property-label" :label="$t('dialog.setting.bg')">
+          <u-input
+            v-model="localPaper.bgImage"
+            style="width: 470px;"
+            :placeholder="$t('dialog.setting.bgTip')"
+            @blur="handleBgImageChange"
+          />
+        </u-form-item>
+      </u-col>
+    </u-row>
+  </u-form>
 </template>
 
 <script>
 import { pointToMM, mmToPoint, buildPageSizeList } from '@/utils/table.js';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
-import UInputNumber from "@/components/input-number/index.vue";
-import UInput from "@/components/input/index.vue";
+import UInputNumber from '@/components/input-number/index.vue';
+import UInput from '@/components/input/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 
 export default {
   name: 'PageSettings',
@@ -159,7 +156,11 @@ export default {
     USelect,
     UOption,
     UInputNumber,
-    UInput
+    UInput,
+    UForm,
+    UFormItem,
+    URow,
+    UCol
   },
   props: {
     paper: {
@@ -182,7 +183,7 @@ export default {
   computed: {
     paperTypeOptions() {
       const options = [];
-      for (const [key, value] of Object.entries(this.paperSizeList)) {
+      for (const [key] of Object.entries(this.paperSizeList)) {
         options.push({
           value: key,
           label: key
@@ -285,21 +286,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.form-group-inline {
-  display: inline-block;
-}
-
-.form-group-ml25 {
-  margin-left: 25px;
-}
-
-.form-group-ml15 {
-  margin-left: 15px;
-}
-
-.form-group-mt5 {
-  margin-top: 5px;
-}
-</style>

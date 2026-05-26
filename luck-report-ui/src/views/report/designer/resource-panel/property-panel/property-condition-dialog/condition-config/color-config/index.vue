@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="forceChecked" @change="onForceChange">
           {{ $t('dialog.propCondition.forecolor') }}
@@ -30,7 +30,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="bgcolorChecked" @change="onBgcolorChange">
           {{ $t('dialog.propCondition.bgcolor') }}

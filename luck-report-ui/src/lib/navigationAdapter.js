@@ -61,18 +61,11 @@ const navigationAdapter = {
             return
         }
 
-        if (openInNewTab) {
-            const routeData = vueRouterInstance.resolve({
-                name: routeName,
-                query: params
-            })
-            window.open(routeData.href, '_blank')
-        } else {
-            vueRouterInstance.push({
-                name: routeName,
-                query: params
-            })
-        }
+        const routeData = vueRouterInstance.resolve({
+            name: routeName,
+            query: params
+        })
+        window.open(routeData.href, openInNewTab ? '_blank' : '_self')
     },
 
     openPreview(params, openInNewTab = true) {

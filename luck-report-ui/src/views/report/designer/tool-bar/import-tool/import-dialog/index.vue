@@ -6,14 +6,14 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
+      <div class="import-tip-box">
         <div class="import-description">{{ $t('dialog.import.desc') }}</div>
       </div>
       <div class="form-group">
         <label>{{ $t('dialog.import.file') }}：</label>
         <input
           type="file"
-          class="form-control"
+          class="import-file-input"
           :key="fileInputKey"
           accept=".xlsx,.xls"
           @change="handleFileChange"
@@ -93,14 +93,20 @@ export default {
 </script>
 
 <style scoped>
+.import-tip-box {
+  padding: 8px 16px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border-left: 5px solid #007868;
+  margin: 20px 0;
+}
 
 .import-description {
-  margin-bottom: 10px;
   line-height: 2;
   color: #929191;
 }
 
-.form-control {
+.import-file-input {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;

@@ -21,8 +21,8 @@
       <table class="table-container" style="font-size: 12px;" v-loading="loading">
         <thead>
           <tr>
-            <th style="width: 135px;"><span>{{ $t('dialog.sql.tableName') }}</span></th>
-            <th style="width: 30px;"><span>{{ $t('dialog.sql.type') }}</span></th>
+            <th style="width: 160px;"><span>{{ $t('dialog.sql.tableName') }}</span></th>
+            <th style="width: 35px;"><span>{{ $t('dialog.sql.type') }}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -149,11 +149,6 @@ export default {
 </script>
 
 <style scoped>
-
-.table-container {
-    width: 100%;
-    table-layout: fixed;
-}
 
 .table-container td {
     padding: 4px;

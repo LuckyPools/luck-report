@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="newValueChecked" @change="onNewValueChange">
           {{ $t('dialog.propCondition.newValue') }}
@@ -17,7 +17,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="formatChecked" @change="onFormatChange">
           {{ $t('dialog.propCondition.format') }}

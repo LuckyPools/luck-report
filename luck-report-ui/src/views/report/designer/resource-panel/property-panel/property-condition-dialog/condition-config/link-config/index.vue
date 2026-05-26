@@ -1,12 +1,12 @@
 <template>
   <div>
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="linkChecked" @change="onLinkChange">
           {{ $t('dialog.propCondition.link') }}
         </u-checkbox>
       </u-col>
-      <u-col :span="8">
+      <u-col :span="8" v-show="linkChecked">
         <u-select
             v-model="localLinkTargetWindow"
             style="width: 120px"
@@ -20,14 +20,14 @@
           />
         </u-select>
       </u-col>
-      <u-col :span="8">
+      <u-col :span="8" v-show="linkChecked">
         <u-button type="info" @click="configLinkParameter">
           {{ $t('dialog.propCondition.urlParameter') }}
         </u-button>
       </u-col>
     </u-row>
 
-    <u-row v-show="linkChecked" style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row v-show="linkChecked" class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
       </u-col>
       <u-col :span="8">

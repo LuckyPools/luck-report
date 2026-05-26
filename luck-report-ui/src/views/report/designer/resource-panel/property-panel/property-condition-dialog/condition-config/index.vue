@@ -259,3 +259,9 @@ export default {
   overflow-y: scroll;
 }
 </style>
+<style>
+.condition-config-row {
+  height: 36px;
+  margin-bottom: 5px;
+}
+</style>

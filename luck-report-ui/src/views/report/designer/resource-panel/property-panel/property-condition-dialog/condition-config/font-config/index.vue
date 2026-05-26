@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="fontChecked" @change="onFontChange">
           {{ $t('dialog.propCondition.font') }}
@@ -38,7 +38,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="fontSizeChecked" @change="onFontSizeChange">
           {{ $t('dialog.propCondition.fontSize') }}
@@ -76,7 +76,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="fontBoldChecked" @change="onFontBoldChange">
           {{ $t('dialog.propCondition.bold') }}
@@ -114,7 +114,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="fontItalicChecked" @change="onFontItalicChange">
           {{ $t('dialog.propCondition.italic') }}
@@ -152,7 +152,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="fontUnderlineChecked" @change="onFontUnderlineChange">
           {{ $t('dialog.propCondition.underline') }}

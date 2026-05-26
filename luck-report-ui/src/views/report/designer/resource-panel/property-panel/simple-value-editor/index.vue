@@ -18,7 +18,7 @@
         <textarea
           v-model="content"
           @input="onContentChange"
-          style="width: 220px"
+          style="width: 220px;height: 60px"
           class="form-control"
           rows="3">
         </textarea>

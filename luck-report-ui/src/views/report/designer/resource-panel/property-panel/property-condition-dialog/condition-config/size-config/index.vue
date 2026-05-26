@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="rowHeightChecked" @change="onRowHeightChange">
           {{ $t('dialog.propCondition.rowHeight') }}
@@ -18,7 +18,7 @@
       </u-col>
     </u-row>
 
-    <u-row style="margin-bottom: 5px;" type="flex" align="middle">
+    <u-row class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="colWidthChecked" @change="onColWidthChange">
           {{ $t('dialog.propCondition.colWidth') }}

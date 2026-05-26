@@ -89,9 +89,4 @@ export default {
 </script>
 
 <style scoped>
-.tip-text {
-  font-size: 12px;
-  color: #4e4e4e;
-  font-weight: normal;
-}
 </style>

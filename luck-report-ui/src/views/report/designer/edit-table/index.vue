@@ -22,6 +22,7 @@ import { deepCopy } from '@/components/utils/index.js';
 import TableManager from './manager.js';
 import { getLibMode } from '@/lib/navigator';
 import PrintLine from "@/views/report/designer/print-line/index.vue";
+import '../../../../assets/css/designer/table.css';
 
 export default {
   name: 'ContentTable',
@@ -545,39 +546,4 @@ export default {
   width: 100%;
   min-height: 500px;
 }
-</style>
-<style>
-/** 套打图 **/
-.handsontable tr{
-  background: transparent;
-}
-.handsontable td, .handsontable th{
-  background: transparent;
-}
-.handsontable table.htCore{
-  border-collapse:collapse;
-  cursor: cell;
-}
-
-.htContextMenu table.htCore{
-  display: block;
-  padding: 4px 0;
-  width: 200px;
-  box-shadow:
-      0 3px 6px rgba(0, 0, 0, 0.10),
-      0 6px 12px rgba(0, 0, 0, 0.08),
-      0 10px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.htContextMenu table tbody tr td{
-  padding: 4px 8px;
-  font-size: 13px;
-  color: black;
-}
-
-.htContextMenu table tbody tr td i{
-  margin-right: 8px;
-}
-
 </style>
