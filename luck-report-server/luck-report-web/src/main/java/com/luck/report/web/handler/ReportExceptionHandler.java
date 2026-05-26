@@ -42,7 +42,7 @@ public class ReportExceptionHandler {
         if(StringUtils.isBlank(errorMessage)){
             errorMessage = "Unknown Error";
         }
-        logger.error("报表异常 [auxCode={}]: {}", auxCode, errorMessage, ex);
+        logger.error("Report Exception [auxCode={}]: {}", auxCode, errorMessage, ex);
 
         Map<String, Object> result = new HashMap<>();
         result.put("data", null);

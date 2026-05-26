@@ -4,11 +4,11 @@ let confGlobal
 let someSpanIsNot24
 
 export function dialogWrapper(str) {
-  return `<u-dialog v-bind="$attrs" v-on="$listeners" @open="onOpen" @close="onClose" title="Dialog Title">
+  return `<u-dialog v-bind="$attrs" v-on="$listeners" @open="onOpen" @close="onClose" :title="$t('searchForm.dialogTitle')">
     ${str}
     <div slot="footer">
-      <u-button @click="close">取消</u-button>
-      <u-button type="primary" @click="handleConfirm">确定</u-button>
+      <u-button @click="close">{{ $t('searchForm.cancel') }}</u-button>
+      <u-button type="primary" @click="handleConfirm">{{ $t('searchForm.confirm') }}</u-button>
     </div>
   </u-dialog>`
 }
@@ -57,8 +57,8 @@ function buildFromBtns(conf, type) {
     str = `
         <u-row>
           <u-form-item size="large">
-            <u-button type="info" @click.prevent="resetForm">重置</u-button>
-            <u-button type="primary" @click.prevent="submitForm">查询</u-button>
+            <u-button type="info"  @click.prevent="resetForm">{{ $t('searchForm.reset') }}</u-button>
+            <u-button type="primary"  @click.prevent="submitForm">{{ $t('searchForm.search') }}</u-button>
           </u-form-item>
         </u-row>
     `

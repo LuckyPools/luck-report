@@ -19,8 +19,10 @@ let externalRequestInstance = null
 function dealError(error) {
     console.log(error)
     if (error && error.auxCode && error.msg) {
-        const auxCodeHtml = `<span class="aux-code">${error.auxCode}</span><i class="iconfont icon-copy" style="cursor: pointer; margin-left: 4px; color: #409eff;" title="点击复制" onclick="navigator.clipboard.writeText('${error.auxCode}').then(() => { this.style.color = '#67c23a'; setTimeout(() => { this.style.color = '#409eff'; }, 1000); })"></i>`
-        error.msg = error.msg + "<br/>异常编码：" + auxCodeHtml
+        const clickToCopyText = $t('preview.error.clickToCopy')
+        const errorCodeText = $t('preview.error.errorCode')
+        const auxCodeHtml = `<span class="aux-code">${error.auxCode}</span><i class="iconfont icon-copy" style="cursor: pointer; margin-left: 4px; color: #409eff;" title="${clickToCopyText}" onclick="navigator.clipboard.writeText('${error.auxCode}').then(() => { this.style.color = '#67c23a'; setTimeout(() => { this.style.color = '#409eff'; }, 1000); })"></i>`
+        error.msg = error.msg + "<br/>" + errorCodeText + "：" + auxCodeHtml
     }
     return Promise.reject(error)
 }
@@ -34,7 +36,7 @@ defaultRequest.interceptors.response.use(
     response => {
         if (response.status !== 200) {
             dealError({ response: response })
-            throw new Error("请求异常")
+            throw new Error($t('preview.error.requestError'))
         }
         return response
     },

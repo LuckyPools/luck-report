@@ -124,7 +124,7 @@
 
     <code-type-dialog
       :visible.sync="dialogVisible"
-      title="选择生成类型"
+      :title="$t('searchForm.generateType')"
       :show-file-name="showFileName"
       @confirm="generate"
     />
@@ -233,12 +233,12 @@ export default {
     clipboard = new ClipboardJS('#copyNode', {
       text: trigger => {
         const codeStr = this.generateCode()
-        showAlert('代码已复制到剪切板，可粘贴。')
+        showAlert(this.$t('searchForm.codeCopied'))
         return codeStr
       }
     })
     clipboard.on('error', e => {
-      showAlert('代码复制失败')
+      showAlert(this.$t('searchForm.codeCopyFailed'))
     })
   },
   beforeDestroy() {
@@ -309,7 +309,7 @@ export default {
       document.getElementById('copyNode').click()
     },
     empty() {
-      showConfirm('确定要清空所有组件吗？', { type: 'warning' }).then(
+      showConfirm(this.$t('searchForm.confirmClear'), { type: 'warning' }).then(
         () => {
           this.drawingList = []
           cleanDrawingDefaultValue()

@@ -42,7 +42,7 @@ import {updateUrlParams, getUrlSearchParams} from '@/utils/url';
 
 import {isMobile, showAlert} from "@/utils/comnon";
 import showLoading from "@/components/loading/instance";
-import {$t} from "@/locales";
+import {$t, setLocale} from "@/locales";
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -193,11 +193,15 @@ export default {
       this.toolsInfo = searchParams.get('_t');
       this.pageIndex = searchParams.get('_i');
       this.extraParams = {};
-      const localKeys = ['_i', '_t', '_r', '_n', 'mode', 'reportPath'];
+      const localKeys = ['_i', '_t', '_r', '_n', 'mode', 'reportPath', 'lang'];
       for (const [key, value] of searchParams) {
         if (!localKeys.includes(key)) {
           this.extraParams[key] = value;
         }
+      }
+      const lang = searchParams.get('lang');
+      if (lang) {
+        setLocale(lang);
       }
     },
 
@@ -355,7 +359,7 @@ export default {
     },
 
     setLocale(locale) {
-      this.$i18n.locale = locale;
+      setLocale(locale);
     }
 
   }

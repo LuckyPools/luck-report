@@ -45,7 +45,18 @@ export default function buildMenuConfigure(){
                 doDeleteCol.call(this);
             }else if(key==='clean_content'){
                 const selected=this.getSelected();
-                const [startRow, startCol, endRow, endCol] = selected[0];
+                if(!selected || selected.length === 0){
+                    return;
+                }
+                const selection = selected[0];
+                if(!selection){
+                    return;
+                }
+                const [row1, col1, row2, col2] = selection;
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
                 undoManager.add({
                     redo:function(){
@@ -57,7 +68,18 @@ export default function buildMenuConfigure(){
                 })
             }else if(key==='clean_style'){
                 const selected=this.getSelected();
-                const [startRow, startCol, endRow, endCol] = selected[0];
+                if(!selected || selected.length === 0){
+                    return;
+                }
+                const selection = selected[0];
+                if(!selection){
+                    return;
+                }
+                const [row1, col1, row2, col2] = selection;
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
                 undoManager.add({
                     redo:function(){
@@ -69,7 +91,18 @@ export default function buildMenuConfigure(){
                 })
             }else if(key==='clean'){
                 const selected=this.getSelected();
-                const [startRow, startCol, endRow, endCol] = selected[0];
+                if(!selected || selected.length === 0){
+                    return;
+                }
+                const selection = selected[0];
+                if(!selection){
+                    return;
+                }
+                const [row1, col1, row2, col2] = selection;
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
                 undoManager.add({
                     redo:function(){
@@ -81,7 +114,9 @@ export default function buildMenuConfigure(){
                 });
             }else if(key==='repeat_row_header'){
                 const selected=this.getSelected();
-                const [startRow,,endRow] = selected[0];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'headerrepeat');
                 }
@@ -89,7 +124,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='title_row'){
                 const selected=this.getSelected();
-                const [startRow,,endRow] = selected[0];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'title');
                 }
@@ -97,7 +134,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='repeat_row_footer'){
                 const selected=this.getSelected();
-                const [startRow,,endRow] = selected[0];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'footerrepeat');
                 }
@@ -105,7 +144,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='summary_row'){
                 const selected=this.getSelected();
-                const [startRow,,endRow] = selected[0];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'summary');
                 }
@@ -113,7 +154,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='repeat_cancel'){
                 const selected=this.getSelected();
-                const [startRow,,endRow] = selected[0];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     adjustDelRowHeaders(rowNumber);
                 }
@@ -121,7 +164,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='row_height'){
                 const selected=this.getSelected();
-                const [startRow,,,endRow] = selected[0];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 const rowHeight=this.getRowHeight(startRow);
                 const dialog=new Class();
                 dialog.show(function(newHeight){
@@ -137,7 +182,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='col_width'){
                 const selected=this.getSelected();
-                const [,startCol,,endCol] = selected[0];
+                const [,col1,,col2] = selected[0];
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 const colWidth=this.getColWidth(startCol);
                 const dialog=new Class();
                 dialog.show(function(newColWidth){
@@ -153,7 +200,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='copy_style'){
                 const selected=this.getSelected();
-                const [startRow, startCol, endRow, endCol] = selected[0];
+                const [row1, col1, row2, col2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const startCol = Math.min(col1, col2);
                 let cell= getCell(startRow,startCol);
                 if(!cell){
                     showAlert($t('selectTargetCellFirst'));
@@ -166,7 +215,11 @@ export default function buildMenuConfigure(){
                 return;
             }
                 const selected=this.getSelected();
-                const [startRow, startCol, endRow, endCol] = selected[0];
+                const [row1, col1, row2, col2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let oldCellsStyleMap=pasteStyle(startRow,endRow,startCol,endCol);
                 undoManager.add({
                     redo:function(){

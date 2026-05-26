@@ -88,7 +88,7 @@ export default {
         if (error.msg) {
           showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
-          showAlert(`加载方法[${this.beanId}]失败`);
+          showAlert(this.$t('methodSelect.loadFail', { beanId: this.beanId }));
         }
       }
     },

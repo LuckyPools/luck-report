@@ -443,7 +443,7 @@ export default {
      */
     async handleApply() {
       const loadingInstance = showLoading({
-        text: '加载中...',
+        text: this.$t('preview.loading.default'),
       });
 
       try {

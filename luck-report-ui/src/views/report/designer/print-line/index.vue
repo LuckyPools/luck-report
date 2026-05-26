@@ -2,7 +2,7 @@
   <div
     v-show="showPrintLine"
     ref="printLine"
-    title="打印线"
+    :title="$t('tools.printLine.title')"
     class="right-hr-for-print"
     :style="lineStyle"
   ></div>

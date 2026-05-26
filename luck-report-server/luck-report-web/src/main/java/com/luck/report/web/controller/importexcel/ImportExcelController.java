@@ -55,7 +55,7 @@ public class ImportExcelController {
                 }
                 inputStream.close();
             } else {
-                throw new ReportException("请选择一个合法的Excel导入");
+                throw new ReportException("Please select a valid Excel file for import");
             }
         } catch (Exception e) {
             logger.error("Import Excel Error: {}", e);
@@ -67,7 +67,7 @@ public class ImportExcelController {
             ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDefinition);
             ReportScopedCache.putObject("classpath:template/template.ureport.xml", wrapper);
         } else {
-            throw new ReportException("Excel文件解析失败，请检查文件格式是否正确");
+            throw new ReportException("Failed to parse Excel file, please verify the file format");
         }
 
         return result;

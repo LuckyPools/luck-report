@@ -24,7 +24,7 @@
 
         <div v-if="pageEnable" class="btn-group">
           <ButtonGroup
-              :buttonText="`共${reportData.totalPageWithCol}页，当前第${currentPage}页`"
+              :buttonText="$t('preview.paging.pageInfo', { total: reportData.totalPageWithCol, current: currentPage })"
               :showText="true"
               :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
               :menuItems="pageMenuItems"
@@ -286,7 +286,7 @@ export default {
         }
 
         loadingInstance = showLoading({
-          text: '加载中...',
+          text: this.$t('preview.loading.default'),
         });
 
         const result = await loadPrintPages(formData);
@@ -385,7 +385,7 @@ export default {
       } catch (error) {
         loadingInstance.close();
         console.error('PDF直接打印失败:', error);
-        showAlert(this.$t('preview.error.loadPdfFail') || '加载PDF失败');
+        showAlert(this.$t('preview.error.loadPdfFail'));
       }
     },
 
@@ -413,7 +413,7 @@ export default {
         await exportPdfBlob(paramObj);
       } catch (error) {
         console.error('导出PDF失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+        showAlert(this.$t('preview.error.exportFail'));
       }
     },
 
@@ -426,7 +426,7 @@ export default {
         await exportWordBlob(paramObj);
       } catch (error) {
         console.error('导出Word失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+        showAlert(this.$t('preview.error.exportFail'));
       }
     },
 
@@ -519,7 +519,7 @@ export default {
       for (let i = 1; i <= this.reportData.totalPageWithCol; i++) {
         const pageIndex = i;
         menuItems.push({
-          text: `第${i}页`,
+          text: this.$t('preview.paging.pageX', { x: i }),
           action: () => {
             this.handlePageChange(pageIndex);
           }

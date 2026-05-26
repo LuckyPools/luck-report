@@ -33,6 +33,7 @@ export function buildLocationSearchParameters(searchFormParameters) {
 }
 
 import Vue from 'vue';
+import i18n from '@/locales';
 import UCheckbox from "@/components/checkbox/index.vue";
 import UCheckboxGroup from "@/components/checkbox-group/index.vue";
 import USelect from "@/components/select/index.vue";
@@ -180,7 +181,7 @@ export function renderTemplateToComponent(componentStr, mountNode) {
     }
   }
 
-  return new Vue(componentOptions).$mount(node);
+  return new Vue({ ...componentOptions, i18n }).$mount(node);
 }
 
 

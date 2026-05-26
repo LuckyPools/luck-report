@@ -109,6 +109,7 @@ const en = {
             "barcode": "Barcode"
         },
         "printLine": {
+            "title": "Print Line",
             "showPrintLine": "Show Print Line",
             "hidePrintLine": "Hide Print Line"
         }
@@ -817,11 +818,18 @@ const en = {
             "serverErrorSimple": "Server Error!",
             "loadPaperFail": "Failed to load paper information",
             "loadReportFail": "Failed to load report",
-            "fileParamMissing": "Report file parameter missing"
+            "fileParamMissing": "Report file parameter missing",
+            "clickToCopy": "Click to copy",
+            "errorCode": "Error Code",
+            "requestError": "Request Error",
+            "loadPdfFail": "Failed to load PDF",
+            "exportFail": "Export failed"
         },
         "paging": {
             "pagingPreview": "Paging Preview",
-            "preview": "Preview"
+            "preview": "Preview",
+            "pageInfo": "Total {total} pages, current page {current}",
+            "pageX": "Page {x}"
         }
     },
     "components": {
@@ -934,7 +942,21 @@ const en = {
         "optionTwo": "Option Two",
         "phone": "Phone",
         "pleaseEnterPhone": "Please enter phone number",
-        "phoneFormatError": "Invalid phone number format"
+        "phoneFormatError": "Invalid phone number format",
+        "copy": "Copy",
+        "delete": "Delete",
+        "codeCopied": "Code copied to clipboard, ready to paste.",
+        "codeCopyFailed": "Code copy failed",
+        "confirmClear": "Are you sure you want to clear all components?",
+        "layoutNotFound": "No matching layout for {layout}",
+        "selectAtLeastOne": "Please select at least one {field}",
+        "cannotBeEmpty": "{field} cannot be empty",
+        "dialogTitle": "Dialog",
+        "reset": "Reset",
+        "search": "Search"
+    },
+    "methodSelect": {
+        "loadFail": "Failed to load method [{beanId}]"
     }
 }
 

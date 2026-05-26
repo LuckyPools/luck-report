@@ -35,6 +35,8 @@ import ResourcePanel from '@/views/report/designer/resource-panel/index.vue';
 import TopToolBar from '@/views/report/designer/tool-bar/index.vue';
 import ContentTable from '@/views/report/designer/edit-table/index.vue';
 import { createNavigator, getLibMode } from '@/lib/navigator';
+import { getUrlSearchParams } from '@/utils/url';
+import { setLocale } from '@/locales';
 
 export default {
   name: 'DesignerPage',
@@ -73,7 +75,20 @@ export default {
       this.localReportPath = val;
     }
   },
+  mounted() {
+    this.parseLocaleFromUrl();
+  },
   methods: {
+    /**
+     * 从URL解析lang参数并设置语言
+     */
+    parseLocaleFromUrl() {
+      const searchParams = getUrlSearchParams();
+      const lang = searchParams.get('lang');
+      if (lang) {
+        setLocale(lang);
+      }
+    },
 
     handleCellSelected({rowIndex, colIndex, row2Index, col2Index}) {
       this.selectedCells = {
@@ -113,7 +128,7 @@ export default {
     },
 
     setLocale(locale) {
-      this.$i18n.locale = locale;
+      setLocale(locale);
     }
   }
 }

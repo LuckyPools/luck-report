@@ -194,7 +194,7 @@ public class DesignerController implements ApplicationContextAware {
             reportDef = reportParser.parse(inputStream, file);
             IOUtils.closeQuietly(inputStream);
         }catch (Exception e){
-            logger.error("保存报表异常",e);
+            logger.error("Save Report Exception",e);
             throw e;
         }
         ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);

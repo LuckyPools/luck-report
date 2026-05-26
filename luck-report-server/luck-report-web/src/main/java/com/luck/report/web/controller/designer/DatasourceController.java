@@ -281,7 +281,7 @@ public class DatasourceController {
             result.setTotal(total);
             ResponseUtils.writeObjectToJson(resp, result);
         } catch (Exception ex) {
-            log.error("预览数据异常：{}", ex);
+            log.error("Preview Data Exception：{}", ex);
             throw new ReportServiceException(ex);
         } finally {
             if (conn != null) {
@@ -314,7 +314,7 @@ public class DatasourceController {
                 try {
                     conn.close();
                 } catch (SQLException e) {
-                    log.error("连接异常",e);
+                    log.error("Connection Exception",e);
                 }
             }
         }

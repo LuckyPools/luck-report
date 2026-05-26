@@ -1,5 +1,6 @@
 import { exportDefault } from './index'
 import { trigger } from './config'
+import { $t } from '@/locales'
 
 let confGlobal
 const inheritAttrs = {
@@ -126,8 +127,8 @@ function buildRules(conf, ruleList) {
         transform = 'transform: value => value == null ? null : String(value),'
       }
 
-      let message = isArrayType ? `请至少选择一个${conf.vModel}` : conf.placeholder
-      if (message === undefined) message = `${conf.label}不能为空`
+      let message = isArrayType ? $t('searchForm.selectAtLeastOne', { field: conf.vModel }) : conf.placeholder
+      if (message === undefined) message = $t('searchForm.cannotBeEmpty', { field: conf.label })
 
       rules.push(`{ required: true, ${type} ${transform} message: '${message}', trigger: '${trigger[conf.tag]}' }`)
     }

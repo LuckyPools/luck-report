@@ -59,7 +59,7 @@ public class CacheUtils {
                         break;
                     }
                     if (reportCache == null) {
-                        throw new ReportException("请检查配置是否有对应的 ReportCache 实现");
+                        throw new ReportException("Missing ReportCache implementation. Please verify your configuration.");
                     }
                 }
             }
@@ -87,7 +87,7 @@ public class CacheUtils {
                         break;
                     }
                     if (reportCacheKeyResolver == null) {
-                        throw new ReportException("请检查配置是否有对应的 ReportCacheKeyResolver 实现");
+                        throw new ReportException("Missing ReportCacheKeyResolver implementation. Please verify your configuration.");
                     }
                 }
             }

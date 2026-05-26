@@ -106,7 +106,7 @@ public class ReportBuilder extends BasePagination implements ApplicationContextA
 					}
 				}
 			} catch (Exception e) {
-				String errMsg = String.format("单元格计算异常 - 单元格名称: %s, 行号: %d, 列号: %d",
+				String errMsg = String.format("Cell calculation exception - Cell name: %s, Row number: %d, Column number: %d",
 						cell.getName(), cell.getRow().getRowNumber(), cell.getColumn().getColumnNumber());
 				log.info(errMsg);
 				throw e;

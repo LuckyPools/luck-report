@@ -65,7 +65,7 @@ public class SqlSecurityUtils {
             String pattern = "(^|\\s|;)" + keyword + "(\\s|;|$)";
             if (upperSql.matches(".*" + pattern + ".*")) {
                 throw new SecurityException(
-                    String.format("SQL语句包含不允许的操作: %s。", keyword)
+                    String.format("SQL statement contains a disallowed operation: %s", keyword)
                 );
             }
         }

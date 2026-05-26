@@ -818,11 +818,18 @@ const zh = {
             "serverErrorSimple": "服务端出错！",
             "loadPaperFail": "获取纸张信息失败",
             "loadReportFail": "加载报表失败",
-            "fileParamMissing": "报表文件参数缺失"
+            "fileParamMissing": "报表文件参数缺失",
+            "clickToCopy": "点击复制",
+            "errorCode": "异常编码",
+            "requestError": "请求异常",
+            "loadPdfFail": "加载PDF失败",
+            "exportFail": "导出失败"
         },
         "paging": {
             "pagingPreview": "分页预览",
-            "preview": "预览"
+            "preview": "预览",
+            "pageInfo": "共{total}页，当前第{current}页",
+            "pageX": "第{x}页"
         }
     },
     "components": {
@@ -935,7 +942,21 @@ const zh = {
         "optionTwo": "选项二",
         "phone": "手机号",
         "pleaseEnterPhone": "请输入手机号",
-        "phoneFormatError": "手机号格式错误"
+        "phoneFormatError": "手机号格式错误",
+        "copy": "复制",
+        "delete": "删除",
+        "codeCopied": "代码已复制到剪切板，可粘贴。",
+        "codeCopyFailed": "代码复制失败",
+        "confirmClear": "确定要清空所有组件吗？",
+        "layoutNotFound": "没有与{layout}匹配的layout",
+        "selectAtLeastOne": "请至少选择一个{field}",
+        "cannotBeEmpty": "{field}不能为空",
+        "dialogTitle": "对话框",
+        "reset": "重置",
+        "search": "查询"
+    },
+    "methodSelect": {
+        "loadFail": "加载方法[{beanId}]失败"
     }
 }
 export default zh;

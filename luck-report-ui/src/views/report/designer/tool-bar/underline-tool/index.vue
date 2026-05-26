@@ -1,25 +1,23 @@
 <template>
-  <u-button
-      type="info"
+  <div
+      class="underline-tool"
+      :class="{ 'is-active': isActive }"
       :title="$t('underline')"
-      class="info-button"
       @click="handleClick"
   >
     <i class="iconfont icon-font-underline" :style="{ color: isActive ? 'black' : '#666' }"></i>
-  </u-button>
+  </div>
 </template>
 
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
-import UButton from "@/components/button/index.vue";
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'UnderlineTool',
-  components: {UButton},
   props: {
     selectedCells: {
       type: Object,
@@ -171,4 +169,28 @@ export default {
 </script>
 
 <style scoped>
+.underline-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.underline-tool:hover {
+  border-color: #d9d9d9;
+}
+
+.underline-tool.is-active {
+  background-color: rgb(236, 237, 237);
+}
+
+.underline-tool .iconfont {
+  font-size: 16px;
+}
 </style>

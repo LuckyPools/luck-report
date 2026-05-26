@@ -17,8 +17,8 @@
           </u-button>
       </div>
     </div>
-    <div class="table-wrapper" style="margin-top: 5px;" v-loading="loading">
-      <table class="table-container" style="font-size: 12px;">
+    <div class="table-wrapper" style="margin-top: 5px;">
+      <table class="table-container" style="font-size: 12px;" v-loading="loading">
         <thead>
           <tr>
             <th style="width: 135px;"><span>{{ $t('dialog.sql.tableName') }}</span></th>

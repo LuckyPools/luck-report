@@ -6,14 +6,25 @@ import en from './lang/en';
 
 Vue.use(VueI18n);
 
+const SUPPORTED_LOCALES = ['zh', 'en'];
+
+/**
+ * 获取存储的语言设置
+ * @returns {string} 语言标识 (zh/en)
+ */
+export function getStoredLocale() {
+    const stored = localStorage.getItem('report_locale');
+    return SUPPORTED_LOCALES.includes(stored) ? stored : 'zh';
+}
+
 export const i18n = new VueI18n({
-    locale: 'zh',
+    locale: getStoredLocale(),
     messages: {
         zh: {
-            ...zh // 中文语言包
+            ...zh
         },
         en: {
-            ...en // 英文语言包
+            ...en
         }
     }
 });
@@ -29,6 +40,16 @@ export function $t(args) {
     return i18n.tc.call(i18n, args);
 }
 
+/**
+ * 设置语言并持久化
+ * @param {string} locale - 语言标识 (zh/en)
+ * @returns {boolean} 是否设置成功
+ */
 export function setLocale(locale) {
+    if (!SUPPORTED_LOCALES.includes(locale)) {
+        return false;
+    }
     i18n.locale = locale;
+    localStorage.setItem('report_locale', locale);
+    return true;
 }
