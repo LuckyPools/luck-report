@@ -71,7 +71,7 @@ export default {
   methods: {
     ...mapActions('report', [
       'setContext',
-      'setPrintLineShouldRefresh'
+      'setIsPrintLineRefresh'
     ]),
     initTable() {
       utils.undoManager.setLimit(100);
@@ -89,7 +89,7 @@ export default {
       }
 
       if (filePath && filePath !== this.defaultReportPath) {
-        this.$store.dispatch('report/setSaveStatus', true);
+        this.$store.dispatch('report/setIsSaved', true);
       }
 
       this.loadFile(filePath);
@@ -376,7 +376,7 @@ export default {
     handleReportLoaded() {
       this.context = new Context(this);
       this.setContext(this.context);
-      this.setPrintLineShouldRefresh(true);
+      this.setIsPrintLineRefresh(true);
       this.processRowHeaders();
     },
 

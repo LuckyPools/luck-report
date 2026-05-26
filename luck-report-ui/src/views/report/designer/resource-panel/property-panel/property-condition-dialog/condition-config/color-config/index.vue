@@ -18,7 +18,6 @@
             v-show="forceChecked"
             v-model="forceScope"
             style="width: 120px"
-            :clearable="true"
             @change="onForceScopeChange"
         >
           <u-option
@@ -49,7 +48,6 @@
             v-show="bgcolorChecked"
             v-model="bgcolorScope"
             style="width: 120px"
-            :clearable="true"
             @change="onBgcolorScopeChange"
         >
           <u-option

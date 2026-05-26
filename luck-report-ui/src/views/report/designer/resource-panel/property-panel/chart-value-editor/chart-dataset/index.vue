@@ -5,7 +5,6 @@
       <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
             v-model="localDatasetConfig.datasetName"
-            :clearable="true"
             @change="handleDatasetChange"
             style="width: 250px"
         >

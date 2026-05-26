@@ -4,7 +4,6 @@
       <u-form-item class="property-label" :label="$t('property.dataset.dataset')" style="margin-top: 10px">
         <u-select
             v-model="localDataset"
-            :clearable="true"
             style="width:250px"
             @change="handleDatasetChange"
         >
@@ -20,7 +19,6 @@
       <u-form-item class="property-label" :label="$t('property.dataset.property')">
         <u-select
             v-model="localProperty"
-            :clearable="true"
             style="width:250px"
             @change="handlePropertyChange"
         >
@@ -36,7 +34,6 @@
       <u-form-item class="property-label" :label="$t('property.dataset.aggregateType')">
         <u-select
             v-model="localAggregate"
-            :clearable="true"
             style="width:250px"
             @change="handleAggregateChange"
         >
@@ -86,6 +83,7 @@
         <u-input-number
             :placeholder="$t('property.dataset.lineHeightTip')"
             v-model="localLineHeight"
+            :min="1"
             @change="handleLineHeightChange"
         />
       </u-form-item>
@@ -128,6 +126,7 @@
       <u-form-item class="property-label" :label="$t('property.base.rowTimes')" v-show="localFillBlankRows === 'default'">
         <u-input-number
             v-model="localMultiple"
+            :min="1"
             @change="handleMultipleChange"
         />
       </u-form-item>

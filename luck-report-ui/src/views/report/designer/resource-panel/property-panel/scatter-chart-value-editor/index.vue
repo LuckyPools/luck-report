@@ -49,7 +49,7 @@ import ChartDataConfig from '@/views/report/designer/resource-panel/property-pan
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
 
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'ScatterChartValueEditor',
@@ -149,9 +149,12 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     cellPosition() {
       return `${this.rowIndex},${this.colIndex}`;
@@ -195,9 +198,18 @@ export default {
       handler() {
         this.loadChartConfig();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadChartConfig();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     // 加载图表配置
     loadChartConfig() {
       const cellDef = getCell(this.rowIndex, this.colIndex);

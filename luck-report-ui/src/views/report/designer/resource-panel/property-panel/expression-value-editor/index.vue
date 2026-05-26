@@ -99,7 +99,7 @@ import { showAlert } from '@/utils/comnon.js';
 import VueSimpleSuggest from 'vue-simple-suggest'
 import 'vue-simple-suggest/dist/styles.css'
 import { deepCopy } from '@/components/utils/index.js';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
@@ -133,9 +133,12 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     expandOptions() {
       return [
@@ -187,6 +190,14 @@ export default {
       handler() {
         this.loadCellData();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   beforeDestroy() {
@@ -196,6 +207,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
 
     /**
      * 初始化代码编辑器

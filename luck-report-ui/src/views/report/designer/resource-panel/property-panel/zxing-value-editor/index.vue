@@ -9,6 +9,7 @@
       <u-form-item class="property-label" :label="$t('property.zxing.width')">
         <u-input-number
           v-model="width"
+          :min="1"
           @change="handleWidthChange"
         >
         </u-input-number>
@@ -17,6 +18,7 @@
       <u-form-item class="property-label" :label="$t('property.zxing.height')">
         <u-input-number
           v-model="height"
+          :min="1"
           @change="handleHeightChange"
         >
         </u-input-number>
@@ -103,7 +105,7 @@ import UInputNumber from '@/components/input-number/index.vue'
 import UInput from '@/components/input/index.vue'
 import UFormItem from '@/components/form-item/index.vue'
 import { deepCopy } from '@/components/utils/index.js';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 import UForm from "@/components/form/index.vue";
@@ -139,9 +141,12 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     // 格式选项
     formatOptions() {
@@ -190,6 +195,14 @@ export default {
       handler() {
         this.loadCellData();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   beforeDestroy() {
@@ -199,6 +212,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
 
     /**
      * 初始化代码编辑器

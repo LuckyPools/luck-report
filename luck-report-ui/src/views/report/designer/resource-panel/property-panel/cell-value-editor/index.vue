@@ -22,7 +22,6 @@
         <u-form-item class="property-label" >
           <u-select
               v-model="leftParentCellName"
-              :clearable="true"
               :disabled="leftParentType !== 'custom'"
               @change="handleLeftParentCellNameChange"
               style="width: 100px"
@@ -33,7 +32,6 @@
           </u-select>
           <u-select
               v-model="leftParentRowNumber"
-              :clearable="true"
               :disabled="leftParentType !== 'custom' || leftParentCellName === 'root'"
               @change="handleLeftParentRowNumberChange"
               style="margin-left:10px;width: 100px"
@@ -62,7 +60,6 @@
           <u-select
               v-model="topParentCellName"
               :disabled="topParentType !== 'custom'"
-              :clearable="true"
               @change="handleTopParentCellNameChange"
               style="width: 100px"
               virtual
@@ -72,7 +69,6 @@
           </u-select>
           <u-select
               v-model="topParentRowNumber"
-              :clearable="true"
               :disabled="topParentType !== 'custom' || topParentCellName === 'root'"
               @change="handleTopParentRowNumberChange"
               style="margin-left:10px;width: 100px"
@@ -113,6 +109,7 @@
         <u-form-item class="property-label" :label="$t('property.prop.linkUrl')">
           <u-input
               v-model="linkUrl"
+              clearable
               :placeholder="$t('property.prop.urlExpressionSupport') + $t('property.prop.urlExpressionExample')"
               style="width: 250px;"
               @change="handleLinkUrlChange"
@@ -122,7 +119,6 @@
         <u-form-item class="property-label" :label="$t('property.prop.target')">
           <u-select
               v-model="linkTarget"
-              :clearable="true"
               @change="handleLinkTargetChange"
               style="width: 120px"
           >
@@ -148,7 +144,6 @@
       <u-form-item class="property-label" v-show="showTypeGroup" :label="$t('property.prop.cellType')">
         <u-select
             v-model="cellType"
-            :clearable="true"
             @change="handleCellTypeChange"
             style="width: 250px"
         >
@@ -428,11 +423,40 @@ export default {
     handleLeftParentTypeChange(value) {
       if (value === 'default') {
         this.setParentCell(null, true);
+        this.updateLeftParentToDefault();
+      }
+    },
+
+    updateLeftParentToDefault() {
+      if (this.colIndex === 0) {
+        this.leftParentCellName = 'root';
+        this.leftParentRowNumber = '';
+      } else {
+        let row = this.rowIndex, col = this.colIndex - 1;
+        const hot = TableManager.get();
+        const td = hot.getCell(row, col);
+        if (this.isCellHidden(td)) {
+          const mergeCells = hot.getSettings().mergeCells;
+          for (const item of mergeCells) {
+            const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
+            const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
+            if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+              row = rowStart;
+              col = colStart;
+              break;
+            }
+          }
+        }
+        const cellName = getCellName(row, col);
+        const data = this.parseCellName(cellName);
+        this.leftParentCellName = data.name;
+        this.leftParentRowNumber = data.num;
       }
     },
 
     handleLeftParentCellNameChange(value) {
       if (value === 'root') {
+        this.leftParentRowNumber = '';
         this.setParentCell('root', true);
       } else {
         const num = this.leftParentRowNumber;
@@ -447,7 +471,7 @@ export default {
       if (name === 'root') {
         this.setParentCell('root', true);
       } else {
-        if (name !== '' && value !== '') {
+        if (name !== '' && value !== '' && value !== null) {
           this.setParentCell(name + value.toString(), true);
         }
       }
@@ -456,11 +480,40 @@ export default {
     handleTopParentTypeChange(value) {
       if (value === 'default') {
         this.setParentCell(null, false);
+        this.updateTopParentToDefault();
+      }
+    },
+
+    updateTopParentToDefault() {
+      if (this.rowIndex === 0) {
+        this.topParentCellName = 'root';
+        this.topParentRowNumber = '';
+      } else {
+        let row = this.rowIndex - 1, col = this.colIndex;
+        const hot = TableManager.get();
+        const td = hot.getCell(row, col);
+        if (this.isCellHidden(td)) {
+          const mergeCells = hot.getSettings().mergeCells;
+          for (const item of mergeCells) {
+            const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
+            const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
+            if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+              row = rowStart;
+              col = colStart;
+              break;
+            }
+          }
+        }
+        const cellName = getCellName(row, col);
+        const data = this.parseCellName(cellName);
+        this.topParentCellName = data.name;
+        this.topParentRowNumber = data.num;
       }
     },
 
     handleTopParentCellNameChange(value) {
       if (value === 'root') {
+        this.topParentRowNumber = '';
         this.setParentCell('root', false);
       } else {
         const num = this.topParentRowNumber;
@@ -475,7 +528,7 @@ export default {
       if (name === 'root') {
         this.setParentCell('root', false);
       } else {
-        if (name !== '' && value !== '') {
+        if (name !== '' && value !== '' && value !== null) {
           this.setParentCell(name + value.toString(), false);
         }
       }

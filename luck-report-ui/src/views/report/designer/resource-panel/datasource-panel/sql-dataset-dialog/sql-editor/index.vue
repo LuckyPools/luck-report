@@ -11,8 +11,10 @@
       </div>
     </div>
 
-    <div class="sql-editor-row">
-      SQL(<span class="sql-editor-desc">{{ $t('dialog.sql.desc') }}</span>)
+    <div class="sql-editor-row" style="margin-top: 5px">
+      <span>
+         SQL(<span class="sql-editor-desc">{{ $t('dialog.sql.desc') }}</span>)
+      </span>
       <textarea
         ref="sqlTextarea"
         placeholder="select username,dept_id from employee where dept_id=:deptId"
@@ -112,7 +114,7 @@ export default {
         },
         lineWrapping: true
       });
-      this.codeMirror.setSize('660px', '204px');
+      this.codeMirror.setSize('100%', '204px');
 
       this.codeMirror.on('change', (cm, change) => {
         if (change.origin !== 'setValue') {
@@ -209,10 +211,6 @@ export default {
 .sql-editor-container {
 }
 
-.sql-editor-row {
-  margin: 10px;
-}
-
 .sql-editor-name-input {
   width: 500px;
 }
@@ -223,6 +221,12 @@ export default {
 }
 
 .sql-editor-textarea {
-  width: 660px;
+}
+</style>
+<style>
+.CodeMirror-wrap{
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  margin-top: 5px
 }
 </style>

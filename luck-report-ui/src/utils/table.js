@@ -740,12 +740,12 @@ export const undoManager=new UndoManager();
 
 // 设置脏数据状态，启用保存按钮
 export function setDirty() {
-    store.dispatch('report/setSaveBtnDisable', false).then(r => {});
+    store.dispatch('report/setDisableSaveBtn', false).then(r => {});
 }
 
 // 重置脏数据状态，禁用保存按钮
 export function resetDirty() {
-    store.dispatch('report/setSaveBtnDisable', true).then(r => {{}});
+    store.dispatch('report/setDisableSaveBtn', true).then(r => {{}});
 }
 
 

@@ -72,7 +72,7 @@ import DataMapping from '@/views/report/designer/resource-panel/property-panel/d
 import DatasetConfig from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
@@ -104,9 +104,12 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     cellPosition() {
       return `${this.rowIndex},${this.colIndex}`;
@@ -159,9 +162,18 @@ export default {
       handler() {
         this.loadCellData();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     /**
      * 加载单元格数据
      */

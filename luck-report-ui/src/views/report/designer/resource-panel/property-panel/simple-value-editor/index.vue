@@ -9,6 +9,7 @@
       <u-form-item class="property-label" :label="$t('property.simple.lineHeight')">
         <u-input-number
             v-model="lineHeight"
+            :min="1"
             @change="onLineHeightChange"
             :placeholder="$t('property.simple.tip')"
         />
@@ -32,7 +33,7 @@ import { deepCopy } from '@/components/utils/index.js';
 import UInputNumber from '@/components/input-number/index.vue';
 import UForm from "@/components/form/index.vue";
 import UFormItem from "@/components/form-item/index.vue";
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
@@ -68,9 +69,12 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     cellPosition() {
       return `${this.rowIndex},${this.colIndex}`;
@@ -81,9 +85,18 @@ export default {
       handler() {
         this.loadCellData();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     loadCellData() {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (!cellDef) {

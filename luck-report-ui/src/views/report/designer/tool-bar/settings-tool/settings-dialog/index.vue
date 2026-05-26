@@ -175,7 +175,7 @@ export default {
       },
       headerFontDialogVisible: false,
       footerFontDialogVisible: false,
-      printLineShouldRefresh: false
+      isPrintLineRefresh: false
     };
   },
   computed: {
@@ -223,7 +223,7 @@ export default {
       this.header = { ...reportDefCopy.header };
       this.footer = { ...reportDefCopy.footer };
 
-      this.printLineShouldRefresh = false;
+      this.isPrintLineRefresh = false;
 
     },
     handleClose() {
@@ -248,8 +248,8 @@ export default {
         footer: newFooter
       });
 
-      if (this.printLineShouldRefresh) {
-        this.$store.dispatch('report/setPrintLineShouldRefresh', true);
+      if (this.isPrintLineRefresh) {
+        this.$store.dispatch('report/setIsPrintLineRefresh', true);
       }
 
       this.$emit('ok');
@@ -258,11 +258,11 @@ export default {
       if (this.paper.paperType !== 'CUSTOM') {
         return;
       }
-      this.printLineShouldRefresh = true;
+      this.isPrintLineRefresh = true;
       setDirty();
     },
     updateMargins() {
-      this.printLineShouldRefresh = true;
+      this.isPrintLineRefresh = true;
       setDirty();
     },
     updateBackgroundImage() {
@@ -355,12 +355,12 @@ export default {
         const pageSize = this.paperSizeList[value];
         this.paper.width = mmToPoint(pageSize.width);
         this.paper.height = mmToPoint(pageSize.height);
-        this.printLineShouldRefresh = true;
+        this.isPrintLineRefresh = true;
       }
       setDirty();
     },
     handleOrientationChange() {
-      this.printLineShouldRefresh = true;
+      this.isPrintLineRefresh = true;
       setDirty();
     },
     handleHtmlAlignChange() {

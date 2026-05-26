@@ -10,6 +10,7 @@
         <u-input-number
           :placeholder="$t('property.image.widthPlaceholder')"
           v-model="width"
+          :min="1"
           @change="handleWidthChange"
         />
       </u-form-item>
@@ -18,6 +19,7 @@
         <u-input-number
           :placeholder="$t('property.image.heightPlaceholder')"
           v-model="height"
+          :min="1"
           @change="handleHeightChange"
         />
       </u-form-item>
@@ -25,7 +27,6 @@
       <u-form-item class="property-label" :label="$t('property.image.source')">
         <u-select
           v-model="source"
-          :clearable="true"
           style="width: 250px"
           @change="handleSourceChange"
         >
@@ -61,6 +62,7 @@
         <u-input
           :title="$t('property.image.tip')"
           :placeholder="$t('property.image.tip')"
+          :clearable="true"
           style="width: 250px;"
           v-model="path"
           @blur="handlePathChange"
@@ -94,7 +96,7 @@ import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
@@ -129,9 +131,12 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     sourceOptions() {
       return [
@@ -160,6 +165,14 @@ export default {
       handler() {
         this.loadCellData();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   beforeDestroy() {
@@ -169,6 +182,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     /**
      * 初始化代码编辑器
      */

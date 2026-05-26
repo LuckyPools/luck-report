@@ -5,7 +5,6 @@
       <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
           v-model="localDataset"
-          :clearable="true"
           @change="handleDatasetChange"
         >
           <u-option
@@ -35,7 +34,6 @@
       <u-form-item class="property-label" :label="$t('chart.xProperty')">
         <u-select
           v-model="localXProperty"
-          :clearable="true"
           @change="handleXPropertyChange"
         >
           <u-option
@@ -50,7 +48,6 @@
       <u-form-item class="property-label" :label="$t('chart.yProperty')">
         <u-select
           v-model="localYProperty"
-          :clearable="true"
           @change="handleYPropertyChange"
         >
           <u-option
@@ -65,7 +62,6 @@
       <u-form-item class="property-label" v-if="showRProperty" :label="$t('chart.rProperty')">
         <u-select
           v-model="localRProperty"
-          :clearable="true"
           @change="handleRPropertyChange"
         >
           <u-option

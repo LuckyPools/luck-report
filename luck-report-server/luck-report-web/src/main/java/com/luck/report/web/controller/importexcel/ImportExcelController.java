@@ -1,6 +1,7 @@
 package com.luck.report.web.controller.importexcel;
 
 import com.luck.report.core.definition.ReportDefinition;
+import com.luck.report.core.definition.ReportDefinitionWrapper;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.filter.RequestHolderFilter;
@@ -40,7 +41,7 @@ public class ImportExcelController {
     @RequestMapping({"", "/"})
     public Map<String, Object> importExcel(@RequestParam("_excel_file") MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
-        ReportDefinition report = null;
+        ReportDefinition reportDefinition = null;
 
         try {
             String fileName = file.getOriginalFilename();
@@ -48,7 +49,7 @@ public class ImportExcelController {
                 InputStream inputStream = file.getInputStream();
                 for (ExcelParser parser : excelParsers) {
                     if (parser.support(fileName)) {
-                        report = parser.parse(inputStream);
+                        reportDefinition = parser.parse(inputStream);
                         break;
                     }
                 }
@@ -61,9 +62,10 @@ public class ImportExcelController {
             throw new ReportException(e.getMessage());
         }
 
-        if (report != null) {
+        if (reportDefinition != null) {
             result.put("result", true);
-            ReportScopedCache.putObject("classpath:template/template.ureport.xml", report);
+            ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDefinition);
+            ReportScopedCache.putObject("classpath:template/template.ureport.xml", wrapper);
         } else {
             throw new ReportException("Excel文件解析失败，请检查文件格式是否正确");
         }

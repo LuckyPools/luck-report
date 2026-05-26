@@ -281,7 +281,8 @@ const en = {
             "tip": "Date type data default value pattern is \"yyyy-MM-dd HH:mm:ss\"",
             "nameTip": "Parameter name can not be null!",
             "namePlaceholder": "Please enter parameter name",
-            "datatypeTip": "Datatype can not be null!"
+            "datatypeTip": "Datatype can not be null!",
+            "nameExists": "Parameter name already exists, please use another name"
         },
         "paramTable": {
             "addParam": "Add Parameter",

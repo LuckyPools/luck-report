@@ -53,7 +53,7 @@
         </u-form-item>
       </u-form>
 
-      <div class="file-list-container table-wrapper">
+      <div class="file-list-container table-wrapper" v-loading="loading">
         <table class="table-container">
           <thead class="table-container-header">
             <tr>
@@ -110,6 +110,7 @@ import UInput from "@/components/input/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
 import { mapGetters } from 'vuex';
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'SaveDialog',
@@ -121,6 +122,9 @@ export default {
     UInput,
     UForm,
     UFormItem
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     visible: {
@@ -137,7 +141,8 @@ export default {
       currentReportFiles: [],
       currentProviderPrefix: '',
       currentPath: '',
-      pathHistory: []
+      pathHistory: [],
+      loading: false
     };
   },
   computed: {
@@ -177,6 +182,7 @@ export default {
   },
   methods: {
     loadReports() {
+      this.loading = true;
       loadReportProviders()
         .then(response => {
 
@@ -215,11 +221,15 @@ export default {
           } else {
             showAlert(this.$t('dialog.save.loadFail'));
           }
+        })
+        .finally(() => {
+          this.loading = false;
         });
     },
 
     loadProvidersByPath(path) {
       const _this = this;
+      this.loading = true;
 
       loadReportProvidersByPath(path)
         .then(result => {
@@ -232,10 +242,13 @@ export default {
         .catch(error => {
           console.error('Error loading providers by path:', error);
           if (error.msg) {
-            showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
+            showAlert(_this.$t('dialog.save.serverError') + _this.$t('colon') + error.msg,  { useHTMLString: true });
           } else {
-            showAlert(this.$t('dialog.save.loadFail'));
+            showAlert(_this.$t('dialog.save.loadFail'));
           }
+        })
+        .finally(() => {
+          _this.loading = false;
         });
     },
 
@@ -348,7 +361,7 @@ export default {
         let that = this;
         saveReportFile(fullFileName, content)
           .then(() => {
-            that.$store.dispatch('report/setSaveStatus', true);
+            that.$store.dispatch('report/setIsSaved', true);
             that.$store.dispatch('report/setFileName', fullFileName);
             resetDirty();
             showAlert(this.$t('dialog.save.success')).then(() => {

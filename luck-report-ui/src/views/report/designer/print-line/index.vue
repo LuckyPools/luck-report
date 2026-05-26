@@ -21,7 +21,7 @@ export default {
     /**
      * 获取打印线刷新标志
      */
-    printLineShouldRefresh() {
+    isPrintLineRefresh() {
       return this.$store.getters['report/getPrintLineShouldRefresh'];
     },
     /**
@@ -35,10 +35,10 @@ export default {
     /**
      * 监听打印线刷新标志，为true时刷新打印线并重置标志
      */
-    printLineShouldRefresh(newVal) {
+    isPrintLineRefresh(newVal) {
       if (newVal) {
         this.refresh();
-        this.$store.dispatch('report/setPrintLineShouldRefresh', false);
+        this.$store.dispatch('report/setIsPrintLineRefresh', false);
       }
     }
   },

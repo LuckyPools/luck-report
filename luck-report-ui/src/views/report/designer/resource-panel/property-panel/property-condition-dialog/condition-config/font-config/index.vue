@@ -10,7 +10,6 @@
         <u-select
             v-show="fontChecked"
             v-model="fontFamily"
-            :clearable="true"
             @change="onFontFamilyChange"
             style="width: 120px"
         >
@@ -26,7 +25,6 @@
         <u-select
             v-show="fontChecked"
             v-model="fontFamilyScope"
-            :clearable="true"
             @change="onFontFamilyScopeChange"
             style="width: 120px"
         >
@@ -50,7 +48,6 @@
         <u-select
             v-show="fontSizeChecked"
             v-model="fontSize"
-            :clearable="true"
             @change="onFontSizeValueChange"
             style="width: 120px"
         >
@@ -66,7 +63,6 @@
         <u-select
             v-show="fontSizeChecked"
             v-model="fontSizeScope"
-            :clearable="true"
             @change="onFontSizeScopeChange"
             style="width: 120px"
         >
@@ -90,7 +86,6 @@
         <u-select
             v-show="fontBoldChecked"
             v-model="fontBold"
-            :clearable="true"
             @change="onFontBoldValueChange"
             style="width: 120px"
         >
@@ -106,7 +101,6 @@
         <u-select
             v-show="fontBoldChecked"
             v-model="fontBoldScope"
-            :clearable="true"
             @change="onFontBoldScopeChange"
             style="width: 120px"
         >
@@ -130,7 +124,6 @@
         <u-select
             v-show="fontItalicChecked"
             v-model="fontItalic"
-            :clearable="true"
             @change="onFontItalicValueChange"
             style="width: 120px"
         >
@@ -146,7 +139,6 @@
         <u-select
             v-show="fontItalicChecked"
             v-model="fontItalicScope"
-            :clearable="true"
             @change="onFontItalicScopeChange"
             style="width: 120px"
         >
@@ -170,7 +162,6 @@
         <u-select
             v-show="fontUnderlineChecked"
             v-model="fontUnderline"
-            :clearable="true"
             @change="onFontUnderlineValueChange"
             style="width: 120px"
         >
@@ -186,7 +177,6 @@
         <u-select
             v-show="fontUnderlineChecked"
             v-model="fontUnderlineScope"
-            :clearable="true"
             @change="onFontUnderlineScopeChange"
             style="width: 120px"
         >

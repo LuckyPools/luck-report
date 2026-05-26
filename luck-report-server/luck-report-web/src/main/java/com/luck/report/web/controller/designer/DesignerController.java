@@ -136,15 +136,15 @@ public class DesignerController implements ApplicationContextAware {
         }
         String fileName = UrlParameterUtils.doubleDecode(filePath);
         Object obj = ReportScopedCache.getObject(fileName);
-        ReportDefinition reportDef;
+        ReportDefinition reportDefinition;
         if (obj instanceof ReportDefinitionWrapper) {
             ReportDefinitionWrapper wrapper = (ReportDefinitionWrapper) obj;
-            reportDef = wrapper.getReportDefinition();
+            reportDefinition = wrapper.getReportDefinition();
             ReportScopedCache.removeObject(fileName);
         } else {
-            reportDef = reportRender.parseReport(fileName);
+            reportDefinition = reportRender.parseReport(fileName);
         }
-        ResponseUtils.writeObjectToJson(resp, new ReportDefinitionVo(reportDef));
+        ResponseUtils.writeObjectToJson(resp, new ReportDefinitionVo(reportDefinition));
     }
 
     /**

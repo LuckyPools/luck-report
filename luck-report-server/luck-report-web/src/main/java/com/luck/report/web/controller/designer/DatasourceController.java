@@ -11,6 +11,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.utils.ProcedureUtils;
+import com.luck.report.core.utils.SqlSecurityUtils;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.sql.enums.DbType;
 import com.luck.report.web.sql.DialectFactory;
@@ -179,6 +180,7 @@ public class DatasourceController {
                 List<Field> fieldsList = ProcedureUtils.procedureColumnsQuery(sql, map, conn);
                 fields.addAll(fieldsList);
             } else {
+                SqlSecurityUtils.validate(sql);
                 DataSource dataSource = new SingleConnectionDataSource(conn, false);
                 NamedParameterJdbcTemplate jdbc = new NamedParameterJdbcTemplate(dataSource);
                 DatabaseMetaData metaData = conn.getMetaData();
@@ -226,6 +228,8 @@ public class DatasourceController {
         String parameters = req.getParameter("parameters");
         Map<String, Object> map = buildParameters(parameters);
         String originalSql = parseSql(sql, map);
+        // SQL安全验证：仅允许SELECT查询语句或存储过程调用
+        SqlSecurityUtils.validate(originalSql);
         Connection conn = null;
         try {
             conn = buildConnection(req);

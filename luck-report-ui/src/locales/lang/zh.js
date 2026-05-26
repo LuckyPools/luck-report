@@ -282,7 +282,8 @@ const zh = {
             "tip": "Date类型默认值为一个格式为yyyy-MM-dd HH:mm:ss的日期值",
             "nameTip": "请输入参数名！",
             "namePlaceholder": "请输入参数名",
-            "datatypeTip": "请选择数据类型！"
+            "datatypeTip": "请选择数据类型！",
+            "nameExists": "参数名已存在，请使用其他名称"
         },
         "paramTable": {
             "addParam": "添加参数",

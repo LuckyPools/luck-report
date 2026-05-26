@@ -1,14 +1,18 @@
 // report模块 - 管理报表设计器的状态
 const state = {
   context: null,
+  // 报表名称
   fileName: '',
-  saveBtnDisable: true,
+  // 禁用保存按钮
+  disableSaveBtn: true,
   // 报表是否已保存
-  saveStatus: false,
+  isSaved: false,
   // 打印线是否显示
   showPrintLine: true,
-  // 打印先是否刷新
-  printLineShouldRefresh: false,
+  // 打印线是否需要刷新
+  isPrintLineRefresh: false,
+  // 单元格是否需要更新
+  isCellUpdate: false,
 };
 
 const mutations = {
@@ -128,17 +132,17 @@ const mutations = {
   },
 
   // 设置保存按钮状态
-  SET_SAVE_BTN_DISABLE(state, disable) {
-    state.saveBtnDisable = disable;
+  SET_DISABLE_SAVE_BTN(state, disable) {
+    state.disableSaveBtn = disable;
   },
 
   // 设置报表保存状态
-  SET_SAVE_STATUS(state, saveStatus) {
-    state.saveStatus = saveStatus;
+  SET_IS_SAVED(state, isSaved) {
+    state.isSaved = isSaved;
   },
 
-  SET_PRINT_LINE_SHOULD_REFRESH(state, shouldRefresh) {
-    state.printLineShouldRefresh = shouldRefresh;
+  SET_IS_PRINT_LINE_REFRESH(state, isRefresh) {
+    state.isPrintLineRefresh = isRefresh;
   },
 
   /**
@@ -148,6 +152,15 @@ const mutations = {
    */
   SET_SHOW_PRINT_LINE(state, showPrintLine) {
     state.showPrintLine = showPrintLine;
+  },
+
+  /**
+   * 设置单元格更新状态
+   * @param {Object} state - Vuex状态对象
+   * @param {boolean} isCellUpdate - 是否需要更新单元格
+   */
+  SET_CELL_UPDATE(state, isCellUpdate) {
+    state.isCellUpdate = isCellUpdate;
   }
 };
 
@@ -227,17 +240,17 @@ const actions = {
   },
 
   // 设置保存按钮状态的 Action
-  setSaveBtnDisable({ commit }, disable) {
-    commit('SET_SAVE_BTN_DISABLE', disable);
+  setDisableSaveBtn({ commit }, disable) {
+    commit('SET_DISABLE_SAVE_BTN', disable);
   },
 
   // 设置报表保存状态的 Action
-  setSaveStatus({ commit }, saveStatus) {
-    commit('SET_SAVE_STATUS', saveStatus);
+  setIsSaved({ commit }, isSaved) {
+    commit('SET_IS_SAVED', isSaved);
   },
 
-  setPrintLineShouldRefresh({ commit }, shouldRefresh) {
-    commit('SET_PRINT_LINE_SHOULD_REFRESH', shouldRefresh);
+  setIsPrintLineRefresh({ commit }, shouldRefresh) {
+    commit('SET_IS_PRINT_LINE_REFRESH', shouldRefresh);
   },
 
   /**
@@ -247,6 +260,23 @@ const actions = {
    */
   setShowPrintLine({ commit }, showPrintLine) {
     commit('SET_SHOW_PRINT_LINE', showPrintLine);
+  },
+
+  /**
+   * 设置单元格更新状态
+   * @param {Object} param0 - Vuex上下文对象
+   * @param {boolean} isCellUpdate - 是否需要更新单元格
+   */
+  setCellUpdate({ commit }, isCellUpdate) {
+    commit('SET_CELL_UPDATE', isCellUpdate);
+  },
+
+  /**
+   * 触发单元格更新（设置isCellUpdate为true，编辑器监听后会自动重置为false）
+   * @param {Object} param0 - Vuex上下文对象
+   */
+  triggerCellUpdate({ commit }) {
+    commit('SET_CELL_UPDATE', true);
   }
 };
 
@@ -261,16 +291,19 @@ const getters = {
   getFileName: state => state.fileName,
 
   // 获取保存按钮状态
-  getSaveBtnDisable: state => state.saveBtnDisable,
+  getSaveBtnDisable: state => state.disableSaveBtn,
 
   // 获取报表保存状态
-  getSaveStatus: state => state.saveStatus,
+  getSaveStatus: state => state.isSaved,
 
   // 打印线是否需要刷新
-  getPrintLineShouldRefresh: state => state.printLineShouldRefresh,
+  getPrintLineShouldRefresh: state => state.isPrintLineRefresh,
 
   // 获取打印线显示状态
-  getShowPrintLine: state => state.showPrintLine
+  getShowPrintLine: state => state.showPrintLine,
+
+  // 获取单元格更新状态
+  getIsCellUpdate: state => state.isCellUpdate
 };
 
 export default {

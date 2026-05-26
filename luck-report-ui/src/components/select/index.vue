@@ -397,6 +397,7 @@ export default {
       this.onHover = event.type === "mouseenter";
     },
     handleClear() {
+      if (this.disabled) return;
       this.currentLabel = "";
       this.currentValue = "";
       this.options.forEach(d => (d.selected = false));

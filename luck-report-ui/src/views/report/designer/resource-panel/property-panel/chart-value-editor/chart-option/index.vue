@@ -20,7 +20,6 @@
       <u-form-item class="property-label" v-show="titleDisplay" :label="$t('chart.position')">
         <u-select
           v-model="localChartConfig.title.position"
-          :clearable="true"
           @change="handleTitlePositionChange"
         >
           <u-option
@@ -62,7 +61,6 @@
       <u-form-item class="property-label" v-show="legendDisplay" :label="$t('chart.position')">
         <u-select
           v-model="localChartConfig.legend.position"
-          :clearable="true"
           @change="handleLegendPositionChange"
         >
           <u-option
@@ -103,13 +101,13 @@
         <u-input-number
             v-model="localChartConfig.animation.duration"
             @change="handleAnimationDurationChange"
+            :min="0"
         />
       </u-form-item>
 
       <u-form-item class="property-label" :label="$t('chart.effect')">
         <u-select
           v-model="localChartConfig.animation.easing"
-          :clearable="true"
           @change="handleAnimationEasingChange"
         >
           <u-option

@@ -2,7 +2,7 @@
   <div>
     <UDialog
       :title="$t('dialog.sql.title')"
-      width="1080px"
+      width="1000px"
       top="10vh"
       :visible="visible"
       :z-index="20000"
@@ -279,7 +279,7 @@ export default {
 }
 
 .left-panel {
-  flex: 0 0 300px;
+  flex: 0 0 200px;
   height: 100%;
 }
 

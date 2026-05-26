@@ -10,7 +10,6 @@
         <u-select
             v-model="localLinkTargetWindow"
             style="width: 120px"
-            :clearable="true"
             @change="onLinkTargetChange"
         >
           <u-option

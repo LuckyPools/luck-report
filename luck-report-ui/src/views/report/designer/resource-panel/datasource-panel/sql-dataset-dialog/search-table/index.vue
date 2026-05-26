@@ -1,11 +1,11 @@
 <template>
-  <div style="width: 250px; height: 450px;">
-    <div class="form-group" style="margin-bottom: 5px;">
+  <div style="width: 210px; height: 450px;">
+    <div>
       <div class="u-inline">
         <u-input
           v-model="searchKeyword"
           :placeholder="$t('dialog.sql.search')"
-          style="width: 190px;"
+          style="width: 160px;"
         />
       </div>
       <div class="u-inline" style="vertical-align: middle;margin-left: 5px">
@@ -17,7 +17,7 @@
           </u-button>
       </div>
     </div>
-    <div class="table-wrapper">
+    <div class="table-wrapper" style="margin-top: 5px;" v-loading="loading">
       <table class="table-container" style="font-size: 12px;">
         <thead>
           <tr>
@@ -54,12 +54,16 @@ import { showAlert } from '@/utils/comnon.js';
 import { buildDatabaseTables } from '@/api/designer';
 import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'SearchTable',
   components: {
     UButton,
     UInput
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     datasourceData: {
@@ -74,7 +78,8 @@ export default {
   data() {
     return {
       tables: [],
-      searchKeyword: ''
+      searchKeyword: '',
+      loading: false
     }
   },
   watch: {
@@ -111,6 +116,7 @@ export default {
       if (!this.datasourceData) return;
 
       this.searchKeyword = '';
+      this.loading = true;
       const type = this.datasourceData.type;
       const parameters = { type };
 
@@ -134,6 +140,8 @@ export default {
         } else {
           showAlert(this.$t('dialog.sql.loadFail'));
         }
+      } finally {
+        this.loading = false;
       }
     }
   }

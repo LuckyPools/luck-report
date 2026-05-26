@@ -45,7 +45,7 @@
         </u-form-item>
       </u-form>
 
-      <div class="file-list-container table-wrapper">
+      <div class="file-list-container table-wrapper" v-loading="loading">
         <table class="table-container">
           <thead class="table-container-header">
             <tr>
@@ -107,6 +107,7 @@ import UButton from "@/components/button/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
 import { createNavigator, getLibMode } from '@/lib/navigator';
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'OpenDialog',
@@ -117,6 +118,9 @@ export default {
     UOption,
     UForm,
     UFormItem
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     visible: {
@@ -131,7 +135,8 @@ export default {
       reportFilesData: {},
       currentFiles: [],
       currentPath: '',
-      pathHistory: []
+      pathHistory: [],
+      loading: false
     };
   },
   computed: {
@@ -165,6 +170,7 @@ export default {
   methods: {
     loadProviders() {
       const _this = this;
+      this.loading = true;
 
       loadReportProviders()
         .then(providers => {
@@ -187,10 +193,14 @@ export default {
           } else {
             showAlert(_this.$t('dialog.open.loadFail'));
           }
+        })
+        .finally(() => {
+          _this.loading = false;
         });
     },
     loadProvidersByPath(path) {
       const _this = this;
+      this.loading = true;
       loadReportProvidersByPath(path)
         .then(result => {
           for (let prefix in result) {
@@ -206,6 +216,9 @@ export default {
           } else {
             showAlert(_this.$t('dialog.open.loadFail'));
           }
+        })
+        .finally(() => {
+          _this.loading = false;
         });
     },
     onProviderChange() {

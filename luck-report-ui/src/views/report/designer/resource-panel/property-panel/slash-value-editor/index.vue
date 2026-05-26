@@ -63,6 +63,7 @@ import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";
 import UForm from "@/components/form/index.vue";
 import UFormItem from "@/components/form-item/index.vue";
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'SlashValueEditor',
@@ -97,6 +98,10 @@ export default {
     };
   },
   computed: {
+    ...mapGetters('report', ['getIsCellUpdate']),
+    isCellUpdate() {
+      return this.getIsCellUpdate;
+    },
     cellPosition() {
       return `${this.rowIndex},${this.colIndex}`;
     }
@@ -107,9 +112,18 @@ export default {
       handler() {
         this.loadSlashes();
       }
+    },
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadSlashes();
+          this.setCellUpdate(false);
+        }
+      }
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     loadSlashes() {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (cellDef && cellDef.value && cellDef.value.slashes) {

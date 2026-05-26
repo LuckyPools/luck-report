@@ -24,6 +24,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.utils.ProcedureUtils;
+import com.luck.report.core.utils.SqlSecurityUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
@@ -69,6 +70,7 @@ public class SqlDatasetDefinition implements DatasetDefinition {
                 sqlForUse = sqlForUse.replace(substr, result);
             }
         }
+        SqlSecurityUtils.validate(sqlForUse);
         Utils.logToConsole("RUNTIME SQL:" + sqlForUse);
         if (ProcedureUtils.isProcedure(sqlForUse)) {
             List<Map<String, Object>> result = ProcedureUtils.procedureQuery(sqlForUse, pmap, conn);

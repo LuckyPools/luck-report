@@ -11,7 +11,6 @@
             v-show="pagingBreakChecked"
             v-model="pagingPosition"
             style="width: 120px"
-            :clearable="true"
             @change="onPagingPositionChange"
         >
           <u-option
@@ -26,6 +25,7 @@
         <u-input-number
             v-show="pagingBreakChecked"
             v-model="pagingLine"
+            :min="1"
             @change="onPagingLineChange">
         </u-input-number>
       </u-col>

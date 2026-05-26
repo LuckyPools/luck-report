@@ -47,6 +47,7 @@ import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
+import {showAlert} from "@/utils/comnon";
 
 export default {
   name: 'ParameterDialog',
@@ -67,6 +68,14 @@ export default {
     editData: {
       type: Object,
       default: null
+    },
+    parameters: {
+      type: Array,
+      default: () => []
+    },
+    editIndex: {
+      type: Number,
+      default: -1
     }
   },
   emits: ['update:visible', 'save'],
@@ -147,6 +156,7 @@ export default {
 
     /**
      * 保存数据
+     * 先校验重名，通过后再关闭弹窗
      */
     async handleSave() {
       const valid = await this.validateForm();
@@ -154,7 +164,14 @@ export default {
         return;
       }
 
-      this.$emit('save', this.formData.name, this.formData.type, this.formData.defaultValue);
+      const name = this.formData.name;
+      const isNameChanged = this.editIndex === -1 || this.parameters[this.editIndex]?.name !== name;
+      if (isNameChanged && this.parameters.some(param => param.name === name)) {
+        showAlert(this.$t('dialog.sqlParam.nameExists'));
+        return;
+      }
+
+      this.$emit('save', name, this.formData.type, this.formData.defaultValue);
       this.$emit('update:visible', false);
     }
   }

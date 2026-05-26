@@ -10,7 +10,6 @@
         <u-select
             v-show="alignChecked"
             v-model="align"
-            :clearable="true"
             @change="onAlignValueChange"
             style="width: 120px"
         >
@@ -26,7 +25,6 @@
         <u-select
             v-show="alignChecked"
             v-model="alignScope"
-            :clearable="true"
             @change="onAlignScopeChange"
             style="width: 120px"
         >
@@ -50,7 +48,6 @@
         <u-select
             v-show="valignChecked"
             v-model="valign"
-            :clearable="true"
             @change="onValignValueChange"
             style="width: 120px"
         >
@@ -66,7 +63,6 @@
         <u-select
             v-show="valignChecked"
             v-model="valignScope"
-            :clearable="true"
             @change="onValignScopeChange"
             style="width: 120px"
         >

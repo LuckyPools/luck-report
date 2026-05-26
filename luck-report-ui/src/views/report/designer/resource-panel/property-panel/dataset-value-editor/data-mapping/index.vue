@@ -66,7 +66,6 @@
           <u-form-item :label="$t('property.dataset.dataset')">
             <u-select
               v-model="localMappingDataset"
-              :clearable="true"
               @change="handleMappingDatasetChange"
             >
               <u-option
@@ -81,7 +80,6 @@
           <u-form-item :label="$t('property.dataset.realValueProp')">
             <u-select
               v-model="localMappingKeyProperty"
-              :clearable="true"
               @change="handleMappingKeyPropertyChange"
             >
               <u-option
@@ -96,7 +94,6 @@
           <u-form-item :label="$t('property.dataset.displayValueProp')">
             <u-select
               v-model="localMappingValueProperty"
-              :clearable="true"
               @change="handleMappingValuePropertyChange"
             >
               <u-option
