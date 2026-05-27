@@ -1,5 +1,6 @@
 import axios from 'axios'
 import {getLibMode} from "@/lib/navigator";
+import {$t} from "@/locales";
 
 const defaultRequest = axios.create({
     baseURL: '/api',

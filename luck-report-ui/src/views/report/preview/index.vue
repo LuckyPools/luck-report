@@ -153,6 +153,11 @@ export default {
       try {
         await this.loadAndRenderReport({ resetToFirstPage: this.pageEnable });
       } catch (error) {
+        if (error.msg) {
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
+        } else {
+          showAlert(this.$t('dialog.save.serverError') );
+        }
         console.error('提交搜索表单失败:', error);
       }
     },

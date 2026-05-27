@@ -71,14 +71,19 @@ public class SqlDatasetDefinition implements DatasetDefinition {
             }
         }
         SqlSecurityUtils.validate(sqlForUse);
-        Utils.logToConsole("RUNTIME SQL:" + sqlForUse);
+        long start = System.currentTimeMillis();
+        Utils.logToConsole("START [" + start + "] RUNTIME SQL:" + sqlForUse);
+        List<Map<String, Object>> list;
         if (ProcedureUtils.isProcedure(sqlForUse)) {
-            List<Map<String, Object>> result = ProcedureUtils.procedureQuery(sqlForUse, pmap, conn);
-            return new Dataset(name, result);
+            list = ProcedureUtils.procedureQuery(sqlForUse, pmap, conn);
+        } else {
+            SingleConnectionDataSource datasource = new SingleConnectionDataSource(conn, false);
+            NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasource);
+            list = jdbcTemplate.queryForList(sqlForUse, pmap);
         }
-        SingleConnectionDataSource datasource = new SingleConnectionDataSource(conn, false);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasource);
-        List<Map<String, Object>> list = jdbcTemplate.queryForList(sqlForUse, pmap);
+        long end = System.currentTimeMillis();
+        String msg = "END   [" + start + "] SQL EXECUTION TIME:" + (end - start) + "ms";
+        Utils.logToConsole(msg);
         return new Dataset(name, list);
     }
 
