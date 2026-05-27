@@ -5,11 +5,8 @@
       :visible="visible"
       @close="closeDialog"
     >
-      <div class="table-wrapper">
-        <div v-if="loading" style="padding: 20px; text-align: center;">
-          {{ $t('dialog.buildin.loading') }}
-        </div>
-        <table v-else class="table-container">
+      <div class="table-wrapper" v-loading="loading">
+        <table class="table-container">
           <thead>
           <tr>
             <td>
@@ -44,12 +41,16 @@ import {setDirty} from '@/utils/table.js';
 import {loadBuildinDatasources} from '@/api/designer/index.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'BuildinDatasourceSelectDialog',
   components: {
     UDialog,
     UButton
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     datasources: {
