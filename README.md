@@ -16,8 +16,8 @@ Luck-Report 基于 Apache-2.0 开源协议开源
 
 ## 🌐 在线体验
 
-*   体验地址：[https://www.quzhe.top/luck-report/report/designer](https://www.quzhe.top/luck-report/report/designer)
-*   文档地址：[https://www.quzhe.top/luck-report-blog/report](https://www.quzhe.top/luck-report-blog/report)
+*   体验地址：[https://www.quzhe.top/luck-report/report/designer](https://www.quzhe.top/luck-report/report/designer?reportPath=file%3A%25E8%25AE%25A2%25E5%258D%2595%25E6%258A%25A5%25E8%25A1%25A8-%25E9%2594%2580%25E9%2587%258F%25E7%25BB%259F%25E8%25AE%25A1%25E8%25A1%25A8.ureport.xml)
+*   文档地址：[https://www.quzhe.top/luck-report-blog/report](https://www.quzhe.top/luck-report-blog)
 
 ## 💻 系统要求
 

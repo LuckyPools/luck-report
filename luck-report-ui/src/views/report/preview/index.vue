@@ -391,12 +391,14 @@ export default {
   width: 400px;
   flex-shrink: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   transition: width 0.3s ease;
   border-left: 1px solid #e8e8e8;
 }
 
 .preview-right-content {
-  padding-left: 10px;
+  padding: 0 10px;
+  box-sizing: border-box;
 }
 
 .preview-right.collapsed {

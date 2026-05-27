@@ -80,9 +80,8 @@ export default {
 <style scoped>
 .search-box {
   position: relative;
-  width: 380px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tools-content {
@@ -95,8 +94,12 @@ export default {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  padding-left: 12px;
+  padding: 0 7.5px;
   gap: 6px;
+}
+
+.tools-content .iconfont {
+  margin-left: 4.5px;
 }
 
 .title {
@@ -106,6 +109,6 @@ export default {
 .main {
   width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  padding: 0 7.5px 20px 7.5px;
 }
 </style>
