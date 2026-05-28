@@ -2,7 +2,7 @@ package com.luck.report.web.controller.image;
 
 import com.luck.report.core.cache.ResourceCache;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 

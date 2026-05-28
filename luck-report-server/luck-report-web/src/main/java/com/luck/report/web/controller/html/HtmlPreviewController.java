@@ -19,7 +19,7 @@ import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.domain.vo.ChartDataVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.utils.ResponseUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

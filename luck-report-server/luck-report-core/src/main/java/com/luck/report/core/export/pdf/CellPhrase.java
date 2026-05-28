@@ -20,7 +20,7 @@ import com.luck.report.core.export.pdf.font.FontBuilder;
 import com.luck.report.core.model.Cell;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Phrase;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Jacky.gao

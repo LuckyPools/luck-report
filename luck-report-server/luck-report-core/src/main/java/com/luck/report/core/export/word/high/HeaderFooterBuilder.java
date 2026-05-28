@@ -17,7 +17,7 @@ package com.luck.report.core.export.word.high;
 
 import com.luck.report.core.definition.HeaderFooterDefinition;
 import com.luck.report.core.model.Report;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;

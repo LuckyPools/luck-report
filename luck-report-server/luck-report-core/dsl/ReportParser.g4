@@ -1,4 +1,9 @@
 grammar ReportParser;
+
+@header {
+package com.luck.report.core.dsl;
+}
+
 import ReportLexer;
 
 entry :	expression+ EOF;

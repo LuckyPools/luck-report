@@ -16,7 +16,8 @@ import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.utils.ResponseUtils;
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -60,8 +61,8 @@ public class DesignerController implements ApplicationContextAware {
     @RequestMapping("/scriptValidation")
     public void scriptValidation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String content = req.getParameter("content");
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(content);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
+        CharStream input = CharStreams.fromString(content);
+        ReportParserLexer lexer = new ReportParserLexer(input);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReportParserParser parser = new ReportParserParser(tokenStream);
         ScriptErrorListener errorListener = new ScriptErrorListener();
@@ -78,8 +79,8 @@ public class DesignerController implements ApplicationContextAware {
     @RequestMapping("/conditionScriptValidation")
     public void conditionScriptValidation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String content = req.getParameter("content");
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(content);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
+        CharStream input = CharStreams.fromString(content);
+        ReportParserLexer lexer = new ReportParserLexer(input);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReportParserParser parser = new ReportParserParser(tokenStream);
         ScriptErrorListener errorListener = new ScriptErrorListener();
@@ -96,8 +97,8 @@ public class DesignerController implements ApplicationContextAware {
     @RequestMapping("/parseDatasetName")
     public void parseDatasetName(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String expr = req.getParameter("expr");
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(expr);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
+        CharStream input = CharStreams.fromString(expr);
+        ReportParserLexer lexer = new ReportParserLexer(input);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReportParserParser parser = new ReportParserParser(tokenStream);
         parser.removeErrorListeners();

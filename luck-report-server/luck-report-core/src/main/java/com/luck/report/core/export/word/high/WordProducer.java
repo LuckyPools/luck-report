@@ -27,7 +27,7 @@ import com.luck.report.core.utils.ImageUtils;
 import com.luck.report.core.utils.UnitUtils;
 import com.luck.report.core.definition.*;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;

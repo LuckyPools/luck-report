@@ -18,7 +18,7 @@ package com.luck.report.core.parser.impl;
 import com.luck.report.core.definition.Band;
 import com.luck.report.core.definition.RowDefinition;
 import com.luck.report.core.parser.Parser;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Element;
 
 /**

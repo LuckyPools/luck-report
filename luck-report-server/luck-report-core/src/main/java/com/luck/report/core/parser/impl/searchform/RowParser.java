@@ -2,7 +2,7 @@ package com.luck.report.core.parser.impl.searchform;
 
 import com.luck.report.core.definition.searchform.component.Component;
 import com.luck.report.core.definition.searchform.component.RowComponent;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Element;
 
 import java.util.List;

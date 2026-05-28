@@ -153,14 +153,11 @@ public class Excel97Producer {
                             if (obj != null) {
                                 if (obj instanceof String) {
                                     cell.setCellValue((String) obj);
-                                    cell.setCellType(CellType.STRING);
                                 } else if (obj instanceof Number) {
                                     BigDecimal bigDecimal = Utils.toBigDecimal(obj);
                                     cell.setCellValue(bigDecimal.floatValue());
-                                    cell.setCellType(CellType.NUMERIC);
                                 } else if (obj instanceof Boolean) {
                                     cell.setCellValue((Boolean) obj);
-                                    cell.setCellType(CellType.BOOLEAN);
                                 } else if (obj instanceof Image) {
                                     Image img = (Image) obj;
                                     InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
@@ -404,10 +401,10 @@ public class Excel97Producer {
         int rightMargin = paper.getRightMargin();
         int topMargin = paper.getTopMargin();
         int bottomMargin = paper.getBottomMargin();
-        sheet.setMargin(Sheet.LeftMargin, UnitUtils.pointToInche(leftMargin));
-        sheet.setMargin(Sheet.RightMargin, UnitUtils.pointToInche(rightMargin));
-        sheet.setMargin(Sheet.TopMargin, UnitUtils.pointToInche(topMargin));
-        sheet.setMargin(Sheet.BottomMargin, UnitUtils.pointToInche(bottomMargin));
+        sheet.setMargin(PageMargin.LEFT, UnitUtils.pointToInche(leftMargin));
+        sheet.setMargin(PageMargin.RIGHT, UnitUtils.pointToInche(rightMargin));
+        sheet.setMargin(PageMargin.TOP, UnitUtils.pointToInche(topMargin));
+        sheet.setMargin(PageMargin.BOTTOM, UnitUtils.pointToInche(bottomMargin));
         return sheet;
     }
 

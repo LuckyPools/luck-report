@@ -35,7 +35,8 @@ import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.parse.ExpressionErrorListener;
 import com.luck.report.core.expression.parse.ExpressionVisitor;
 import com.luck.report.core.expression.parse.builder.*;
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -113,8 +114,8 @@ public class ExpressionUtils implements ApplicationContextAware {
     }
 
     public static Expression parseExpression(String text) {
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(text);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
+        CharStream input = CharStreams.fromString(text);
+        ReportParserLexer lexer = new ReportParserLexer(input);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReportParserParser parser = new ReportParserParser(tokenStream);
         ExpressionErrorListener errorListener = new ExpressionErrorListener();
