@@ -1,18 +1,22 @@
 <template>
   <div id="preview-container" :class="{ 'right-collapsed': !isShowSearchForm }">
     <div class="preview-left">
-      <ToolBox
-          :reportData="reportData"
-          :reportName="currentReportName"
-          :currentPage="currentPage"
-          :pageEnable="pageEnable"
-          :searchFormParameters="searchFormParameters"
-          @page-change="handlePageChange"
-          @page-enable-change="handlePageEnableChange"
-      />
-      <div id="report-table" v-if="reportData && reportData.content"
-           v-html="reportData.content"
-           :style="{ float: reportData.reportAlign || 'left' }"></div>
+      <div class="preview-left-fixed">
+        <ToolBox
+            :reportData="reportData"
+            :reportName="currentReportName"
+            :currentPage="currentPage"
+            :pageEnable="pageEnable"
+            :searchFormParameters="searchFormParameters"
+            @page-change="handlePageChange"
+            @page-enable-change="handlePageEnableChange"
+        />
+      </div>
+      <div class="preview-left-scroll">
+        <div id="report-table" v-if="reportData && reportData.content"
+             v-html="reportData.content"
+             :style="{ float: reportData.reportAlign || 'left' }"></div>
+      </div>
     </div>
     <div v-if="isRenderSearchForm" class="collapse-btn" @click="toggleCollapse">
       <i class="iconfont collapse-icon" :class="isShowSearchForm ? 'icon-right' : 'icon-left'"></i>
@@ -31,6 +35,7 @@
 </template>
 
 <script>
+import '@/assets/css/preview/index.css';
 import {Chart, registerables} from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import {loadReportData, loadHtml} from '@/api/preview'
@@ -371,129 +376,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-#preview-container {
-  width: 100%;
-  height: 100vh;
-  padding: 10px 10px 0 10px;
-  box-sizing: border-box;
-  overflow: hidden;
-  display: flex;
-  flex-direction: row;
-  position: relative;
-  background: white;
-}
-
-.preview-left {
-  flex: 1;
-  overflow: auto;
-  padding-right: 10px;
-  min-width: 0;
-}
-
-.preview-right {
-  width: 400px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  transition: width 0.3s ease;
-  border-left: 1px solid #e8e8e8;
-}
-
-.preview-right-content {
-  padding: 0 10px;
-  box-sizing: border-box;
-}
-
-.preview-right.collapsed {
-  width: 0;
-  border-left: none;
-  overflow: hidden;
-}
-
-.preview-right.collapsed .preview-right-content {
-  display: none;
-}
-
-.collapse-btn {
-  width: 32px;
-  height: 32px;
-  position: absolute;
-  top: 25%;
-  right: 413px;
-  transform: translate(50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  z-index: 10;
-}
-
-#preview-container.right-collapsed .collapse-btn {
-  right: 0;
-  transform: translate(0, -50%);
-}
-
-#report-table {
-  margin-top: 10px;
-}
-
-.collapse-btn:hover {
-  background: #f5f5f5;
-  border-color: #1890ff;
-  color: #1890ff;
-  transform: translate(50%, -50%) scale(1.1);
-}
-
-#preview-container.right-collapsed .collapse-btn:hover {
-  transform: translate(0, -50%) scale(1.1);
-}
-
-.collapse-icon {
-  font-size: 16px;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@media (max-width: 768px) {
-  #preview-container {
-    padding: 5px;
-    flex-direction: column;
-  }
-  .preview-left {
-    width: 100%;
-    padding-right: 0;
-    padding-bottom: 10px;
-  }
-  .preview-right {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #e8e8e8;
-  }
-  .preview-right-content {
-    padding-left: 0;
-    padding-top: 10px;
-  }
-  .preview-right.collapsed {
-    width: 0;
-    padding-top: 0;
-    border-top: none;
-  }
-  .collapse-btn {
-    display: none;
-  }
-}
-</style>

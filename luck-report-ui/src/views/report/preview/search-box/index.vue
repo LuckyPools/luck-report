@@ -85,21 +85,20 @@ export default {
 }
 
 .tools-content {
-  border: solid 1px #ddd;
-  border-radius: 5px;
-  height: 42px;
+  border-bottom: solid 1px #ddd;
+  height: 48px;
   width: 100%;
-  background: #f8f8f8;
   box-sizing: border-box;
   margin-bottom: 8px;
   display: flex;
   align-items: center;
   padding: 0 7.5px;
   gap: 6px;
+  box-shadow: 0 2px 6px 0 rgba(0,0,0,.2);
 }
 
 .tools-content .iconfont {
-  margin-left: 4.5px;
+  margin-left: 15px;
 }
 
 .title {
@@ -109,6 +108,6 @@ export default {
 .main {
   width: 100%;
   box-sizing: border-box;
-  padding: 0 7.5px 20px 7.5px;
+  padding: 0 10px 20px 10px;
 }
 </style>

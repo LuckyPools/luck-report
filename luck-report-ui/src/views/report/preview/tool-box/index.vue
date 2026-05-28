@@ -2,51 +2,81 @@
   <div v-if="reportData && reportData.tools && reportData.tools.show"
        class="tools-content">
     <u-row type="flex" align="middle" class="tools-row">
-      <u-col :span="10" class="tools-left">
-        <div class="btn-group" v-if="reportData.tools.paging">
+      <u-col :span="11" class="tools-left">
+        <div class="pagination-group">
           <ButtonGroup
+              v-if="reportData.tools.paging"
               :buttonText="pageEnable ? $t('preview.paging.pagingPreview') : $t('preview.paging.preview')"
               :showText="true"
-              :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
+              :buttonStyle="{ border: 'none', color: '#5e6d82' }"
               :menuItems="pagingMenuItems"
-              :customClass="'p-tool-button'"
+              customClass="pagination-dropdown-btn"
           />
+          <span v-if="reportData.tools.paging && pageEnable" class="pagination-divider"></span>
+          <template v-if="reportData.tools.paging && pageEnable">
+            <u-button
+                type="text"
+                size="mini"
+                class="pagination-btn"
+                :disabled="currentPage <= 1"
+                :title="$t('preview.buttons.firstPage')"
+                @click="goToFirstPage">
+              <i class="iconfont icon-page-first"></i>
+              <span class="pagination-btn-text">{{ $t('preview.buttons.firstPage') }}</span>
+            </u-button>
+            <span class="pagination-divider"></span>
+            <u-button
+                type="text"
+                size="mini"
+                class="pagination-btn"
+                :disabled="currentPage <= 1"
+                :title="$t('preview.buttons.prevPage')"
+                @click="goToPrevPage">
+              <i class="iconfont icon-left"></i>
+              <span class="pagination-btn-text">{{ $t('preview.buttons.prevPage') }}</span>
+            </u-button>
+            <span class="pagination-divider"></span>
+            <div class="pagination-input-group">
+              <input
+                  v-model.number="inputPage"
+                  type="text"
+                  class="pagination-input"
+                  @keyup.enter="handleInputPageChange"
+                  @blur="handleInputPageChange"
+              />
+              <span class="pagination-total">/ {{ reportData.totalPageWithCol }}</span>
+            </div>
+            <span class="pagination-divider"></span>
+            <u-button
+                type="text"
+                size="mini"
+                class="pagination-btn"
+                :disabled="currentPage >= reportData.totalPageWithCol"
+                :title="$t('preview.buttons.nextPage')"
+                @click="goToNextPage">
+              <span class="pagination-btn-text">{{ $t('preview.buttons.nextPage') }}</span>
+              <i class="iconfont icon-right"></i>
+            </u-button>
+            <span class="pagination-divider"></span>
+            <u-button
+                type="text"
+                size="mini"
+                class="pagination-btn"
+                :disabled="currentPage >= reportData.totalPageWithCol"
+                :title="$t('preview.buttons.lastPage')"
+                @click="goToLastPage">
+              <span class="pagination-btn-text">{{ $t('preview.buttons.lastPage') }}</span>
+              <i class="iconfont icon-page-last"></i>
+            </u-button>
+          </template>
         </div>
-
-        <u-button v-if="reportData.tools.paging && pageEnable"
-                  type="info"
-                  :disabled="currentPage <= 1"
-                  :title="$t('preview.buttons.prevPage')"
-                  class="p-button paging-button"
-                  @click="goToPrevPage">
-          {{ $t('preview.buttons.prevPage') }}
-        </u-button>
-
-        <div v-if="pageEnable" class="btn-group">
-          <ButtonGroup
-              :buttonText="$t('preview.paging.pageInfo', { total: reportData.totalPageWithCol, current: currentPage })"
-              :showText="true"
-              :buttonStyle="{ background: '#f8f8f8', border: 'none', color: '#337ab7' }"
-              :menuItems="pageMenuItems"
-              :customClass="'p-tool-button'"
-          />
-        </div>
-
-        <u-button v-if="reportData.tools.paging && pageEnable"
-                  type="info"
-                  :disabled="currentPage >= reportData.totalPageWithCol"
-                  :title="$t('preview.buttons.nextPage')"
-                  class="p-button paging-button"
-                  @click="goToNextPage">
-          {{ $t('preview.buttons.nextPage') }}
-        </u-button>
       </u-col>
 
-      <u-col :span="4" class="tools-center">
+      <u-col :span="2" class="tools-center">
         <span class="report-name">{{ displayReportName }}</span>
       </u-col>
 
-      <u-col :span="10" class="tools-right">
+      <u-col :span="11" class="tools-right">
         <u-button v-if="reportData.tools.print"
                   type="info"
                   :title="$t('preview.buttons.print')"
@@ -182,7 +212,8 @@ export default {
     return {
       pageMenuItems: [],
       pdfPrintDialogVisible: false,
-      printIndex: 0
+      printIndex: 0,
+      inputPage: 1
     }
   },
   computed: {
@@ -217,10 +248,12 @@ export default {
       return [
         {
           text: this.$t('preview.paging.preview'),
+          icon: 'iconfont icon-preview',
           action: () => this.changePageEnable(false)
         },
         {
           text: this.$t('preview.paging.pagingPreview'),
+          icon: 'iconfont icon-view-page',
           action: () => this.changePageEnable(true)
         }
       ];
@@ -232,6 +265,12 @@ export default {
         this.initPageMenuItems();
       },
       deep: true,
+      immediate: true
+    },
+    currentPage: {
+      handler(newVal) {
+        this.inputPage = String(newVal);
+      },
       immediate: true
     }
   },
@@ -470,6 +509,26 @@ export default {
     },
 
     /**
+     * 跳转到首页
+     * 当前页大于1时触发页码变更事件
+     */
+    goToFirstPage() {
+      if (this.currentPage > 1) {
+        this.$emit('page-change', 1);
+      }
+    },
+
+    /**
+     * 跳转到末页
+     * 当前页小于总页数时触发页码变更事件
+     */
+    goToLastPage() {
+      if (this.currentPage < this.reportData.totalPageWithCol) {
+        this.$emit('page-change', this.reportData.totalPageWithCol);
+      }
+    },
+
+    /**
      * 跳转到上一页
      * 当前页大于1时触发页码变更事件
      */
@@ -486,6 +545,34 @@ export default {
     goToNextPage() {
       if (this.currentPage < this.reportData.totalPageWithCol) {
         this.$emit('page-change', this.currentPage + 1);
+      }
+    },
+
+    /**
+     * 处理输入框页码跳转
+     * 验证输入页码的合法性后触发页码变更事件
+     * 非数字输入会还原为1
+     */
+    handleInputPageChange() {
+      const page = Number(this.inputPage);
+      const totalPages = this.reportData.totalPageWithCol;
+
+      if (isNaN(page) || page < 1) {
+        this.inputPage = '1';
+        this.$emit('page-change', 1);
+        return;
+      }
+
+      if (page > totalPages) {
+        this.inputPage = String(totalPages);
+        this.$emit('page-change', totalPages);
+        return;
+      }
+
+      if (page !== this.currentPage) {
+        this.$emit('page-change', page);
+      } else {
+        this.inputPage = String(this.currentPage);
       }
     },
 
@@ -533,31 +620,14 @@ export default {
 </script>
 
 <style scoped>
-.p-tool-button {
-  display: inline-block;
-  padding: 0;
-  background: #f8f8f8;
-  border: none;
-  margin: 3px
-}
-
-.p-button {
-  border: none;
-  background: rgb(248, 248, 248);
-}
-
-.p-button img {
-  vertical-align: middle;
-}
-
+/* 工具栏容器 */
 .tools-content {
-  border: solid 1px #ddd;
-  border-radius: 5px;
-  height: 42px;
+  border-bottom: solid 1px #ddd;
+  height: 48px;
   width: 100%;
-  background: #f8f8f8;
   box-sizing: border-box;
   padding: 0 10px;
+  box-shadow: 0 2px 6px 0 rgba(0,0,0,.2);
 }
 
 .tools-row {
@@ -583,6 +653,7 @@ export default {
   justify-content: flex-end;
 }
 
+/* 报表名称 */
 .report-name {
   font-size: 14px;
   font-weight: 500;
@@ -591,5 +662,184 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+/* 预览/分页预览下拉按钮 */
+.pagination-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pagination-dropdown-btn ::v-deep .u-button {
+  background-color: transparent;
+  border: none;
+  color: #5e6d82;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap;
+  padding: 0 8px;
+  height: 28px;
+  font-size: 13px;
+  line-height: normal !important;
+}
+
+.pagination-dropdown-btn ::v-deep .u-button:hover {
+  background-color: rgba(0, 85, 74, 0.1);
+  color: #00554a;
+}
+
+.pagination-dropdown-btn ::v-deep .button-text {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.pagination-dropdown-btn ::v-deep .caret {
+  display: inline-block !important;
+  margin-left: 6px;
+  vertical-align: middle;
+  border-top: 4px solid #5e6d82;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  line-height: 28px;
+}
+
+.pagination-dropdown-btn ::v-deep .u-button:hover .caret {
+  border-top-color: #00554a;
+}
+
+/* 工具栏按钮 */
+.p-button {
+  border: none;
+}
+
+.p-button img {
+  vertical-align: middle;
+}
+
+::v-deep .p-button.u-button {
+  background-color: transparent;
+  border: none;
+  color: #5e6d82;
+}
+
+::v-deep .p-button.u-button:hover {
+  background-color: rgba(0, 85, 74, 0.1);
+  border-color: transparent;
+  color: #00554a;
+}
+
+/* 分页按钮组 */
+.pagination-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 分页按钮 */
+.pagination-group ::v-deep .pagination-btn.u-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 13px;
+  line-height: normal !important;
+  border-radius: 1px;
+  background-color: transparent;
+  border: none;
+  color: #5e6d82;
+}
+
+.pagination-group ::v-deep .pagination-btn.u-button .iconfont {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 1;
+  height: 1em;
+}
+
+.pagination-group ::v-deep .pagination-btn.u-button .iconfont::before {
+  display: block;
+  line-height: 1;
+}
+
+.pagination-group ::v-deep .pagination-btn.u-button:hover:not(.u-button-text-disabled) {
+  background-color: rgba(0, 85, 74, 0.1);
+  border-radius: 3px;
+  color: #00554a;
+}
+
+.pagination-group ::v-deep .pagination-btn.u-button:active:not(.u-button-text-disabled) {
+  background-color: rgba(0, 85, 74, 0.2);
+  border-radius: 3px;
+  color: #00554a;
+}
+
+.pagination-group ::v-deep .pagination-btn.u-button.u-button-text-disabled {
+  cursor: not-allowed;
+  background-color: transparent;
+  color: #c0c4cc;
+}
+
+.pagination-group ::v-deep .pagination-btn.u-button.u-button-text-disabled:hover {
+  background-color: transparent;
+  color: #c0c4cc;
+}
+
+.pagination-btn-text {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 2px;
+  line-height: 1;
+}
+
+/* 分页分隔线 */
+.pagination-divider {
+  display: inline-block;
+  width: 0.5px;
+  height: 20px;
+  background-color: #ddd;
+  margin: 0 4px;
+}
+
+/* 页码输入框容器 */
+.pagination-input-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  height: 28px;
+}
+
+/* 页码输入框 */
+.pagination-input {
+  width: 36px;
+  height: 22px;
+  padding: 2px 4px;
+  font-size: 13px;
+  text-align: center;
+  border: 1px solid #dcdfe6;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  line-height: normal;
+}
+
+.pagination-input:focus {
+  border-color: #00554a;
+  box-shadow: 0 0 4px rgba(0, 85, 74, 0.3);
+}
+
+/* 总页数文本 */
+.pagination-total {
+  font-size: 13px;
+  color: #5e6d82;
+  line-height: 16px;
+  white-space: nowrap;
 }
 </style>

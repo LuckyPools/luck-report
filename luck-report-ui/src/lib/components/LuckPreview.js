@@ -1,11 +1,9 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import VueI18n from 'vue-i18n'
 import PreviewComponent from '@/views/report/preview/index.vue'
 import reportStore from '@/store/modules/report'
 import getters from '@/store/getters'
-import zh from '@/locales/lang/zh'
-import en from '@/locales/lang/en'
+import { i18n, setLocale, getStoredLocale } from '@/locales'
 
 import { Chart, registerables } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
@@ -16,7 +14,6 @@ import '@/assets/css/iconfont/iconfont.css'
 import '@/assets/css/common/index.css'
 
 Vue.use(Vuex)
-Vue.use(VueI18n)
 
 class LuckPreviewElement extends HTMLElement {
     constructor() {
@@ -42,9 +39,7 @@ class LuckPreviewElement extends HTMLElement {
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue !== newValue) {
             if (name === 'locale') {
-                if (this._vm) {
-                    this._vm.$i18n.locale = newValue || 'zh'
-                }
+                setLocale(newValue)
                 return
             }
             this._syncUrlFromAttributes()
@@ -129,10 +124,9 @@ class LuckPreviewElement extends HTMLElement {
             getters
         })
 
-        const i18n = new VueI18n({
-            locale: this.getAttribute('locale') || 'zh',
-            messages: { zh, en }
-        })
+        const localeAttr = this.getAttribute('locale')
+        const locale = localeAttr || getStoredLocale()
+        setLocale(locale)
 
         const PreviewConstructor = Vue.extend({
             store,

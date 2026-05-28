@@ -6,7 +6,7 @@
       :z-index="20002"
       @close="handleClose"
   >
-    <div class="dialog-content">
+    <div class="dialog-content" v-loading="loading">
       <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
         <!-- 关系选择 -->
         <u-form-item v-if="showJoin" :label="$t('dialog.editPropCondition.relation')">
@@ -103,6 +103,7 @@ import UButton from "@/components/button/index.vue";
 import UInput from '@/components/input/index.vue';
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'PropertyConditionItemDialog',
@@ -114,6 +115,9 @@ export default {
     UInput,
     UForm,
     UFormItem
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     visible: {
@@ -181,6 +185,7 @@ export default {
     };
 
     return {
+      loading: false,
       showJoin: false,
       formData: {
         join: 'and',
@@ -305,36 +310,45 @@ export default {
     },
 
     async handleOk() {
-      const valid = await this.validateForm();
-      if (!valid) {
+      if (this.loading) {
         return;
       }
 
-      let property = this.formData.property;
-      if (this.formData.leftType === 'expression') {
-        property = this.formData.expression;
-      } else if (this.formData.leftType === 'current') {
-        property = null;
-      }
+      this.loading = true;
+      try {
+        const valid = await this.validateForm();
+        if (!valid) {
+          return;
+        }
 
-      let type = this.formData.leftType;
-      if (type === 'current') {
-        type = 'property';
-      }
+        let property = this.formData.property;
+        if (this.formData.leftType === 'expression') {
+          property = this.formData.expression;
+        } else if (this.formData.leftType === 'current') {
+          property = null;
+        }
 
-      if (this.condition) {
-        if (this.condition.join) {
+        let type = this.formData.leftType;
+        if (type === 'current') {
+          type = 'property';
+        }
+
+        if (this.condition) {
+          if (this.condition.join) {
+            this.$emit('saveAfter', type, property, this.formData.operator, this.formData.value, this.formData.join);
+          } else {
+            this.$emit('saveAfter', type, property, this.formData.operator, this.formData.value);
+          }
+        } else if (this.conditions.length > 0) {
           this.$emit('saveAfter', type, property, this.formData.operator, this.formData.value, this.formData.join);
         } else {
           this.$emit('saveAfter', type, property, this.formData.operator, this.formData.value);
         }
-      } else if (this.conditions.length > 0) {
-        this.$emit('saveAfter', type, property, this.formData.operator, this.formData.value, this.formData.join);
-      } else {
-        this.$emit('saveAfter', type, property, this.formData.operator, this.formData.value);
-      }
 
-      this.handleClose();
+        this.handleClose();
+      } finally {
+        this.loading = false;
+      }
     },
 
     handleClose() {

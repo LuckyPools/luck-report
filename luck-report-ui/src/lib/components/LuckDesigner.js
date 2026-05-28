@@ -1,11 +1,9 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import VueI18n from 'vue-i18n'
 import DesignerComponent from '@/views/report/designer/index.vue'
 import reportStore from '@/store/modules/report'
 import getters from '@/store/getters'
-import zh from '@/locales/lang/zh'
-import en from '@/locales/lang/en'
+import { i18n, setLocale, getStoredLocale } from '@/locales'
 
 import 'handsontable/dist/handsontable.min.css'
 import 'codemirror/lib/codemirror.css'
@@ -16,7 +14,6 @@ import '@/assets/css/iconfont/iconfont.css'
 import '@/assets/css/common/index.css'
 
 Vue.use(Vuex)
-Vue.use(VueI18n)
 
 class LuckDesignerElement extends HTMLElement {
     constructor() {
@@ -48,6 +45,10 @@ class LuckDesignerElement extends HTMLElement {
             if (name === 'report-path') {
                 this._vm.internalReportPath = this._props.reportPath
             }
+            
+            if (name === 'locale') {
+                setLocale(newValue)
+            }
         }
     }
 
@@ -74,10 +75,9 @@ class LuckDesignerElement extends HTMLElement {
             getters
         })
 
-        const i18n = new VueI18n({
-            locale: this.getAttribute('locale') || 'zh',
-            messages: { zh, en }
-        })
+        const localeAttr = this.getAttribute('locale')
+        const locale = localeAttr || getStoredLocale()
+        setLocale(locale)
 
         this._props = {
             reportPath: this.getAttribute('report-path') || ''

@@ -14,7 +14,7 @@
             :placeholder="$t('property.simple.tip')"
         />
       </u-form-item>
-      <u-form-item class="property-label" :label="$t('property.simple.content')">
+      <u-form-item class="property-label" :label="$t('property.simple.content')" style="align-items: baseline;">
         <textarea
           v-model="content"
           @input="onContentChange"
@@ -82,6 +82,7 @@ export default {
   },
   watch: {
     cellPosition: {
+      immediate: true,
       handler() {
         this.loadCellData();
       }

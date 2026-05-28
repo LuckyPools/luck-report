@@ -56,9 +56,15 @@ function buildFromBtns(conf, type) {
   if (conf.formBtns && type === 'file') {
     str = `
         <u-row>
-          <u-form-item size="large">
-            <u-button type="info"  @click.prevent="resetForm">{{ $t('searchForm.reset') }}</u-button>
-            <u-button type="primary"  @click.prevent="submitForm">{{ $t('searchForm.search') }}</u-button>
+          <u-form-item>
+            <u-button type="info"  @click.prevent="resetForm" style="display: inline-flex; align-items: center; justify-content: center;">
+                <i class="iconfont icon-refresh"></i>
+                <span style="margin-left: 4px">{{ $t('searchForm.reset') }}</span>  
+            </u-button>
+            <u-button type="primary" @click.prevent="submitForm" style="margin-left: 5px; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="iconfont icon-search"></i>
+                <span style="margin-left: 4px">{{ $t('searchForm.search') }}</span>
+            </u-button>
           </u-form-item>
         </u-row>
     `

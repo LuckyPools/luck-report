@@ -806,8 +806,10 @@ const en = {
             "exportExcel": "Export Excel",
             "exportExcelPaging": "Export Excel with Paging",
             "exportExcelSheetPaging": "Export Excel by Sheet with Paging",
+            "firstPage": "First Page",
             "prevPage": "Previous Page",
-            "nextPage": "Next Page"
+            "nextPage": "Next Page",
+            "lastPage": "Last Page"
         },
         "loading": {
             "report": "Loading report...",

@@ -806,8 +806,10 @@ const zh = {
             "exportExcel": "导出EXCEL",
             "exportExcelPaging": "分页导出EXCEL",
             "exportExcelSheetPaging": "分页分Sheet导出EXCEL",
+            "firstPage": "首页",
             "prevPage": "上一页",
-            "nextPage": "下一页"
+            "nextPage": "下一页",
+            "lastPage": "末页"
         },
         "loading": {
             "report": "加载报表中...",

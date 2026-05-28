@@ -7,20 +7,8 @@
     @close="handleClose"
     class="pdf-print-dialog"
   >
-    <div class="pdf-print-body">
-      <div v-if="loading" class="pdf-print-loading">
-        <span>{{ $t('preview.loading.default') }}</span>
-      </div>
-
-      <div v-else-if="errorMessage" class="pdf-print-error">
-        <span class="error-message">{{ errorMessage }}</span>
-        <u-button type="primary" @click="loadPaperData">
-          {{ $t('preview.pdfPrint.retry') }}
-        </u-button>
-      </div>
-
-      <template v-else>
-        <fieldset class="pdf-print-toolbar">
+    <div class="pdf-print-body" v-loading="loading">
+      <fieldset class="pdf-print-toolbar">
           <legend>{{ $t('preview.pdfPrint.setup') }}</legend>
 
           <!-- 纸张类型 -->
@@ -140,23 +128,21 @@
         </fieldset>
 
         <!-- PDF预览区域 -->
-        <div class="pdf-preview-container">
+        <div v-show="!loading" class="pdf-preview-container">
           <iframe
             ref="pdfFrame"
             name="_iframe_for_pdf_print"
             class="pdf-preview-frame"
             frameborder="0"
-            @load="hideLoading"
           ></iframe>
         </div>
-      </template>
     </div>
   </UDialog>
 </template>
 
 <script>
 import {buildPageSizeList, mmToPoint, pointToMM} from '@/utils/table.js';
-import showLoading from '@/components/loading/instance.js';
+import {LoadingDirective} from '@/components/loading/instance.js';
 import {showAlert} from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
@@ -183,6 +169,9 @@ export default {
     USelect,
     UOption,
     UInputNumber
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     visible: {
@@ -215,7 +204,6 @@ export default {
       paperSizeList: buildPageSizeList(),
       refreshIndex: 0,
       loading: false,
-      errorMessage: '',
       currentBlobUrl: null
     };
   },
@@ -278,7 +266,6 @@ export default {
      */
     async loadPaperData() {
       this.loading = true;
-      this.errorMessage = '';
 
       try {
         const formData = new FormData();
@@ -306,19 +293,16 @@ export default {
         this.topMarginMM = pointToMM(this.paper.topMargin);
         this.bottomMarginMM = pointToMM(this.paper.bottomMargin);
 
-        this.loading = false;
-
-        this.$nextTick(() => {
-          this.handleApply();
-        });
+        await this.handleApply();
       } catch (error) {
-        this.loading = false;
         console.error('获取纸张信息失败:', error);
         if (error.msg) {
-          this.errorMessage = this.$t('preview.error.serverError') + this.$t('colon') + error.msg;
+          showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
-          this.errorMessage = this.$t('preview.error.loadPaperFail');
+          showAlert(this.$t('preview.error.loadPaperFail'));
         }
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -442,9 +426,7 @@ export default {
      * 将当前纸张配置通过URL参数传递给服务端，直接生成新的PDF预览
      */
     async handleApply() {
-      const loadingInstance = showLoading({
-        text: this.$t('preview.loading.default'),
-      });
+      this.loading = true;
 
       try {
         const currentPaper = {
@@ -469,11 +451,12 @@ export default {
         this.currentBlobUrl = await getPdfBlobUrl(paramObj, currentPaper);
         this.$refs.pdfFrame.src = this.currentBlobUrl;
 
-        loadingInstance.close();
       } catch (error) {
-        loadingInstance.close();
+
         console.error('Error:', error);
         showAlert(this.$t('preview.pdfPrint.fail'));
+      } finally{
+        this.loading = false;
       }
     },
 
@@ -487,17 +470,6 @@ export default {
       } catch (e) {
         console.error('Print error:', e);
         showAlert(this.$t('preview.pdfPrint.printError'));
-      }
-    },
-
-    /**
-     * 隐藏加载状态
-     * PDF iframe 加载完成后调用，关闭 loading 遮罩
-     */
-    hideLoading() {
-      if (this.loadingInstance) {
-        this.loadingInstance.close();
-        this.loadingInstance = null;
       }
     }
   }
@@ -537,29 +509,6 @@ export default {
   width: 100%;
   height: 100%;
   border: solid 1px #c2c2c2;
-}
-
-.pdf-print-loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-  font-size: 16px;
-  color: #666;
-}
-
-.pdf-print-error {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-  font-size: 16px;
-  color: #f56c6c;
-}
-
-.pdf-print-error .error-message {
-  margin-bottom: 20px;
 }
 </style>
 

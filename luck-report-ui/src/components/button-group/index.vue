@@ -14,7 +14,8 @@
     <ul v-if="hasDropdown" class="dropdown-menu" role="menu" :style="{ display: isDropdownOpen ? 'block' : 'none', maxHeight: maxMenuHeight + 'px', overflowY: 'auto' }" ref="dropdown">
       <li v-for="(item, index) in menuItems" :key="index" :class="item.class">
         <a href="javascript:void(0)" @click="handleMenuItemClick(item)" style="text-decoration: none">
-          <i v-if="item.icon" :class="item.icon" :style="item.iconStyle"></i> {{ item.text }}
+          <i v-if="item.icon" :class="item.icon" :style="item.iconStyle" style="margin-right: 8px"></i>
+          <span>{{ item.text }}</span>
         </a>
       </li>
     </ul>
@@ -155,28 +156,27 @@ export default {
   padding: 5px 0;
   margin: 2px 0 0;
   list-style: none;
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: white;
+  border: 1px solid rgb(228, 231, 237);
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 12px 0px;
   border-radius: 4px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
   background-clip: padding-box;
   text-align: left;
 }
 
 .dropdown-menu > li > a {
   display: block;
-  padding: 3px 20px;
+  padding: 4px 16px;
   clear: both;
   font-weight: normal;
-  line-height: 1.42857143;
   color: #333;
   white-space: nowrap;
+  font-size: 14px;
 }
 
 .dropdown-menu > li > a:hover,
 .dropdown-menu > li > a:focus {
-  color: #262626;
+  color: #00554a;
   text-decoration: none;
   background-color: #f5f5f5;
 }
