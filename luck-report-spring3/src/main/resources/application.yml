@@ -1,0 +1,11 @@
+server:
+  port: 8994
+
+spring:
+  application:
+    name: luck-report-agent
+
+logging:
+  level:
+    root: INFO
+    com.luck.agent: DEBUG
