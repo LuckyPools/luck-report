@@ -1,13 +1,10 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { useI18n } from 'vue-i18n'
 
-const defaultRequest: AxiosInstance = axios.create({
+const request: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_PREFIX || '/api',
   timeout: 60000
 })
-
-let customRequestHandler: ((config: AxiosRequestConfig) => Promise<AxiosResponse>) | null = null
-let externalRequestInstance: AxiosInstance | null = null
 
 /**
  * 默认异常处理函数
@@ -32,16 +29,16 @@ function dealError(error: any): Promise<never> {
   return Promise.reject(error)
 }
 
-defaultRequest.interceptors.request.use(
+request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => config,
   (error: any) => dealError(error)
 )
 
-defaultRequest.interceptors.response.use(
+request.interceptors.response.use(
   (response: AxiosResponse) => {
     if (response.status !== 200) {
       dealError({ response: response })
-      throw new Error('Request Error')
+      throw new Error('请求异常')
     }
     return response
   },
@@ -53,77 +50,6 @@ defaultRequest.interceptors.response.use(
     return dealError(error)
   }
 )
-
-export const requestAdapter = {
-  setRequest(request: AxiosInstance) {
-    externalRequestInstance = request
-  },
-
-  setRequestHandler(handler: (config: AxiosRequestConfig) => Promise<AxiosResponse>) {
-    customRequestHandler = handler
-  },
-
-  setBaseURL(url: string) {
-    defaultRequest.defaults.baseURL = url
-  },
-
-  setDefaultHeaders(headers: Record<string, string>) {
-    Object.assign(defaultRequest.defaults.headers.common, headers)
-  },
-
-  addRequestInterceptor(onFulfilled: (config: InternalAxiosRequestConfig) => any, onRejected?: (error: any) => any) {
-    return defaultRequest.interceptors.request.use(onFulfilled, onRejected)
-  },
-
-  addResponseInterceptor(onFulfilled: (response: AxiosResponse) => any, onRejected?: (error: any) => any) {
-    return defaultRequest.interceptors.response.use(onFulfilled, onRejected)
-  },
-
-  async request(config: AxiosRequestConfig): Promise<AxiosResponse> {
-    if (externalRequestInstance) {
-      return externalRequestInstance(config)
-    }
-
-    if (customRequestHandler) {
-      return customRequestHandler(config)
-    }
-
-    return defaultRequest(config)
-  },
-
-  async post(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.request({ method: 'POST', url, data, ...config })
-  },
-
-  async get(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> {
-    return this.request({ method: 'GET', url, ...config })
-  }
-}
-
-/**
- * POST请求方法
- *
- * @param url 请求地址
- * @param param 请求参数，默认为空对象
- * @param config axios配置项，默认为空对象
- * @returns {Promise<unknown>} 返回处理后的响应数据
- */
-async function post(url: string, param: any = {}, config: AxiosRequestConfig = {}): Promise<unknown> {
-  const res = await requestAdapter.post(url, param, config)
-  return dealAxiosResult(res)
-}
-
-/**
- * GET请求方法
- *
- * @param url 请求地址
- * @param config axios配置项，默认为空对象
- * @returns {Promise<unknown>} 返回处理后的响应数据
- */
-async function get(url: string, config: AxiosRequestConfig = {}): Promise<unknown> {
-  const res = await requestAdapter.get(url, config)
-  return dealAxiosResult(res)
-}
 
 /**
  * 处理响应结果
@@ -140,9 +66,34 @@ function dealAxiosResult(res: AxiosResponse): Promise<unknown> {
   return Promise.resolve(realRes)
 }
 
+/**
+ * POST请求方法
+ *
+ * @param url 请求地址
+ * @param param 请求参数，默认为空对象
+ * @param config axios配置项，默认为空对象
+ * @returns {Promise<unknown>} 返回处理后的响应数据
+ */
+async function post(url: string, param: any = {}, config: AxiosRequestConfig = {}): Promise<unknown> {
+  const res = await request.post(url, param, config)
+  return dealAxiosResult(res)
+}
+
+/**
+ * GET请求方法
+ *
+ * @param url 请求地址
+ * @param config axios配置项，默认为空对象
+ * @returns {Promise<unknown>} 返回处理后的响应数据
+ */
+async function get(url: string, config: AxiosRequestConfig = {}): Promise<unknown> {
+  const res = await request.get(url, config)
+  return dealAxiosResult(res)
+}
+
 export default {
-  default: defaultRequest,
-  ...defaultRequest,
+  default: request,
+  ...request,
   post,
   get
 }
