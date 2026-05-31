@@ -8,12 +8,29 @@ import type { SearchStatus, McpToolCall } from '@/views/agent/types/chat'
  */
 
 /**
+ * 工具调用数据接口
+ * 后端返回的工具调用信息，包含工具名、调用ID、参数等
+ */
+export interface ToolCallData {
+  /** 事件类型，固定为 tool_call */
+  type: 'tool_call'
+  /** 工具名称，如 readCell、setCell */
+  name: string
+  /** 工具调用ID，用于关联执行结果 */
+  callId: string
+  /** 工具参数 */
+  args: Record<string, unknown>
+}
+
+/**
  * SSE 事件回调接口
  * @property onMessage - 收到消息片段时的回调
  * @property onReasoning - 收到推理/深度思考内容片段时的回调
  * @property onTokenUsage - 收到 Token 用量时的回调
  * @property onSearchStatus - 收到联网搜索状态变更时的回调
  * @property onMcpTools - 收到 MCP 工具调用信息时的回调
+ * @property onToolCall - 收到工具调用事件时的回调
+ * @property onSession - 收到会话ID时的回调
  * @property onDone - 流式传输完成时的回调
  * @property onError - 收到错误事件时的回调
  */
@@ -23,6 +40,8 @@ export interface SseCallbacks {
   onTokenUsage?: (usage: TokenUsage) => void
   onSearchStatus?: (status: SearchStatus) => void
   onMcpTools?: (tools: McpToolCall[]) => void
+  onToolCall?: (toolData: ToolCallData) => void
+  onSession?: (sessionId: string) => void
   onDone: () => void
   onError: (error: string) => void
 }
@@ -94,6 +113,19 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
     if (data && data !== '[DONE]') {
       callbacks.onMessage(data)
     }
+  } else if (type === 'session') {
+    if (data && callbacks.onSession) {
+      callbacks.onSession(data)
+    }
+  } else if (type === 'tool_call') {
+    if (data && callbacks.onToolCall) {
+      try {
+        const toolData = JSON.parse(data) as ToolCallData
+        callbacks.onToolCall(toolData)
+      } catch {
+        console.error('[chat] tool_call 事件解析失败:', data)
+      }
+    }
   } else if (type === 'reasoning_content') {
     if (data && callbacks.onReasoning) {
       callbacks.onReasoning(data)
@@ -132,8 +164,7 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
  * 发起 SSE 流式聊天请求
  * 使用 fetch + ReadableStream 读取 SSE 响应
  * 通过回调函数将解析后的事件传递给调用方
- * 支持 message、reasoning_content、token_usage、search_status、mcp_tools 事件类型
- * 对照 HiveChat 补齐 attachments、searchEnabled、contextMessages 参数
+ * 支持 message、reasoning_content、token_usage、search_status、mcp_tools、tool_call、session 事件类型
  *
  * @param message - 用户输入的消息内容
  * @param callbacks - SSE 事件回调对象
@@ -141,6 +172,7 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
  * @param attachments - 可选，图片附件列表
  * @param searchEnabled - 可选，是否启用联网搜索
  * @param contextMessages - 可选，历史消息上下文列表
+ * @param sessionId - 可选，会话ID，用于多轮对话
  */
 export async function chatStream(
   message: string,
@@ -148,12 +180,16 @@ export async function chatStream(
   signal?: AbortSignal,
   attachments?: AttachmentPayload[],
   searchEnabled?: boolean,
-  contextMessages?: ContextMessage[]
+  contextMessages?: ContextMessage[],
+  sessionId?: string
 ): Promise<void> {
-  // 统一使用 POST 请求，以支持 contextMessages 等复杂参数
   const requestBody: Record<string, unknown> = {
     message,
     searchEnabled: searchEnabled || false
+  }
+
+  if (sessionId) {
+    requestBody.sessionId = sessionId
   }
 
   if (attachments && attachments.length > 0) {
@@ -176,6 +212,81 @@ export async function chatStream(
   }
 
   const url = '/api/chat/stream'
+
+  const response = await fetch(url, fetchOptions)
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  const reader = response.body?.getReader()
+  const decoder = new TextDecoder()
+
+  if (!reader) {
+    throw new Error('Response body is null')
+  }
+
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+
+    const parts = buffer.split('\n\n')
+    buffer = parts.pop() || ''
+
+    for (const part of parts) {
+      if (!part.trim()) continue
+      const { type, data } = parseSseEvent(part)
+      dispatchSseEvent(type, data, callbacks)
+    }
+  }
+
+  if (buffer.trim()) {
+    const { type, data } = parseSseEvent(buffer)
+    dispatchSseEvent(type, data, callbacks)
+  }
+}
+
+/**
+ * 发送工具执行结果到后端
+ * 前端执行工具后，将结果发送回后端，让 AI 继续生成响应
+ *
+ * @param sessionId - 会话ID
+ * @param toolData - 工具调用数据
+ * @param result - 工具执行结果
+ * @param callbacks - SSE 事件回调对象
+ * @param signal - AbortSignal，用于取消请求
+ */
+export async function sendToolResult(
+  sessionId: string,
+  toolData: ToolCallData,
+  result: unknown,
+  callbacks: SseCallbacks,
+  signal?: AbortSignal
+): Promise<void> {
+  const requestBody = {
+    sessionId,
+    callId: toolData.callId,
+    toolName: toolData.name,
+    result,
+    success: true
+  }
+
+  const fetchOptions: RequestInit = {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+      'Cache-Control': 'no-cache'
+    },
+    body: JSON.stringify(requestBody)
+  }
+
+  const url = '/api/chat/tool-result'
 
   const response = await fetch(url, fetchOptions)
 

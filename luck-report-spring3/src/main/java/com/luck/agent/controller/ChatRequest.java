@@ -14,6 +14,12 @@ import java.util.List;
 public class ChatRequest {
 
     /**
+     * 会话ID
+     * 用于关联多轮对话，首次请求不传，后续请求需携带
+     */
+    private String sessionId;
+
+    /**
      * 用户输入的消息内容
      */
     private String message;

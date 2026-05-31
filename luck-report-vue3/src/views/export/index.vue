@@ -23,28 +23,28 @@ const agentRef = ref<InstanceType<typeof AgentView> | null>(null)
 
 /**
  * 处理读取按钮点击
- * 使用代码字符串方式触发父窗口执行 readCellA1 方法并打印返回值
+ * 使用代码字符串方式触发父窗口执行 readCellByAgent 方法并打印返回值
  */
 const handleRead = async () => {
   try {
-    const result = await executeCode("readCellA1()")
-    console.log('[Export] readCellA1 返回值:', result)
+    const result = await executeCode("readCellByAgent(0,0)")
+    console.log('[Export] readCell 返回值:', result)
   } catch (error) {
-    console.error('[Export] readCellA1 执行失败:', error)
+    console.error('[Export] readCell 执行失败:', error)
   }
 }
 
 /**
  * 处理设置按钮点击
- * 使用代码字符串方式触发父窗口执行 setCellA1 方法并打印返回值
+ * 使用代码字符串方式触发父窗口执行 setCellByAgent 方法并打印返回值
  */
 const handleSet = async () => {
   try {
     const value = '测试值-' + Date.now()
-    const result = await executeCode(`setCellA1('${value}')`)
-    console.log('[Export] setCellA1 返回值:', result)
+    const result = await executeCode(`setCellByAgent(0,0,'${value}')`)
+    console.log('[Export] setCell 返回值:', result)
   } catch (error) {
-    console.error('[Export] setCellA1 执行失败:', error)
+    console.error('[Export] setCell 执行失败:', error)
   }
 }
 

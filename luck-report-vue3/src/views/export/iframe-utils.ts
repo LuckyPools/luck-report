@@ -70,8 +70,8 @@ initResponseListener()
 /**
  * 发送指令到父窗口
  * 通过 postMessage 实现跨域通信，通知父窗口执行对应方法
- * 
- * @param action - 要执行的方法名，如 'readCellA1'、'setCellA1'
+ *
+ * @param action - 要执行的方法名，如 'readCellByAgent'、'setCellByAgent'
  * @param data - 可选的附加数据
  * @param targetOrigin - 目标窗口源，默认 '*' 表示不限制
  * @return void
@@ -103,9 +103,9 @@ export function sendCommandToParent(
 
 /**
  * 执行代码字符串并获取返回值
- * 支持发送完整的代码字符串如 "readCellA1()" 或 "setCellA1('value')"
+ * 支持发送完整的代码字符串如 "readCellByAgent()" 或 "setCellByAgent('value')"
  * 父窗口使用 new Function 动态执行代码并返回结果
- * 
+ *
  * @param codeString - 代码字符串，格式如 "methodName(arg1, arg2, ...)"
  * @param targetOrigin - 目标窗口源，默认 '*' 表示不限制
  * @param timeout - 超时时间，默认 5000ms
@@ -158,29 +158,4 @@ export function executeCode(
       reject(error)
     }
   })
-}
-
-/**
- * 读取单元格 A1 的值
- * 触发父窗口执行 readCellA1 方法并返回结果
- * 
- * @return Promise<any> 返回单元格 A1 的值
- */
-export async function readCellA1(): Promise<any> {
-  const result = await executeCode("readCellA1()")
-  console.log('[iframe-utils] readCellA1 返回值:', result)
-  return result
-}
-
-/**
- * 设置单元格 A1 的值
- * 触发父窗口执行 setCellA1 方法并返回结果
- * 
- * @param value - 要设置的值
- * @return Promise<any> 返回设置结果
- */
-export async function setCellA1(value: any): Promise<any> {
-  const result = await executeCode(`setCellA1('${value}')`)
-  console.log('[iframe-utils] setCellA1 返回值:', result)
-  return result
 }

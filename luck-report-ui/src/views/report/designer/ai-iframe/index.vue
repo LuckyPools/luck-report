@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import {readCellA1, setCellA1} from "@/views/report/designer/ai-iframe/utils";
+import { readCellByAgent as readCellByAgentUtil, setCellByAgent as setCellByAgentUtil } from "@/views/report/designer/ai-iframe/utils";
 
 /**
  * AI 对话框 iframe 组件
@@ -212,22 +212,28 @@ export default {
 
     },
     /**
-     * 读取单元格 A1 的值
-     * 示例方法，可从报表设计器中获取单元格数据
-     * @param {any} data - 可选的附加数据或参数
-     * @return {string} 返回单元格 A1 的值
+     * 读取指定坐标的单元格数据
+     * 接收参数对象，由 new Function 动态调用，与 utils.js 签名一致
+     *
+     * @param {Object} params - 参数对象
+     * @param {number} params.rowIndex - 单元格行坐标，从0开始
+     * @param {number} params.colIndex - 单元格列坐标，从0开始
+     * @return {Object|null} 单元格定义对象
      */
-    readCellA1(data) {
-      return readCellA1(data);
+    readCellByAgent({ rowIndex, colIndex }) {
+      return readCellByAgentUtil({ rowIndex, colIndex });
     },
     /**
-     * 设置单元格 A1 的值
-     * 示例方法，可设置报表设计器中的单元格数据
-     * @param {any} value - 要设置的值
-     * @return {boolean} 返回是否设置成功
+     * 设置指定坐标的单元格数据
+     * 接收参数对象，由 new Function 动态调用，与 utils.js 签名一致
+     *
+     * @param {Object} params - 参数对象
+     * @param {number} params.rowIndex - 单元格行坐标，从0开始
+     * @param {number} params.colIndex - 单元格列坐标，从0开始
+     * @param {string} params.cellValue - 要设置的单元格值
      */
-    setCellA1(value) {
-      return setCellA1(value);
+    setCellByAgent({ rowIndex, colIndex, cellValue }) {
+      return setCellByAgentUtil({ rowIndex, colIndex, cellValue });
     }
   }
 }
