@@ -1,5 +1,6 @@
 package com.luck.agent.controller;
 
+import com.luck.agent.prompt.PromptHelper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -124,6 +125,10 @@ public class ChatController {
      */
     private List<ChatMessage> buildMessages(ChatRequest request) {
         List<ChatMessage> messages = new ArrayList<>();
+
+        // 添加系统提示词（从 prompt 目录加载）
+        String systemPrompt = PromptHelper.buildSystemPrompt("智能报表助手", "你是一个专业的数据分析助手，能够帮助用户进行数据查询、分析和报表生成。");
+        messages.add(SystemMessage.from(systemPrompt));
 
         // 追加历史上下文消息
         if (request.getContextMessages() != null) {
