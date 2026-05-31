@@ -16,7 +16,7 @@
  * 提供读取和设置按钮，通过 postMessage 与父窗口通信
  */
 import { ref, onMounted } from 'vue'
-import AgentView from '@/views/agent/index.vue'
+import AgentView from '@/views/chat/index.vue'
 import { executeCode } from './iframe-utils'
 
 const agentRef = ref<InstanceType<typeof AgentView> | null>(null)
@@ -27,7 +27,7 @@ const agentRef = ref<InstanceType<typeof AgentView> | null>(null)
  */
 const handleRead = async () => {
   try {
-    const result = await executeCode("readCellByAgent(0,0)")
+    const result = await executeCode("readCellByAgent({ rowIndex:0, colIndex:0 })")
     console.log('[Export] readCell 返回值:', result)
   } catch (error) {
     console.error('[Export] readCell 执行失败:', error)
@@ -41,7 +41,7 @@ const handleRead = async () => {
 const handleSet = async () => {
   try {
     const value = '测试值-' + Date.now()
-    const result = await executeCode(`setCellByAgent(0,0,'${value}')`)
+    const result = await executeCode(`setCellByAgent({ rowIndex:0, colIndex:0, cellValue:'${value}'})`)
     console.log('[Export] setCell 返回值:', result)
   } catch (error) {
     console.error('[Export] setCell 执行失败:', error)

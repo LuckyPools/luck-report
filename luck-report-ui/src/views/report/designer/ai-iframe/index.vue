@@ -43,7 +43,7 @@ export default {
      */
     url: {
       type: String,
-      default: 'http://localhost:8996/export'
+      default: 'http://localhost:8995/export'
     },
     /**
      * 是否默认显示对话框
