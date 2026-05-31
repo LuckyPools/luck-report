@@ -9,7 +9,31 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 /**
  * 消息类型
  */
-export type MessageType = 'text' | 'error' | 'break'
+export type MessageType = 'text' | 'error' | 'break' | 'tool_call'
+
+/**
+ * Agent 工具调用状态
+ */
+export type AgentToolStatus = 'running' | 'confirming' | 'done' | 'error' | 'rejected'
+
+/**
+ * Agent 工具调用记录
+ * 嵌入到 Message 中展示工具执行过程和结果
+ */
+export interface AgentToolCall {
+  /** 工具调用 ID，对应 LLM 返回的 toolCallId */
+  toolCallId: string
+  /** 工具名称 */
+  toolName: string
+  /** 工具输入参数 */
+  input: Record<string, any>
+  /** 工具执行结果 */
+  result?: string
+  /** 调用状态 */
+  status: AgentToolStatus
+  /** 错误信息（status 为 error 时） */
+  error?: string
+}
 
 /**
  * 错误类型
@@ -67,6 +91,8 @@ export interface Message {
   searchStatus?: SearchStatus
   /** MCP 工具调用记录 */
   mcpTools?: McpToolCall[]
+  /** Agent 工具调用记录（type 为 tool_call 时必填） */
+  agentToolCall?: AgentToolCall
   /** Provider ID，用于显示 Provider Logo */
   providerId?: string
 }

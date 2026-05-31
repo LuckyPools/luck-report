@@ -119,6 +119,60 @@
       </div>
     </template>
 
+    <!-- Agent 工具调用消息 -->
+    <template v-else-if="message.type === 'tool_call' && message.agentToolCall">
+      <div class="message-wrapper assistant-wrapper">
+        <div class="avatar-column">
+          <a-avatar
+            v-if="currentProvider?.providerLogo"
+            :src="currentProvider.providerLogo"
+            class="assistant-avatar-img"
+          />
+          <div v-else class="assistant-avatar">
+            {{ currentProvider?.providerName?.charAt(0) || 'AI' }}
+          </div>
+        </div>
+        <div class="assistant-content">
+          <div class="agent-tool-call" :class="`tool-status-${message.agentToolCall.status}`">
+            <div class="tool-call-header">
+              <span class="tool-call-icon">
+                <LoadingOutlined v-if="message.agentToolCall.status === 'running'" spin />
+                <QuestionCircleOutlined v-else-if="message.agentToolCall.status === 'confirming'" />
+                <CheckCircleOutlined v-else-if="message.agentToolCall.status === 'done'" />
+                <CloseCircleOutlined v-else-if="message.agentToolCall.status === 'error'" />
+                <StopOutlined v-else-if="message.agentToolCall.status === 'rejected'" />
+              </span>
+              <span class="tool-call-name">{{ message.agentToolCall.toolName }}</span>
+              <span class="tool-call-status">
+                <template v-if="message.agentToolCall.status === 'running'">执行中...</template>
+                <template v-else-if="message.agentToolCall.status === 'confirming'">等待确认</template>
+                <template v-else-if="message.agentToolCall.status === 'done'">执行成功</template>
+                <template v-else-if="message.agentToolCall.status === 'error'">执行失败</template>
+                <template v-else-if="message.agentToolCall.status === 'rejected'">已拒绝</template>
+              </span>
+            </div>
+            <details class="tool-call-details">
+              <summary class="tool-call-summary">查看详情</summary>
+              <div class="tool-call-body">
+                <div class="tool-call-section">
+                  <span class="tool-call-label">输入参数：</span>
+                  <pre class="tool-call-code">{{ JSON.stringify(message.agentToolCall.input, null, 2) }}</pre>
+                </div>
+                <div v-if="message.agentToolCall.result" class="tool-call-section">
+                  <span class="tool-call-label">执行结果：</span>
+                  <pre class="tool-call-code">{{ message.agentToolCall.result }}</pre>
+                </div>
+                <div v-if="message.agentToolCall.error" class="tool-call-section">
+                  <span class="tool-call-label">错误信息：</span>
+                  <pre class="tool-call-code error">{{ message.agentToolCall.error }}</pre>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- 助手消息 -->
     <template v-else>
       <div class="message-wrapper assistant-wrapper">
@@ -240,7 +294,9 @@ import {
   BulbOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  QuestionCircleOutlined,
+  StopOutlined
 } from '@ant-design/icons-vue'
 import type { Message, Attachment, ModelProvider } from '../types/chat'
 import MarkdownRender from './MarkdownRender.vue'
@@ -638,5 +694,132 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* Agent 工具调用样式 */
+.agent-tool-call {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.agent-tool-call.tool-status-running {
+  border-color: #3b82f6;
+}
+
+.agent-tool-call.tool-status-confirming {
+  border-color: #f59e0b;
+}
+
+.agent-tool-call.tool-status-done {
+  border-color: #22c55e;
+}
+
+.agent-tool-call.tool-status-error {
+  border-color: #ef4444;
+}
+
+.agent-tool-call.tool-status-rejected {
+  border-color: #9ca3af;
+}
+
+.tool-call-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: #f9fafb;
+}
+
+.tool-call-icon {
+  font-size: 14px;
+}
+
+.tool-call-icon :deep(.anticon) {
+  font-size: 14px;
+}
+
+.tool-status-running .tool-call-icon {
+  color: #3b82f6;
+}
+
+.tool-status-confirming .tool-call-icon {
+  color: #f59e0b;
+}
+
+.tool-status-done .tool-call-icon {
+  color: #22c55e;
+}
+
+.tool-status-error .tool-call-icon {
+  color: #ef4444;
+}
+
+.tool-status-rejected .tool-call-icon {
+  color: #9ca3af;
+}
+
+.tool-call-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.tool-call-status {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+.tool-call-details {
+  border-top: 1px solid #e5e7eb;
+}
+
+.tool-call-summary {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #6b7280;
+  list-style: none;
+}
+
+.tool-call-summary:hover {
+  background-color: #f3f4f6;
+}
+
+.tool-call-body {
+  padding: 8px 12px;
+}
+
+.tool-call-section {
+  margin-bottom: 8px;
+}
+
+.tool-call-section:last-child {
+  margin-bottom: 0;
+}
+
+.tool-call-label {
+  font-size: 12px;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tool-call-code {
+  margin: 0;
+  padding: 8px;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-call-code.error {
+  color: #ef4444;
+  background-color: #fef2f2;
 }
 </style>

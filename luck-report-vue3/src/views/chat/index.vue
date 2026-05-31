@@ -47,6 +47,9 @@
             :mcp-tools="mcpTools"
             :provider-id="currentProviderId"
             :all-provider-list-by-key="allProviderListByKey"
+            :pending-confirm-tool-call="pendingConfirmToolCall"
+            @confirm-tool="confirmAgentTool"
+            @reject-tool="rejectAgentTool"
           />
           <div v-if="responseStatus === 'done' && messageList.length > 0" class="new-chat-area">
             <a-button type="default" size="small" @click="handleNewChat">
@@ -115,6 +118,7 @@ const {
   mcpTools,
   historyType,
   historyCount,
+  pendingConfirmToolCall,
   sendMessage,
   stopChat,
   clearHistory,
@@ -124,7 +128,9 @@ const {
   setIsUserScrolling,
   setWebSearchEnabled,
   setHistoryType,
-  setHistoryCount
+  setHistoryCount,
+  confirmAgentTool,
+  rejectAgentTool
 } = useChat()
 
 const {

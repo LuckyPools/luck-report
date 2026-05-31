@@ -1,13 +1,18 @@
 import { ref, onUnmounted } from 'vue'
-import type { Message, ResponseStatus, Attachment, HistoryType, SearchStatus, McpToolCall } from '../types/chat'
+import type { Message, ResponseStatus, Attachment, HistoryType, SearchStatus, McpToolCall, AgentToolCall } from '../types/chat'
 import type { TokenUsage } from '@/api/chat'
-import { chatStream } from '@/api/chat'
+import { AgentEngine } from '@/views/agent/composables/useAgent'
+import type { AgentEvent } from '@/views/agent/core/agent-loop'
+import type { ToolCall } from '@/views/agent/tools/types'
 
 /**
  * 聊天核心逻辑 Hook
  * 管理消息列表、流式响应、发送消息等功能
  * SSE 网络请求通过 api/chat 层发起，本层只负责状态管理和回调处理
- * 对照 HiveChat useChat 补齐 addBreak、prepareMessage、searchStatus、mcpTools 支持
+ *
+ * Agent 集成：
+ * - 始终走 AgentEngine.start() 路径（Agentic Loop）
+ * - Agent 事件回调中更新 messageList、responseMessage 等响应式状态
  */
 export function useChat() {
   const messageList = ref<Message[]>([])
@@ -30,6 +35,24 @@ export function useChat() {
 
   /** 历史记录条数，对应 HiveChat chat store 的 historyCount */
   const historyCount = ref(5)
+
+  /** Agent 待确认的工具调用 */
+  const pendingConfirmToolCall = ref<ToolCall | null>(null)
+
+  /** Agent 引擎实例 */
+  const agentEngine = new AgentEngine({
+    maxIterations: 10,
+    onToolConfirm: async (toolCall: ToolCall) => {
+      // 暂停等待用户确认，设置 pendingConfirmToolCall 供 UI 展示确认弹窗
+      pendingConfirmToolCall.value = toolCall
+      return new Promise<boolean>((resolve) => {
+        confirmResolver = resolve
+      })
+    }
+  })
+
+  /** 工具确认回调的 resolve 函数 */
+  let confirmResolver: ((value: boolean) => void) | null = null
 
   let abortController: AbortController | null = null
   let rawContent = ''
@@ -147,9 +170,184 @@ export function useChat() {
   }
 
   /**
+   * 构建 assistant 消息对象
+   * 提取公共逻辑，普通模式和 Agent 模式共用
+   *
+   * @param content - 消息文本内容
+   * @param reasoning - 推理内容
+   * @param extra - 额外字段
+   * @returns Message 对象
+   */
+  const buildAssistantMessage = (
+    content: string,
+    reasoning?: string,
+    extra?: Partial<Message>
+  ): Message => ({
+    id: Date.now(),
+    role: 'assistant',
+    content,
+    createdAt: new Date(),
+    type: 'text',
+    reasoningContent: reasoning || undefined,
+    totalTokens: (tokenUsage as TokenUsage | undefined)?.totalTokens,
+    inputTokens: (tokenUsage as TokenUsage | undefined)?.inputTokens,
+    outputTokens: (tokenUsage as TokenUsage | undefined)?.outputTokens,
+    searchStatus: searchStatus.value !== 'none' ? searchStatus.value : undefined,
+    mcpTools: mcpTools.value.length > 0 ? [...mcpTools.value] : undefined,
+    ...extra
+  })
+
+  /**
+   * 处理 Agent 循环事件
+   * 将 AgentEvent 转换为 messageList 中的 Message 和响应式状态更新
+   *
+   * @param event - Agent 事件
+   */
+  const handleAgentEvent = (event: AgentEvent) => {
+    switch (event.type) {
+      case 'text_delta':
+        appendContent(event.content)
+        break
+
+      case 'reasoning_delta':
+        appendReasoning(event.content)
+        break
+
+      case 'tool_call_start': {
+        // 先保存当前流式文本为 assistant 消息
+        cancelRaf()
+        responseMessage.value = rawContent
+        responseReasoning.value = rawReasoning
+        if (rawContent || rawReasoning) {
+          messageList.value.push(buildAssistantMessage(rawContent, rawReasoning))
+          rawContent = ''
+          rawReasoning = ''
+          responseMessage.value = ''
+          responseReasoning.value = ''
+        }
+        // 插入工具调用消息
+        const toolCallMsg: Message = {
+          id: Date.now(),
+          role: 'assistant',
+          content: '',
+          createdAt: new Date(),
+          type: 'tool_call',
+          agentToolCall: {
+            toolCallId: event.toolCall.toolCallId,
+            toolName: event.toolCall.toolName,
+            input: event.toolCall.input,
+            status: 'running'
+          }
+        }
+        messageList.value.push(toolCallMsg)
+        break
+      }
+
+      case 'tool_call_confirm': {
+        // 更新工具调用消息状态为 confirming
+        const msg = messageList.value.find(
+          m => m.agentToolCall?.toolCallId === event.toolCall.toolCallId
+        )
+        if (msg?.agentToolCall) {
+          msg.agentToolCall.status = 'confirming'
+        }
+        break
+      }
+
+      case 'tool_call_result': {
+        // 更新工具调用消息的结果和状态
+        const toolMsg = messageList.value.find(
+          m => m.agentToolCall?.toolCallId === event.toolCall.toolCallId
+        )
+        if (toolMsg?.agentToolCall) {
+          toolMsg.agentToolCall.result = event.toolCall.result
+          toolMsg.agentToolCall.status = event.toolCall.status === 'done' ? 'done' : 'error'
+          toolMsg.agentToolCall.error = event.toolCall.error
+        }
+        break
+      }
+
+      case 'done': {
+        // 保存最后的流式文本
+        cancelRaf()
+        responseMessage.value = rawContent
+        responseReasoning.value = rawReasoning
+        if (rawContent || rawReasoning) {
+          messageList.value.push(buildAssistantMessage(rawContent, rawReasoning))
+        }
+        // 重置流式状态
+        rawContent = ''
+        rawReasoning = ''
+        responseMessage.value = ''
+        responseReasoning.value = ''
+        responseStatus.value = 'done'
+        abortController = null
+
+        if (event.reason === 'error') {
+          const errorMessage: Message = {
+            id: Date.now(),
+            role: 'assistant',
+            content: event.error || 'Agent 运行出错',
+            createdAt: new Date(),
+            type: 'error',
+            errorType: 'NetworkError',
+            errorMessage: event.error
+          }
+          messageList.value.push(errorMessage)
+        }
+        break
+      }
+    }
+  }
+
+  /**
+   * Agent 模式下的发送消息
+   * 通过 AgentEngine 启动 Agentic Loop，替代直接调 chatStream
+   *
+   * @param content - 用户输入消息
+   */
+  const sendMessageViaAgent = async (content: string) => {
+    abortController = new AbortController()
+
+    try {
+      await agentEngine.start(content, handleAgentEvent, abortController.signal)
+    } catch (error: unknown) {
+      const err = error as Error
+      if (err.name === 'AbortError') {
+        cancelRaf()
+        responseMessage.value = rawContent
+        responseReasoning.value = rawReasoning
+        if (rawContent || rawReasoning) {
+          messageList.value.push(buildAssistantMessage(rawContent, rawReasoning))
+        }
+      } else {
+        const errorMessage: Message = {
+          id: Date.now(),
+          role: 'assistant',
+          content: err.message || 'Agent 请求失败',
+          createdAt: new Date(),
+          type: 'error',
+          errorType: 'NetworkError',
+          errorMessage: err.message
+        }
+        messageList.value.push(errorMessage)
+      }
+    } finally {
+      responseStatus.value = 'done'
+      responseMessage.value = ''
+      responseReasoning.value = ''
+      rawContent = ''
+      rawReasoning = ''
+      tokenUsage = undefined
+      searchStatus.value = 'none'
+      mcpTools.value = []
+      abortController = null
+    }
+  }
+
+  /**
    * 发送消息
-   * 构建用户消息并通过 api/chat 层发起 SSE 流式请求
-   * 对照 HiveChat 补齐 attachments、searchEnabled、历史消息上下文支持
+   * 通过 AgentEngine 启动 Agentic Loop，LLM 可调用工具操作报表
    *
    * @param content - 用户输入的消息内容
    * @param attachments - 可选，图片附件列表
@@ -181,116 +379,17 @@ export function useChat() {
     tokenUsage = undefined
     searchStatus.value = 'none'
     mcpTools.value = []
+    pendingConfirmToolCall.value = null
 
-    // 获取过滤后的历史消息作为上下文
-    const contextMessages = getFilteredMessages()
-
-    abortController = new AbortController()
-
-    try {
-      await chatStream(
-          content.trim(),
-          {
-            onMessage: (data: string) => {
-              appendContent(data)
-            },
-            onReasoning: (data: string) => {
-              appendReasoning(data)
-            },
-            onTokenUsage: (usage: TokenUsage) => {
-              updateTokenUsage(usage)
-            },
-            onSearchStatus: (status: SearchStatus) => {
-              searchStatus.value = status
-            },
-            onMcpTools: (tools: McpToolCall[]) => {
-              mcpTools.value = tools
-            },
-            onDone: () => {
-              // 无需额外处理，finally 中统一保存消息
-            },
-            onError: (error: string) => {
-              throw new Error(error)
-            }
-          },
-          abortController.signal,
-          attachments,
-          searchEnabled,
-          contextMessages
-      )
-
-      cancelRaf()
-      responseMessage.value = rawContent
-      responseReasoning.value = rawReasoning
-
-      if (rawContent || rawReasoning) {
-        const assistantMessage: Message = {
-          id: Date.now(),
-          role: 'assistant',
-          content: rawContent,
-          createdAt: new Date(),
-          type: 'text',
-          reasoningContent: rawReasoning || undefined,
-          totalTokens: (tokenUsage as TokenUsage | undefined)?.totalTokens,
-          inputTokens: (tokenUsage as TokenUsage | undefined)?.inputTokens,
-          outputTokens: (tokenUsage as TokenUsage | undefined)?.outputTokens,
-          searchStatus: searchStatus.value !== 'none' ? searchStatus.value : undefined,
-          mcpTools: mcpTools.value.length > 0 ? [...mcpTools.value] : undefined
-        }
-        messageList.value.push(assistantMessage)
-      }
-    } catch (error: unknown) {
-      const err = error as Error
-      if (err.name === 'AbortError') {
-        cancelRaf()
-        responseMessage.value = rawContent
-        responseReasoning.value = rawReasoning
-        if (rawContent || rawReasoning) {
-          const partialMessage: Message = {
-            id: Date.now(),
-            role: 'assistant',
-            content: rawContent,
-            createdAt: new Date(),
-            type: 'text',
-            reasoningContent: rawReasoning || undefined,
-            totalTokens: (tokenUsage as TokenUsage | undefined)?.totalTokens,
-            inputTokens: (tokenUsage as TokenUsage | undefined)?.inputTokens,
-            outputTokens: (tokenUsage as TokenUsage | undefined)?.outputTokens,
-            searchStatus: searchStatus.value !== 'none' ? searchStatus.value : undefined,
-            mcpTools: mcpTools.value.length > 0 ? [...mcpTools.value] : undefined
-          }
-          messageList.value.push(partialMessage)
-        }
-      } else {
-        const errorMessage: Message = {
-          id: Date.now(),
-          role: 'assistant',
-          content: err.message || '请求失败',
-          createdAt: new Date(),
-          type: 'error',
-          errorType: 'NetworkError',
-          errorMessage: err.message
-        }
-        messageList.value.push(errorMessage)
-      }
-    } finally {
-      responseStatus.value = 'done'
-      responseMessage.value = ''
-      responseReasoning.value = ''
-      rawContent = ''
-      rawReasoning = ''
-      tokenUsage = undefined
-      searchStatus.value = 'none'
-      mcpTools.value = []
-      abortController = null
-    }
+    await sendMessageViaAgent(content.trim())
   }
 
   /**
    * 停止对话
-   * 中断当前 SSE 请求，已接收的内容会在 catch(AbortError) 中保存到消息列表
+   * 中断当前 SSE 请求和 AgentEngine，已接收的内容会在 catch(AbortError) 中保存到消息列表
    */
   const stopChat = () => {
+    agentEngine.stop()
     if (abortController) {
       abortController.abort()
     }
@@ -298,9 +397,11 @@ export function useChat() {
 
   /**
    * 清空历史
+   * 同时清空 Agent 记忆
    */
   const clearHistory = () => {
     messageList.value = []
+    agentEngine.clearMemory()
   }
 
   /**
@@ -367,11 +468,52 @@ export function useChat() {
     historyCount.value = count
   }
 
+  /**
+   * 确认执行 Agent 工具调用
+   * 用户确认后，Agent 循环继续执行
+   */
+  const confirmAgentTool = () => {
+    if (confirmResolver) {
+      confirmResolver(true)
+      confirmResolver = null
+    }
+    pendingConfirmToolCall.value = null
+  }
+
+  /**
+   * 拒绝执行 Agent 工具调用
+   * 用户拒绝后，Agent 循环将工具结果标记为拒绝
+   */
+  const rejectAgentTool = () => {
+    if (confirmResolver) {
+      confirmResolver(false)
+      confirmResolver = null
+    }
+    pendingConfirmToolCall.value = null
+  }
+
+  /**
+   * 更新 Agent 项目规范（长期记忆）
+   * @param rules - 规范条目数组
+   */
+  const updateProjectRules = (rules: string[]) => {
+    agentEngine.updateProjectRules(rules)
+  }
+
+  /**
+   * 更新 Agent 用户偏好（长期记忆）
+   * @param preferences - 偏好键值对
+   */
+  const updateUserPreferences = (preferences: Record<string, any>) => {
+    agentEngine.updateUserPreferences(preferences)
+  }
+
   onUnmounted(() => {
     cancelRaf()
     if (abortController) {
       abortController.abort()
     }
+    agentEngine.stop()
   })
 
   return {
@@ -385,6 +527,7 @@ export function useChat() {
     mcpTools,
     historyType,
     historyCount,
+    pendingConfirmToolCall,
     sendMessage,
     stopChat,
     clearHistory,
@@ -395,6 +538,10 @@ export function useChat() {
     setWebSearchEnabled,
     setHistoryType,
     setHistoryCount,
+    confirmAgentTool,
+    rejectAgentTool,
+    updateProjectRules,
+    updateUserPreferences,
     getFilteredMessages
   }
 }

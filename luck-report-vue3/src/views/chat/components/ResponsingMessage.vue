@@ -58,6 +58,25 @@
           </details>
         </div>
 
+        <!-- Agent 工具确认弹窗 -->
+        <div v-if="pendingConfirmToolCall" class="agent-tool-confirm">
+          <div class="confirm-header">
+            <QuestionCircleOutlined class="confirm-icon" />
+            <span class="confirm-title">工具执行确认</span>
+          </div>
+          <div class="confirm-body">
+            <div class="confirm-tool-name">{{ pendingConfirmToolCall.toolName }}</div>
+            <details class="confirm-details">
+              <summary class="confirm-summary">查看参数</summary>
+              <pre class="confirm-code">{{ JSON.stringify(pendingConfirmToolCall.input, null, 2) }}</pre>
+            </details>
+          </div>
+          <div class="confirm-actions">
+            <a-button size="small" @click="$emit('reject-tool')">拒绝</a-button>
+            <a-button type="primary" size="small" @click="$emit('confirm-tool')">确认执行</a-button>
+          </div>
+        </div>
+
         <div class="message-bubble">
           <!-- 深度思考区域 -->
           <template v-if="responseReasoning">
@@ -100,9 +119,11 @@ import {
   LoadingOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  RedoOutlined
+  RedoOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons-vue'
-import { Avatar as AAvatar } from 'ant-design-vue'
+import { Avatar as AAvatar, Button as AButton } from 'ant-design-vue'
+import type { ToolCall } from '@/views/agent/tools/types'
 
 /**
  * ResponsingMessage 组件
@@ -126,7 +147,16 @@ interface Props {
   providerId?: string
   /** Provider 映射表 */
   allProviderListByKey?: Record<string, ModelProvider>
+  /** Agent 待确认的工具调用 */
+  pendingConfirmToolCall?: ToolCall | null
 }
+
+interface Emits {
+  (e: 'confirm-tool'): void
+  (e: 'reject-tool'): void
+}
+
+const emit = defineEmits<Emits>()
 
 const props = withDefaults(defineProps<Props>(), {
   searchStatus: 'none',
@@ -365,5 +395,80 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   color: #9ca3af;
   line-height: 1.6;
   font-size: 13px;
+}
+
+/* Agent 工具确认弹窗样式 */
+.agent-tool-confirm {
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  background-color: #fffbeb;
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: #fef3c7;
+}
+
+.confirm-icon {
+  font-size: 16px;
+  color: #f59e0b;
+}
+
+.confirm-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #92400e;
+}
+
+.confirm-body {
+  padding: 8px 12px;
+}
+
+.confirm-tool-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.confirm-details {
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+}
+
+.confirm-summary {
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #6b7280;
+  list-style: none;
+}
+
+.confirm-summary:hover {
+  background-color: #f3f4f6;
+}
+
+.confirm-code {
+  margin: 0;
+  padding: 8px;
+  background-color: #f3f4f6;
+  border-top: 1px solid #e5e7eb;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid #fde68a;
 }
 </style>

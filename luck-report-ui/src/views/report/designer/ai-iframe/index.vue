@@ -25,7 +25,15 @@
 </template>
 
 <script>
-import { readCellByAgent as readCellByAgentUtil, setCellByAgent as setCellByAgentUtil } from "@/views/report/designer/ai-iframe/utils";
+import {
+  readCellByAgent as readCellByAgentUtil,
+  setCellByAgent as setCellByAgentUtil,
+  getReportSchema as getReportSchemaUtil,
+  mergeCellsByAgent as mergeCellsByAgentUtil,
+  setCellStyleByAgent as setCellStyleByAgentUtil,
+  insertRowsByAgent as insertRowsByAgentUtil,
+  insertColsByAgent as insertColsByAgentUtil
+} from "@/views/report/designer/ai-iframe/utils";
 
 /**
  * AI 对话框 iframe 组件
@@ -234,6 +242,63 @@ export default {
      */
     setCellByAgent({ rowIndex, colIndex, cellValue }) {
       return setCellByAgentUtil({ rowIndex, colIndex, cellValue });
+    },
+    /**
+     * 获取报表整体结构信息
+     * 返回行列数、合并单元格区域、非空单元格摘要
+     *
+     * @return {Object} 报表结构信息
+     */
+    getReportSchema() {
+      return getReportSchemaUtil();
+    },
+    /**
+     * 合并指定区域的单元格
+     *
+     * @param {Object} params - 参数对象
+     * @param {number} params.startRow - 起始行索引
+     * @param {number} params.startCol - 起始列索引
+     * @param {number} params.endRow - 结束行索引
+     * @param {number} params.endCol - 结束列索引
+     * @return {Object} 操作结果
+     */
+    mergeCellsByAgent({ startRow, startCol, endRow, endCol }) {
+      return mergeCellsByAgentUtil({ startRow, startCol, endRow, endCol });
+    },
+    /**
+     * 设置单元格样式
+     *
+     * @param {Object} params - 参数对象
+     * @param {number} params.rowIndex - 行索引
+     * @param {number} params.colIndex - 列索引
+     * @param {string} params.styleType - 样式类型
+     * @param {string} params.styleValue - 样式值
+     * @return {Object} 操作结果
+     */
+    setCellStyleByAgent({ rowIndex, colIndex, styleType, styleValue }) {
+      return setCellStyleByAgentUtil({ rowIndex, colIndex, styleType, styleValue });
+    },
+    /**
+     * 插入行
+     *
+     * @param {Object} params - 参数对象
+     * @param {number} params.rowIndex - 插入位置行索引
+     * @param {number} params.count - 插入行数
+     * @return {Object} 操作结果
+     */
+    insertRowsByAgent({ rowIndex, count }) {
+      return insertRowsByAgentUtil({ rowIndex, count });
+    },
+    /**
+     * 插入列
+     *
+     * @param {Object} params - 参数对象
+     * @param {number} params.colIndex - 插入位置列索引
+     * @param {number} params.count - 插入列数
+     * @return {Object} 操作结果
+     */
+    insertColsByAgent({ colIndex, count }) {
+      return insertColsByAgentUtil({ colIndex, count });
     }
   }
 }

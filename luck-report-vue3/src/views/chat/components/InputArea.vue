@@ -83,7 +83,8 @@
             </a-tooltip>
           </a-popover>
           -->
-          <a-button type="text" size="small" class="toolbar-btn" @click="emit('clearMemory')">
+          <!-- 暂时注释 -->
+          <!-- <a-button type="text" size="small" class="toolbar-btn" @click="emit('clearMemory')">
             <template #icon><ClearOutlined /></template>
             <span class="toolbar-text">清除记忆</span>
           </a-button>
@@ -92,7 +93,7 @@
               <template #icon><DeleteOutlined /></template>
               <span class="toolbar-text">清空对话</span>
             </a-button>
-          </a-tooltip>
+          </a-tooltip> -->
         </div>
         <div class="toolbar-right">
           <span class="shortcut-hint">{{ shortcutHint }}</span>
