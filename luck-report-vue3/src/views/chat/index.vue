@@ -10,6 +10,7 @@
         @close="toggleChat"
         @mousedown="onHeaderMouseDown"
         @delete-chat="handleDeleteChat"
+        @open-chat-list="chatListVisible = true"
       />
 
       <div ref="chatBodyRef" class="chat-body" @scroll="throttledHandleScroll">
@@ -84,12 +85,28 @@
         @toggle-search="handleToggleSearch"
       />
     </div>
+
+    <a-modal
+      v-model:open="chatListVisible"
+      title="历史对话"
+      :footer="null"
+      width="360px"
+      :body-style="{ padding: '0', height: '250px' }"
+      @after-open-change="handleChatListOpenChange"
+    >
+      <ChatList
+        ref="chatListRef"
+        :current-session-id="currentSessionId"
+        @select="handleSessionSelect"
+        @deleted="handleSessionDeleted"
+      />
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Alert as AAlert, Button as AButton, Modal } from 'ant-design-vue'
+import { Alert as AAlert, Button as AButton, Modal as AModal, Modal } from 'ant-design-vue'
 import { CustomerServiceOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import '@/assets/css/common/index.css'
 import { useDrag } from './drag.ts'
@@ -102,10 +119,13 @@ import MessageItem from './components/MessageItem.vue'
 import ResponsingMessage from './components/ResponsingMessage.vue'
 import InputArea from './components/InputArea.vue'
 import ScrollToBottomButton from './components/ScrollToBottomButton.vue'
+import ChatList from './components/ChatList.vue'
 import type { Attachment } from './types/chat'
 
 const chatVisible = ref(false)
 const chatBodyRef = ref<HTMLElement | null>(null)
+const chatListVisible = ref(false)
+const chatListRef = ref<InstanceType<typeof ChatList> | null>(null)
 const { panelPosition, resetPosition, handleMouseDown } = useDrag(380, 560)
 
 const {
@@ -119,6 +139,7 @@ const {
   historyType,
   historyCount,
   pendingConfirmToolCall,
+  currentSessionId,
   sendMessage,
   stopChat,
   clearHistory,
@@ -130,7 +151,9 @@ const {
   setHistoryType,
   setHistoryCount,
   confirmAgentTool,
-  rejectAgentTool
+  rejectAgentTool,
+  removeCurrentSession,
+  loadSession
 } = useChat()
 
 const {
@@ -253,8 +276,7 @@ const handleClearMemory = () => {
 
 /**
  * 删除聊天
- * 对应 HiveChat ChatHeader 的 deleteChat 功能
- * 当前无服务端聊天管理，等同于清空对话
+ * 调用后端接口软删除会话，同时清空前端状态
  */
 const handleDeleteChat = () => {
   Modal.confirm({
@@ -263,9 +285,44 @@ const handleDeleteChat = () => {
     okText: '确定',
     cancelText: '取消',
     onOk() {
-      clearHistory()
+      removeCurrentSession()
     }
   })
+}
+
+/**
+ * 选择历史会话
+ * 关闭弹窗，加载选中会话的所有消息
+ *
+ * @param sessionId - 选中的会话ID
+ */
+const handleSessionSelect = (sessionId: string) => {
+  chatListVisible.value = false
+  loadSession(sessionId)
+}
+
+/**
+ * 会话被删除
+ * 如果删除的是当前会话，清空前端状态
+ *
+ * @param sessionId - 被删除的会话ID
+ */
+const handleSessionDeleted = (sessionId: string) => {
+  if (sessionId === currentSessionId.value) {
+    clearHistory()
+  }
+}
+
+/**
+ * ChatList 弹窗打开/关闭后回调
+ * 打开时刷新会话列表
+ *
+ * @param open - 是否打开
+ */
+const handleChatListOpenChange = (open: boolean) => {
+  if (open && chatListRef.value) {
+    chatListRef.value.refresh()
+  }
 }
 
 /**

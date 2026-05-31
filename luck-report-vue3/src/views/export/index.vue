@@ -1,8 +1,8 @@
 <template>
   <div class="export-container">
     <div class="action-buttons">
-      <button class="action-btn read-btn" @click="handleRead">读取</button>
-      <button class="action-btn set-btn" @click="handleSet">设置</button>
+      <!-- <button class="action-btn read-btn" @click="handleRead">读取</button>
+      <button class="action-btn set-btn" @click="handleSet">设置</button> -->
     </div>
     <AgentView ref="agentRef" />
   </div>

@@ -1,4 +1,4 @@
-package com.luck.agent.vo;
+package com.luck.agent.domain.vo;
 
 import lombok.Data;
 

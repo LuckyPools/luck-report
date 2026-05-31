@@ -1,8 +1,6 @@
-package com.luck.agent.vo;
+package com.luck.agent.domain.vo;
 
 import lombok.Data;
-
-import java.util.Map;
 
 /**
  * 工具定义

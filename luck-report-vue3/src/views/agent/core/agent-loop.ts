@@ -33,6 +33,8 @@ export interface AgentLoopConfig {
   signal?: AbortSignal
   /** 工具确认回调，返回 True 表示用户确认执行，False 表示拒绝 */
   onToolConfirm?: (toolCall: ToolCall) => Promise<boolean>
+  /** 会话ID，与数据库 chat_session.id 一致，用于后端关联会话上下文 */
+  sessionId?: string
 }
 
 /**
@@ -140,7 +142,8 @@ export async function runAgentLoop(
         undefined,
         undefined,
         fullMessages,
-        tools
+        tools,
+        config.sessionId
       )
     } catch (err: any) {
       if (err.name === 'AbortError') {

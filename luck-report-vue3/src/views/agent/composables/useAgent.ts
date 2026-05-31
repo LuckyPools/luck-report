@@ -14,6 +14,8 @@ export interface AgentEngineConfig {
   maxIterations?: number
   /** 工具确认回调，返回 true 表示用户确认执行，False 表示拒绝 */
   onToolConfirm?: (toolCall: ToolCall) => Promise<boolean>
+  /** 会话ID，与数据库 chat_session.id 一致，传递到后端用于关联会话 */
+  sessionId?: string
 }
 
 /**
@@ -43,6 +45,8 @@ export class AgentEngine {
   private maxIterations: number
   /** 工具确认回调 */
   private onToolConfirmFn?: (toolCall: ToolCall) => Promise<boolean>
+  /** 会话ID */
+  private sessionId?: string
   /** 中断控制器 */
   private abortController: AbortController | null = null
   /** 是否正在运行 */
@@ -51,6 +55,7 @@ export class AgentEngine {
   constructor(config: AgentEngineConfig = {}) {
     this.maxIterations = config.maxIterations ?? 10
     this.onToolConfirmFn = config.onToolConfirm
+    this.sessionId = config.sessionId
     this.contextManager = new ContextManager(this.memoryManager, this.toolRegistry)
   }
 
@@ -88,7 +93,8 @@ export class AgentEngine {
       memoryManager: this.memoryManager,
       contextManager: this.contextManager,
       signal: effectiveSignal,
-      onToolConfirm: this.onToolConfirmFn
+      onToolConfirm: this.onToolConfirmFn,
+      sessionId: this.sessionId
     }
 
     try {
@@ -117,6 +123,16 @@ export class AgentEngine {
    */
   clearMemory(): void {
     this.memoryManager.clear()
+  }
+
+  /**
+   * 更新会话ID
+   * 切换会话或创建新会话时调用，确保后续 Agent 循环使用正确的 sessionId
+   *
+   * @param sessionId - 新的会话ID，与数据库 chat_session.id 一致
+   */
+  setSessionId(sessionId: string | null): void {
+    this.sessionId = sessionId ?? undefined
   }
 
   /**

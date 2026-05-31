@@ -207,6 +207,7 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
  * @param searchEnabled - 可选，是否启用联网搜索
  * @param contextMessages - 可选，历史消息上下文列表
  * @param tools - 可选，工具定义列表（Agent Function Calling）
+ * @param sessionId - 可选，会话ID，用于后端关联会话上下文
  */
 export async function chatStream(
     message: string,
@@ -215,12 +216,16 @@ export async function chatStream(
     attachments?: AttachmentPayload[],
     searchEnabled?: boolean,
     contextMessages?: ContextMessage[],
-    tools?: ToolApiFormat[]
+    tools?: ToolApiFormat[],
+    sessionId?: string
 ): Promise<void> {
-  // 统一使用 POST 请求，以支持 contextMessages 等复杂参数
   const requestBody: Record<string, unknown> = {
     message,
     searchEnabled: searchEnabled || false
+  }
+
+  if (sessionId) {
+    requestBody.sessionId = sessionId
   }
 
   if (attachments && attachments.length > 0) {

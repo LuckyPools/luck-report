@@ -2,10 +2,10 @@ package com.luck.agent.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.luck.agent.vo.ChatRequest;
-import com.luck.agent.vo.ContextMessage;
-import com.luck.agent.vo.ToolCallMessage;
-import com.luck.agent.vo.ToolDefinition;
+import com.luck.agent.domain.vo.ChatRequest;
+import com.luck.agent.domain.vo.ContextMessage;
+import com.luck.agent.domain.vo.ToolCallMessage;
+import com.luck.agent.domain.vo.ToolDefinition;
 import okhttp3.*;
 import okio.BufferedSource;
 import org.slf4j.Logger;

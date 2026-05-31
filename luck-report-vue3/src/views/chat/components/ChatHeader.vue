@@ -4,6 +4,11 @@
       <span class="model-name">{{ currentModel }}</span>
     </div>
     <div class="header-right">
+      <a-tooltip title="历史对话">
+        <a-button type="text" size="small" @click.stop="emit('openChatList')">
+          <template #icon><UnorderedListOutlined /></template>
+        </a-button>
+      </a-tooltip>
       <a-popconfirm
         title="确认删除"
         description="确定要删除当前聊天吗？删除后不可恢复。"
@@ -30,7 +35,8 @@
 import { Button as AButton, Tooltip as ATooltip, Popconfirm as APopconfirm } from 'ant-design-vue'
 import {
   CloseOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons-vue'
 
 /**
@@ -52,6 +58,7 @@ interface Emits {
   (e: 'close'): void
   (e: 'mousedown', event: MouseEvent): void
   (e: 'deleteChat'): void
+  (e: 'openChatList'): void
 }
 
 defineProps<Props>()
