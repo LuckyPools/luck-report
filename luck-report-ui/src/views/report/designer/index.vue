@@ -19,6 +19,9 @@
           <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" />
         </div>
       </div>
+
+      <!-- AI 对话框 iframe 组件 -->
+      <AiIframe :defaultVisible="true" ref="aiIframe" />
     </div>
 </template>
 
@@ -34,6 +37,7 @@ import 'codemirror/mode/javascript/javascript.js';
 import ResourcePanel from '@/views/report/designer/resource-panel/index.vue';
 import TopToolBar from '@/views/report/designer/tool-bar/index.vue';
 import ContentTable from '@/views/report/designer/edit-table/index.vue';
+import AiIframe from '@/views/report/designer/ai-iframe/index.vue';
 import { createNavigator, getLibMode } from '@/lib/navigator';
 import { getUrlSearchParams } from '@/utils/url';
 import { setLocale } from '@/locales';
@@ -43,7 +47,8 @@ export default {
   components: {
     TopToolBar,
     ResourcePanel,
-    ContentTable
+    ContentTable,
+    AiIframe
   },
   props: {
     reportPath: {
@@ -139,6 +144,7 @@ export default {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
 .u-designer{

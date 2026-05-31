@@ -17,6 +17,11 @@ const router = createRouter({
       path: '/agent',
       name: 'agent',
       component: () => import('@/views/agent/index.vue')
+    },
+    {
+      path: '/export',
+      name: 'export',
+      component: () => import('@/views/export/index.vue')
     }
   ],
 })
