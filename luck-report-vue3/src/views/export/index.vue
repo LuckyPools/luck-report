@@ -1,5 +1,9 @@
 <template>
   <div class="export-container">
+    <div class="action-buttons">
+      <button class="action-btn read-btn" @click="handleRead">读取</button>
+      <button class="action-btn set-btn" @click="handleSet">设置</button>
+    </div>
     <AgentView ref="agentRef" />
   </div>
 </template>
@@ -9,11 +13,40 @@
  * AI 对话框导出页面
  * 用于 iframe 嵌入模式，方便后续组件移除和隐藏管理
  * 通过 /export 路径访问此页面
+ * 提供读取和设置按钮，通过 postMessage 与父窗口通信
  */
 import { ref, onMounted } from 'vue'
 import AgentView from '@/views/agent/index.vue'
+import { executeCode } from './iframe-utils'
 
 const agentRef = ref<InstanceType<typeof AgentView> | null>(null)
+
+/**
+ * 处理读取按钮点击
+ * 使用代码字符串方式触发父窗口执行 readCellA1 方法并打印返回值
+ */
+const handleRead = async () => {
+  try {
+    const result = await executeCode("readCellA1()")
+    console.log('[Export] readCellA1 返回值:', result)
+  } catch (error) {
+    console.error('[Export] readCellA1 执行失败:', error)
+  }
+}
+
+/**
+ * 处理设置按钮点击
+ * 使用代码字符串方式触发父窗口执行 setCellA1 方法并打印返回值
+ */
+const handleSet = async () => {
+  try {
+    const value = '测试值-' + Date.now()
+    const result = await executeCode(`setCellA1('${value}')`)
+    console.log('[Export] setCellA1 返回值:', result)
+  } catch (error) {
+    console.error('[Export] setCellA1 执行失败:', error)
+  }
+}
 
 onMounted(() => {
   // 自动打开聊天面板
@@ -36,6 +69,45 @@ onMounted(() => {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+}
+
+.action-buttons {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.read-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.read-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.set-btn {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #fff;
+}
+
+.set-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
 }
 
 .export-container :deep(.agent-container) {

@@ -3,6 +3,10 @@
     <div class="ai-dialog-wrapper" v-if="visible">
       <div class="ai-dialog-header">
         <span class="ai-dialog-title">AI 助手</span>
+        <div class="ai-dialog-actions">
+          <button class="ai-dialog-btn" @click="handTest">测试</button>
+          <button class="ai-dialog-btn" @click="handInput">输入</button>
+        </div>
         <button class="ai-dialog-close" @click="handleClose">×</button>
       </div>
       <iframe
@@ -13,7 +17,7 @@
         @load="onIframeLoad"
       ></iframe>
     </div>
-    
+
     <div class="ai-toggle-button" @click="handleToggle" v-if="!visible">
       <span>AI</span>
     </div>
@@ -21,10 +25,13 @@
 </template>
 
 <script>
+import {readCellA1, setCellA1} from "@/views/report/designer/ai-iframe/utils";
+
 /**
  * AI 对话框 iframe 组件
  * 用于在设计器页面中嵌入 Vue3 AI 对话框
  * 支持显示/隐藏控制，方便后续移除和隐藏管理
+ * 支持通过 postMessage 接收子 iframe 发送的指令并动态执行
  */
 export default {
   name: 'AiIframe',
@@ -58,7 +65,111 @@ export default {
       return this.url;
     }
   },
+  mounted() {
+    // 监听来自子 iframe 的消息
+    window.addEventListener('message', this.handleIframeMessage);
+  },
+  beforeDestroy() {
+    // 组件销毁时移除消息监听，避免内存泄漏
+    window.removeEventListener('message', this.handleIframeMessage);
+  },
   methods: {
+    /**
+     * 处理来自子 iframe 的消息
+     * 支持两种模式：
+     * 1. action + data 模式：直接调用方法
+     * 2. codeString 模式：使用 new Function 动态执行代码字符串
+     * 支持返回结果给子 iframe
+     * @param {MessageEvent} event - 消息事件对象
+     */
+    handleIframeMessage(event) {
+      // 安全检查：验证消息格式
+      if (!event.data || event.data.type !== 'IFRAME_COMMAND') {
+        return;
+      }
+
+      const { action, data, codeString, requestId } = event.data;
+      const source = event.source;
+
+      // 代码字符串模式：使用 new Function 动态执行
+      if (codeString) {
+        this.executeCodeString(codeString, requestId, source);
+        return;
+      }
+
+      // 兼容旧格式：直接调用方法
+      if (typeof this[action] === 'function') {
+        console.log(`[AiIframe] 执行指令: ${action}`, data);
+        const result = this[action](data);
+        // 如果有 requestId，返回结果
+        if (requestId && source) {
+          this.sendResponse(source, requestId, result);
+        }
+      } else {
+        console.warn(`[AiIframe] 未找到方法: ${action}`);
+        // 返回错误
+        if (requestId && source) {
+          this.sendResponse(source, requestId, undefined, `未找到方法: ${action}`);
+        }
+      }
+    },
+
+    /**
+     * 发送响应结果给子 iframe
+     * @param {Window} source - 消息来源窗口
+     * @param {string} requestId - 请求 ID
+     * @param {any} result - 执行结果
+     * @param {string} error - 错误信息
+     */
+    sendResponse(source, requestId, result, error) {
+      const message = {
+        type: 'IFRAME_RESPONSE',
+        requestId,
+        result,
+        error,
+        timestamp: Date.now()
+      };
+      source.postMessage(message, '*');
+    },
+
+    /**
+     * 使用 new Function 执行代码字符串
+     * 将组件的所有方法注入执行环境，支持直接调用
+     * 支持返回结果给子 iframe
+     * @param {string} codeString - 代码字符串，如 "readCellA1()" 或 "setCellA1('value')"
+     * @param {string} requestId - 请求 ID，用于返回结果
+     * @param {Window} source - 消息来源窗口
+     */
+    executeCodeString(codeString, requestId, source) {
+      try {
+        // 创建执行环境，将所有方法注入
+        const methodNames = Object.keys(this.$options.methods || {});
+        const methodArgs = methodNames.map(name => this[name]);
+
+        // 包装代码字符串，确保返回执行结果
+        // 如果代码不是以 return 开头，自动添加 return
+        const wrappedCode = codeString.trim().startsWith('return ')
+          ? codeString
+          : `return ${codeString}`;
+
+        // 构建 new Function 参数：方法名列表 + 包装后的代码字符串
+        const fn = new Function(...methodNames, wrappedCode);
+
+        console.log(`[AiIframe] 执行代码: ${codeString}`);
+        const result = fn(...methodArgs);
+
+        // 如果有 requestId，返回结果
+        if (requestId && source) {
+          this.sendResponse(source, requestId, result);
+        }
+      } catch (error) {
+        console.error(`[AiIframe] 执行代码失败:`, error);
+        // 返回错误
+        if (requestId && source) {
+          this.sendResponse(source, requestId, undefined, error.message);
+        }
+      }
+    },
     /**
      * 切换对话框显示状态
      */
@@ -91,6 +202,32 @@ export default {
      */
     hide() {
       this.visible = false;
+    },
+
+    handTest(){
+
+    },
+
+    handInput(){
+
+    },
+    /**
+     * 读取单元格 A1 的值
+     * 示例方法，可从报表设计器中获取单元格数据
+     * @param {any} data - 可选的附加数据或参数
+     * @return {string} 返回单元格 A1 的值
+     */
+    readCellA1(data) {
+      return readCellA1(data);
+    },
+    /**
+     * 设置单元格 A1 的值
+     * 示例方法，可设置报表设计器中的单元格数据
+     * @param {any} value - 要设置的值
+     * @return {boolean} 返回是否设置成功
+     */
+    setCellA1(value) {
+      return setCellA1(value);
     }
   }
 }
@@ -127,6 +264,28 @@ export default {
 .ai-dialog-title {
   font-size: 16px;
   font-weight: 600;
+}
+
+.ai-dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.ai-dialog-btn {
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-dialog-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .ai-dialog-close {
