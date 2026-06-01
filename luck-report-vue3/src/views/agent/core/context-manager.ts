@@ -1,6 +1,7 @@
 import { MemoryManager } from '../memory/memory-manager'
 import { ToolRegistry } from '../tools/registry'
 import { executeCode } from '@/views/export/iframe-utils'
+import { buildPrompt } from '@/prompt'
 
 /**
  * 上下文管理器
@@ -67,26 +68,14 @@ export class ContextManager {
   /**
    * 默认系统提示词
    * 定义 Agent 角色和能力边界
+   * 通过 prompt 加载器组装 .md 文件，工具描述作为动态变量注入
    */
   private getDefaultPrompt(): string {
     const toolDescriptions = this.toolRegistry.getAll()
       .map(t => `- ${t.name}: ${t.description}`)
       .join('\n')
 
-    return `你是一个报表设计助手，帮助用户通过对话操作报表设计器。
-
-你可以使用以下工具来操作报表：
-${toolDescriptions}
-
-重要规则：
-1. 当用户要求修改报表时，你必须直接调用对应的工具函数来执行操作，绝对不要用文字描述操作步骤或告诉用户"请调用某某工具"
-2. 修改报表前，先调用 get_report_schema 了解当前报表结构
-3. 修改单元格前，先调用 read_cell 确认当前值
-4. 一次只做一个操作，等确认结果后再继续
-5. 涉及插入行/列等不可逆操作时，先向用户确认
-6. 操作完成后，向用户简要说明做了什么
-7. 如果用户的需求不明确，主动询问细节
-8. 禁止在回复中输出类似"请调用 xxx 工具"的文字，你应该直接调用工具`
+    return buildPrompt({ tool_descriptions: toolDescriptions })
   }
 
   /**

@@ -84,7 +84,15 @@ public class ChatController {
                 List<Map<String, Object>> messages = buildMessages(request);
                 String requestBody = buildOpenAiRequestBody(messages, request.getTools(), modelName);
 
-                log.debug("发送给大模型的请求体: {}", requestBody);
+                // 计算输入消息的文本总长度，用于 token 估算
+                int inputTextLength = 0;
+                for (Map<String, Object> msg : messages) {
+                    Object msgContent = msg.get("content");
+                    if (msgContent != null) {
+                        inputTextLength += msgContent.toString().length();
+                    }
+                }
+                final int finalInputTextLength = inputTextLength;
 
                 Request httpRequest = new Request.Builder()
                         .url(baseUrl + chatConfig.getCompletionsPath())
@@ -127,7 +135,7 @@ public class ChatController {
 
                         BufferedSource source = body.source();
                         try {
-                            processStreamResponse(source, emitter);
+                            processStreamResponse(source, emitter, finalInputTextLength);
                             emitter.complete();
                         } catch (Exception e) {
                             log.error("SSE流处理异常: {}", e.getMessage(), e);
@@ -153,16 +161,23 @@ public class ChatController {
      * 处理大模型流式响应
      * 逐行解析 SSE 数据，提取文本增量和 tool_calls 事件
      * 文本内容以 message 事件推送，tool_calls 以 tool_use 事件推送
+     * 流结束时估算 token 用量并以 token_usage 事件推送
      *
      * @param source 响应流的 BufferedSource
      * @param emitter SSE 发射器
+     * @param inputTextLength 输入消息的文本总长度，用于 token 估算
      * @throws IOException 读取异常
      */
     @SuppressWarnings("unchecked")
-    private void processStreamResponse(BufferedSource source, SseEmitter emitter) throws IOException {
-        // 累积 tool_calls 片段，因为 tool_calls 可能跨多个 SSE chunk 分片返回
-        // key: tool_call index, value: 累积的 tool_call 片段
+    private void processStreamResponse(BufferedSource source, SseEmitter emitter, int inputTextLength) throws IOException {
         Map<Integer, Map<String, Object>> accumulatedToolCalls = new LinkedHashMap<>();
+        // 累积输出文本长度，用于 token 估算
+        int outputTextLength = 0;
+        // 标记是否从 API 响应中获取到了真实 usage
+        boolean hasRealUsage = false;
+        int inputTokens = 0;
+        int outputTokens = 0;
+        int totalTokens = 0;
 
         while (!source.exhausted()) {
             String line = source.readUtf8Line();
@@ -177,8 +192,24 @@ public class ChatController {
             String data = line.substring(6).trim();
 
             if ("[DONE]".equals(data)) {
-                // 流结束前，将累积的 tool_calls 一次性推送
                 flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
+
+                // 流结束前推送 token_usage 事件
+                // 优先使用 API 返回的真实 usage，否则基于文本长度估算
+                if (!hasRealUsage) {
+                    inputTokens = estimateTokens(inputTextLength);
+                    outputTokens = estimateTokens(outputTextLength);
+                    totalTokens = inputTokens + outputTokens;
+                    log.debug("API未返回usage，使用估算: inputTokens={}, outputTokens={}, totalTokens={}",
+                            inputTokens, outputTokens, totalTokens);
+                }
+
+                Map<String, Object> tokenUsage = new LinkedHashMap<>(3);
+                tokenUsage.put("inputTokens", inputTokens);
+                tokenUsage.put("outputTokens", outputTokens);
+                tokenUsage.put("totalTokens", totalTokens);
+                emitter.send(SseEmitter.event().name("token_usage").data(gson.toJson(tokenUsage)));
+
                 emitter.send(SseEmitter.event().name("done").data("[DONE]"));
                 return;
             }
@@ -204,7 +235,17 @@ public class ChatController {
                 // 提取文本增量内容
                 Object content = delta.get("content");
                 if (content != null && !content.toString().isEmpty()) {
-                    emitter.send(SseEmitter.event().name("message").data(content.toString()));
+                    String contentStr = content.toString();
+                    outputTextLength += contentStr.length();
+                    emitter.send(SseEmitter.event().name("message").data(contentStr));
+                }
+
+                // 提取思考内容（qwen3.6-plus 等模型的 reasoning_content 字段）
+                Object reasoningContent = delta.get("reasoning_content");
+                if (reasoningContent != null && !reasoningContent.toString().isEmpty()) {
+                    String reasoningStr = reasoningContent.toString();
+                    outputTextLength += reasoningStr.length();
+                    emitter.send(SseEmitter.event().name("reasoning_content").data(reasoningStr));
                 }
 
                 // 累积 tool_calls 片段
@@ -215,22 +256,18 @@ public class ChatController {
                         int index = indexObj != null ? ((Number) indexObj).intValue() : 0;
                         Map<String, Object> accumulated = accumulatedToolCalls.computeIfAbsent(index, k -> new LinkedHashMap<>());
 
-                        // 合并 id
                         if (tc.containsKey("id")) {
                             accumulated.put("id", tc.get("id"));
                         }
-                        // 合并 type
                         if (tc.containsKey("type")) {
                             accumulated.put("type", tc.get("type"));
                         }
-                        // 合并 function 片段
                         Map<String, Object> function = (Map<String, Object>) tc.get("function");
                         if (function != null) {
                             Map<String, Object> accFunction = (Map<String, Object>) accumulated.computeIfAbsent("function", k -> new LinkedHashMap<>());
                             if (function.containsKey("name")) {
                                 accFunction.put("name", function.get("name"));
                             }
-                            // arguments 是增量拼接的，需要累加
                             if (function.containsKey("arguments")) {
                                 String prevArgs = (String) accFunction.getOrDefault("arguments", "");
                                 accFunction.put("arguments", prevArgs + function.get("arguments").toString());
@@ -239,11 +276,27 @@ public class ChatController {
                     }
                 }
 
-                // 检查 finish_reason，当为 tool_calls 时立即刷新
+                // 检查 finish_reason
                 String finishReason = (String) choice.get("finish_reason");
                 if ("tool_calls".equals(finishReason)) {
                     flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
                     accumulatedToolCalls.clear();
+                }
+
+                // 提取 usage 字段，部分 API 提供商在流式最后一个 chunk 中返回
+                Map<String, Object> usage = (Map<String, Object>) response.get("usage");
+                if (usage != null) {
+                    Object promptTokens = usage.get("prompt_tokens");
+                    Object completionTokens = usage.get("completion_tokens");
+                    Object totalTokensObj = usage.get("total_tokens");
+                    // usage 可能存在但值为 null（如阿里百炼），需判断实际值
+                    if (promptTokens != null && completionTokens != null) {
+                        hasRealUsage = true;
+                        inputTokens = ((Number) promptTokens).intValue();
+                        outputTokens = ((Number) completionTokens).intValue();
+                        totalTokens = totalTokensObj != null ? ((Number) totalTokensObj).intValue() : inputTokens + outputTokens;
+                        log.debug("API返回真实usage: inputTokens={}, outputTokens={}, totalTokens={}", inputTokens, outputTokens, totalTokens);
+                    }
                 }
             } catch (Exception e) {
                 log.warn("解析SSE数据失败: data={}, error={}", data, e.getMessage());
@@ -252,6 +305,19 @@ public class ChatController {
 
         // 兜底：流耗尽后刷新剩余的 tool_calls
         flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
+    }
+
+    /**
+     * 基于文本长度估算 token 数
+     * Qwen 模型的 token 估算规则：中文约 1.5 字符/token，英文约 4 字符/token
+     * 混合内容取中间值约 2 字符/token，加上工具定义等额外开销的 20% 系数
+     *
+     * @param textLength 文本字符数
+     * @return 估算的 token 数
+     */
+    private int estimateTokens(int textLength) {
+        if (textLength <= 0) return 0;
+        return (int) Math.ceil(textLength / 2.0 * 1.2);
     }
 
     /**
@@ -380,10 +446,14 @@ public class ChatController {
      */
     private String buildOpenAiRequestBody(List<Map<String, Object>> messages, List<ToolDefinition> tools,
                                           String modelName) {
-        Map<String, Object> body = new LinkedHashMap<>(6);
+        Map<String, Object> body = new LinkedHashMap<>(7);
         body.put("model", modelName);
         body.put("messages", messages);
         body.put("stream", true);
+        // 请求流式响应中包含 usage 字段，OpenAI 兼容 API 需要此参数才会在最后一个 chunk 返回 token 用量
+        Map<String, Object> streamOptions = new LinkedHashMap<>(1);
+        streamOptions.put("include_usage", true);
+        body.put("stream_options", streamOptions);
 
         // 将前端传入的工具定义转换为 OpenAI Function Calling 格式
         if (tools != null && !tools.isEmpty()) {

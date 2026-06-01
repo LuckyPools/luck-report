@@ -3,6 +3,7 @@ import type { ToolCall } from '../tools/types'
 import type { MemoryManager } from '../memory/memory-manager'
 import type { ContextManager } from './context-manager'
 import type { ToolCallInfo } from '../memory/types'
+import type { TokenUsage } from '@/api/chat'
 import { chatStream, type ContextMessage, type SseToolCall, type ToolCallMessage } from '@/api/chat'
 
 /**
@@ -15,6 +16,7 @@ export type AgentEvent =
   | { type: 'tool_call_start'; toolCall: ToolCall }
   | { type: 'tool_call_confirm'; toolCall: ToolCall }
   | { type: 'tool_call_result'; toolCall: ToolCall }
+  | { type: 'token_usage'; usage: TokenUsage }
   | { type: 'done'; reason: 'completed' | 'max_iterations' | 'aborted' | 'error'; error?: string }
 
 /**
@@ -131,6 +133,9 @@ export async function runAgentLoop(
                 arguments: JSON.stringify(sseToolCall.input)
               }
             })
+          },
+          onTokenUsage: (usage: TokenUsage) => {
+            onEvent({ type: 'token_usage', usage })
           },
           onDone: () => {},
           onError: (error) => {

@@ -87,11 +87,17 @@ export function useChat() {
 
   /**
    * 更新 Token 用量
+   * Agent 循环中可能有多轮 LLM 调用，每轮返回独立的 usage，需要累加
    *
    * @param usage - Token 用量数据
    */
   const updateTokenUsage = (usage: TokenUsage) => {
-    tokenUsage = usage
+    if (!tokenUsage) {
+      tokenUsage = { totalTokens: 0, inputTokens: 0, outputTokens: 0 }
+    }
+    tokenUsage.totalTokens += usage.totalTokens || 0
+    tokenUsage.inputTokens += usage.inputTokens || 0
+    tokenUsage.outputTokens += usage.outputTokens || 0
   }
 
   /**
@@ -248,6 +254,11 @@ export function useChat() {
           toolMsg.agentToolCall.status = event.toolCall.status === 'done' ? 'done' : 'error'
           toolMsg.agentToolCall.error = event.toolCall.error
         }
+        break
+      }
+
+      case 'token_usage': {
+        updateTokenUsage(event.usage)
         break
       }
 
