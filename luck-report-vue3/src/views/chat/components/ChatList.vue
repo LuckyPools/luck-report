@@ -1,16 +1,16 @@
 <template>
   <div class="chat-list-container">
-    <div v-if="loading" class="chat-list-loading">
+    <div v-if="store.sessionListLoading" class="chat-list-loading">
       <a-spin />
     </div>
 
-    <div v-else-if="chatList.length === 0" class="chat-list-empty">
+    <div v-else-if="store.sessionList.length === 0" class="chat-list-empty">
       <span class="empty-text">暂无对话记录</span>
     </div>
 
     <div v-else class="chat-list-body">
       <div
-        v-for="chat in chatList"
+        v-for="chat in store.sessionList"
         :key="chat.id"
         :class="['chat-item', { 'chat-item-active': chat.id === currentSessionId }]"
         @click="handleSelect(chat)"
@@ -83,18 +83,13 @@ import {
   PushpinOutlined,
   EllipsisOutlined
 } from '@ant-design/icons-vue'
-import {
-  listSessions,
-  renameSession as apiRenameSession,
-  pinSession as apiPinSession,
-  deleteSession as apiDeleteSession,
-  type SessionInfo
-} from '@/api/chat/persistence'
+import { useChatStore } from '@/stores/chat'
+import type { SessionInfo } from '@/api/chat/persistence'
 
 /**
  * 会话列表组件
- * 参照 HiveChat ChatList.tsx 1:1 复刻
- * 提供历史对话的加载、切换、重命名、置顶、删除功能
+ * 从 chatStore 读取会话列表数据，确保与主面板数据同步
+ * 提供历史对话的切换、重命名、置顶、删除功能
  * 以弹窗形式嵌入聊天面板，点击对话项加载该会话的所有消息
  */
 
@@ -111,11 +106,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-/** 会话列表数据 */
-const chatList = ref<SessionInfo[]>([])
-
-/** 加载状态 */
-const loading = ref(false)
+const store = useChatStore()
 
 /** 重命名弹窗可见性 */
 const renameModalVisible = ref(false)
@@ -125,23 +116,6 @@ const renameTitle = ref('')
 
 /** 正在重命名的会话ID */
 const renameSessionId = ref('')
-
-/**
- * 加载会话列表
- * 从后端获取所有会话，按置顶优先、更新时间倒序
- * user_id 暂定为空，待后续对接业务系统
- */
-const fetchChatList = async () => {
-  loading.value = true
-  try {
-    chatList.value = await listSessions()
-  } catch (e) {
-    console.error('[ChatList] 加载会话列表失败:', e)
-    message.error('加载对话列表失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 /**
  * 选择会话
@@ -178,15 +152,15 @@ const handleMenuClick = (event: { key: string }, chat: SessionInfo) => {
 
 /**
  * 置顶或取消置顶会话
+ * 通过 store 统一操作，自动刷新列表
  *
  * @param sessionId - 会话ID
  * @param isPinned - 0-取消置顶，1-置顶
  */
 const handlePin = async (sessionId: string, isPinned: number) => {
   try {
-    await apiPinSession(sessionId, isPinned)
+    await store.pinSession(sessionId, isPinned)
     message.success(isPinned === 1 ? '已置顶' : '已取消置顶')
-    await fetchChatList()
   } catch (e) {
     console.error('[ChatList] 置顶操作失败:', e)
     message.error('操作失败')
@@ -195,7 +169,7 @@ const handlePin = async (sessionId: string, isPinned: number) => {
 
 /**
  * 删除会话
- * 弹出确认弹窗后执行软删除
+ * 弹出确认弹窗后通过 store 执行软删除，自动刷新列表
  *
  * @param sessionId - 会话ID
  */
@@ -207,10 +181,9 @@ const handleDelete = (sessionId: string) => {
     cancelText: '取消',
     onOk: async () => {
       try {
-        await apiDeleteSession(sessionId)
+        await store.deleteSession(sessionId)
         message.success('删除成功')
         emit('deleted', sessionId)
-        await fetchChatList()
       } catch (e) {
         console.error('[ChatList] 删除会话失败:', e)
         message.error('删除失败')
@@ -221,7 +194,7 @@ const handleDelete = (sessionId: string) => {
 
 /**
  * 确认重命名
- * 保存新标题到后端，刷新列表
+ * 通过 store 保存新标题，自动更新列表
  */
 const handleRenameConfirm = async () => {
   if (!renameTitle.value.trim()) {
@@ -229,10 +202,9 @@ const handleRenameConfirm = async () => {
     return
   }
   try {
-    await apiRenameSession(renameSessionId.value, renameTitle.value.trim())
+    await store.renameSession(renameSessionId.value, renameTitle.value.trim())
     message.success('重命名成功')
     renameModalVisible.value = false
-    await fetchChatList()
   } catch (e) {
     console.error('[ChatList] 重命名失败:', e)
     message.error('重命名失败')
@@ -240,14 +212,14 @@ const handleRenameConfirm = async () => {
 }
 
 onMounted(() => {
-  fetchChatList()
+  store.fetchSessionList()
 })
 
 /**
  * 暴露刷新方法，供父组件在创建新会话后调用
  */
 defineExpose({
-  refresh: fetchChatList
+  refresh: () => store.fetchSessionList()
 })
 </script>
 

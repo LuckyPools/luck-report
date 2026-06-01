@@ -1,63 +1,35 @@
-import { ref, onUnmounted } from 'vue'
-import type { Message, ResponseStatus, Attachment, HistoryType, SearchStatus, McpToolCall } from '../types/chat'
+import type { Message, Attachment, HistoryType } from '../types/chat'
 import type { TokenUsage } from '@/api/chat'
 import { AgentEngine } from '@/views/agent/composables/useAgent'
 import type { AgentEvent } from '@/views/agent/core/agent-loop'
 import type { ToolCall } from '@/views/agent/tools/types'
-import {
-  createSession,
-  batchSaveMessages,
-  listMessages,
-  deleteSession as apiDeleteSession,
-  renameSession as apiRenameSession,
-  type SessionInfo,
-  type BatchMessageItem
-} from '@/api/chat/persistence'
+import { useChatStore } from '@/stores/chat'
+import { storeToRefs } from 'pinia'
 
 /**
  * 聊天核心逻辑 Hook
- * 管理消息列表、流式响应、发送消息等功能
- * SSE 网络请求通过 api/chat 层发起，本层只负责状态管理和回调处理
+ * 负责消息发送、流式响应、Agent 集成等业务逻辑
+ * 数据层委托给 chatStore（Pinia），确保跨组件数据同步
  *
- * Agent 集成：
- * - 始终走 AgentEngine.start() 路径（Agentic Loop）
- * - Agent 事件回调中更新 messageList、responseMessage 等响应式状态
- *
- * 持久化集成：
- * - 发送消息时自动创建会话（首次）
- * - Agent Loop 结束后批量保存本轮消息到后端
- * - 支持加载旧对话、切换会话、删除会话
+ * 职责划分：
+ * - chatStore：数据持有 + 持久化 API 调用
+ * - useChat：Agent 集成 + 流式响应处理 + 消息发送业务逻辑
  */
 export function useChat() {
-  const messageList = ref<Message[]>([])
-  const responseStatus = ref<ResponseStatus>('done')
-  const responseMessage = ref('')
-  const responseReasoning = ref('')
-  const isUserScrolling = ref(false)
-
-  /** 联网搜索开关，对应 HiveChat chat store 的 webSearchEnabled */
-  const webSearchEnabled = ref(false)
-
-  /** 联网搜索状态，对应 HiveChat 的搜索状态展示 */
-  const searchStatus = ref<SearchStatus>('none')
-
-  /** MCP 工具调用记录，对应 HiveChat 的 MCP 工具调用展示 */
-  const mcpTools = ref<McpToolCall[]>([])
-
-  /** 历史记录类型，对应 HiveChat chat store 的 historyType */
-  const historyType = ref<HistoryType>('count')
-
-  /** 历史记录条数，对应 HiveChat chat store 的 historyCount */
-  const historyCount = ref(5)
-
-  /** Agent 待确认的工具调用 */
-  const pendingConfirmToolCall = ref<ToolCall | null>(null)
-
-  /** 当前会话ID，null 表示尚未创建会话 */
-  const currentSessionId = ref<string | null>(null)
-
-  /** 当前会话信息 */
-  const currentSession = ref<SessionInfo | null>(null)
+  const store = useChatStore()
+  const {
+    messageList,
+    responseStatus,
+    responseMessage,
+    responseReasoning,
+    isUserScrolling,
+    searchStatus,
+    mcpTools,
+    historyType,
+    historyCount,
+    pendingConfirmToolCall,
+    currentSessionId
+  } = storeToRefs(store)
 
   /** Agent 引擎实例 */
   const agentEngine = new AgentEngine({
@@ -79,9 +51,6 @@ export function useChat() {
   let rawReasoning = ''
   let tokenUsage: TokenUsage | undefined
   let rafId: number | null = null
-
-  /** 本轮新增消息的起始索引，用于批量保存时只提交新增部分 */
-  let roundStartIndex = 0
 
   /**
    * 使用 requestAnimationFrame 节流更新响应消息
@@ -216,68 +185,6 @@ export function useChat() {
   })
 
   /**
-   * 将前端 Message 列表转换为后端批量保存格式
-   * 只转换 roundStartIndex 之后的消息（本轮新增部分）
-   *
-   * @returns 批量保存消息数组
-   */
-  const buildBatchMessages = (): BatchMessageItem[] => {
-    const items: BatchMessageItem[] = []
-    for (let i = roundStartIndex; i < messageList.value.length; i++) {
-      const msg = messageList.value[i]
-      // 跳过 break 和 error 类型，后端不需要存储
-      if (msg.type === 'break' || msg.type === 'error') continue
-
-      const item: BatchMessageItem = {
-        role: msg.role,
-        content: msg.content
-      }
-
-      if (msg.type === 'tool_call' && msg.agentToolCall) {
-        item.messageType = 'tool_call'
-        item.metadata = JSON.stringify({
-          toolCallId: msg.agentToolCall.toolCallId,
-          toolName: msg.agentToolCall.toolName,
-          input: msg.agentToolCall.input,
-          status: msg.agentToolCall.status
-        })
-      } else {
-        item.messageType = msg.type || 'text'
-      }
-
-      items.push(item)
-    }
-    return items
-  }
-
-  /**
-   * 批量保存本轮新增消息到后端
-   * 在 Agent Loop 结束后调用（方案A：Loop 结束后批量存）
-   * 保存失败时打印详细错误，便于排查，但不影响前端正常使用
-   */
-  const persistMessages = async () => {
-    if (!currentSessionId.value) {
-      console.warn('[persistMessages] 无 sessionId，跳过持久化')
-      return
-    }
-
-    const items = buildBatchMessages()
-    if (items.length === 0) {
-      console.info('[persistMessages] 无新增消息需要保存')
-      return
-    }
-
-    try {
-      console.info(`[persistMessages] 保存 ${items.length} 条消息到会话 ${currentSessionId.value}`)
-      await batchSaveMessages(currentSessionId.value, items)
-      roundStartIndex = messageList.value.length
-      console.info('[persistMessages] 消息持久化成功')
-    } catch (e) {
-      console.error('[persistMessages] 消息持久化失败:', e)
-    }
-  }
-
-  /**
    * 处理 Agent 循环事件
    * 将 AgentEvent 转换为 messageList 中的 Message 和响应式状态更新
    * 声明为 async 以支持 await persistMessages()
@@ -371,8 +278,8 @@ export function useChat() {
           messageList.value.push(errorMessage)
         }
 
-        // Agent Loop 结束后批量保存消息到后端（必须 await 确保持久化完成）
-        await persistMessages()
+        // Agent Loop 结束后批量保存消息到后端
+        await store.persistMessages()
         break
       }
     }
@@ -443,13 +350,11 @@ export function useChat() {
     if (!currentSessionId.value) {
       try {
         console.info('[sendMessage] 首次发消息，创建会话...')
-        const session = await createSession()
-        currentSessionId.value = session.id
-        currentSession.value = session
+        const session = await store.createNewSession()
         agentEngine.setSessionId(session.id)
         console.info('[sendMessage] 会话创建成功:', session.id)
 
-        generateSessionTitle(session.id, content.trim())
+        store.generateSessionTitle(session.id, content.trim())
       } catch (e) {
         console.error('[sendMessage] 创建会话失败，消息仅存于前端内存:', e)
       }
@@ -495,12 +400,9 @@ export function useChat() {
    * 同时清空 Agent 记忆，重置会话状态
    */
   const clearHistory = () => {
-    messageList.value = []
+    store.clearCurrentSession()
     agentEngine.clearMemory()
     agentEngine.setSessionId(null)
-    currentSessionId.value = null
-    currentSession.value = null
-    roundStartIndex = 0
   }
 
   /**
@@ -511,96 +413,48 @@ export function useChat() {
    */
   const loadSession = async (sessionId: string) => {
     // 切换前先保存当前会话
-    if (currentSessionId.value && roundStartIndex < messageList.value.length) {
-      await persistMessages()
+    if (currentSessionId.value && store.getRoundStartIndex() < messageList.value.length) {
+      await store.persistMessages()
     }
 
-    // 清空当前状态
-    messageList.value = []
+    // 清空 Agent 状态
     agentEngine.clearMemory()
     agentEngine.setSessionId(sessionId)
-    roundStartIndex = 0
 
-    try {
-      const messages = await listMessages(sessionId)
-      currentSessionId.value = sessionId
+    // 通过 store 加载会话数据
+    await store.loadSession(sessionId)
 
-      for (const msg of messages) {
-        const message: Message = {
-          id: msg.id,
-          role: msg.role as Message['role'],
-          content: msg.content || '',
-          createdAt: new Date(msg.createTime),
-          type: (msg.messageType as Message['type']) || 'text'
-        }
-
-        // 恢复工具调用信息
-        if (msg.messageType === 'tool_call' && msg.metadata) {
-          try {
-            const meta = JSON.parse(msg.metadata)
-            message.agentToolCall = {
-              toolCallId: meta.toolCallId || '',
-              toolName: meta.toolName || '',
-              input: meta.input || {},
-              status: meta.status || 'done',
-              result: meta.result
-            }
-          } catch {
-            // metadata 解析失败时忽略
-          }
-        }
-
-        messageList.value.push(message)
-
-        // 同步到 Agent 记忆，确保后续对话上下文完整
-        agentEngine.memoryManager.addMessage({
-          role: msg.role as 'user' | 'assistant' | 'system' | 'tool_result',
-          content: msg.content || '',
-          toolCallId: msg.messageType === 'tool_call' ? undefined : undefined
-        })
-      }
-
-      // 已加载的消息不需要再批量保存
-      roundStartIndex = messageList.value.length
-    } catch (e) {
-      console.warn('加载会话历史失败:', e)
+    // 同步到 Agent 记忆，确保后续对话上下文完整
+    for (const msg of messageList.value) {
+      agentEngine.memoryManager.addMessage({
+        role: msg.role as 'user' | 'assistant' | 'system' | 'tool_result',
+        content: msg.content || '',
+        toolCallId: undefined
+      })
     }
   }
 
   /**
    * 删除当前会话
-   * 调用后端接口软删除，同时清空前端状态
+   * 通过 store 统一删除（自动从列表移除 + 清空会话数据）
+   * 额外清理 Agent 记忆状态
    */
   const removeCurrentSession = async () => {
     if (currentSessionId.value) {
       try {
-        await apiDeleteSession(currentSessionId.value)
+        await store.deleteSession(currentSessionId.value)
       } catch (e) {
         console.warn('删除会话失败:', e)
       }
     }
-    clearHistory()
-  }
-
-  /**
-   * 根据用户首条消息异步生成会话标题
-   * 截取消息前20个字符作为标题，调用后端 rename 接口更新
-   * 异步执行不阻塞对话流程，失败时静默处理
-   *
-   * @param sessionId - 会话ID
-   * @param firstMessage - 用户首条消息内容
-   */
-  const generateSessionTitle = (sessionId: string, firstMessage: string) => {
-    const title = firstMessage.slice(0, 20) + (firstMessage.length > 20 ? '...' : '')
-    apiRenameSession(sessionId, title).catch(e => {
-      console.warn('[generateSessionTitle] 标题生成失败:', e)
-    })
+    // store.deleteSession 已清空会话数据，这里只清理 Agent 状态
+    agentEngine.clearMemory()
+    agentEngine.setSessionId(null)
   }
 
   /**
    * 重试消息
    * 删除指定索引及之后的消息，重新发送该索引处的用户消息
-   * 对应 HiveChat 的 retryMessage 逻辑
    *
    * @param index - 消息索引（用户消息的索引）
    */
@@ -613,20 +467,9 @@ export function useChat() {
     const content = targetMessage.content
     const attachments = targetMessage.attachments
     const searchEnabled = targetMessage.searchEnabled
-    messageList.value = messageList.value.slice(0, index)
+    messageList.value.splice(index)
 
     sendMessage(content, attachments, searchEnabled)
-  }
-
-  /**
-   * 删除指定索引的消息
-   * 对应 HiveChat 的 deleteMessage 逻辑
-   *
-   * @param index - 消息索引
-   */
-  const deleteMessage = (index: number) => {
-    if (index < 0 || index >= messageList.value.length) return
-    messageList.value.splice(index, 1)
   }
 
   /**
@@ -642,7 +485,7 @@ export function useChat() {
    * @param value - 是否启用联网搜索
    */
   const setWebSearchEnabled = (value: boolean) => {
-    webSearchEnabled.value = value
+    store.webSearchEnabled = value
   }
 
   /**
@@ -685,60 +528,35 @@ export function useChat() {
     pendingConfirmToolCall.value = null
   }
 
-  /**
-   * 更新 Agent 项目规范（长期记忆）
-   * @param rules - 规范条目数组
-   */
-  const updateProjectRules = (rules: string[]) => {
-    agentEngine.updateProjectRules(rules)
-  }
-
-  /**
-   * 更新 Agent 用户偏好（长期记忆）
-   * @param preferences - 偏好键值对
-   */
-  const updateUserPreferences = (preferences: Record<string, any>) => {
-    agentEngine.updateUserPreferences(preferences)
-  }
-
-  onUnmounted(() => {
-    cancelRaf()
-    if (abortController) {
-      abortController.abort()
-    }
-    agentEngine.stop()
-  })
-
   return {
+    // 从 storeToRefs 解构出的 ref，保持 .value 访问方式
     messageList,
     responseStatus,
     responseMessage,
     responseReasoning,
     isUserScrolling,
-    webSearchEnabled,
     searchStatus,
     mcpTools,
     historyType,
     historyCount,
     pendingConfirmToolCall,
     currentSessionId,
-    currentSession,
+
+    // 业务方法
     sendMessage,
     stopChat,
     clearHistory,
     addBreak,
     retryMessage,
-    deleteMessage,
+    deleteMessage: store.deleteMessage,
     setIsUserScrolling,
     setWebSearchEnabled,
     setHistoryType,
     setHistoryCount,
     confirmAgentTool,
     rejectAgentTool,
-    updateProjectRules,
-    updateUserPreferences,
-    getFilteredMessages,
+    removeCurrentSession,
     loadSession,
-    removeCurrentSession
+    getFilteredMessages
   }
 }

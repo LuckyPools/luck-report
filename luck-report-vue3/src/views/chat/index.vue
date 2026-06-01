@@ -302,15 +302,14 @@ const handleSessionSelect = (sessionId: string) => {
 }
 
 /**
- * 会话被删除
- * 如果删除的是当前会话，清空前端状态
+ * 会话被删除（从 ChatList 中删除）
+ * store.deleteSession 已自动从列表移除并清空会话数据
+ * 这里额外清理 Agent 记忆状态（Agent 状态不在 store 管辖范围）
  *
  * @param sessionId - 被删除的会话ID
  */
-const handleSessionDeleted = (sessionId: string) => {
-  if (sessionId === currentSessionId.value) {
-    clearHistory()
-  }
+const handleSessionDeleted = (_sessionId: string) => {
+  clearHistory()
 }
 
 /**
