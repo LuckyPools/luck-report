@@ -6,7 +6,8 @@ import {
   mergeCellsTool,
   setCellStyleTool,
   insertRowsTool,
-  insertColsTool
+  insertColsTool,
+  searchComponentDocTool
 } from './report-tools'
 
 /**
@@ -132,7 +133,8 @@ export function createDefaultRegistry(): ToolRegistry {
     mergeCellsTool,
     setCellStyleTool,
     insertRowsTool,
-    insertColsTool
+    insertColsTool,
+    searchComponentDocTool
   ])
   return registry
 }

@@ -10,7 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author luck
  */
 @SpringBootApplication
-@MapperScan("com.luck.agent.mapper")
 public class ReportAgentApplication {
 
     public static void main(String[] args) {

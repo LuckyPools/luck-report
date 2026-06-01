@@ -2,10 +2,12 @@ package com.luck.agent.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.luck.agent.domain.entity.ModelConfig;
 import com.luck.agent.domain.vo.ChatRequest;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ToolCallMessage;
 import com.luck.agent.domain.vo.ToolDefinition;
+import com.luck.agent.service.ModelConfigService;
 import okhttp3.*;
 import okio.BufferedSource;
 import org.slf4j.Logger;
@@ -38,19 +40,19 @@ public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
-    private static final String API_KEY = "sk-391c6103719e4169933ebcd160280b12";
-    private static final String BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
-    private static final String MODEL_NAME = "qwen3.6-plus";
-
+    private final ModelConfigService modelConfigService;
     private final OkHttpClient httpClient;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Gson gson = new GsonBuilder().create();
 
     /**
      * 初始化聊天控制器
-     * 构建 OkHttp 客户端，设置超时时间适配流式响应
+     * 注入 ModelConfigService 获取大模型配置，构建 OkHttp 客户端
+     *
+     * @param modelConfigService 模型配置服务
      */
-    public ChatController() {
+    public ChatController(ModelConfigService modelConfigService) {
+        this.modelConfigService = modelConfigService;
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)
@@ -73,14 +75,20 @@ public class ChatController {
 
         executorService.submit(() -> {
             try {
+                // 从 ModelConfigService 获取对话模型配置
+                ModelConfig chatConfig = modelConfigService.getChatConfig(null);
+                String baseUrl = chatConfig.getBaseUrl();
+                String apiKey = chatConfig.getApiKey();
+                String modelName = chatConfig.getModelName();
+
                 List<Map<String, Object>> messages = buildMessages(request);
-                String requestBody = buildOpenAiRequestBody(messages, request.getTools());
+                String requestBody = buildOpenAiRequestBody(messages, request.getTools(), modelName);
 
                 log.debug("发送给大模型的请求体: {}", requestBody);
 
                 Request httpRequest = new Request.Builder()
-                        .url(BASE_URL + "/chat/completions")
-                        .addHeader("Authorization", "Bearer " + API_KEY)
+                        .url(baseUrl + chatConfig.getCompletionsPath())
+                        .addHeader("Authorization", "Bearer " + apiKey)
                         .addHeader("Content-Type", "application/json")
                         .post(okhttp3.RequestBody.create(requestBody, okhttp3.MediaType.parse("application/json")))
                         .build();
@@ -308,9 +316,6 @@ public class ChatController {
     private List<Map<String, Object>> buildMessages(ChatRequest request) {
         List<Map<String, Object>> messages = new ArrayList<>();
 
-        // 系统提示词由前端 Agent 的 ContextManager 管理，
-        // 通过 contextMessages 的 system 角色消息传入，后端不再重复添加
-
         // 追加历史上下文消息
         if (request.getContextMessages() != null) {
             for (ContextMessage ctx : request.getContextMessages()) {
@@ -370,11 +375,13 @@ public class ChatController {
      *
      * @param messages OpenAI 格式消息列表
      * @param tools 前端传入的工具定义列表，可为 null
+     * @param modelName 模型名称
      * @return JSON 格式的请求体字符串
      */
-    private String buildOpenAiRequestBody(List<Map<String, Object>> messages, List<ToolDefinition> tools) {
+    private String buildOpenAiRequestBody(List<Map<String, Object>> messages, List<ToolDefinition> tools,
+                                          String modelName) {
         Map<String, Object> body = new LinkedHashMap<>(6);
-        body.put("model", MODEL_NAME);
+        body.put("model", modelName);
         body.put("messages", messages);
         body.put("stream", true);
 

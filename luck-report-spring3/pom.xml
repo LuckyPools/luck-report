@@ -60,6 +60,25 @@
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>2.3.2</version>
         </dependency>
+
+        <!-- PostgreSQL 驱动（pgvector 向量存储） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.3</version>
+        </dependency>
+
+        <!-- Spring JDBC（PostgreSQL JdbcTemplate） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- Spring AOP（数据源切换切面） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

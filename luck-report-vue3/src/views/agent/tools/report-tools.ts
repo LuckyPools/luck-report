@@ -1,5 +1,6 @@
 import type { ToolDefinition } from './types'
 import { executeCode } from '@/views/export/iframe-utils'
+import { vectorSearch } from '@/api/vector'
 
 /**
  * 读取单元格数据工具
@@ -168,4 +169,43 @@ export const insertColsTool: ToolDefinition<{ colIndex: number; count: number }>
   },
   readOnly: false,
   requireConfirm: true
+}
+
+/**
+ * 搜索组件文档工具
+ * 通过后端向量检索 API 查询报表组件的属性、用法、示例
+ * 只读工具，可并发执行
+ * 调用后端 /api/vector/search 接口，传入 vectorType=COMPONENT
+ */
+export const searchComponentDocTool: ToolDefinition<{
+  query: string;
+  componentType?: string;
+  topK?: number;
+}> = {
+  name: 'search_component_doc',
+  description: '搜索报表组件的文档和用法，如图表类型、单元格属性、样式属性等。当用户提到不熟悉的组件或属性时调用此工具获取详细信息。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: '搜索关键词，如"柱状图"、"条件样式"、"数据集绑定"' },
+      componentType: { type: 'string', description: '组件类型过滤，可选值：chart（图表）、cell（单元格）、dataset（数据集）、style（样式）' },
+      topK: { type: 'integer', description: '返回条数，默认5' }
+    },
+    required: ['query']
+  },
+  execute: async ({ query, componentType, topK }) => {
+    const metadataFilters: Record<string, any> = {}
+    if (componentType) {
+      metadataFilters.componentType = componentType
+    }
+    return vectorSearch({
+      query,
+      vectorType: 'COMPONENT',
+      topK: topK ?? 5,
+      threshold: 0.5,
+      metadataFilters: Object.keys(metadataFilters).length > 0 ? metadataFilters : undefined
+    })
+  },
+  readOnly: true,
+  requireConfirm: false
 }

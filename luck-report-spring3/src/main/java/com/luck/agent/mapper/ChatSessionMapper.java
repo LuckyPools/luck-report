@@ -9,6 +9,7 @@ import java.util.List;
 /**
  * 聊天会话 Mapper
  * 提供 chat_session 表的 CRUD 操作，使用注解方式定义 SQL
+ * 使用 Spring Boot 默认主数据源
  *
  * @author luck
  */

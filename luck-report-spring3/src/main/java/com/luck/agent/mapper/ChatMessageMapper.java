@@ -8,6 +8,7 @@ import java.util.List;
 /**
  * 聊天消息 Mapper
  * 提供 chat_message 表的 CRUD 操作，支持单条插入和批量插入
+ * 使用 Spring Boot 默认主数据源
  *
  * @author luck
  */

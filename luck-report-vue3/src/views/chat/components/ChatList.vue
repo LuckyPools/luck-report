@@ -84,7 +84,7 @@ import {
   EllipsisOutlined
 } from '@ant-design/icons-vue'
 import { useChatStore } from '@/stores/chat'
-import type { SessionInfo } from '@/api/chat/persistence'
+import type { SessionInfo } from '@/api/chat/session.ts'
 
 /**
  * 会话列表组件
