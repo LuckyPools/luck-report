@@ -1,13 +1,12 @@
 package com.luck.agent.controller;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.luck.agent.domain.entity.ModelConfig;
 import com.luck.agent.domain.vo.ChatRequest;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ToolCallMessage;
 import com.luck.agent.domain.vo.ToolDefinition;
 import com.luck.agent.service.ModelConfigService;
+import com.luck.agent.util.ChatUtils;
 import okhttp3.*;
 import okio.BufferedSource;
 import org.slf4j.Logger;
@@ -23,11 +22,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 聊天控制器
- * 通过 OkHttp 直接调用阿里百炼 OpenAI 兼容 API，实现流式对话转发
+ * 通过 ChatUtils 调用阿里百炼 OpenAI 兼容 API，实现流式对话转发
  * 支持 Function Calling：将前端传入的 tools 定义转发给大模型，
  * 解析大模型返回的 tool_calls 并通过 SSE tool_use 事件推送给前端，
  * 前端执行工具后将 tool_result 回传，实现 Agentic Loop
@@ -41,28 +39,23 @@ public class ChatController {
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
     private final ModelConfigService modelConfigService;
-    private final OkHttpClient httpClient;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-    private final Gson gson = new GsonBuilder().create();
 
     /**
      * 初始化聊天控制器
-     * 注入 ModelConfigService 获取大模型配置，构建 OkHttp 客户端
+     * 注入 ModelConfigService 获取大模型配置
+     * HTTP 客户端和 Gson 由 ChatUtils 统一管理
      *
      * @param modelConfigService 模型配置服务
      */
     public ChatController(ModelConfigService modelConfigService) {
         this.modelConfigService = modelConfigService;
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .build();
     }
 
     /**
      * 流式对话接口（POST）
-     * 接收 JSON 请求体，转发至大模型 API 并以 SSE 方式推送流式响应
+     * 接收 JSON 请求体，通过 ChatUtils.buildStreamCall() 构建流式请求，
+     * 以 SSE 方式推送流式响应
      * 支持 Function Calling：当请求携带 tools 参数时，将工具定义传给大模型，
      * 大模型可通过 tool_calls 返回工具调用指令，后端解析后以 tool_use 事件推送
      *
@@ -75,14 +68,21 @@ public class ChatController {
 
         executorService.submit(() -> {
             try {
-                // 从 ModelConfigService 获取对话模型配置
                 ModelConfig chatConfig = modelConfigService.getChatConfig(null);
-                String baseUrl = chatConfig.getBaseUrl();
-                String apiKey = chatConfig.getApiKey();
-                String modelName = chatConfig.getModelName();
-
                 List<Map<String, Object>> messages = buildMessages(request);
-                String requestBody = buildOpenAiRequestBody(messages, request.getTools(), modelName);
+
+                // 构建工具定义列表（OpenAI Function Calling 格式）
+                List<Map<String, Object>> openaiTools = buildOpenAiTools(request.getTools());
+
+                // 流式选项：请求 API 在最后一个 chunk 返回 token 用量
+                Map<String, Object> streamOptions = new LinkedHashMap<>(1);
+                streamOptions.put("include_usage", true);
+
+                ChatUtils.AskModelRequest askRequest = new ChatUtils.AskModelRequest(chatConfig, messages)
+                        .stream(true)
+                        .tools(openaiTools)
+                        .toolChoice(openaiTools != null ? "auto" : null)
+                        .streamOptions(streamOptions);
 
                 // 计算输入消息的文本总长度，用于 token 估算
                 int inputTextLength = 0;
@@ -94,14 +94,9 @@ public class ChatController {
                 }
                 final int finalInputTextLength = inputTextLength;
 
-                Request httpRequest = new Request.Builder()
-                        .url(baseUrl + chatConfig.getCompletionsPath())
-                        .addHeader("Authorization", "Bearer " + apiKey)
-                        .addHeader("Content-Type", "application/json")
-                        .post(okhttp3.RequestBody.create(requestBody, okhttp3.MediaType.parse("application/json")))
-                        .build();
+                Call call = ChatUtils.buildStreamCall(askRequest);
 
-                httpClient.newCall(httpRequest).enqueue(new Callback() {
+                call.enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
                         log.error("大模型API调用失败: {}", e.getMessage(), e);
@@ -171,9 +166,7 @@ public class ChatController {
     @SuppressWarnings("unchecked")
     private void processStreamResponse(BufferedSource source, SseEmitter emitter, int inputTextLength) throws IOException {
         Map<Integer, Map<String, Object>> accumulatedToolCalls = new LinkedHashMap<>();
-        // 累积输出文本长度，用于 token 估算
         int outputTextLength = 0;
-        // 标记是否从 API 响应中获取到了真实 usage
         boolean hasRealUsage = false;
         int inputTokens = 0;
         int outputTokens = 0;
@@ -194,8 +187,6 @@ public class ChatController {
             if ("[DONE]".equals(data)) {
                 flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
 
-                // 流结束前推送 token_usage 事件
-                // 优先使用 API 返回的真实 usage，否则基于文本长度估算
                 if (!hasRealUsage) {
                     inputTokens = estimateTokens(inputTextLength);
                     outputTokens = estimateTokens(outputTextLength);
@@ -208,14 +199,14 @@ public class ChatController {
                 tokenUsage.put("inputTokens", inputTokens);
                 tokenUsage.put("outputTokens", outputTokens);
                 tokenUsage.put("totalTokens", totalTokens);
-                emitter.send(SseEmitter.event().name("token_usage").data(gson.toJson(tokenUsage)));
+                emitter.send(SseEmitter.event().name("token_usage").data(ChatUtils.getGson().toJson(tokenUsage)));
 
                 emitter.send(SseEmitter.event().name("done").data("[DONE]"));
                 return;
             }
 
             try {
-                Map<String, Object> response = gson.fromJson(data, Map.class);
+                Map<String, Object> response = ChatUtils.getGson().fromJson(data, Map.class);
                 if (response == null) {
                     continue;
                 }
@@ -344,7 +335,7 @@ public class ChatController {
             // 解析 arguments JSON 字符串为 Map
             Map<String, Object> input;
             try {
-                input = gson.fromJson(argumentsStr, Map.class);
+                input = ChatUtils.getGson().fromJson(argumentsStr, Map.class);
             } catch (Exception e) {
                 log.warn("解析tool_call arguments失败: {}", argumentsStr);
                 input = new HashMap<>();
@@ -360,7 +351,7 @@ public class ChatController {
             toolUseEvent.put("toolName", toolName);
             toolUseEvent.put("input", input);
 
-            String eventJson = gson.toJson(toolUseEvent);
+            String eventJson = ChatUtils.getGson().toJson(toolUseEvent);
             log.debug("推送tool_use事件: {}", eventJson);
             emitter.send(SseEmitter.event().name("tool_use").data(eventJson));
         }
@@ -435,47 +426,31 @@ public class ChatController {
     }
 
     /**
-     * 构建 OpenAI Chat Completions API 请求体
-     * 包含模型名称、消息列表、流式开关、工具定义等参数
-     * 当请求携带 tools 时，转换为 OpenAI Function Calling 格式传入
+     * 将前端传入的工具定义转换为 OpenAI Function Calling 格式
+     * 前端 ToolDefinition 格式：{ type: "function", function: { name, description, parameters } }
      *
-     * @param messages OpenAI 格式消息列表
      * @param tools 前端传入的工具定义列表，可为 null
-     * @param modelName 模型名称
-     * @return JSON 格式的请求体字符串
+     * @return OpenAI 格式的工具定义列表，无工具时返回 null
      */
-    private String buildOpenAiRequestBody(List<Map<String, Object>> messages, List<ToolDefinition> tools,
-                                          String modelName) {
-        Map<String, Object> body = new LinkedHashMap<>(7);
-        body.put("model", modelName);
-        body.put("messages", messages);
-        body.put("stream", true);
-        // 请求流式响应中包含 usage 字段，OpenAI 兼容 API 需要此参数才会在最后一个 chunk 返回 token 用量
-        Map<String, Object> streamOptions = new LinkedHashMap<>(1);
-        streamOptions.put("include_usage", true);
-        body.put("stream_options", streamOptions);
-
-        // 将前端传入的工具定义转换为 OpenAI Function Calling 格式
-        if (tools != null && !tools.isEmpty()) {
-            List<Map<String, Object>> openaiTools = new ArrayList<>();
-            for (ToolDefinition td : tools) {
-                Map<String, Object> tool = new LinkedHashMap<>(2);
-                tool.put("type", "function");
-
-                Map<String, Object> function = new LinkedHashMap<>(3);
-                function.put("name", td.getFunction().getName());
-                function.put("description", td.getFunction().getDescription());
-                // 前端传入的 inputSchema 映射为 OpenAI 的 parameters
-                function.put("parameters", td.getFunction().getParameters());
-
-                tool.put("function", function);
-                openaiTools.add(tool);
-            }
-            body.put("tools", openaiTools);
-            // 启用工具调用，让模型自动决定是否调用工具
-            body.put("tool_choice", "auto");
+    private List<Map<String, Object>> buildOpenAiTools(List<ToolDefinition> tools) {
+        if (tools == null || tools.isEmpty()) {
+            return null;
         }
 
-        return gson.toJson(body);
+        List<Map<String, Object>> openaiTools = new ArrayList<>();
+        for (ToolDefinition td : tools) {
+            Map<String, Object> tool = new LinkedHashMap<>(2);
+            tool.put("type", "function");
+
+            Map<String, Object> function = new LinkedHashMap<>(3);
+            function.put("name", td.getFunction().getName());
+            function.put("description", td.getFunction().getDescription());
+            // 前端传入的 inputSchema 映射为 OpenAI 的 parameters
+            function.put("parameters", td.getFunction().getParameters());
+
+            tool.put("function", function);
+            openaiTools.add(tool);
+        }
+        return openaiTools;
     }
 }

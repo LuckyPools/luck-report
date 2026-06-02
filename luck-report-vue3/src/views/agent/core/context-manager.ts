@@ -2,6 +2,7 @@ import { MemoryManager } from '../memory/memory-manager'
 import { ToolRegistry } from '../tools/registry'
 import { executeCode } from '@/views/export/iframe-utils'
 import { buildPrompt } from '@/prompt'
+import { contextConfig } from '@/config'
 
 /**
  * 上下文管理器
@@ -20,8 +21,8 @@ export class ContextManager {
   private cachedReportState: string = ''
   /** 缓存过期时间戳 */
   private cacheExpiry: number = 0
-  /** 缓存有效期，默认 5 秒 */
-  private static CACHE_TTL = 5000
+  /** 缓存有效期，从集中配置读取 */
+  private static CACHE_TTL = contextConfig.reportStateCacheTTL
 
   constructor(memoryManager: MemoryManager, toolRegistry: ToolRegistry) {
     this.memoryManager = memoryManager

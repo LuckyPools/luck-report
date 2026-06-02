@@ -1,6 +1,11 @@
 /**
  * 记忆系统类型定义
- * 三层记忆架构：短期（消息历史）、中期（摘要压缩）、长期（用户偏好/规范）
+ * 五层记忆架构：
+ *   第1层：工具结果截断（减少 50%+ token）
+ *   第2层：滑动窗口改进（防止 tool_calls 链被拆散）
+ *   第3层：自动摘要压缩（根本性解决长对话问题）
+ *   第4层：状态快照（压缩后保持报表上下文）
+ *   第5层：会话记忆持久化（跨会话记忆）
  * 参考 Claude Code 的 Session Memory + Compact + CLAUDE.md 机制
  */
 
@@ -35,6 +40,8 @@ export interface MemoryMessage {
    * 否则大模型无法关联后续的 tool_result 消息
    */
   toolCalls?: ToolCallInfo[]
+  /** 标记该消息是否已被截断，用于提示 LLM 结果不完整 */
+  truncated?: boolean
 }
 
 /**
@@ -105,4 +112,59 @@ export interface CompactResult {
   summary: string
   /** 更新后的关键操作列表 */
   keyOperations: string[]
+}
+
+/**
+ * 报表状态快照
+ * 压缩后注入到上下文中，保持报表上下文不丢失
+ */
+export interface ReportSnapshot {
+  /** 行列数 */
+  dimensions: { rows: number; cols: number }
+  /** 合并单元格区域列表 */
+  mergedRegions: Array<{ startRow: number; startCol: number; endRow: number; endCol: number }>
+  /** 非空单元格摘要（坐标 → 值），只保留关键单元格 */
+  cellValues: Record<string, string>
+  /** 数据源绑定信息 */
+  dataBindings: string[]
+  /** 快照生成时间戳 */
+  timestamp: number
+}
+
+/**
+ * 会话记忆持久化数据
+ * 存储到 localStorage，跨页面刷新保留
+ */
+export interface SessionPersistence {
+  /** 会话ID */
+  sessionId: string
+  /** 短期消息历史（序列化后的 MemoryMessage[]） */
+  messages: MemoryMessage[]
+  /** 中期摘要 */
+  summary: string
+  /** 关键操作记录 */
+  keyOperations: string[]
+  /** 报表状态快照 */
+  reportSnapshot: ReportSnapshot | null
+  /** 持久化时间戳 */
+  savedAt: number
+}
+
+/**
+ * 上下文窗口配置
+ * 控制各层策略的触发阈值
+ */
+export interface ContextWindowConfig {
+  /** 工具结果截断阈值（字符数），默认 2000 */
+  toolResultMaxChars: number
+  /** 滑动窗口保留的最大消息条数，默认 30 */
+  slidingWindowSize: number
+  /** 触发自动摘要压缩的消息条数阈值，默认 40 */
+  compactThreshold: number
+  /** 压缩后保留的最近消息条数，默认 10 */
+  compactKeepRecent: number
+  /** 估算的上下文窗口 token 上限，默认 120000 */
+  contextWindowTokens: number
+  /** 触发自动压缩的 token 占比阈值，默认 0.7 */
+  autoCompactTokenRatio: number
 }

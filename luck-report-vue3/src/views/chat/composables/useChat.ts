@@ -4,6 +4,7 @@ import { AgentEngine } from '@/views/agent/composables/useAgent'
 import type { AgentEvent } from '@/views/agent/core/agent-loop'
 import type { ToolCall } from '@/views/agent/tools/types'
 import { useChatStore } from '@/stores/chat'
+import { contextConfig } from '@/config'
 import { storeToRefs } from 'pinia'
 
 /**
@@ -33,7 +34,7 @@ export function useChat() {
 
   /** Agent 引擎实例 */
   const agentEngine = new AgentEngine({
-    maxIterations: 10,
+    maxIterations: contextConfig.maxAgentIterations,
     onToolConfirm: async (toolCall: ToolCall) => {
       pendingConfirmToolCall.value = toolCall
       return new Promise<boolean>((resolve) => {
@@ -289,8 +290,10 @@ export function useChat() {
           messageList.value.push(errorMessage)
         }
 
-        // Agent Loop 结束后批量保存消息到后端
-        await store.persistMessages()
+        // Agent Loop 结束后批量保存消息到后端（异步执行，不阻塞后续对话）
+        store.persistMessages().catch(e => {
+          console.warn('[useChat] 消息持久化失败:', e)
+        })
         break
       }
     }
@@ -408,9 +411,12 @@ export function useChat() {
 
   /**
    * 清空历史
-   * 同时清空 Agent 记忆，重置会话状态
+   * 同时清空 Agent 记忆和持久化数据，重置会话状态
    */
   const clearHistory = () => {
+    if (currentSessionId.value) {
+      agentEngine.removeSession(currentSessionId.value)
+    }
     store.clearCurrentSession()
     agentEngine.clearMemory()
     agentEngine.setSessionId(null)
@@ -419,13 +425,16 @@ export function useChat() {
   /**
    * 加载旧对话
    * 从后端获取会话的历史消息，恢复到前端 messageList 和 Agent 记忆
+   * 优先尝试从 localStorage 恢复 Agent 记忆（第5层），失败则从消息列表重建
    *
    * @param sessionId - 要加载的会话ID
    */
   const loadSession = async (sessionId: string) => {
-    // 切换前先保存当前会话
+    // 切换前先保存当前会话（异步执行，不阻塞会话切换）
     if (currentSessionId.value && store.getRoundStartIndex() < messageList.value.length) {
-      await store.persistMessages()
+      store.persistMessages().catch(e => {
+        console.warn('[useChat] 切换会话前持久化失败:', e)
+      })
     }
 
     // 清空 Agent 状态
@@ -435,23 +444,58 @@ export function useChat() {
     // 通过 store 加载会话数据
     await store.loadSession(sessionId)
 
-    // 同步到 Agent 记忆，确保后续对话上下文完整
-    for (const msg of messageList.value) {
-      agentEngine.memoryManager.addMessage({
-        role: msg.role as 'user' | 'assistant' | 'system' | 'tool_result',
-        content: msg.content || '',
-        toolCallId: undefined
-      })
+    // 第5层：优先尝试从 localStorage 恢复 Agent 记忆
+    const restored = agentEngine.restoreSession(sessionId)
+    if (!restored) {
+      // 恢复失败，从消息列表重建记忆
+      // 需要正确还原 tool_call 和 tool_result 的关联关系，
+      // 否则 OpenAI Function Calling 协议不完整，大模型无法关联 tool_result
+      for (const msg of messageList.value) {
+        if (msg.type === 'tool_call' && msg.agentToolCall) {
+          // 工具调用结果消息：映射为 tool_result 角色，携带 toolCallId 和 toolName
+          agentEngine.memoryManager.addMessage({
+            role: 'tool_result',
+            content: msg.content || '',
+            toolCallId: msg.agentToolCall.toolCallId,
+            toolName: msg.agentToolCall.toolName
+          })
+        } else if (msg.role === 'assistant' && msg.agentToolCall) {
+          // assistant 消息携带工具调用：需要保留 toolCalls 信息
+          // OpenAI 协议要求回传 assistant 消息时包含 tool_calls
+          agentEngine.memoryManager.addMessage({
+            role: 'assistant',
+            content: msg.content || '',
+            toolCalls: [{
+              id: msg.agentToolCall.toolCallId,
+              type: 'function',
+              function: {
+                name: msg.agentToolCall.toolName,
+                arguments: JSON.stringify(msg.agentToolCall.input || {})
+              }
+            }]
+          })
+        } else {
+          agentEngine.memoryManager.addMessage({
+            role: msg.role as 'user' | 'assistant' | 'system' | 'tool_result',
+            content: msg.content || ''
+          })
+        }
+      }
     }
+
+    // 加载历史对话后立即检查是否需要压缩
+    // 避免历史消息已超过阈值但需等3轮新对话才触发压缩的问题
+    agentEngine.checkAndCompact()
   }
 
   /**
    * 删除当前会话
    * 通过 store 统一删除（自动从列表移除 + 清空会话数据）
-   * 额外清理 Agent 记忆状态
+   * 额外清理 Agent 记忆状态和持久化数据
    */
   const removeCurrentSession = async () => {
     if (currentSessionId.value) {
+      agentEngine.removeSession(currentSessionId.value)
       try {
         await store.deleteSession(currentSessionId.value)
       } catch (e) {

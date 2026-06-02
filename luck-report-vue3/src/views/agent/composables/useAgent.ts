@@ -3,7 +3,11 @@ import { MemoryManager } from '../memory/memory-manager'
 import { ContextManager } from '../core/context-manager'
 import { runAgentLoop, type AgentEvent, type AgentLoopConfig } from '../core/agent-loop'
 import type { ToolCall } from '../tools/types'
+import type { ReportSnapshot, CompactResult } from '../memory/types'
 import type { ContextMessage } from '@/api/chat'
+import { compactConversation } from '@/api/chat/compact'
+import { contextConfig } from '@/config'
+import { executeCode } from '@/views/export/iframe-utils'
 
 /**
  * Agent 引擎配置
@@ -29,6 +33,8 @@ export interface AgentEngineConfig {
  * 3. 每个关键步骤通过 onEvent 回调通知上层
  * 4. 工具确认时通过 onToolConfirm 回调暂停等待
  * 5. 循环结束后通过 onEvent(done) 通知上层
+ * 6. 自动压缩：当消息过多时触发 LLM 生成摘要替代早期消息
+ * 7. 持久化：循环结束后自动保存会话数据到 localStorage
  *
  * 调用方：useChat.sendMessage() 中判断是否启用 Agent 模式，
  * 如果启用则调用 agentEngine.start() 替代直接调 chatStream
@@ -51,6 +57,8 @@ export class AgentEngine {
   private abortController: AbortController | null = null
   /** 是否正在运行 */
   private _running = false
+  /** 是否正在执行异步压缩，防止并发重复触发 */
+  private _compacting = false
 
   constructor(config: AgentEngineConfig = {}) {
     this.maxIterations = config.maxIterations ?? 10
@@ -85,8 +93,6 @@ export class AgentEngine {
     this.abortController = signal ? null : new AbortController()
     const effectiveSignal = signal || this.abortController!.signal
 
-    // 用户消息由 runAgentLoop 内部追加到记忆，此处不再重复添加
-
     const config: AgentLoopConfig = {
       maxIterations: this.maxIterations,
       toolRegistry: this.toolRegistry,
@@ -94,7 +100,9 @@ export class AgentEngine {
       contextManager: this.contextManager,
       signal: effectiveSignal,
       onToolConfirm: this.onToolConfirmFn,
-      sessionId: this.sessionId
+      sessionId: this.sessionId,
+      onCaptureSnapshot: () => this.captureReportSnapshot(),
+      onAutoCompact: (mm) => this.autoCompact(mm)
     }
 
     try {
@@ -102,6 +110,8 @@ export class AgentEngine {
     } finally {
       this._running = false
       this.abortController = null
+      // 第5层：循环结束后自动持久化会话
+      this.memoryManager.persistSession()
     }
   }
 
@@ -133,6 +143,48 @@ export class AgentEngine {
    */
   setSessionId(sessionId: string | null): void {
     this.sessionId = sessionId ?? undefined
+    if (sessionId) {
+      this.memoryManager.setSessionId(sessionId)
+    }
+  }
+
+  /**
+   * 恢复会话记忆
+   * 第5层：从 localStorage 恢复之前的对话上下文
+   *
+   * @param sessionId - 会话ID
+   * @returns 是否成功恢复
+   */
+  restoreSession(sessionId: string): boolean {
+    this.sessionId = sessionId
+    this.memoryManager.setSessionId(sessionId)
+    return this.memoryManager.restoreSession(sessionId)
+  }
+
+  /**
+   * 删除会话持久化数据
+   * @param sessionId - 会话ID
+   */
+  removeSession(sessionId: string): void {
+    this.memoryManager.removeSession(sessionId)
+  }
+
+  /**
+   * 检查并执行异步压缩
+   * 加载历史对话后调用，如果消息数已超过压缩阈值则立即触发压缩
+   * 异步执行，不阻塞后续操作
+   */
+  checkAndCompact(): void {
+    if (this.memoryManager.needsCompact()) {
+      this.captureReportSnapshot().then(snapshot => {
+        if (snapshot) {
+          this.memoryManager.updateReportSnapshot(snapshot)
+        }
+      }).catch(() => {})
+      this.autoCompact(this.memoryManager).catch(e => {
+        console.warn('[AgentEngine] 加载历史对话后压缩失败:', e)
+      })
+    }
   }
 
   /**
@@ -183,5 +235,168 @@ export class AgentEngine {
    */
   updateUserPreferences(preferences: Record<string, any>): void {
     this.memoryManager.updateUserPreferences(preferences)
+  }
+
+  // ==================== 内部方法 ====================
+
+  /**
+   * 采集报表状态快照
+   * 第4层：压缩前调用，通过 PostMessage 从设计器获取当前报表状态
+   * 将完整报表数据精简为快照格式，只保留关键信息
+   *
+   * @returns 报表状态快照，获取失败返回 null
+   */
+  private async captureReportSnapshot(): Promise<ReportSnapshot | null> {
+    try {
+      const schema = await executeCode('getReportSchema()', '*', 3000)
+      if (!schema || typeof schema !== 'object') return null
+
+      const s = schema as any
+      const snapshot: ReportSnapshot = {
+        dimensions: {
+          rows: s.rowCount ?? s.rows ?? 0,
+          cols: s.colCount ?? s.cols ?? 0
+        },
+        mergedRegions: [],
+        cellValues: {},
+        dataBindings: [],
+        timestamp: Date.now()
+      }
+
+      // 提取合并区域
+      if (Array.isArray(s.mergedRegions)) {
+        snapshot.mergedRegions = s.mergedRegions.slice(0, contextConfig.snapshotMaxMergedRegions)
+      }
+
+      // 提取非空单元格（只保留关键单元格）
+      if (typeof s.cells === 'object' && s.cells !== null) {
+        const entries = Object.entries(s.cells as Record<string, any>).slice(0, contextConfig.snapshotMaxCellValues)
+        for (const [key, cell] of entries) {
+          if (cell?.value != null && String(cell.value).trim() !== '') {
+            snapshot.cellValues[key] = String(cell.value)
+          }
+        }
+      }
+
+      // 提取数据源绑定
+      if (Array.isArray(s.dataBindings)) {
+        snapshot.dataBindings = s.dataBindings.slice(0, contextConfig.snapshotMaxDataBindings)
+      }
+
+      return snapshot
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * 自动压缩实现
+   * 第3层：当消息过多时，调用后端 LLM 压缩接口生成结构化摘要
+   * LLM 压缩失败时自动降级为规则压缩兜底
+   *
+   * @param mm - 记忆管理器实例
+   */
+  private async autoCompact(mm: MemoryManager): Promise<void> {
+    // 防止并发：上一次压缩还在进行中时跳过
+    if (this._compacting) {
+      console.info('[autoCompact] 压缩正在进行中，跳过本次触发')
+      return
+    }
+    this._compacting = true
+
+    try {
+      // 在压缩开始前先拍快照，确保压缩期间新增的消息不会被丢失
+      const allMessages = mm.getContextMessages(999)
+      const keepRecent = contextConfig.compactKeepRecent
+      const oldMessages = allMessages.length > keepRecent
+        ? allMessages.slice(0, allMessages.length - keepRecent)
+        : []
+
+      if (oldMessages.length === 0) return
+
+      // 将内部 MemoryMessage 转换为 API 层 ContextMessage 格式
+      const apiMessages: ContextMessage[] = oldMessages.map(msg => {
+        if (msg.role === 'tool_result') {
+          return {
+            role: 'tool_result' as const,
+            content: msg.content,
+            toolCallId: msg.toolCallId,
+            toolName: msg.toolName
+          }
+        }
+        if (msg.role === 'assistant' && msg.toolCalls && msg.toolCalls.length > 0) {
+          return {
+            role: 'assistant' as const,
+            content: msg.content || '',
+            toolCalls: msg.toolCalls as ContextMessage['toolCalls']
+          }
+        }
+        return {
+          role: msg.role as ContextMessage['role'],
+          content: msg.content
+        }
+      })
+
+      // 获取报表快照文本，帮助 LLM 理解当前报表上下文
+      const snapshot = mm.getReportSnapshot()
+      const snapshotText = snapshot ? mm.buildSnapshotContext() : undefined
+
+      const result: CompactResult = await compactConversation(
+        apiMessages,
+        mm.getSummary() || undefined,
+        mm.getKeyOperations().length > 0 ? mm.getKeyOperations() : undefined,
+        snapshotText
+      )
+
+      mm.compact(result)
+      console.info('[autoCompact] 异步压缩完成')
+    } catch (e) {
+      console.warn('[autoCompact] LLM 压缩失败，降级为规则压缩:', e)
+      this.fallbackCompact(mm)
+    } finally {
+      this._compacting = false
+    }
+  }
+
+  /**
+   * 规则压缩兜底方案
+   * 当 LLM 压缩接口调用失败时，使用简单的规则提取关键信息
+   *
+   * @param mm - 记忆管理器实例
+   */
+  private fallbackCompact(mm: MemoryManager): void {
+    const allMessages = mm.getContextMessages(999)
+    const keepRecent = contextConfig.compactKeepRecent
+    const oldMessages = allMessages.length > keepRecent
+      ? allMessages.slice(0, allMessages.length - keepRecent)
+      : []
+
+    if (oldMessages.length === 0) return
+
+    const summaryParts: string[] = []
+    const operationParts: string[] = []
+
+    for (const msg of oldMessages) {
+      if (msg.role === 'user' && msg.content) {
+        summaryParts.push(`用户: ${msg.content.substring(0, 100)}`)
+      } else if (msg.role === 'assistant' && msg.content) {
+        summaryParts.push(`助手: ${msg.content.substring(0, 100)}`)
+      } else if (msg.role === 'tool_result' && msg.toolName) {
+        operationParts.push(`${msg.toolName}: ${msg.truncated ? '(结果已截断)' : msg.content.substring(0, 80)}`)
+      }
+    }
+
+    const existingSummary = mm.getSummary()
+    const newSummary = existingSummary
+      ? `${existingSummary}\n\n[后续摘要]\n${summaryParts.join('\n')}`
+      : summaryParts.join('\n')
+
+    const existingOps = mm.getKeyOperations()
+    const newOps = [...existingOps, ...operationParts]
+
+    mm.compact({
+      summary: newSummary,
+      keyOperations: newOps
+    })
   }
 }

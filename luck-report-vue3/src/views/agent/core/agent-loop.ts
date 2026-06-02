@@ -2,7 +2,7 @@ import type { ToolRegistry } from '../tools/registry'
 import type { ToolCall } from '../tools/types'
 import type { MemoryManager } from '../memory/memory-manager'
 import type { ContextManager } from './context-manager'
-import type { ToolCallInfo } from '../memory/types'
+import type { ToolCallInfo, ReportSnapshot } from '../memory/types'
 import type { TokenUsage } from '@/api/chat'
 import { chatStream, type ContextMessage, type SseToolCall, type ToolCallMessage } from '@/api/chat'
 
@@ -37,6 +37,10 @@ export interface AgentLoopConfig {
   onToolConfirm?: (toolCall: ToolCall) => Promise<boolean>
   /** 会话ID，与数据库 chat_session.id 一致，用于后端关联会话上下文 */
   sessionId?: string
+  /** 报表快照采集回调，压缩前调用获取当前报表状态 */
+  onCaptureSnapshot?: () => Promise<ReportSnapshot | null>
+  /** 自动压缩回调，当需要压缩时调用，由上层负责发起 LLM 压缩请求 */
+  onAutoCompact?: (memoryManager: MemoryManager) => Promise<void>
 }
 
 /**
@@ -68,7 +72,6 @@ export async function runAgentLoop(
   onEvent: (event: AgentEvent) => void
 ): Promise<void> {
   const { maxIterations, toolRegistry, memoryManager, contextManager, signal } = config
-
   // 将用户消息追加到记忆（仅在此处追加一次，避免重复）
   memoryManager.addMessage({ role: 'user', content: userMessage })
 
@@ -172,6 +175,22 @@ export async function runAgentLoop(
       content: assistantContent,
       toolCalls: rawToolCalls.length > 0 ? rawToolCalls : undefined
     })
+
+    // 第3/4层：检查是否需要自动压缩（异步执行，不阻塞后续对话）
+    // 必须在判断 toolCalls 之前检查，否则纯文本对话（无工具调用）永远不会触发压缩
+    // 异步执行：压缩请求耗时较长（调用 LLM），不应阻塞当前对话的继续
+    if (memoryManager.needsCompact() && config.onAutoCompact) {
+      if (config.onCaptureSnapshot) {
+        config.onCaptureSnapshot().then(snapshot => {
+          if (snapshot) {
+            memoryManager.updateReportSnapshot(snapshot)
+          }
+        }).catch(() => {})
+      }
+      config.onAutoCompact(memoryManager).catch(e => {
+        console.warn('[agent-loop] 异步压缩失败:', e)
+      })
+    }
 
     // 如果没有工具调用，循环结束
     if (toolCalls.length === 0) {

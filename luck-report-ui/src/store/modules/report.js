@@ -41,6 +41,7 @@ const mutations = {
 
   // 设置单元格（按行列号）
   CONTEXT_SET_CELL(state, { rowIndex, colIndex, cell }) {
+    console.log(JSON.stringify(state.context))
     if (state.context && state.context.cellsMap) {
       const key = `${rowIndex},${colIndex}`;
       state.context.cellsMap.set(key, cell);
