@@ -10,7 +10,7 @@
 
 **结构概览**：`context.rowHeaders` → `RowHeader[]` ，每个 RowHeader 包含 `rowNumber` + `band`
 
-### 1、RowHeader 行头对象
+### (一) RowHeader 行头对象
 
 前端使用 `context.rowHeaders` 数组存储行类型配置，数组中每个元素为一个 RowHeader 对象：
 
@@ -21,7 +21,7 @@
 
 ---
 
-### 2、Band 行类型枚举
+### (二) Band 行类型枚举
 
 | 枚举值 | 前端标签 | 说明 | 分页行为 |
 |--------|---------|------|---------|
@@ -110,13 +110,23 @@
 
 ---
 
-## 五、工具调用
+## 五、数据操作步骤
 
-| 操作 | 工具名称 | 参数 | 说明 |
-|------|---------|------|------|
-| 读取行 | `get_rows` | `rowNumber?: number` | 不传 rowNumber 返回全部行，传入 rowNumber 返回指定行的数据 |
-| 整体替换 | `set_rows` | `rows: array` | 传入 rows 数组整体替换全部行数据，会覆盖现有配置 |
-| 更新行 | `update_row` | `rowNumber: number, row: object` | 按行号匹配替换行定义，会完全替换该行号的行配置 |
-| 插入行 | `insert_row` | `position: number, number?: number` | 在 position 位置插入行，position 为行索引从0开始，number 为插入行数默认1。会同时处理单元格数据和行头信息 |
-| 删除行 | `delete_row` | `startRow: number, endRow: number` | 删除指定范围的行，startRow 和 endRow 为行索引从0开始。会同时处理单元格数据、合并单元格配置和行头信息 |
-| 保存报表 | `save_report` | | 保存当前报表到服务器 |
+### (一) 读取行步骤
+1. 调用【get_rows】工具获取行数据，不传 rowNumber 返回全部行，传入 rowNumber 返回指定行的数据
+
+### (二) 创建/修改行步骤
+1. 调用【get_rows】工具获取行数据
+2. （创建操作）构建新的行对象 / （修改操作）基于获取的行数据，按用户要求修改对应字段，行对象必须符合数据模型约束
+3. 调用【set_rows】工具整体替换全部行数据，或调用【update_row】工具按行号更新指定行
+4. 若 set_rows 或 update_row 返回 0，可调用【restore_data】工具还原备份后重试
+
+### (三) 插入行步骤
+1. 确定插入位置 position（行索引，从0开始）和插入行数 number（默认为1）
+2. 调用【insert_row】工具在指定位置插入行，工具会同时处理单元格数据和行头信息
+3. 若 insert_row 返回 0，可调用【restore_data】工具还原备份后重试
+
+### (四) 删除行步骤
+1. 确定删除行的起始位置 startRow 和结束位置 endRow（行索引，从0开始）
+2. 调用【delete_row】工具删除指定范围的行，工具会同时处理单元格数据、合并单元格配置和行头信息
+3. 若 delete_row 返回 0，可调用【restore_data】工具还原备份后重试

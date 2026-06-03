@@ -18,6 +18,9 @@ import {
   getRows,
   setRows,
   updateRow as doUpdateRow,
+  getColumns as doGetColumns,
+  setColumns as doSetColumns,
+  updateColumn as doUpdateColumn,
   getContext
 } from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
@@ -82,6 +85,9 @@ export const agentMethodRegistry = {
     getRows,
     setRows,
     updateRow,
+    getColumns,
+    setColumns,
+    updateColumn,
     mergeCells,
     insertRow,
     deleteRow,
@@ -394,6 +400,130 @@ function updateRow({ rowNumber, row }) {
     }
 
     return { success: true, message: `已更新行 ${rowNumber} 定义` };
+}
+
+// ============ 列操作方法 ============
+
+/**
+ * 获取列数据（AI Agent 版本）
+ * 直接调用 contextActions 的 getColumns 方法
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} [params.columnNumber] - 列号，不传则返回全部列
+ * @return {Object|Array|null} 列数据
+ */
+function getColumns({ columnNumber } = {}) {
+    return doGetColumns({ columnNumber });
+}
+
+/**
+ * 设置全部列数据（AI Agent 版本）
+ * 整体替换列数据列表，执行前自动备份
+ *
+ * @param {Object} params - 参数对象
+ * @param {Array} params.columns - 列定义数组
+ * @return {Object} 操作结果
+ */
+function setColumns({ columns }) {
+    const table = TableManager.get();
+    if (!table) {
+        return { success: false, message: '表格实例不存在' };
+    }
+
+    // 备份当前列数据
+    const oldColWidths = deepCopy(table.getSettings().colWidths);
+
+    pushBackup({
+        description: '整体替换列数据',
+        type: 'setColumns',
+        restore: function () {
+            const t = TableManager.get();
+            if (t) {
+                t.updateSettings({ colWidths: oldColWidths });
+            }
+            // 还原 Vuex 数据需要重新获取原始列数据
+        }
+    });
+
+    // 1. 更新 Vuex store 数据
+    doSetColumns({ columns });
+
+    // 2. 同步更新 Handsontable 表格列宽
+    if (columns && columns.length > 0) {
+        const colWidths = [];
+        columns.forEach(col => {
+            if (col.width !== undefined) {
+                // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
+                // 转换公式：pixel = point * 1.33
+                colWidths.push(Math.round(col.width * 1.33));
+            } else {
+                colWidths.push(table.getSettings().defaultColWidth || 100);
+            }
+        });
+
+        table.updateSettings({ colWidths: colWidths });
+        table.render();
+    }
+
+    return { success: true, message: '已整体替换列数据' };
+}
+
+/**
+ * 更新列定义（AI Agent 版本）
+ * 更新指定列的定义数据（如宽度等），执行前自动备份，执行后同步更新表格显示
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} params.columnNumber - 目标列号（从1开始）
+ * @param {Object} params.column - 新的列定义对象，包含 width 等属性
+ * @return {Object} 操作结果
+ */
+function updateColumn({ columnNumber, column }) {
+    const table = TableManager.get();
+    if (!table) {
+        return { success: false, message: '表格实例不存在' };
+    }
+
+    // 备份当前列数据
+    const oldColWidths = deepCopy(table.getSettings().colWidths);
+    const colIndex = columnNumber - 1;
+
+    pushBackup({
+        description: `更新列 ${columnNumber} 定义`,
+        type: 'updateColumn',
+        restore: function () {
+            const t = TableManager.get();
+            if (t) {
+                t.updateSettings({ colWidths: oldColWidths });
+            }
+            // 还原 Vuex 数据
+            const oldWidth = oldColWidths[colIndex] ? Math.round(oldColWidths[colIndex] / 1.33) : undefined;
+            if (oldWidth !== undefined) {
+                doUpdateColumn({ columnNumber, column: { columnNumber, width: oldWidth } });
+            }
+        }
+    });
+
+    // 1. 更新 Vuex store 数据
+    doUpdateColumn({ columnNumber, column });
+
+    // 2. 同步更新 Handsontable 表格列宽
+    if (column && column.width !== undefined) {
+        // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
+        // 转换公式：pixel = point * 1.33
+        const widthInPixel = Math.round(column.width * 1.33);
+
+        const colWidths = table.getSettings().colWidths || [];
+        // 确保 colWidths 数组长度足够
+        while (colWidths.length <= colIndex) {
+            colWidths.push(table.getSettings().defaultColWidth || 100);
+        }
+        colWidths[colIndex] = widthInPixel;
+
+        table.updateSettings({ colWidths: colWidths });
+        table.render();
+    }
+
+    return { success: true, message: `已更新列 ${columnNumber} 定义` };
 }
 
 /**

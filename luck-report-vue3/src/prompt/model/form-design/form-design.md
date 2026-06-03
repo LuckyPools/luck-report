@@ -11,7 +11,7 @@
 
 ---
 
-### 1、SearchForm 顶层属性
+### (一) SearchForm 顶层属性
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -30,7 +30,7 @@
 
 ---
 
-### 2、RowComponent（行容器）
+### (二) RowComponent（行容器）
 
 每个 `fields` 元素是一个行容器，行内通过 `children` 放置具体输入组件，一行可放多个组件（通过 `span` 控制宽度占比）。
 
@@ -53,7 +53,7 @@
 
 ---
 
-### 3、BaseInputComponent（输入组件公共属性）
+### (三) BaseInputComponent（输入组件公共属性）
 
 所有输入组件（Input / InputNumber / Select / RadioGroup / CheckboxGroup / Switch / DatePicker）均继承以下公共属性：
 
@@ -79,9 +79,9 @@
 
 ---
 
-### 4、各输入组件独有属性
+### (四) 各输入组件独有属性
 
-#### 4.1 Input（单行文本）— tag: `"u-input"`
+#### (一) Input（单行文本）— tag: `"u-input"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -96,7 +96,7 @@
 | suffixIcon | string | 后缀图标 | `null` 为无 |
 | defaultValue | string | 默认值 | `null` 为空 |
 
-#### 4.2 InputNumber（计数器）— tag: `"u-input-number"`
+#### (二) InputNumber（计数器）— tag: `"u-input-number"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -104,7 +104,7 @@
 | controlsPosition | string | 控制按钮位置 | `""`（两侧）/ `"right"`（右侧），`null` 为默认 |
 | defaultValue | string | 默认值 | 如 `"10"` |
 
-#### 4.3 Select（下拉选择）— tag: `"u-select"`
+#### (三) Select（下拉选择）— tag: `"u-select"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -115,7 +115,7 @@
 | options | Option[] | 选项列表 | 见 Option 数据模型 |
 | defaultValue | string | 默认值 | `null` 为空 |
 
-#### 4.4 RadioGroup（单选框组）— tag: `"u-radio-group"`
+#### (四) RadioGroup（单选框组）— tag: `"u-radio-group"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -125,7 +125,7 @@
 | size | string | 尺寸 | `"medium"` / `"small"` / `"mini"` |
 | defaultValue | string | 默认值 | 如 `"false"` |
 
-#### 4.5 CheckboxGroup（多选框组）— tag: `"u-checkbox-group"`
+#### (五) CheckboxGroup（多选框组）— tag: `"u-checkbox-group"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -135,7 +135,7 @@
 | size | string | 尺寸 | `"medium"` / `"small"` / `"mini"` |
 | defaultValue | string[] | 默认值（数组） | 如 `[]` |
 
-#### 4.6 Switch（开关）— tag: `"u-switch"`
+#### (六) Switch（开关）— tag: `"u-switch"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -145,7 +145,7 @@
 | inactiveValue | boolean | 关闭时的值 | 默认 `false` |
 | defaultValue | object | 默认值 | `true` / `false` |
 
-#### 4.7 DatePicker（日期选择）— tag: `"u-date-picker"`
+#### (七) DatePicker（日期选择）— tag: `"u-date-picker"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
@@ -157,7 +157,7 @@
 | readonly | boolean | 是否只读 | `true` / `false` |
 | defaultValue | string | 默认值 | `null` 为空 |
 
-#### 4.8 Button（按钮）— tag: `"u-button"`
+#### (八) Button（按钮）— tag: `"u-button"`
 
 Button 不继承 BaseInputComponent，为独立组件，通常放在 RowComponent 的 children 中。
 
@@ -181,7 +181,7 @@ Button 不继承 BaseInputComponent，为独立组件，通常放在 RowComponen
 
 ---
 
-### 5、Option 数据模型
+### (五) Option 数据模型
 
 Select / RadioGroup / CheckboxGroup 的选项均使用 Option 结构：
 
@@ -192,7 +192,7 @@ Select / RadioGroup / CheckboxGroup 的选项均使用 Option 结构：
 
 ---
 
-### 6、组件类型速查表
+### (六) 组件类型速查表
 
 | 组件名 | tag | tagIcon | layout | 是否有 vModel | 是否有 options | 用途 |
 |--------|-----|---------|--------|--------------|----------------|------|
@@ -510,10 +510,13 @@ Select / RadioGroup / CheckboxGroup 的选项均使用 Option 结构：
 
 ---
 
-## 五、工具调用
+## 五、数据操作步骤
 
-| 操作 | 工具名称 | 说明 |
-|------|---------|------|
-| 读取 | `get_search_form` | 获取报表的查询表单设计数据，包含表单字段定义、布局等信息 |
-| 创建/修改 | `set_search_form` | 传入 searchForm 对象整体替换查询表单设计数据，会覆盖现有配置 |
-| 保存报表 | `save_report` | 保存当前报表到服务器 |
+### (一) 读取查询表单步骤
+1. 调用【get_search_form】工具获取查询条件对象
+
+### (二) 创建/修改查询表单步骤
+1. 调用【get_search_form】工具获取查询表单对象
+2. （创建操作）构建新的查询表单对象 / （修改操作）基于获取的查询表单对象，按用户要求修改对应字段，查询表单对象必须符合数据模型约束
+3. 调用【set_search_form】工具写入查询条件
+4. 若 set_search_form 返回 0，可调用【restore_data】工具还原备份后重试

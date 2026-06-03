@@ -523,6 +523,86 @@ export const updateRowTool: ToolDefinition<{
   requireConfirm: false
 }
 
+// ============ 列操作工具 ============
+
+/**
+ * 获取列数据工具
+ * 可获取全部列或按列号查询单列数据
+ * 只读工具，可并发执行
+ */
+export const getColumnsTool: ToolDefinition<{
+  columnNumber?: number;
+}> = {
+  name: 'get_columns',
+  description: '获取表格列数据。不传columnNumber返回全部列，传入columnNumber返回指定列的数据。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      columnNumber: { type: 'integer', description: '列号，不传则返回全部列' }
+    },
+    required: []
+  },
+  execute: async ({ columnNumber }) => {
+    const args: string[] = []
+    if (columnNumber !== undefined) {
+      args.push(`columnNumber:${columnNumber}`)
+    }
+    return executeCode(`getColumns({${args.join(',')}})`)
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 设置全部列数据工具
+ * 整体替换列数据列表
+ * 写操作工具，需串行执行，需用户确认
+ */
+export const setColumnsTool: ToolDefinition<{
+  columns: any[];
+}> = {
+  name: 'set_columns',
+  description: '整体替换全部列数据。此操作会覆盖现有列配置，请谨慎使用。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      columns: { type: 'array', description: '列定义数组，每项包含 columnNumber、width、hide 等属性' }
+    },
+    required: ['columns']
+  },
+  execute: async ({ columns }) => {
+    return executeCode(`setColumns({columns:${JSON.stringify(columns)}})`)
+  },
+  readOnly: false,
+  requireConfirm: true
+}
+
+/**
+ * 更新列工具
+ * 按列号匹配替换列定义
+ * 写操作工具，需串行执行
+ */
+export const updateColumnTool: ToolDefinition<{
+  columnNumber: number;
+  column: any;
+}> = {
+  name: 'update_column',
+  description: '按列号匹配更新列定义。会完全替换该列号的列配置。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      columnNumber: { type: 'integer', description: '目标列号' },
+      column: { type: 'object', description: '新的列定义对象' }
+    },
+    required: ['columnNumber', 'column']
+  },
+  execute: async ({ columnNumber, column }) => {
+    return executeCode(`updateColumn({columnNumber:${columnNumber},column:${JSON.stringify(column)}})`)
+  },
+  readOnly: false,
+  requireConfirm: false
+}
+
 /**
  * 添加行工具
  * 在指定位置插入行，同时处理单元格数据和行头信息

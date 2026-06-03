@@ -10,7 +10,7 @@
 
 **结构概览**：`cell` → `value(ExpressionValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、cell 单元格定义
+### (一) cell 单元格定义
 
 cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。表达式单元格重点关注以下字段：
 
@@ -23,7 +23,7 @@ cell 的通用字段与普通文本单元格一致，详见[普通文本类型�
 
 ---
 
-### 2、ExpressionValue 值对象
+### (二) ExpressionValue 值对象
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|

@@ -170,11 +170,14 @@ export async function runAgentLoop(
     // 将 assistant 消息追加到记忆，携带 tool_calls 信息
     // OpenAI 协议要求：assistant 消息如果调用了工具，
     // 回传时必须包含 tool_calls，否则大模型无法关联 tool_result
-    memoryManager.addMessage({
-      role: 'assistant',
-      content: assistantContent,
-      toolCalls: rawToolCalls.length > 0 ? rawToolCalls : undefined
-    })
+    // 过滤规则：如果 content 为空且没有 toolCalls，则不添加（避免产生无意义的空消息）
+    if (assistantContent.trim() || rawToolCalls.length > 0) {
+      memoryManager.addMessage({
+        role: 'assistant',
+        content: assistantContent,
+        toolCalls: rawToolCalls.length > 0 ? rawToolCalls : undefined
+      })
+    }
 
     // 第3/4层：检查是否需要自动压缩（异步执行，不阻塞后续对话）
     // 必须在判断 toolCalls 之前检查，否则纯文本对话（无工具调用）永远不会触发压缩

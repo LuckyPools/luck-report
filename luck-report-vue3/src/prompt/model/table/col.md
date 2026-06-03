@@ -10,7 +10,7 @@
 
 **结构概览**：`context.reportDef.columns` → `ColumnDefinition[]` ，每个 ColumnDefinition 包含 `columnNumber` + `width` + `hide`
 
-### 1、ColumnDefinition 列定义对象
+### (一) Column 列对象
 
 前端使用 `context.reportDef.columns` 数组存储列定义，数组中每个元素为一个 ColumnDefinition 对象：
 
@@ -73,10 +73,23 @@
 
 ---
 
-## 五、工具调用
+## 五、数据操作步骤
 
-| 操作 | 工具名称 | 参数 | 说明 |
-|------|---------|------|------|
-| 插入列 | `insert_col` | `position: number, number?: number` | 在 position 位置插入列，position 为列索引从0开始，number 为插入列数默认1。会同时处理单元格数据 |
-| 删除列 | `delete_col` | `startCol: number, endCol: number` | 删除指定范围的列，startCol 和 endCol 为列索引从0开始。会同时处理单元格数据和合并单元格配置 |
-| 保存报表 | `save_report` | | 保存当前报表到服务器 |
+### (一) 读取列步骤
+1. 调用【get_columns】工具获取列数据，不传 columnNumber 返回全部列，传入 columnNumber 返回指定列的数据
+
+### (二) 创建/修改列步骤
+1. 调用【get_columns】工具获取列数据
+2. （创建操作）构建新的列对象 / （修改操作）基于获取的列数据，按用户要求修改对应字段，列对象必须符合数据模型约束
+3. 调用【set_columns】工具整体替换全部列数据，或调用【update_column】工具按列号更新指定列
+4. 若 set_columns 或 update_column 返回 0，可调用【restore_data】工具还原备份后重试
+
+### (三) 插入列步骤
+1. 确定插入位置 position（列索引，从0开始）和插入列数 number（默认为1）
+2. 调用【insert_col】工具在指定位置插入列，工具会同时处理单元格数据
+3. 若 insert_col 返回 0，可调用【restore_data】工具还原备份后重试
+
+### (四) 删除列步骤
+1. 确定删除列的起始位置 startCol 和结束位置 endCol（列索引，从0开始）
+2. 调用【delete_col】工具删除指定范围的列，工具会同时处理单元格数据和合并单元格配置
+3. 若 delete_col 返回 0，可调用【restore_data】工具还原备份后重试

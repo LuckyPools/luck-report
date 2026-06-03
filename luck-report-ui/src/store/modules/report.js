@@ -278,6 +278,36 @@ const mutations = {
     }
   },
 
+  // ============ Column 操作 ============
+
+  /**
+   * 设置全部列数据
+   * @param {Object} state - Vuex状态对象
+   * @param {Object} payload - 载荷
+   * @param {Array} payload.columns - 列定义数组
+   */
+  CONTEXT_SET_COLUMNS(state, { columns }) {
+    if (state.context && state.context.reportDef) {
+      state.context.reportDef.columns = columns;
+    }
+  },
+
+  /**
+   * 更新列（按columnNumber匹配替换）
+   * @param {Object} state - Vuex状态对象
+   * @param {Object} payload - 载荷
+   * @param {number} payload.columnNumber - 目标列号
+   * @param {Object} payload.column - 新的列定义对象
+   */
+  CONTEXT_UPDATE_COLUMN(state, { columnNumber, column }) {
+    if (state.context && state.context.reportDef && state.context.reportDef.columns) {
+      const index = state.context.reportDef.columns.findIndex(c => c.columnNumber === columnNumber);
+      if (index > -1) {
+        state.context.reportDef.columns.splice(index, 1, column);
+      }
+    }
+  },
+
   // ============ 批量操作 ============
 
   // ============ 其他 ============
@@ -504,6 +534,28 @@ const actions = {
     commit('CONTEXT_UPDATE_ROW', { rowNumber, row });
   },
 
+  // ============ Column 操作 ============
+
+  /**
+   * 设置全部列数据
+   * @param {Object} param0 - Vuex上下文对象
+   * @param {Array} columns - 列定义数组
+   */
+  contextSetColumns({ commit }, columns) {
+    commit('CONTEXT_SET_COLUMNS', { columns });
+  },
+
+  /**
+   * 更新列（按columnNumber匹配替换）
+   * @param {Object} param0 - Vuex上下文对象
+   * @param {Object} payload - 载荷
+   * @param {number} payload.columnNumber - 目标列号
+   * @param {Object} payload.column - 新的列定义对象
+   */
+  contextUpdateColumn({ commit }, { columnNumber, column }) {
+    commit('CONTEXT_UPDATE_COLUMN', { columnNumber, column });
+  },
+
   // ============ 批量操作 ============
 
   // ============ 其他 Actions ============
@@ -698,6 +750,21 @@ const getters = {
       return state.context.reportDef.rows.find(r => r.rowNumber === rowNumber) || null;
     }
     return state.context.reportDef.rows;
+  },
+
+  /**
+   * 获取表格列数据
+   * @param {number} [columnNumber] - 列号，不提供则返回全部列
+   * @returns {Object|Array|null} 提供columnNumber返回单列对象，不提供返回列数组，context不存在时返回null/[]
+   */
+  getColumns: state => (columnNumber) => {
+    if (!state.context || !state.context.reportDef || !state.context.reportDef.columns) {
+      return columnNumber ? null : [];
+    }
+    if (columnNumber) {
+      return state.context.reportDef.columns.find(c => c.columnNumber === columnNumber) || null;
+    }
+    return state.context.reportDef.columns;
   }
 };
 

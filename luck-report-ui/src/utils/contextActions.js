@@ -405,6 +405,37 @@ export function updateRow({ rowNumber, row }) {
   store.dispatch('report/contextUpdateRow', { rowNumber, row });
 }
 
+// ============ Column 操作 ============
+
+/**
+ * 获取表格列数据
+ * @param {Object} params - 参数对象
+ * @param {number} [params.columnNumber] - 列号，不提供则返回全部列
+ * @returns {Object|Array|null} 提供columnNumber返回单列对象，不提供返回列数组
+ */
+export function getColumns({ columnNumber } = {}) {
+  return store.getters['report/getColumns'](columnNumber);
+}
+
+/**
+ * 设置全部列数据
+ * @param {Object} params - 参数对象
+ * @param {Array} params.columns - 列定义数组
+ */
+export function setColumns({ columns }) {
+  store.dispatch('report/contextSetColumns', columns);
+}
+
+/**
+ * 更新列（按columnNumber匹配替换）
+ * @param {Object} params - 参数对象
+ * @param {number} params.columnNumber - 目标列号
+ * @param {Object} params.column - 新的列定义对象
+ */
+export function updateColumn({ columnNumber, column }) {
+  store.dispatch('report/contextUpdateColumn', { columnNumber, column });
+}
+
 // 默认导出所有方法
 export default {
   getContext,
@@ -440,5 +471,8 @@ export default {
   updatePaper,
   getRows,
   setRows,
-  updateRow
+  updateRow,
+  getColumns,
+  setColumns,
+  updateColumn
 };

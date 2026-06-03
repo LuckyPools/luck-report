@@ -10,7 +10,7 @@
 
 **结构概览**：`cell` → `value(ZxingValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、cell 单元格定义
+### (一) cell 单元格定义
 
 cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。条码单元格重点关注以下字段：
 
@@ -36,7 +36,7 @@ cell 的通用字段与普通文本单元格一致，详见[普通文本类型�
 
 ---
 
-### 3、BarcodeFormat 条码编码格式枚举
+### (三) BarcodeFormat 条码编码格式枚举
 
 | 枚举值 | 说明 |
 |--------|------|

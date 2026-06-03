@@ -11,7 +11,7 @@
 
 ---
 
-### 1、DatasourceType（数据源类型）
+### (一) DatasourceType（数据源类型）
 
 | 枚举值 | 说明 | 适用数据集类型 |
 |--------|------|---------------|
@@ -21,7 +21,7 @@
 
 ---
 
-### 2、Datasource 通用属性
+### (二) Datasource 通用属性
 
 所有类型数据源共有的属性：
 
@@ -33,7 +33,7 @@
 
 ---
 
-### 3、JDBC 数据源独有属性
+### (三) JDBC 数据源独有属性
 
 type 为 `jdbc` 时，额外包含以下属性：
 
@@ -46,7 +46,7 @@ type 为 `jdbc` 时，额外包含以下属性：
 
 ---
 
-### 4、Spring 数据源独有属性
+### (四) Spring 数据源独有属性
 
 type 为 `spring` 时，额外包含以下属性：
 
@@ -56,13 +56,13 @@ type 为 `spring` 时，额外包含以下属性：
 
 ---
 
-### 5、buildin 数据源
+### (五) buildin 数据源
 
 type 为 `buildin` 时，无额外属性，使用系统内置默认数据库连接，仅包含 `name`、`type`、`datasets`。
 
 ---
 
-### 6、SQL 数据集（SqlDataset）
+### (六) SQL 数据集（SqlDataset）
 
 适用于 `jdbc` 和 `buildin` 类型数据源，通过 SQL 语句查询数据。
 
@@ -76,7 +76,7 @@ type 为 `buildin` 时，无额外属性，使用系统内置默认数据库连�
 
 ---
 
-### 7、Spring Bean 数据集（BeanDataset）
+### (七) Spring Bean 数据集（BeanDataset）
 
 适用于 `spring` 类型数据源，通过调用 Spring Bean 的方法获取数据。
 
@@ -89,7 +89,7 @@ type 为 `buildin` 时，无额外属性，使用系统内置默认数据库连�
 
 ---
 
-### 8、Parameter（查询参数）
+### (八) Parameter（查询参数）
 
 SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑定。
 
@@ -101,7 +101,7 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 
 ---
 
-### 9、Field（字段）
+### (九) Field（字段）
 
 数据集查询返回的字段定义。
 
@@ -111,7 +111,7 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 
 ---
 
-### 10、DataType（参数数据类型枚举）
+### (十) DataType（参数数据类型枚举）
 
 | 枚举值 | 说明 | 解析规则 |
 |--------|------|---------|
@@ -143,7 +143,7 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 
 ## 四、参考数据
 
-### 1、buildin 数据源参考
+### (一) buildin 数据源参考
 
 ```json
 {
@@ -175,7 +175,7 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 }
 ```
 
-### 2、jdbc 数据源参考
+### (二) jdbc 数据源参考
 
 ```json
 {
@@ -206,7 +206,7 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 }
 ```
 
-### 3、spring 数据源参考
+### (三) spring 数据源参考
 
 ```json
 {
@@ -228,23 +228,40 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 
 ---
 
-## 五、工具调用
+## 五、操作数据步骤
 
-| 操作 | 工具名称 | 说明 |
-|------|---------|------|
-| 读取数据源 | `get_datasources` | 不传 name 返回全部数据源列表，传入 name 返回指定数据源对象 |
-| 整体替换数据源 | `set_datasources` | 传入 datasources 数组整体替换全部数据源，会覆盖现有配置 |
-| 添加数据源 | `add_datasource` | 传入 datasource 对象添加一个新数据源 |
-| 更新数据源 | `update_datasource` | 传入 name 和 datasource 对象，按名称匹配替换数据源定义 |
-| 删除数据源 | `remove_datasource` | 传入 name 按名称删除数据源，不可撤销 |
-| 读取数据集 | `get_datasets` | 不传参数返回所有数据集；传 datasourceName 返回该数据源下数据集；同时传 datasourceName 和 datasetName 返回指定数据集 |
-| 添加数据集 | `add_dataset` | 传入 datasourceName 和 dataset 对象，向指定数据源下添加数据集 |
-| 更新数据集 | `update_dataset` | 传入 datasourceName、datasetName 和 dataset 对象，按名称匹配替换数据集定义 |
-| 删除数据集 | `remove_dataset` | 传入 datasourceName 和 datasetName 删除数据集，不可撤销 |
-| 查询文档 | `search_component_doc` | 搜索数据源、数据集等组件文档，componentType 可传 dataset |
-| 预览数据 | `preview_data` | 预览数据集查询结果 |
-| 构建字段 | `build_fields` | 自动解析数据集字段列表 |
-| 保存报表 | `save_report` | 保存当前报表到服务器 |
-| 获取内置数据源 | `load_buildin_datasources` | 获取Spring内置数据源列表 |
-| 测试连接 | `test_connection` | 测试数据库连接是否可用 |
-| 获取Bean方法 | `load_bean_methods` | 获取指定Spring Bean的方法列表 |
+### (一) 读取数据源步骤
+1. 传入数据源名称 name 作为参数调用【get_datasources】工具获取数据源对象
+
+### (二) 创建/修改数据源步骤
+1. （仅修改操作）传入数据源名称 name 作为参数调用【get_datasources】工具获取数据源对象
+2. （创建操作）构建新的数据源对象 / （修改操作）基于获取的数据源对象，按用户要求修改对应字段，数据源对象必须符合数据模型约束
+   - 如果是jdbc数据源，调用【test_connection】工具测试数据源连接是否可用，要求数据源可连接
+   - 如果是buildin数据源，调用【load_buildin_datasources】工具获取内置数据源列表，要求数据源名称在列表内
+   - 如果是spring数据源，调用【load_bean_methods】获取可用bean方法列表，要求bean方法列表不能为空
+3. 调用【update_datasource】工具写入数据源
+4. 若 update_datasource 返回 0，可调用【restore_data】工具还原备份后重试
+
+### (三) 删除数据源步骤
+1. 传入数据源名称 name 作为参数调用【get_datasources】工具获取数据源对象，确认数据源是否存在，不存在则结束删除任务
+2. 调用【remove_datasource】工具删除数据源
+3. 若 remove_datasource 返回 0，可重试删除1次
+
+### (四) 读取数据集步骤
+1. 调用【get_datasets】工具获取数据集
+
+### (五) 创建/修改数据集步骤
+1. 传入数据源名称 datasourceName 作为参数调用【get_datasources】工具获取数据源对象，确认数据源存在
+2. （仅修改操作）传入数据集名称 datasetName 作为参数调用【get_datasets】工具获取数据集对象
+3. （创建操作）构建新的数据集对象 / （修改操作）基于获取的数据集对象，按用户要求修改对应字段，数据集对象必须符合数据模型约束
+4. 如果是SQL数据集且要求具备条件筛选功能，给数据集对象补充参数字段parameters，生成的参数名、参数类型要适配需求
+5. 如果是SQL数据集，调用【preview_data】工具预览数据集查询结果，验证SQL表达式是否可执行
+6. 如果是SQL数据集，可调用【build_fields】工具自动解析SQL语句生成字段列表，给数据集对象补充字段列表fields
+7. 调用【add_dataset】工具添加数据集
+8. 若 add_dataset 返回 0，可调用【restore_data】工具还原备份后重试1次
+9. 如果有新增或修改条件字段parameters，检查报表表单设计部分是否添加了对应的筛选条件
+
+### (六) 删除数据集步骤
+1. 传入数据源名称 datasourceName 和数据集名称 datasetName 作为参数调用【get_datasets】工具获取数据集对象，确认数据集存在
+2. 调用【remove_dataset】工具删除数据集
+3. 若 remove_dataset 返回 0，可重试删除1次
