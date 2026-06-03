@@ -612,6 +612,9 @@ export function useChat() {
     rejectAgentTool,
     removeCurrentSession,
     loadSession,
-    getFilteredMessages
+    getFilteredMessages,
+    
+    // 任务列表管理器
+    taskListManager: agentEngine.getTaskListManager()
   }
 }

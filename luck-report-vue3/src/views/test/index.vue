@@ -2,6 +2,34 @@
   <div class="test-page">
     <TypographyTitle :level="2">Ant Design Vue 组件测试</TypographyTitle>
 
+    <Divider>任务进度组件测试</Divider>
+
+    <Space direction="vertical" :size="16" style="width: 100%">
+      <TypographyTitle :level="4">任务进度展示 - 执行中状态</TypographyTitle>
+      <TaskProgressDisplay
+        :tasks="mockTasksInProgress"
+        current-workflow-node="正在修改报表单元格..."
+      />
+
+      <TypographyTitle :level="4">任务进度展示 - 已完成状态</TypographyTitle>
+      <TaskProgressDisplay
+        :tasks="mockTasksCompleted"
+        current-workflow-node="任务已全部完成"
+      />
+
+      <TypographyTitle :level="4">任务进度展示 - 待执行状态</TypographyTitle>
+      <TaskProgressDisplay
+        :tasks="mockTasksPending"
+        current-workflow-node="正在规划任务..."
+      />
+
+      <TypographyTitle :level="4">任务进度展示 - 混合状态</TypographyTitle>
+      <TaskProgressDisplay
+        :tasks="mockTasksMixed"
+        current-workflow-node="正在加载报表文档..."
+      />
+    </Space>
+
     <Divider>基础组件</Divider>
 
     <Space direction="vertical" :size="16" style="width: 100%">
@@ -254,6 +282,8 @@ import {
   SearchOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
+import TaskProgressDisplay from '@/views/chat/components/TaskProgressDisplay.vue'
+import type { Task } from '@/views/agent/tools/types'
 
 import {
   TypographyTitle,
@@ -408,6 +438,142 @@ const treeData = [
   {
     title: 'Node2',
     key: '0-1'
+  }
+]
+
+// 模拟任务数据 - 执行中状态
+const mockTasksInProgress: Task[] = [
+  {
+    id: '1',
+    content: '可行性分析',
+    status: 'completed',
+    timestamp: Date.now() - 10000
+  },
+  {
+    id: '2',
+    content: '加载报表文档',
+    status: 'completed',
+    timestamp: Date.now() - 8000
+  },
+  {
+    id: '3',
+    content: '修改单元格属性',
+    status: 'in_progress',
+    timestamp: Date.now() - 5000
+  },
+  {
+    id: '4',
+    content: '验证修改结果',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '5',
+    content: '生成最终报表',
+    status: 'pending',
+    timestamp: Date.now()
+  }
+]
+
+// 模拟任务数据 - 已完成状态
+const mockTasksCompleted: Task[] = [
+  {
+    id: '1',
+    content: '可行性分析',
+    status: 'completed',
+    timestamp: Date.now() - 15000
+  },
+  {
+    id: '2',
+    content: '加载报表文档',
+    status: 'completed',
+    timestamp: Date.now() - 12000
+  },
+  {
+    id: '3',
+    content: '修改单元格属性',
+    status: 'completed',
+    timestamp: Date.now() - 8000
+  },
+  {
+    id: '4',
+    content: '验证修改结果',
+    status: 'completed',
+    timestamp: Date.now() - 5000
+  },
+  {
+    id: '5',
+    content: '生成最终报表',
+    status: 'completed',
+    timestamp: Date.now()
+  }
+]
+
+// 模拟任务数据 - 待执行状态
+const mockTasksPending: Task[] = [
+  {
+    id: '1',
+    content: '可行性分析',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '2',
+    content: '加载报表文档',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '3',
+    content: '修改单元格属性',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '4',
+    content: '验证修改结果',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '5',
+    content: '生成最终报表',
+    status: 'pending',
+    timestamp: Date.now()
+  }
+]
+
+// 模拟任务数据 - 混合状态
+const mockTasksMixed: Task[] = [
+  {
+    id: '1',
+    content: '可行性分析',
+    status: 'completed',
+    timestamp: Date.now() - 12000
+  },
+  {
+    id: '2',
+    content: '加载报表文档',
+    status: 'in_progress',
+    timestamp: Date.now() - 8000
+  },
+  {
+    id: '3',
+    content: '修改单元格属性',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '4',
+    content: '验证修改结果',
+    status: 'pending',
+    timestamp: Date.now()
+  },
+  {
+    id: '5',
+    content: '生成最终报表',
+    status: 'cancelled',
+    timestamp: Date.now()
   }
 ]
 </script>

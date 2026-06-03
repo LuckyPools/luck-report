@@ -24,6 +24,13 @@
           <span class="search-text done">搜索完成</span>
         </div>
 
+        <!-- 任务进度展示 -->
+        <TaskProgressDisplay
+          v-if="taskListManager && taskListManager.tasks.value.length > 0"
+          :tasks="taskListManager.tasks.value"
+          :current-workflow-node="taskListManager.currentWorkflowNode.value"
+        />
+
         <!-- MCP 工具调用详情 -->
         <div v-if="mcpTools && mcpTools.length > 0" class="mcp-tools">
           <details
@@ -67,8 +74,11 @@
           <div class="confirm-body">
             <div class="confirm-tool-name">{{ pendingConfirmToolCall.toolName }}</div>
             <details class="confirm-details">
-              <summary class="confirm-summary">查看参数</summary>
-              <pre class="confirm-code">{{ JSON.stringify(pendingConfirmToolCall.input, null, 2) }}</pre>
+              <summary class="confirm-summary">查看详情</summary>
+              <div class="confirm-section">
+                <span class="confirm-label">输入参数：</span>
+                <pre class="confirm-code">{{ JSON.stringify(pendingConfirmToolCall.input, null, 2) }}</pre>
+              </div>
             </details>
           </div>
           <div class="confirm-actions">
@@ -114,6 +124,7 @@ import type { ResponseStatus, SearchStatus, McpToolCall, ModelProvider } from '.
 import MarkdownRender from './MarkdownRender.vue'
 import DotsLoading from './loading/DotsLoading.vue'
 import BallsLoading from './loading/BallsLoading.vue'
+import TaskProgressDisplay from './TaskProgressDisplay.vue'
 import {
   BulbOutlined,
   LoadingOutlined,
@@ -149,6 +160,11 @@ interface Props {
   allProviderListByKey?: Record<string, ModelProvider>
   /** Agent 待确认的工具调用 */
   pendingConfirmToolCall?: ToolCall | null
+  /** 任务列表管理器 */
+  taskListManager?: {
+    tasks: { value: any[] }
+    currentWorkflowNode: { value?: string }
+  }
 }
 
 interface Emits {
@@ -212,6 +228,7 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
 .message-content {
   flex: 1;
   min-width: 0;
+  max-width: 85%;
 }
 
 .message-bubble {
@@ -403,7 +420,6 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 8px;
-  background-color: #fffbeb;
 }
 
 .confirm-header {
@@ -411,7 +427,7 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: #fef3c7;
+  background: #fef3c7;
 }
 
 .confirm-icon {
@@ -420,29 +436,27 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
 }
 
 .confirm-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: #92400e;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .confirm-body {
-  padding: 8px 12px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .confirm-tool-name {
   font-size: 13px;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 6px;
+  padding: 6px 12px;
 }
 
 .confirm-details {
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
 }
 
 .confirm-summary {
-  padding: 4px 8px;
+  display: block;
+  padding: 6px 12px;
   cursor: pointer;
   font-size: 12px;
   color: #6b7280;
@@ -454,14 +468,25 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
 }
 
 .confirm-code {
-  margin: 0;
   padding: 8px;
   background-color: #f3f4f6;
   border-top: 1px solid #e5e7eb;
   font-size: 11px;
   overflow-x: auto;
+  border-radius: 4px;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.confirm-section {
+  padding: 8px 12px;
+}
+
+.confirm-label {
+  font-size: 12px;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 4px;
 }
 
 .confirm-actions {
@@ -469,6 +494,5 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 8px 12px;
-  border-top: 1px solid #fde68a;
 }
 </style>

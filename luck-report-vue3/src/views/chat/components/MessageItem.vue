@@ -204,6 +204,13 @@
             </template>
           </div>
 
+          <!-- 任务进度展示 -->
+          <TaskProgressDisplay 
+            v-if="message.taskProgress"
+            :tasks="message.taskProgress.tasks"
+            :current-workflow-node="message.taskProgress.currentWorkflowNode"
+          />
+
           <div class="message-bubble assistant-bubble">
             <!-- 深度思考折叠区 -->
             <details v-if="message.reasoningContent" :open="true" class="reasoning-details">
@@ -300,6 +307,7 @@ import {
 } from '@ant-design/icons-vue'
 import type { Message, Attachment, ModelProvider } from '../types/chat'
 import MarkdownRender from './MarkdownRender.vue'
+import TaskProgressDisplay from './TaskProgressDisplay.vue'
 
 /**
  * MessageItem 组件

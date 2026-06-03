@@ -95,6 +95,11 @@ export interface Message {
   agentToolCall?: AgentToolCall
   /** Provider ID，用于显示 Provider Logo */
   providerId?: string
+  /** 任务进度信息 */
+  taskProgress?: {
+    tasks: any[]
+    currentWorkflowNode?: string
+  }
 }
 
 /**

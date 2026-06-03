@@ -49,6 +49,7 @@
             :provider-id="currentProviderId"
             :all-provider-list-by-key="allProviderListByKey"
             :pending-confirm-tool-call="pendingConfirmToolCall"
+            :task-list-manager="taskListManager"
             @confirm-tool="confirmAgentTool"
             @reject-tool="rejectAgentTool"
           />
@@ -153,7 +154,8 @@ const {
   confirmAgentTool,
   rejectAgentTool,
   removeCurrentSession,
-  loadSession
+  loadSession,
+  taskListManager
 } = useChat()
 
 const {

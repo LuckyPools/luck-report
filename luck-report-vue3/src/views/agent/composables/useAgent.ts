@@ -8,6 +8,8 @@ import type { ContextMessage } from '@/api/chat'
 import { compactConversation } from '@/api/chat/compact'
 import { contextConfig } from '@/config'
 import { executeCode } from '@/views/export/iframe-utils'
+import { useTaskList } from './useTaskList'
+import { createTaskTools } from '../tools/task-tools'
 
 /**
  * Agent 引擎配置
@@ -46,6 +48,8 @@ export class AgentEngine {
   readonly memoryManager = new MemoryManager()
   /** 上下文管理器 */
   readonly contextManager: ContextManager
+  /** 任务列表管理器 */
+  private taskListManager = useTaskList()
 
   /** 最大循环轮次 */
   private maxIterations: number
@@ -65,6 +69,13 @@ export class AgentEngine {
     this.onToolConfirmFn = config.onToolConfirm
     this.sessionId = config.sessionId
     this.contextManager = new ContextManager(this.memoryManager, this.toolRegistry)
+    
+    // 注册任务管理工具
+    const taskTools = createTaskTools(
+      this.taskListManager.updateTasks,
+      () => this.taskListManager.tasks.value
+    )
+    taskTools.forEach(tool => this.toolRegistry.register(tool))
   }
 
   /**
@@ -235,6 +246,15 @@ export class AgentEngine {
    */
   updateUserPreferences(preferences: Record<string, any>): void {
     this.memoryManager.updateUserPreferences(preferences)
+  }
+
+  /**
+   * 获取任务列表管理器
+   * 供外部组件访问任务状态，实现任务进度展示
+   * @returns 任务列表管理器实例
+   */
+  getTaskListManager() {
+    return this.taskListManager
   }
 
   // ==================== 内部方法 ====================

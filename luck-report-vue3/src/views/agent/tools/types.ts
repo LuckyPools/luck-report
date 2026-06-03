@@ -49,3 +49,22 @@ export interface ToolApiFormat {
   /** 输入参数 JSON Schema */
   inputSchema: Record<string, any>
 }
+
+/**
+ * 任务对象
+ * 用于展示 Agent 的任务规划步骤和执行进度
+ */
+export interface Task {
+  /** 任务唯一标识 */
+  id: string
+  /** 任务描述内容 */
+  content: string
+  /** 任务状态 */
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  /** 依赖的任务ID列表 */
+  dependencies?: string[]
+  /** 工作流节点描述（当前正在执行的操作） */
+  workflowNode?: string
+  /** 任务执行时间戳 */
+  timestamp?: number
+}
