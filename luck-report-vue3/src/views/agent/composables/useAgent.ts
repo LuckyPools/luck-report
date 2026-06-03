@@ -299,7 +299,6 @@ export class AgentEngine {
   private async autoCompact(mm: MemoryManager): Promise<void> {
     // 防止并发：上一次压缩还在进行中时跳过
     if (this._compacting) {
-      console.info('[autoCompact] 压缩正在进行中，跳过本次触发')
       return
     }
     this._compacting = true
@@ -349,7 +348,6 @@ export class AgentEngine {
       )
 
       mm.compact(result)
-      console.info('[autoCompact] 异步压缩完成')
     } catch (e) {
       console.warn('[autoCompact] LLM 压缩失败，降级为规则压缩:', e)
       this.fallbackCompact(mm)

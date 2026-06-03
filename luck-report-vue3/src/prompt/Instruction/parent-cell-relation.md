@@ -12,7 +12,7 @@
 
 左父格是指当前单元格**左侧与其位于同一行**的父单元格。当左父格向下展开时，当前单元格会跟随左父格一起向下复制扩展。
 
-- 字段：`CellDefinition.leftParentCellName`
+- 字段：`cell.leftParentCellName`
 - 值类型：String
 - 值范围：单元格名称（如 `"A1"`、`"B2"`）或 `"root"`（表示无左父格）
 
@@ -20,7 +20,7 @@
 
 上父格是指当前单元格**上方与其位于同一列**的父单元格。当上父格向下展开时，当前单元格会跟随上父格一起向下复制扩展。
 
-- 字段：`CellDefinition.topParentCellName`
+- 字段：`cell.topParentCellName`
 - 值类型：String
 - 值范围：单元格名称（如 `"A1"`、`"B2"`）或 `"root"`（表示无上父格）
 

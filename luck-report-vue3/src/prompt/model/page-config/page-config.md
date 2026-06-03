@@ -15,22 +15,22 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| leftMargin | int | 左边距（pt） | 默认 `90` |
-| rightMargin | int | 右边距（pt） | 默认 `90` |
-| topMargin | int | 上边距（pt） | 默认 `72` |
-| bottomMargin | int | 下边距（pt） | 默认 `72` |
-| paperType | String | 纸张类型 | `A0`~`A10` / `B0`~`B10` / `CUSTOM`（对应 PaperType 枚举），默认 `A4` |
-| pagingMode | String | 分页模式 | `fitpage`（按纸张大小分页）/ `fixrows`（按固定行数分页），对应 PagingMode 枚举 |
-| fixRows | int | 固定行数分页时每页行数 | `pagingMode` 为 `fixrows` 时生效，`0` 为不限制 |
-| width | int | 纸张宽度（pt） | 由 paperType 自动计算，`CUSTOM` 时需手动指定，如 `595` |
-| height | int | 纸张高度（pt） | 由 paperType 自动计算，`CUSTOM` 时需手动指定，如 `842` |
-| orientation | String | 纸张方向 | `portrait`（纵向）/ `landscape`（横向），对应 Orientation 枚举 |
-| htmlReportAlign | String | HTML 报表对齐方式 | `left` / `center` / `right`，对应 HtmlReportAlign 枚举，默认 `left` |
-| bgImage | String | 背景图片 URL | 如 `"https://example.com/bg.jpg"`，`null` 为无背景图 |
+| leftMargin | number | 左边距（pt） | 默认 `90` |
+| rightMargin | number | 右边距（pt） | 默认 `90` |
+| topMargin | number | 上边距（pt） | 默认 `72` |
+| bottomMargin | number | 下边距（pt） | 默认 `72` |
+| paperType | string | 纸张类型 | `A0`~`A10` / `B0`~`B10` / `CUSTOM`（对应 PaperType 枚举），默认 `A4` |
+| pagingMode | string | 分页模式 | `fitpage`（按纸张大小分页）/ `fixrows`（按固定行数分页），对应 PagingMode 枚举 |
+| fixRows | number | 固定行数分页时每页行数 | `pagingMode` 为 `fixrows` 时生效，`0` 为不限制 |
+| width | number | 纸张宽度（pt） | 由 paperType 自动计算，`CUSTOM` 时需手动指定，如 `595` |
+| height | number | 纸张高度（pt） | 由 paperType 自动计算，`CUSTOM` 时需手动指定，如 `842` |
+| orientation | string | 纸张方向 | `portrait`（纵向）/ `landscape`（横向），对应 Orientation 枚举 |
+| htmlReportAlign | string | HTML 报表对齐方式 | `left` / `center` / `right`，对应 HtmlReportAlign 枚举，默认 `left` |
+| bgImage | string | 背景图片 URL | 如 `"https://example.com/bg.jpg"`，`null` 为无背景图 |
 | columnEnabled | boolean | 是否启用分栏 | `true` / `false`，默认 `false` |
-| columnCount | int | 分栏数 | `columnEnabled` 为 `true` 时生效，默认 `2` |
-| columnMargin | int | 分栏间距（pt） | 栏与栏之间的间距，默认 `5` |
-| htmlIntervalRefreshValue | int | HTML 自动刷新间隔（秒） | `0` 为不刷新，>0 时按指定秒数自动刷新 |
+| columnCount | number | 分栏数 | `columnEnabled` 为 `true` 时生效，默认 `2` |
+| columnMargin | number | 分栏间距（pt） | 栏与栏之间的间距，默认 `5` |
+| htmlIntervalRefreshValue | number | HTML 自动刷新间隔（秒） | `0` 为不刷新，>0 时按指定秒数自动刷新 |
 
 ---
 
@@ -98,17 +98,17 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| left | String | 左侧内容 | 支持表达式，如 `"页眉1"` |
-| center | String | 中间内容 | 支持表达式，如 `"页眉2"` |
-| right | String | 右侧内容 | 支持表达式，如 `"\"第\"+page()+\"页,共\"+pages()+\"页\""` |
-| fontFamily | String | 字体族 | 默认 `"宋体"` |
-| fontSize | int | 字体大小 | 默认 `10` |
-| forecolor | String | 字体颜色 | RGB 格式，默认 `"0,0,0"` |
+| left | string | 左侧内容 | 支持表达式，如 `"页眉1"` |
+| center | string | 中间内容 | 支持表达式，如 `"页眉2"` |
+| right | string | 右侧内容 | 支持表达式，如 `"\"第\"+page()+\"页,共\"+pages()+\"页\""` |
+| fontFamily | string | 字体族 | 默认 `"宋体"` |
+| fontSize | number | 字体大小 | 默认 `10` |
+| forecolor | string | 字体颜色 | RGB 格式，默认 `"0,0,0"` |
 | bold | boolean | 是否加粗 | `true` / `false` |
 | italic | boolean | 是否斜体 | `true` / `false` |
 | underline | boolean | 是否下划线 | `true` / `false` |
-| height | int | 页眉/页脚高度（pt） | 默认 `30` |
-| margin | int | 页眉/页脚与内容的间距（pt） | 默认 `30` |
+| height | number | 页眉/页脚高度（pt） | 默认 `30` |
+| margin | number | 页眉/页脚与内容的间距（pt） | 默认 `30` |
 
 > **页眉页脚表达式**：`left`、`center`、`right` 中可使用表达式语法，如 `page()` 获取当前页码，`pages()` 获取总页数。
 
@@ -118,9 +118,9 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| rowNumber | int | 行号 | 从 1 开始，与 cellsMap 中的 rowNumber 对应 |
-| height | int | 行高（pt） | 如 `18`、`19`、`56`、`128` |
-| band | String | 行类型 | `null`（普通行）/ `headerrepeat`（重复表头行）/ `footerrepeat`（重复表尾行）/ `title`（标题行）/ `summary`（总结行），对应 Band 枚举 |
+| rowNumber | number | 行号 | 从 1 开始，与 cellsMap 中的 rowNumber 对应 |
+| height | number | 行高（pt） | 如 `18`、`19`、`56`、`128` |
+| band | string | 行类型 | `null`（普通行）/ `headerrepeat`（重复表头行）/ `footerrepeat`（重复表尾行）/ `title`（标题行）/ `summary`（总结行），对应 Band 枚举 |
 
 ---
 
@@ -139,8 +139,8 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| columnNumber | int | 列号 | 从 1 开始，与 cellsMap 中的 columnNumber 对应 |
-| width | int | 列宽（pt） | 如 `131`、`80`、`74` |
+| columnNumber | number | 列号 | 从 1 开始，与 cellsMap 中的 columnNumber 对应 |
+| width | number | 列宽（pt） | 如 `131`、`80`、`74` |
 | hide | boolean | 是否隐藏列 | `true`（隐藏）/ `false`（显示） |
 
 ---
@@ -223,3 +223,13 @@
   ]
 }
 ```
+
+---
+
+## 五、工具调用
+
+| 操作 | 工具名称 | 说明 |
+|------|---------|------|
+| 读取 | `get_paper_config` | 获取报表的页面配置数据，包含纸张大小、边距、方向等信息 |
+| 修改 | `update_paper` | 传入 paper 对象合并更新页面配置属性，只需传入要修改的属性，未传入的保持不变 |
+| 保存报表 | `save_report` | 保存当前报表到服务器 |

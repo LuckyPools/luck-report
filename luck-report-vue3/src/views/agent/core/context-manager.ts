@@ -1,7 +1,7 @@
 import { MemoryManager } from '../memory/memory-manager'
 import { ToolRegistry } from '../tools/registry'
 import { executeCode } from '@/views/export/iframe-utils'
-import { buildPrompt } from '@/prompt'
+import { loadPromptDocs, PromptDocName } from '@/prompt'
 import { contextConfig } from '@/config'
 
 /**
@@ -39,8 +39,9 @@ export class ContextManager {
   async buildSystemPrompt(): Promise<string> {
     const parts: string[] = []
 
-    // 1. 默认系统提示词：角色定义 + 工具使用说明
-    parts.push(this.getDefaultPrompt())
+    // 1. 默认系统提示词：角色定义 + 报表说明
+    const defaultPrompt = await this.getDefaultPrompt()
+    parts.push(defaultPrompt)
 
     // 2. 报表当前状态注入（类似 Claude Code 的 Git 状态注入）
     const reportState = await this.getReportState()
@@ -68,15 +69,10 @@ export class ContextManager {
 
   /**
    * 默认系统提示词
-   * 定义 Agent 角色和能力边界
-   * 通过 prompt 加载器组装 .md 文件，工具描述作为动态变量注入
+   * 加载系统角色定义和报表说明文档，用分界线拼接
    */
-  private getDefaultPrompt(): string {
-    const toolDescriptions = this.toolRegistry.getAll()
-      .map(t => `- ${t.name}: ${t.description}`)
-      .join('\n')
-
-    return buildPrompt({ tool_descriptions: toolDescriptions })
+  private async getDefaultPrompt(): Promise<string> {
+    return loadPromptDocs([PromptDocName.SYSTEM, PromptDocName.REPORT_DEFINITION])
   }
 
   /**

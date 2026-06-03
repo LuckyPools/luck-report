@@ -8,17 +8,17 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition` → `value(ExpressionValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
+**结构概览**：`cell` → `value(ExpressionValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、CellDefinition 单元格定义
+### 1、cell 单元格定义
 
-CellDefinition 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 CellDefinition 部分。表达式单元格重点关注以下字段：
+cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。表达式单元格重点关注以下字段：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
 | value | ExpressionValue | 单元格值对象 | 见 ExpressionValue 数据模型 |
-| expand | String | 展开方向 | `"Right"` / `"Down"` / `"None"`，表达式单元格通常为 `"Down"` 或 `"None"` |
-| fillBlankRows | Boolean | 是否填充空白行 | `true` / `false` |
+| expand | string | 展开方向 | `"Right"` / `"Down"` / `"None"`，表达式单元格通常为 `"Down"` 或 `"None"` |
+| fillBlankRows | boolean | 是否填充空白行 | `true` / `false` |
 | cellStyle | CellStyle | 单元格样式对象 | `cellStyle.format` 支持格式化表达式计算结果，如 `"#.##"`、`"yyyy-MM-dd"` |
 
 ---
@@ -27,8 +27,8 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 值类型 | 固定 `"expression"`，标识为表达式类型 |
-| value | String | 表达式文本 | 任意合法的 JavaScript 表达式字符串，如 `"${order.price * order.quantity}"`、`"${sum(A1)}"` |
+| type | string | 值类型 | 固定 `"expression"`，标识为表达式类型 |
+| value | string | 表达式文本 | 任意合法的 JavaScript 表达式字符串，如 `"${order.price * order.quantity}"`、`"${sum(A1)}"` |
 
 ---
 
@@ -166,3 +166,5 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 ```
 
 > **关键规则**：表达式单元格的 `value.type` 必须为 `"expression"`，`value.value` 为 JavaScript 表达式文本。表达式以 `${` 开头 `}` 结尾包裹，内部可使用单元格引用（如 `A1`）、单元格所有值引用（如 `A1[]`）和内置函数（如 `sum()`、`avg()`、`count()`）。`expand` 决定表达式返回集合时的展开方向，`cellStyle.format` 可格式化计算结果。
+
+---

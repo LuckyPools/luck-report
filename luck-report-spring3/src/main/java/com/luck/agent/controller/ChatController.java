@@ -6,6 +6,7 @@ import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ToolCallMessage;
 import com.luck.agent.domain.vo.ToolDefinition;
 import com.luck.agent.service.ModelConfigService;
+import com.luck.agent.domain.vo.AskModelRequest;
 import com.luck.agent.util.ChatUtils;
 import okhttp3.*;
 import okio.BufferedSource;
@@ -78,7 +79,7 @@ public class ChatController {
                 Map<String, Object> streamOptions = new LinkedHashMap<>(1);
                 streamOptions.put("include_usage", true);
 
-                ChatUtils.AskModelRequest askRequest = new ChatUtils.AskModelRequest(chatConfig, messages)
+                AskModelRequest askRequest = new AskModelRequest(chatConfig, messages)
                         .stream(true)
                         .tools(openaiTools)
                         .toolChoice(openaiTools != null ? "auto" : null)

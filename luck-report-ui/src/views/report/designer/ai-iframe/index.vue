@@ -1,10 +1,20 @@
 <template>
   <div class="ai-iframe-container">
-    <div class="ai-dialog-wrapper" v-if="visible">
-      <div class="ai-dialog-header">
+    <div 
+      class="ai-dialog-wrapper" 
+      v-if="visible"
+      :style="{
+        transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`
+      }"
+    >
+      <div 
+        class="ai-dialog-header"
+        @mousedown="handleMouseDown"
+        :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
+      >
         <span class="ai-dialog-title">AI 助手</span>
         <div class="ai-dialog-actions">
-          <button class="ai-dialog-btn" @click="handTest">测试</button>
+          <button class="ai-dialog-btn" @click="handTest">打印</button>
           <button class="ai-dialog-btn" @click="handInput">输入</button>
         </div>
         <button class="ai-dialog-close" @click="handleClose">×</button>
@@ -25,21 +35,18 @@
 </template>
 
 <script>
-import {
-  readCellByAgent as readCellByAgentUtil,
-  setCellByAgent as setCellByAgentUtil,
-  getReportSchema as getReportSchemaUtil,
-  mergeCellsByAgent as mergeCellsByAgentUtil,
-  setCellStyleByAgent as setCellStyleByAgentUtil,
-  insertRowsByAgent as insertRowsByAgentUtil,
-  insertColsByAgent as insertColsByAgentUtil
-} from "@/views/report/designer/ai-iframe/utils";
+import { agentMethodRegistry, getAgentMethodNames, getAgentMethodArgs } from "@/views/report/designer/ai-iframe/utils";
 
 /**
  * AI 对话框 iframe 组件
  * 用于在设计器页面中嵌入 Vue3 AI 对话框
  * 支持显示/隐藏控制，方便后续移除和隐藏管理
  * 支持通过 postMessage 接收子 iframe 发送的指令并动态执行
+ *
+ * 方法注册机制：
+ * - 所有可供 AI Agent 调用的方法统一在 utils.js 的 agentMethodRegistry 中注册
+ * - 本组件不再重复定义方法，executeCodeString 通过注册表自动注入方法到 new Function 执行环境
+ * - 新增方法只需在 utils.js 中定义并注册即可，无需修改本组件
  */
 export default {
   name: 'AiIframe',
@@ -65,7 +72,14 @@ export default {
   },
   data() {
     return {
-      visible: this.defaultVisible
+      visible: this.defaultVisible,
+      // 拖动相关状态
+      isDragging: false,
+      panelPosition: { x: 0, y: 0 },
+      dragStart: { x: 0, y: 0 },
+      // 面板尺寸（用于边界检测）
+      panelWidth: 420,
+      panelHeight: 600
     };
   },
   computed: {
@@ -73,25 +87,36 @@ export default {
       return this.url;
     }
   },
+  created() {
+    this._methodNames = getAgentMethodNames();
+    this._methodArgs = getAgentMethodArgs();
+  },
   mounted() {
-    // 监听来自子 iframe 的消息
     window.addEventListener('message', this.handleIframeMessage);
+    // 拖动事件监听
+    document.addEventListener('mousemove', this.handleMouseMove);
+    document.addEventListener('mouseup', this.handleMouseUp);
+    window.addEventListener('resize', this.handleResize);
+    // 初始化面板位置
+    this.resetPosition();
   },
   beforeDestroy() {
-    // 组件销毁时移除消息监听，避免内存泄漏
     window.removeEventListener('message', this.handleIframeMessage);
+    // 移除拖动事件监听
+    document.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('mouseup', this.handleMouseUp);
+    window.removeEventListener('resize', this.handleResize);
   },
   methods: {
     /**
      * 处理来自子 iframe 的消息
      * 支持两种模式：
-     * 1. action + data 模式：直接调用方法
+     * 1. action + data 模式：直接调用注册表中的方法
      * 2. codeString 模式：使用 new Function 动态执行代码字符串
      * 支持返回结果给子 iframe
      * @param {MessageEvent} event - 消息事件对象
      */
     handleIframeMessage(event) {
-      // 安全检查：验证消息格式
       if (!event.data || event.data.type !== 'IFRAME_COMMAND') {
         return;
       }
@@ -99,23 +124,31 @@ export default {
       const { action, data, codeString, requestId } = event.data;
       const source = event.source;
 
-      // 代码字符串模式：使用 new Function 动态执行
       if (codeString) {
         this.executeCodeString(codeString, requestId, source);
         return;
       }
 
-      // 兼容旧格式：直接调用方法
-      if (typeof this[action] === 'function') {
+      if (agentMethodRegistry[action]) {
         console.log(`[AiIframe] 执行指令: ${action}`, data);
-        const result = this[action](data);
-        // 如果有 requestId，返回结果
-        if (requestId && source) {
-          this.sendResponse(source, requestId, result);
+        const result = agentMethodRegistry[action](data);
+        if (result && typeof result.then === 'function') {
+          result.then(res => {
+            if (requestId && source) {
+              this.sendResponse(source, requestId, res);
+            }
+          }).catch(error => {
+            if (requestId && source) {
+              this.sendResponse(source, requestId, undefined, error.message || '执行失败');
+            }
+          });
+        } else {
+          if (requestId && source) {
+            this.sendResponse(source, requestId, result);
+          }
         }
       } else {
         console.warn(`[AiIframe] 未找到方法: ${action}`);
-        // 返回错误
         if (requestId && source) {
           this.sendResponse(source, requestId, undefined, `未找到方法: ${action}`);
         }
@@ -124,16 +157,27 @@ export default {
 
     /**
      * 发送响应结果给子 iframe
+     * 对对象类型的 result 进行 JSON 序列化/反序列化，剥离 Vue 响应式属性（如 __ob__），
+     * 避免 postMessage 结构化克隆时因循环引用或不可克隆属性抛出 DataCloneError
      * @param {Window} source - 消息来源窗口
      * @param {string} requestId - 请求 ID
      * @param {any} result - 执行结果
      * @param {string} error - 错误信息
      */
     sendResponse(source, requestId, result, error) {
+      let serializableResult = result;
+      if (result !== null && result !== undefined && typeof result === 'object') {
+        try {
+          serializableResult = JSON.parse(JSON.stringify(result));
+        } catch (e) {
+          console.error('[AiIframe] 结果序列化失败:', e);
+          serializableResult = { __error: '结果无法序列化', message: e.message };
+        }
+      }
       const message = {
         type: 'IFRAME_RESPONSE',
         requestId,
-        result,
+        result: serializableResult,
         error,
         timestamp: Date.now()
       };
@@ -142,41 +186,89 @@ export default {
 
     /**
      * 使用 new Function 执行代码字符串
-     * 将组件的所有方法注入执行环境，支持直接调用
-     * 支持返回结果给子 iframe
-     * @param {string} codeString - 代码字符串，如 "readCellA1()" 或 "setCellA1('value')"
+     * 从 agentMethodRegistry 注册表自动提取方法名和方法引用注入执行环境
+     * agent 代码中可直接调用注册表中的任何方法名
+     *
+     * 支持的代码格式：
+     * 1. 单条表达式：readCell({rowIndex:0,colIndex:0})
+     * 2. 多语句代码块：writeCell({...}); readCell({...})
+     * 3. 带 return 的代码：const r = readCell({...}); return r
+     * 4. 用大括号包裹的代码块：{ writeCell({...}); return readCell({...}) }
+     *
+     * @param {string} codeString - 代码字符串
      * @param {string} requestId - 请求 ID，用于返回结果
      * @param {Window} source - 消息来源窗口
      */
     executeCodeString(codeString, requestId, source) {
       try {
-        // 创建执行环境，将所有方法注入
-        const methodNames = Object.keys(this.$options.methods || {});
-        const methodArgs = methodNames.map(name => this[name]);
+        const trimmed = codeString.trim();
 
-        // 包装代码字符串，确保返回执行结果
-        // 如果代码不是以 return 开头，自动添加 return
-        const wrappedCode = codeString.trim().startsWith('return ')
-          ? codeString
-          : `return ${codeString}`;
+        const wrappedCode = this._wrapCodeString(trimmed);
 
-        // 构建 new Function 参数：方法名列表 + 包装后的代码字符串
-        const fn = new Function(...methodNames, wrappedCode);
+        const fn = new Function(...this._methodNames, wrappedCode);
 
         console.log(`[AiIframe] 执行代码: ${codeString}`);
-        const result = fn(...methodArgs);
+        const result = fn(...this._methodArgs);
 
-        // 如果有 requestId，返回结果
-        if (requestId && source) {
-          this.sendResponse(source, requestId, result);
+        if (result && typeof result.then === 'function') {
+          result.then(res => {
+            if (requestId && source) {
+              this.sendResponse(source, requestId, res);
+            }
+          }).catch(error => {
+            console.error(`[AiIframe] 执行异步代码失败:`, error);
+            if (requestId && source) {
+              this.sendResponse(source, requestId, undefined, error.message || '执行失败');
+            }
+          });
+        } else {
+          if (requestId && source) {
+            this.sendResponse(source, requestId, result);
+          }
         }
       } catch (error) {
         console.error(`[AiIframe] 执行代码失败:`, error);
-        // 返回错误
         if (requestId && source) {
           this.sendResponse(source, requestId, undefined, error.message);
         }
       }
+    },
+
+    /**
+     * 将代码字符串包装为可执行的函数体
+     * 处理策略：
+     * - 已包含 return 语句：原样使用，确保多语句代码块可自行控制返回值
+     * - 用大括号包裹的代码块：原样使用，内部自行 return
+     * - 单条表达式：自动加 return 前缀
+     * - 多语句（含分号/换行）：包装为代码块，最后一条表达式自动 return
+     *
+     * @param {string} code - 去除首尾空白后的代码字符串
+     * @return {string} 包装后的函数体字符串
+     */
+    _wrapCodeString(code) {
+      if (code.startsWith('{')) {
+        return code;
+      }
+
+      if (/\breturn\b/.test(code)) {
+        return code;
+      }
+
+      if (!code.includes(';') && !code.includes('\n')) {
+        return `return ${code}`;
+      }
+
+      const statements = code.split(';').map(s => s.trim()).filter(s => s.length > 0);
+      if (statements.length === 0) {
+        return 'return undefined';
+      }
+      if (statements.length === 1) {
+        return `return ${statements[0]}`;
+      }
+
+      const lastStmt = statements.pop();
+      const body = statements.join('; ');
+      return `${body}; return ${lastStmt}`;
     },
     /**
      * 切换对话框显示状态
@@ -196,7 +288,6 @@ export default {
      * iframe 加载完成回调
      */
     onIframeLoad() {
-      console.log('AI 对话框 iframe 加载完成');
       this.$emit('load');
     },
     /**
@@ -213,92 +304,86 @@ export default {
     },
 
     handTest(){
-
+      console.log(JSON.stringify(this.$store.state.report))
     },
 
     handInput(){
 
     },
+
+    // ============ 拖动相关方法 ============
+
     /**
-     * 读取指定坐标的单元格数据
-     * 接收参数对象，由 new Function 动态调用，与 utils.js 签名一致
-     *
-     * @param {Object} params - 参数对象
-     * @param {number} params.rowIndex - 单元格行坐标，从0开始
-     * @param {number} params.colIndex - 单元格列坐标，从0开始
-     * @return {Object|null} 单元格定义对象
+     * 重置面板位置到默认位置
+     * 默认位置为窗口右侧居中
      */
-    readCellByAgent({ rowIndex, colIndex }) {
-      return readCellByAgentUtil({ rowIndex, colIndex });
+    resetPosition() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      this.panelPosition = {
+        x: windowWidth - this.panelWidth - 50,
+        y: (windowHeight - this.panelHeight) / 2
+      };
     },
+
     /**
-     * 设置指定坐标的单元格数据
-     * 接收参数对象，由 new Function 动态调用，与 utils.js 签名一致
-     *
-     * @param {Object} params - 参数对象
-     * @param {number} params.rowIndex - 单元格行坐标，从0开始
-     * @param {number} params.colIndex - 单元格列坐标，从0开始
-     * @param {string} params.cellValue - 要设置的单元格值
+     * 处理鼠标按下事件
+     * 开始拖动并记录起始位置
+     * @param {MouseEvent} e - 鼠标事件对象
      */
-    setCellByAgent({ rowIndex, colIndex, cellValue }) {
-      return setCellByAgentUtil({ rowIndex, colIndex, cellValue });
+    handleMouseDown(e) {
+      // 只响应 header 区域的拖动
+      if (e.target.closest('.ai-dialog-close') || e.target.closest('.ai-dialog-btn')) {
+        return;
+      }
+      this.isDragging = true;
+      this.dragStart = {
+        x: e.clientX - this.panelPosition.x,
+        y: e.clientY - this.panelPosition.y
+      };
+      e.preventDefault();
     },
+
     /**
-     * 获取报表整体结构信息
-     * 返回行列数、合并单元格区域、非空单元格摘要
-     *
-     * @return {Object} 报表结构信息
+     * 处理鼠标移动事件
+     * 更新面板位置，包含边界检测
+     * @param {MouseEvent} e - 鼠标事件对象
      */
-    getReportSchema() {
-      return getReportSchemaUtil();
+    handleMouseMove(e) {
+      if (!this.isDragging) return;
+
+      const newX = e.clientX - this.dragStart.x;
+      const newY = e.clientY - this.dragStart.y;
+
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      this.panelPosition = {
+        x: Math.max(0, Math.min(newX, windowWidth - this.panelWidth)),
+        y: Math.max(0, Math.min(newY, windowHeight - this.panelHeight))
+      };
     },
+
     /**
-     * 合并指定区域的单元格
-     *
-     * @param {Object} params - 参数对象
-     * @param {number} params.startRow - 起始行索引
-     * @param {number} params.startCol - 起始列索引
-     * @param {number} params.endRow - 结束行索引
-     * @param {number} params.endCol - 结束列索引
-     * @return {Object} 操作结果
+     * 处理鼠标松开事件
+     * 结束拖动
      */
-    mergeCellsByAgent({ startRow, startCol, endRow, endCol }) {
-      return mergeCellsByAgentUtil({ startRow, startCol, endRow, endCol });
+    handleMouseUp() {
+      this.isDragging = false;
     },
+
     /**
-     * 设置单元格样式
-     *
-     * @param {Object} params - 参数对象
-     * @param {number} params.rowIndex - 行索引
-     * @param {number} params.colIndex - 列索引
-     * @param {string} params.styleType - 样式类型
-     * @param {string} params.styleValue - 样式值
-     * @return {Object} 操作结果
+     * 处理窗口大小改变事件
+     * 确保面板不会超出窗口边界
      */
-    setCellStyleByAgent({ rowIndex, colIndex, styleType, styleValue }) {
-      return setCellStyleByAgentUtil({ rowIndex, colIndex, styleType, styleValue });
-    },
-    /**
-     * 插入行
-     *
-     * @param {Object} params - 参数对象
-     * @param {number} params.rowIndex - 插入位置行索引
-     * @param {number} params.count - 插入行数
-     * @return {Object} 操作结果
-     */
-    insertRowsByAgent({ rowIndex, count }) {
-      return insertRowsByAgentUtil({ rowIndex, count });
-    },
-    /**
-     * 插入列
-     *
-     * @param {Object} params - 参数对象
-     * @param {number} params.colIndex - 插入位置列索引
-     * @param {number} params.count - 插入列数
-     * @return {Object} 操作结果
-     */
-    insertColsByAgent({ colIndex, count }) {
-      return insertColsByAgentUtil({ colIndex, count });
+    handleResize() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      this.panelPosition = {
+        x: Math.min(this.panelPosition.x, windowWidth - this.panelWidth),
+        y: Math.min(this.panelPosition.y, windowHeight - this.panelHeight)
+      };
     }
   }
 }
@@ -306,10 +391,11 @@ export default {
 
 <style scoped>
 .ai-iframe-container {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
   z-index: 1000;
+  pointer-events: none;
 }
 
 .ai-dialog-wrapper {
@@ -321,6 +407,8 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: auto;
+  user-select: none;
 }
 
 .ai-dialog-header {

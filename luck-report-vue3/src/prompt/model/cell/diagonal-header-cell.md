@@ -8,16 +8,16 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition` → `value(SlashValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
+**结构概览**：`cell` → `value(SlashValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、CellDefinition 单元格定义
+### 1、cell 单元格定义
 
-CellDefinition 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 CellDefinition 部分。斜表头单元格重点关注以下字段：
+cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。斜表头单元格重点关注以下字段：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
 | value | SlashValue | 单元格值对象 | 见 SlashValue 数据模型 |
-| expand | String | 展开方向 | 斜表头单元格通常为 `"None"`（不展开） |
+| expand | string | 展开方向 | 斜表头单元格通常为 `"None"`（不展开） |
 
 ---
 
@@ -25,10 +25,10 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 值类型 | 固定 `"slash"`，标识为斜表头类型 |
-| slashes | List\<Slash\> | 斜线列表 | 每条斜线包含坐标、角度和文本，`null` 或空数组为无斜线 |
-| svg | String | SVG 内容 | 渲染后生成的 SVG 字符串，由系统自动生成 |
-| base64Data | String | Base64 图片数据 | 渲染后生成的 Base64 编码图片数据，由系统自动生成 |
+| type | string | 值类型 | 固定 `"slash"`，标识为斜表头类型 |
+| slashes | Slash[] | 斜线列表 | 每条斜线包含坐标、角度和文本，`null` 或空数组为无斜线 |
+| svg | string | SVG 内容 | 渲染后生成的 SVG 字符串，由系统自动生成 |
+| base64Data | string | Base64 图片数据 | 渲染后生成的 Base64 编码图片数据，由系统自动生成 |
 
 ---
 
@@ -36,10 +36,10 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| x | Integer | 文本 X 坐标 | 相对于单元格的横坐标位置 |
-| y | Integer | 文本 Y 坐标 | 相对于单元格的纵坐标位置 |
-| degree | Integer | 斜线角度 | 斜线的旋转角度，如 `45`、`30` |
-| text | String | 斜线上的文本标签 | 如 `"类别"`、`"月份"` |
+| x | number | 文本 X 坐标 | 相对于单元格的横坐标位置 |
+| y | number | 文本 Y 坐标 | 相对于单元格的纵坐标位置 |
+| degree | number | 斜线角度 | 斜线的旋转角度，如 `45`、`30` |
+| text | string | 斜线上的文本标签 | 如 `"类别"`、`"月份"` |
 
 ---
 
@@ -135,3 +135,5 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 ```
 
 > **关键规则**：斜表头单元格的 `value.type` 必须为 `"slash"`，`value.slashes` 数组中每条斜线通过 `x`/`y` 定位文本、`degree` 设置斜线角度、`text` 设置标签文本。`svg` 和 `base64Data` 由系统渲染时自动生成。斜表头单元格通常不展开（`expand` 为 `"None"`）。
+
+---

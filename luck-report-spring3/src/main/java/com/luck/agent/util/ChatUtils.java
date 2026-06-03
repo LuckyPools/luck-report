@@ -2,14 +2,14 @@ package com.luck.agent.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.luck.agent.domain.entity.ModelConfig;
+import com.luck.agent.domain.vo.AskModelRequest;
+import com.luck.agent.domain.vo.AskModelResponse;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -38,132 +38,6 @@ public class ChatUtils {
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build();
-
-    /**
-     * 大模型调用请求参数
-     * 封装调用大模型所需的全部参数，由调用方构建后传入 askModel
-     */
-    public static class AskModelRequest {
-        /** 模型配置，包含 baseUrl、apiKey、modelName 等 */
-        private final ModelConfig chatConfig;
-        /** OpenAI 格式的消息列表 */
-        private final List<Map<String, Object>> messages;
-        /** 是否流式请求 */
-        private boolean stream = false;
-        /** 温度参数，控制生成随机性 */
-        private Double temperature;
-        /** 最大生成 token 数 */
-        private Integer maxTokens;
-        /** 工具定义列表（OpenAI Function Calling 格式），可为 null */
-        private List<Map<String, Object>> tools;
-        /** 工具调用策略，如 "auto"，可为 null */
-        private String toolChoice;
-        /** 流式选项，如 {"include_usage": true}，可为 null */
-        private Map<String, Object> streamOptions;
-
-        public AskModelRequest(ModelConfig chatConfig, List<Map<String, Object>> messages) {
-            this.chatConfig = chatConfig;
-            this.messages = messages;
-        }
-
-        /**
-         * 设置是否流式请求
-         *
-         * @param stream 是否流式
-         * @return 当前对象，支持链式调用
-         */
-        public AskModelRequest stream(boolean stream) {
-            this.stream = stream;
-            return this;
-        }
-
-        /**
-         * 设置温度参数
-         *
-         * @param temperature 温度值，0~1
-         * @return 当前对象，支持链式调用
-         */
-        public AskModelRequest temperature(Double temperature) {
-            this.temperature = temperature;
-            return this;
-        }
-
-        /**
-         * 设置最大生成 token 数
-         *
-         * @param maxTokens 最大 token 数
-         * @return 当前对象，支持链式调用
-         */
-        public AskModelRequest maxTokens(Integer maxTokens) {
-            this.maxTokens = maxTokens;
-            return this;
-        }
-
-        /**
-         * 设置工具定义列表
-         *
-         * @param tools OpenAI Function Calling 格式的工具定义列表
-         * @return 当前对象，支持链式调用
-         */
-        public AskModelRequest tools(List<Map<String, Object>> tools) {
-            this.tools = tools;
-            return this;
-        }
-
-        /**
-         * 设置工具调用策略
-         *
-         * @param toolChoice 工具调用策略，如 "auto"
-         * @return 当前对象，支持链式调用
-         */
-        public AskModelRequest toolChoice(String toolChoice) {
-            this.toolChoice = toolChoice;
-            return this;
-        }
-
-        /**
-         * 设置流式选项
-         *
-         * @param streamOptions 流式选项，如 {"include_usage": true}
-         * @return 当前对象，支持链式调用
-         */
-        public AskModelRequest streamOptions(Map<String, Object> streamOptions) {
-            this.streamOptions = streamOptions;
-            return this;
-        }
-
-        public ModelConfig getChatConfig() { return chatConfig; }
-        public List<Map<String, Object>> getMessages() { return messages; }
-        public boolean isStream() { return stream; }
-        public Double getTemperature() { return temperature; }
-        public Integer getMaxTokens() { return maxTokens; }
-        public List<Map<String, Object>> getTools() { return tools; }
-        public String getToolChoice() { return toolChoice; }
-        public Map<String, Object> getStreamOptions() { return streamOptions; }
-    }
-
-    /**
-     * 大模型调用响应结果
-     * 封装非流式调用的响应数据，供调用方直接使用
-     */
-    public static class AskModelResponse {
-        /** HTTP 状态码 */
-        private final int statusCode;
-        /** 响应体内容 */
-        private final String body;
-        /** 是否成功 */
-        private final boolean success;
-
-        public AskModelResponse(int statusCode, String body, boolean success) {
-            this.statusCode = statusCode;
-            this.body = body;
-            this.success = success;
-        }
-
-        public int getStatusCode() { return statusCode; }
-        public String getBody() { return body; }
-        public boolean isSuccess() { return success; }
-    }
 
     /**
      * 调用大模型 API（非流式）

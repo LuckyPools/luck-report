@@ -8,32 +8,20 @@
 
 ## 二、数据模型
 
-**结构概览**：`context.rowHeaders` → `List<RowHeader>` ，每个 RowHeader 包含 `rowNumber` + `band`
+**结构概览**：`context.rowHeaders` → `RowHeader[]` ，每个 RowHeader 包含 `rowNumber` + `band`
 
-### 1、RowHeader 行头对象（前端）
+### 1、RowHeader 行头对象
 
 前端使用 `context.rowHeaders` 数组存储行类型配置，数组中每个元素为一个 RowHeader 对象：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| rowNumber | Integer | 行号 | 从 `0` 开始的行索引，对应表格中的行位置 |
-| band | String | 行类型 | 见 Band 枚举值 |
+| rowNumber | number | 行号 | 从 `0` 开始的行索引，对应表格中的行位置 |
+| band | string | 行类型 | 见 Band 枚举值 |
 
 ---
 
-### 2、RowDefinition 行定义对象（后端）
-
-后端使用 `ReportDefinition.rows` 列表存储行定义，每个 RowDefinition 对象：
-
-| 字段名 | 类型 | 说明 | 可选值 / 备注 |
-|--------|------|------|---------------|
-| rowNumber | int | 行号 | 从 `1` 开始的行序号 |
-| height | int | 行高（px） | 行的高度值，如 `30`、`25` |
-| band | Band | 行类型枚举 | 见 Band 枚举值，`null` 为普通行 |
-
----
-
-### 3、Band 行类型枚举
+### 2、Band 行类型枚举
 
 | 枚举值 | 前端标签 | 说明 | 分页行为 |
 |--------|---------|------|---------|
@@ -44,28 +32,12 @@
 
 ---
 
-### 4、Row 运行时行对象（后端渲染模型）
-
-报表渲染时后端将 RowDefinition 转换为 Row 对象，Row 对象包含以下额外运行时属性：
-
-| 字段名 | 类型 | 说明 | 可选值 / 备注 |
-|--------|------|------|---------------|
-| rowKey | String | 行唯一标识 | 格式为 `"r" + rowNumber`，如 `"r1"`、`"r5"` |
-| realHeight | int | 实际行高 | 默认 `-1`，`-1` 时取 `height` 值 |
-| tempRowNumber | int | 临时行号 | 仅在构建报表时使用 |
-| pageIndex | int | 页码索引 | 该行所属的页码 |
-| forPaging | boolean | 是否为分页行 | 渲染时自动计算 |
-| pageBreak | boolean | 是否在此行分页 | 渲染时自动计算 |
-| hide | boolean | 是否隐藏 | `true` / `false` |
-
----
-
 ## 三、数据约束规则
 
 | 规则编号 | 约束对象 | 约束说明 |
 |---------|---------|---------|
 | R-01 | 行号唯一 | 同一报表中 `rowNumber` 不可重复，每个行号最多对应一个行类型 |
-| R-02 | 行号范围 | 前端 `rowNumber` 从 `0` 开始（行索引），后端 `rowNumber` 从 `1` 开始（行序号） |
+| R-02 | 行号范围 | `rowNumber` 从 `0` 开始（行索引） |
 | R-03 | 行高约束 | `height` 最小值为 `0`，单位为像素 |
 | R-04 | 默认行类型 | 未设置 `band` 的行为普通行（`band` 为 `null`），分页时按正常逻辑输出 |
 | R-05 | 标题行位置 | 标题行（`title`）可定义在任意位置，但分页输出时总会放在第一页最前端 |
@@ -89,14 +61,17 @@
   "rowHeaders": [
     {
       "rowNumber": 0,
+      "height": 18,
       "band": "title"
     },
     {
       "rowNumber": 1,
+      "height": 18,
       "band": "title"
     },
     {
       "rowNumber": 2,
+      "height": 18,
       "band": "headerrepeat"
     }
   ]
@@ -112,14 +87,17 @@
   "rowHeaders": [
     {
       "rowNumber": 8,
+      "height": 18,
       "band": "footerrepeat"
     },
     {
       "rowNumber": 9,
+      "height": 18,
       "band": "summary"
     },
     {
       "rowNumber": 10,
+      "height": 18,
       "band": "summary"
     }
   ]
@@ -129,3 +107,16 @@
 > 说明：第 9 行为重复表尾行（`footerrepeat`），分页时在每一页底部显示；第 10、11 行为总结行（`summary`），分页时仅在最后一页最下端显示，位于重复表尾行下方。
 
 > **关键规则**：行类型通过 `context.rowHeaders` 数组管理，每个元素包含 `rowNumber`（行号）和 `band`（行类型）。`band` 枚举值为 `headerrepeat`（重复表头行）、`footerrepeat`（重复表尾行）、`title`（标题行）、`summary`（总结行）。未设置 `band` 的行为普通行。标题行总在第一页最前端，重复表头行在每页顶部，重复表尾行在每页底部，总结行在最后一页最下端且位于重复表尾行下方。
+
+---
+
+## 五、工具调用
+
+| 操作 | 工具名称 | 参数 | 说明 |
+|------|---------|------|------|
+| 读取行 | `get_rows` | `rowNumber?: number` | 不传 rowNumber 返回全部行，传入 rowNumber 返回指定行的数据 |
+| 整体替换 | `set_rows` | `rows: array` | 传入 rows 数组整体替换全部行数据，会覆盖现有配置 |
+| 更新行 | `update_row` | `rowNumber: number, row: object` | 按行号匹配替换行定义，会完全替换该行号的行配置 |
+| 插入行 | `insert_row` | `position: number, number?: number` | 在 position 位置插入行，position 为行索引从0开始，number 为插入行数默认1。会同时处理单元格数据和行头信息 |
+| 删除行 | `delete_row` | `startRow: number, endRow: number` | 删除指定范围的行，startRow 和 endRow 为行索引从0开始。会同时处理单元格数据、合并单元格配置和行头信息 |
+| 保存报表 | `save_report` | | 保存当前报表到服务器 |

@@ -1,6 +1,3 @@
-/**
- * Created by Jacky.Gao on 2017-02-17.
- */
 import {buildNewCellDef, resetTableData, setDirty, undoManager} from '@/utils/table.js';
 import {showAlert} from '@/utils/comnon.js';
 import {$t} from "@/locales";
@@ -8,12 +5,56 @@ import {addCell, getCell, getCellsMap, removeCell} from '@/utils/contextActions.
 import {deepCopy} from '@/components/utils';
 
 /**
- * 插入列操作
+ * 插入列
+ * 在指定位置插入指定数量的列，同时调整单元格数据
  *
- * 架构说明：
- * - 使用 contextActions.js 中的方法通过 Vuex mutations 修改 context 数据
- * - 符合 Vuex 最佳实践，所有修改都通过 mutation 进行
+ * @param {Object} table - Handsontable 实例
+ * @param {number} position - 插入位置（列索引，从0开始）
+ * @param {number} number - 插入列数，默认1
+ * @return {{ position: number, number: number, newColWidth: number }} 插入信息，用于撤销/还原
  */
+export function insertCol(table, position, number = 1) {
+    const defaultColWidth = 98;
+    let colWidths = table.getSettings().colWidths;
+    let newColWidths = colWidths.concat([]);
+    for (let i = 0; i < number; i++) {
+        newColWidths.splice(position, 0, defaultColWidth);
+    }
+    table.alter("insert_col", position, number);
+
+    const cellsMap = getCellsMap();
+    const changeCells = [];
+    for (let cell of cellsMap.values()) {
+        let colIndex = cell.columnNumber - 1;
+        if (colIndex >= position) {
+            changeCells.push(cell);
+        }
+    }
+    for (let cell of changeCells) {
+        removeCell(cell);
+    }
+    for (let cell of changeCells) {
+        let newCell = deepCopy(cell);
+        newCell.columnNumber = cell.columnNumber + number;
+        addCell(newCell);
+    }
+    let countRows = table.countRows();
+    for (let i = 0; i < number; i++) {
+        for (let j = 0; j < countRows; j++) {
+            let newCellDef = buildNewCellDef(j + 1, position + i + 1);
+            addCell(newCellDef);
+        }
+    }
+    table.updateSettings({
+        colWidths: newColWidths,
+        manualColumnResize: newColWidths
+    });
+    resetTableData(table);
+    setDirty();
+
+    return {position, number, newColWidth: defaultColWidth};
+}
+
 export function doInsertCol(left, number = 1) {
     const selected = this.getSelected();
     if (!selected) {
@@ -35,82 +76,20 @@ export function doInsertCol(left, number = 1) {
             position = endCol + 1;
         }
     }
-    let colWidths = this.getSettings().colWidths;
-    let newColWidths = colWidths.concat([]);
-    for (let i = 0; i < number; i++) {
-        newColWidths.splice(position, 0, 98);
-    }
-    this.alter("insert_col", position, number);
 
-    const cellsMap = getCellsMap();
-    const changeCells = [];
-    for (let cell of cellsMap.values()) {
-        let colIndex = cell.columnNumber - 1;
-        if (colIndex >= position) {
-            changeCells.push(cell);
-        }
-    }
-    for (let cell of changeCells) {
-        removeCell(cell);
-    }
-    for (let cell of changeCells) {
-        let newCell = deepCopy(cell);
-        newCell.columnNumber = cell.columnNumber + number;
-        addCell(newCell);
-    }
-    let countRows = this.countRows();
-    for (let i = 0; i < number; i++) {
-        for (let j = 0; j < countRows; j++) {
-            let newCellDef = buildNewCellDef(j + 1, position + i + 1);
-            addCell(newCellDef);
-        }
-    }
-    this.updateSettings({
-        colWidths: newColWidths,
-        manualColumnResize: newColWidths
-    });
-    resetTableData(this);
-    setDirty();
+    insertCol(this, position, number);
 
     const _this = this, removeCells = [];
     let removeColWidth = 98;
+    const cellsMap = getCellsMap();
     undoManager.add({
         redo: function () {
-            colWidths = _this.getSettings().colWidths;
-            newColWidths = colWidths.concat([]);
-            for (let i = 0; i < number; i++) {
-                newColWidths.splice(position, 0, removeColWidth);
-            }
-            _this.alter("insert_col", position, number);
-            changeCells.splice(0, changeCells.length);
-            for (let cell of cellsMap.values()) {
-                let colIndex = cell.columnNumber - 1;
-                if (colIndex >= position) {
-                    changeCells.push(cell);
-                }
-            }
-            for (let cell of changeCells) {
-                removeCell(cell);
-            }
-            for (let cell of changeCells) {
-                let newCell = deepCopy(cell);
-                newCell.columnNumber = cell.columnNumber + number;
-                addCell(newCell);
-            }
-            for (let cell of removeCells) {
-                addCell(cell);
-            }
-            _this.updateSettings({
-                colWidths: newColWidths,
-                manualColumnResize: newColWidths
-            });
-            resetTableData(_this);
-            setDirty();
+            insertCol(_this, position, number);
         },
         undo: function () {
             removeCells.splice(0, removeCells.length);
-            colWidths = _this.getSettings().colWidths;
-            newColWidths = colWidths.concat([]);
+            let colWidths = _this.getSettings().colWidths;
+            let newColWidths = colWidths.concat([]);
             for (let i = 0; i < number; i++) {
                 removeColWidth = newColWidths[position];
                 newColWidths.splice(position, 1);
@@ -130,7 +109,7 @@ export function doInsertCol(left, number = 1) {
                     }
                 }
             }
-            changeCells.splice(0, changeCells.length);
+            let changeCells = [];
             for (let cell of cellsMap.values()) {
                 let colIndex = cell.columnNumber - 1;
                 if (colIndex > position) {
@@ -146,8 +125,7 @@ export function doInsertCol(left, number = 1) {
                 addCell(newCell);
             }
 
-            resetTableData(_this);
             setDirty();
         }
     });
-};
+}

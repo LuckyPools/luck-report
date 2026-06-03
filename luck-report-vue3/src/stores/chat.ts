@@ -264,7 +264,6 @@ export const useChatStore = defineStore('chat', () => {
    */
   const persistMessages = async () => {
     if (!currentSessionId.value) {
-      console.warn('[chatStore] 无 sessionId，跳过持久化')
       return
     }
 
@@ -294,7 +293,6 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (items.length === 0) {
-      console.info('[chatStore] 无新增消息需要保存')
       return
     }
 
@@ -302,7 +300,6 @@ export const useChatStore = defineStore('chat', () => {
       console.info(`[chatStore] 保存 ${items.length} 条消息到会话 ${currentSessionId.value}`)
       await batchSaveMessages(currentSessionId.value, items)
       roundStartIndex = messageList.value.length
-      console.info('[chatStore] 消息持久化成功')
     } catch (e) {
       console.error('[chatStore] 消息持久化失败:', e)
     }

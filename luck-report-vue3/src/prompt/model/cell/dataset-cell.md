@@ -8,20 +8,20 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition` → `value(DatasetValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
+**结构概览**：`cell` → `value(DatasetValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、CellDefinition 单元格定义
+### 1、cell 单元格定义
 
-CellDefinition 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 CellDefinition 部分。数据集单元格重点关注以下字段：
+cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。数据集单元格重点关注以下字段：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
 | value | DatasetValue | 单元格值对象 | 见 DatasetValue 数据模型 |
-| expand | String | 展开方向 | `"Right"` / `"Down"` / `"None"`，数据集单元格通常为 `"Down"` 或 `"Right"` |
-| fillBlankRows | Boolean | 是否填充空白行 | `true` / `false`，数据集单元格可设为 `true` |
-| multiple | Integer | 填充空白行的倍数 | `fillBlankRows=true` 时生效 |
+| expand | string | 展开方向 | `"Right"` / `"Down"` / `"None"`，数据集单元格通常为 `"Down"` 或 `"Right"` |
+| fillBlankRows | boolean | 是否填充空白行 | `true` / `false`，数据集单元格可设为 `true` |
+| multiple | number | 填充空白行的倍数 | `fillBlankRows=true` 时生效 |
 | cellStyle | CellStyle | 单元格样式对象 | `cellStyle.format` 支持格式化数据值 |
-| conditionPropertyItems | List\<ConditionPropertyItem\> | 条件属性列表 | 可根据数据值动态改变样式 |
+| conditionPropertyItems | ConditionPropertyItem[] | 条件属性列表 | 可根据数据值动态改变样式 |
 
 ---
 
@@ -29,18 +29,18 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 值类型 | 固定 `"dataset"`，标识为数据集类型 |
-| datasetName | String | 数据集名称 | 必须为报表中已定义的数据集名称，如 `"orders"`、`"product"` |
-| property | String | 字段名称 | 必须为数据集中的字段名，如 `"order_id"`、`"product_name"`、`"price"` |
-| aggregate | String | 聚合方式 | 见 AggregateType 枚举值 |
-| order | String | 排序方式 | 见 Order 枚举值 |
-| conditions | List\<Condition\> | 过滤条件列表 | 对数据集查询结果进行二次过滤，`null` 为无过滤 |
-| groupItems | List\<GroupItem\> | 自定义分组项列表 | 当 `aggregate` 为 `"customgroup"` 时使用，`null` 为无自定义分组 |
-| mappingType | String | 数据映射类型 | 见 MappingType 枚举值 |
-| mappingItems | List\<MappingItem\> | 简单映射项列表 | 当 `mappingType` 为 `"simple"` 时使用 |
-| mappingDataset | String | 数据集映射-数据集名称 | 当 `mappingType` 为 `"dataset"` 时使用 |
-| mappingKeyProperty | String | 数据集映射-键字段 | 当 `mappingType` 为 `"dataset"` 时使用 |
-| mappingValueProperty | String | 数据集映射-值字段 | 当 `mappingType` 为 `"dataset"` 时使用 |
+| type | string | 值类型 | 固定 `"dataset"`，标识为数据集类型 |
+| datasetName | string | 数据集名称 | 必须为报表中已定义的数据集名称，如 `"orders"`、`"product"` |
+| property | string | 字段名称 | 必须为数据集中的字段名，如 `"order_id"`、`"product_name"`、`"price"` |
+| aggregate | string | 聚合方式 | 见 AggregateType 枚举值 |
+| order | string | 排序方式 | 见 Order 枚举值 |
+| conditions | Condition[] | 过滤条件列表 | 对数据集查询结果进行二次过滤，`null` 为无过滤 |
+| groupItems | GroupItem[] | 自定义分组项列表 | 当 `aggregate` 为 `"customgroup"` 时使用，`null` 为无自定义分组 |
+| mappingType | string | 数据映射类型 | 见 MappingType 枚举值 |
+| mappingItems | MappingItem[] | 简单映射项列表 | 当 `mappingType` 为 `"simple"` 时使用 |
+| mappingDataset | string | 数据集映射-数据集名称 | 当 `mappingType` 为 `"dataset"` 时使用 |
+| mappingKeyProperty | string | 数据集映射-键字段 | 当 `mappingType` 为 `"dataset"` 时使用 |
+| mappingValueProperty | string | 数据集映射-值字段 | 当 `mappingType` 为 `"dataset"` 时使用 |
 
 ---
 
@@ -84,8 +84,8 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| value | String | 实际值 | 如 `"1"`、`"male"` |
-| label | String | 显示值 | 如 `"是"`、`"男"` |
+| value | string | 实际值 | 如 `"1"`、`"male"` |
+| label | string | 显示值 | 如 `"是"`、`"男"` |
 
 ---
 
@@ -93,8 +93,8 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 分组名称 | 如 `"分组A"`、`"分组B"` |
-| conditions | List\<Condition\> | 分组条件列表 | 满足条件的数据归入该分组 |
+| name | string | 分组名称 | 如 `"分组A"`、`"分组B"` |
+| conditions | Condition[] | 分组条件列表 | 满足条件的数据归入该分组 |
 
 ---
 
@@ -102,10 +102,10 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| left | String | 左侧表达式 | 字段名或表达式，如 `"price"` |
-| op | String | 比较运算符 | 见 Op 枚举值 |
-| right | String | 右侧表达式 | 比较值或表达式，如 `"100"` |
-| join | String | 条件连接方式 | `"and"` / `"or"`，与下一个条件的连接关系 |
+| left | string | 左侧表达式 | 字段名或表达式，如 `"price"` |
+| op | string | 比较运算符 | 见 Op 枚举值 |
+| right | string | 右侧表达式 | 比较值或表达式，如 `"100"` |
+| join | string | 条件连接方式 | `"and"` / `"or"`，与下一个条件的连接关系 |
 
 ---
 
@@ -271,3 +271,5 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 ```
 
 > **关键规则**：数据集单元格的 `value.type` 必须为 `"dataset"`，`value.datasetName` 和 `value.property` 为必填项。聚合方式 `aggregate` 决定了数据提取方式：`select`/`group`/`customgroup` 等返回集合的聚合支持展开和排序，而 `sum`/`count`/`max`/`min`/`avg` 等统计聚合返回单值，此时 `expand` 必须为 `"None"`，`order` 必须为 `"none"`。数据映射仅在 `group` 和 `select` 聚合下可用。
+
+---

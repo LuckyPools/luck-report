@@ -1,7 +1,7 @@
 # 查询表单说明（searchForm）
 
 ## 一、职能
-查询表单是报表的查询条件区域，在报表预览时渲染为表单 UI。表单中的输入组件通过 `vModel` 绑定数据集参数（Dataset Parameter），用户填写表单后参数值回传给数据集 SQL，实现数据筛选。
+查询表单是报表的查询条件区域，在报表预览时渲染为表单 UI。表单中的输入组件通过 `vModel` 绑定数据集参数（Dataset Parameter），用户填写表单后参数值回传给数据集，实现数据筛选。
 
 ---
 
@@ -15,18 +15,18 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| formRef | String | 表单 ref 标识 | 默认 `"uForm"` |
-| tag | String | 表单渲染标签 | 固定 `"u-form"` |
-| formModel | String | 表单数据对象名 | 默认 `"formData"` |
-| size | String | 表单组件尺寸 | `small` / `medium` / `large` |
-| labelPosition | String | 标签对齐方式 | `left` / `right` / `top` |
-| labelWidth | Integer | 标签宽度（px） | 默认 `100` |
-| formRules | String | 校验规则对象名 | 默认 `"rules"` |
-| gutter | Integer | 栅格间距（px） | 默认 `15` |
-| disabled | Boolean | 是否禁用整表 | `true` / `false` |
-| span | Integer | 默认栅格占位 | 默认 `24`（满宽） |
-| formBtns | Boolean | 是否显示查询/重置按钮 | `true` / `false` |
-| fields | List\<Component\> | 表单字段列表（树形结构） | 顶层元素为 RowComponent |
+| formRef | string | 表单 ref 标识 | 默认 `"uForm"` |
+| tag | string | 表单渲染标签 | 固定 `"u-form"` |
+| formModel | string | 表单数据对象名 | 默认 `"formData"` |
+| size | string | 表单组件尺寸 | `small` / `medium` / `large` |
+| labelPosition | string | 标签对齐方式 | `left` / `right` / `top` |
+| labelWidth | number | 标签宽度（px） | 默认 `100` |
+| formRules | string | 校验规则对象名 | 默认 `"rules"` |
+| gutter | number | 栅格间距（px） | 默认 `15` |
+| disabled | boolean | 是否禁用整表 | `true` / `false` |
+| span | number | 默认栅格占位 | 默认 `24`（满宽） |
+| formBtns | boolean | 是否显示查询/重置按钮 | `true` / `false` |
+| fields | Component[] | 表单字段列表（树形结构） | 顶层元素为 RowComponent |
 
 ---
 
@@ -36,20 +36,20 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 行类型 | `"default"` |
-| tag | String | 渲染标签 | 固定 `"u-row"` |
-| tagIcon | String | 图标标识 | `"row"` |
-| span | Integer | 行占位 | 默认 `24` |
-| gutter | Integer | 列间距（px） | 默认 `15` |
-| justify | String | 水平排列方式 | `"start"` / `"end"` / `"center"` / `"space-around"` / `"space-between"` |
-| align | String | 垂直排列方式 | `"top"` / `"middle"` / `"bottom"` |
-| layout | String | 布局类型 | `"rowFormItem"` |
-| layoutTree | Boolean | 是否为树形布局容器 | `true` |
-| componentName | String | 组件名称（唯一） | 如 `"row103"` |
-| formId | String | 表单组件 ID | 如 `"103"` |
-| renderKey | String | 渲染唯一键 | 时间戳字符串 |
-| document | String | 组件文档路径 | `"/component/layout"` |
-| children | List\<Component\> | 行内子组件列表 | 放置输入组件或 Button |
+| type | string | 行类型 | `"default"` |
+| tag | string | 渲染标签 | 固定 `"u-row"` |
+| tagIcon | string | 图标标识 | `"row"` |
+| span | number | 行占位 | 默认 `24` |
+| gutter | number | 列间距（px） | 默认 `15` |
+| justify | string | 水平排列方式 | `"start"` / `"end"` / `"center"` / `"space-around"` / `"space-between"` |
+| align | string | 垂直排列方式 | `"top"` / `"middle"` / `"bottom"` |
+| layout | string | 布局类型 | `"rowFormItem"` |
+| layoutTree | boolean | 是否为树形布局容器 | `true` |
+| componentName | string | 组件名称（唯一） | 如 `"row103"` |
+| formId | string | 表单组件 ID | 如 `"103"` |
+| renderKey | string | 渲染唯一键 | 时间戳字符串 |
+| document | string | 组件文档路径 | `"/component/layout"` |
+| children | Component[] | 行内子组件列表 | 放置输入组件或 Button |
 
 ---
 
@@ -59,23 +59,23 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| label | String | 字段标签名 | 显示在表单中的名称，如 `"商品名称"` |
-| tag | String | 渲染标签 | 见各组件说明 |
-| tagIcon | String | 图标标识 | 见各组件说明 |
-| vModel | String | 绑定字段名 | **关键属性**，必须与数据集 Parameter 的 name 一致，如 `"product_name"` |
-| span | Integer | 栅格占位 | `1`~`24`，默认 `24`（满宽），同一行内多个组件 span 之和应 ≤ 24 |
-| labelWidth | String | 标签宽度（px） | 如 `"100"`，`null` 时继承表单级 labelWidth |
-| style | Object | 自定义样式 | 如 `{"width": "100%"}` |
-| required | Boolean | 是否必填 | `true` / `false` |
-| regList | List | 正则校验规则列表 | 如 `[{"pattern": "/^1[3-9]\\d{9}$/", "message": "手机号格式错误"}]` |
-| changeTag | Boolean | 是否可切换组件类型 | `true` / `false` |
-| document | String | 组件文档路径 | 如 `"/component/input"` |
-| formId | String | 表单组件 ID | 如 `"101"` |
-| renderKey | String | 渲染唯一键 | 时间戳字符串 |
-| layout | String | 布局类型 | `"colFormItem"` |
+| label | string | 字段标签名 | 显示在表单中的名称，如 `"商品名称"` |
+| tag | string | 渲染标签 | 见各组件说明 |
+| tagIcon | string | 图标标识 | 见各组件说明 |
+| vModel | string | 绑定字段名 | **关键属性**，必须与数据集 Parameter 的 name 一致，如 `"product_name"` |
+| span | number | 栅格占位 | `1`~`24`，默认 `24`（满宽），同一行内多个组件 span 之和应 ≤ 24 |
+| labelWidth | string | 标签宽度（px） | 如 `"100"`，`null` 时继承表单级 labelWidth |
+| style | object | 自定义样式 | 如 `{"width": "100%"}` |
+| required | boolean | 是否必填 | `true` / `false` |
+| regList | Reg[] | 正则校验规则列表 | 如 `[{"pattern": "/^1[3-9]\\d{9}$/", "message": "手机号格式错误"}]` |
+| changeTag | boolean | 是否可切换组件类型 | `true` / `false` |
+| document | string | 组件文档路径 | 如 `"/component/input"` |
+| formId | string | 表单组件 ID | 如 `"101"` |
+| renderKey | string | 渲染唯一键 | 时间戳字符串 |
+| layout | string | 布局类型 | `"colFormItem"` |
 | defaultValue | 各类型 | 默认值 | 各组件类型不同，见各组件说明 |
-| disabled | Boolean | 是否禁用 | `true` / `false` |
-| type | String | 组件子类型 | 大多数为 `null`，DatePicker 中为 `"date"` |
+| disabled | boolean | 是否禁用 | `true` / `false` |
+| type | string | 组件子类型 | 大多数为 `null`，DatePicker 中为 `"date"` |
 
 ---
 
@@ -85,77 +85,77 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| placeholder | String | 占位文本 | 如 `"请输入单行文本"` |
-| clearable | Boolean | 是否可清空 | `true` / `false` |
-| readonly | Boolean | 是否只读 | `true` / `false` |
-| maxlength | String | 最大输入长度 | `null` 为不限制 |
-| showWordLimit | Boolean | 是否显示字数统计 | `true` / `false` |
-| prepend | String | 前置内容 | `null` 为无 |
-| append | String | 后置内容 | `null` 为无 |
-| prefixIcon | String | 前缀图标 | `null` 为无 |
-| suffixIcon | String | 后缀图标 | `null` 为无 |
-| defaultValue | String | 默认值 | `null` 为空 |
+| placeholder | string | 占位文本 | 如 `"请输入单行文本"` |
+| clearable | boolean | 是否可清空 | `true` / `false` |
+| readonly | boolean | 是否只读 | `true` / `false` |
+| maxlength | string | 最大输入长度 | `null` 为不限制 |
+| showWordLimit | boolean | 是否显示字数统计 | `true` / `false` |
+| prepend | string | 前置内容 | `null` 为无 |
+| append | string | 后置内容 | `null` 为无 |
+| prefixIcon | string | 前缀图标 | `null` 为无 |
+| suffixIcon | string | 后缀图标 | `null` 为无 |
+| defaultValue | string | 默认值 | `null` 为空 |
 
 #### 4.2 InputNumber（计数器）— tag: `"u-input-number"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| stepStrictly | Boolean | 是否只能输入步长的倍数 | `true` / `false` |
-| controlsPosition | String | 控制按钮位置 | `""`（两侧）/ `"right"`（右侧），`null` 为默认 |
-| defaultValue | String | 默认值 | 如 `"10"` |
+| stepStrictly | boolean | 是否只能输入步长的倍数 | `true` / `false` |
+| controlsPosition | string | 控制按钮位置 | `""`（两侧）/ `"right"`（右侧），`null` 为默认 |
+| defaultValue | string | 默认值 | 如 `"10"` |
 
 #### 4.3 Select（下拉选择）— tag: `"u-select"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| multiple | Boolean | 是否多选 | `true` / `false` |
-| clearable | Boolean | 是否可清空 | `true` / `false` |
-| filterable | Boolean | 是否可搜索 | `true` / `false` |
-| placeholder | String | 占位文本 | 如 `"请选择下拉选择"` |
-| options | List\<Option\> | 选项列表 | 见 Option 数据模型 |
-| defaultValue | String | 默认值 | `null` 为空 |
+| multiple | boolean | 是否多选 | `true` / `false` |
+| clearable | boolean | 是否可清空 | `true` / `false` |
+| filterable | boolean | 是否可搜索 | `true` / `false` |
+| placeholder | string | 占位文本 | 如 `"请选择下拉选择"` |
+| options | Option[] | 选项列表 | 见 Option 数据模型 |
+| defaultValue | string | 默认值 | `null` 为空 |
 
 #### 4.4 RadioGroup（单选框组）— tag: `"u-radio-group"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| options | List\<Option\> | 选项列表 | 见 Option 数据模型 |
-| optionType | String | 单选框样式 | `"default"` / `"button"` |
-| border | Boolean | 是否带边框 | `true` / `false` |
-| size | String | 尺寸 | `"medium"` / `"small"` / `"mini"` |
-| defaultValue | String | 默认值 | 如 `"false"` |
+| options | Option[] | 选项列表 | 见 Option 数据模型 |
+| optionType | string | 单选框样式 | `"default"` / `"button"` |
+| border | boolean | 是否带边框 | `true` / `false` |
+| size | string | 尺寸 | `"medium"` / `"small"` / `"mini"` |
+| defaultValue | string | 默认值 | 如 `"false"` |
 
 #### 4.5 CheckboxGroup（多选框组）— tag: `"u-checkbox-group"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| options | List\<Option\> | 选项列表 | 见 Option 数据模型 |
-| optionType | String | 多选框样式 | `"default"` / `"button"` |
-| border | Boolean | 是否带边框 | `true` / `false` |
-| size | String | 尺寸 | `"medium"` / `"small"` / `"mini"` |
-| defaultValue | List\<String\> | 默认值（数组） | 如 `[]` |
+| options | Option[] | 选项列表 | 见 Option 数据模型 |
+| optionType | string | 多选框样式 | `"default"` / `"button"` |
+| border | boolean | 是否带边框 | `true` / `false` |
+| size | string | 尺寸 | `"medium"` / `"small"` / `"mini"` |
+| defaultValue | string[] | 默认值（数组） | 如 `[]` |
 
 #### 4.6 Switch（开关）— tag: `"u-switch"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| activeColor | String | 打开时颜色 | `null` 为默认色 |
-| inactiveColor | String | 关闭时颜色 | `null` 为默认色 |
-| activeValue | Boolean | 打开时的值 | 默认 `true` |
-| inactiveValue | Boolean | 关闭时的值 | 默认 `false` |
-| defaultValue | Object | 默认值 | `true` / `false` |
+| activeColor | string | 打开时颜色 | `null` 为默认色 |
+| inactiveColor | string | 关闭时颜色 | `null` 为默认色 |
+| activeValue | boolean | 打开时的值 | 默认 `true` |
+| inactiveValue | boolean | 关闭时的值 | 默认 `false` |
+| defaultValue | object | 默认值 | `true` / `false` |
 
 #### 4.7 DatePicker（日期选择）— tag: `"u-date-picker"`
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 选择器类型 | `"date"` / `"datetime"` / `"week"` / `"month"` / `"year"` / `"daterange"` 等 |
-| format | String | 显示格式 | 如 `"YYYY-MM-DD"`、`"YYYY-MM-DD HH:mm:ss"` |
-| valueFormat | String | 值格式 | `"format"`（按 format 解析）/ `"timestamp"` |
-| placeholder | String | 占位文本 | 如 `"请选择日期"` |
-| clearable | Boolean | 是否可清空 | `true` / `false` |
-| readonly | Boolean | 是否只读 | `true` / `false` |
-| defaultValue | String | 默认值 | `null` 为空 |
+| type | string | 选择器类型 | `"date"` / `"datetime"` / `"week"` / `"month"` / `"year"` / `"daterange"` 等 |
+| format | string | 显示格式 | 如 `"YYYY-MM-DD"`、`"YYYY-MM-DD HH:mm:ss"` |
+| valueFormat | string | 值格式 | `"format"`（按 format 解析）/ `"timestamp"` |
+| placeholder | string | 占位文本 | 如 `"请选择日期"` |
+| clearable | boolean | 是否可清空 | `true` / `false` |
+| readonly | boolean | 是否只读 | `true` / `false` |
+| defaultValue | string | 默认值 | `null` 为空 |
 
 #### 4.8 Button（按钮）— tag: `"u-button"`
 
@@ -163,21 +163,21 @@ Button 不继承 BaseInputComponent，为独立组件，通常放在 RowComponen
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| label | String | 按钮文本 | 如 `"主要按钮"` |
-| type | String | 按钮类型 | `"primary"` / `"success"` / `"warning"` / `"danger"` / `"info"` / `"default"` |
-| size | String | 尺寸 | `"medium"` / `"small"` / `"mini"` |
-| icon | String | 图标类名 | 如 `"icon-search"` |
-| disabled | Boolean | 是否禁用 | `true` / `false` |
-| tag | String | 渲染标签 | `"u-button"` |
-| tagIcon | String | 图标标识 | `"button"` |
-| span | Integer | 栅格占位 | `1`~`24` |
-| layout | String | 布局类型 | `"colFormItem"` |
-| changeTag | Boolean | 是否可切换类型 | `true` / `false` |
-| defaultValue | String | 默认值（按钮文本） | 如 `"主要按钮"` |
-| vModel | String | 绑定字段名 | 按钮一般不需要 |
-| formId | String | 表单组件 ID | 如 `"110"` |
-| renderKey | String | 渲染唯一键 | 时间戳字符串 |
-| document | String | 组件文档路径 | `"/component/button"` |
+| label | string | 按钮文本 | 如 `"主要按钮"` |
+| type | string | 按钮类型 | `"primary"` / `"success"` / `"warning"` / `"danger"` / `"info"` / `"default"` |
+| size | string | 尺寸 | `"medium"` / `"small"` / `"mini"` |
+| icon | string | 图标类名 | 如 `"icon-search"` |
+| disabled | boolean | 是否禁用 | `true` / `false` |
+| tag | string | 渲染标签 | `"u-button"` |
+| tagIcon | string | 图标标识 | `"button"` |
+| span | number | 栅格占位 | `1`~`24` |
+| layout | string | 布局类型 | `"colFormItem"` |
+| changeTag | boolean | 是否可切换类型 | `true` / `false` |
+| defaultValue | string | 默认值（按钮文本） | 如 `"主要按钮"` |
+| vModel | string | 绑定字段名 | 按钮一般不需要 |
+| formId | string | 表单组件 ID | 如 `"110"` |
+| renderKey | string | 渲染唯一键 | 时间戳字符串 |
+| document | string | 组件文档路径 | `"/component/button"` |
 
 ---
 
@@ -187,8 +187,8 @@ Select / RadioGroup / CheckboxGroup 的选项均使用 Option 结构：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| label | String | 选项显示文本 | 如 `"电子产品"` |
-| value | String | 选项实际值 | 如 `"电子产品"`，也可为数字如 `1` |
+| label | string | 选项显示文本 | 如 `"电子产品"` |
+| value | string | 选项实际值 | 如 `"电子产品"`，也可为数字如 `1` |
 
 ---
 
@@ -507,3 +507,13 @@ Select / RadioGroup / CheckboxGroup 的选项均使用 Option 结构：
   ]
 }
 ```
+
+---
+
+## 五、工具调用
+
+| 操作 | 工具名称 | 说明 |
+|------|---------|------|
+| 读取 | `get_search_form` | 获取报表的查询表单设计数据，包含表单字段定义、布局等信息 |
+| 创建/修改 | `set_search_form` | 传入 searchForm 对象整体替换查询表单设计数据，会覆盖现有配置 |
+| 保存报表 | `save_report` | 保存当前报表到服务器 |

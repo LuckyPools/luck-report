@@ -1,6 +1,3 @@
-/**
- * Created by Jacky.Gao on 2017-02-17.
- */
 import {buildNewCellDef, resetTableData, setDirty, undoManager} from '@/utils/table.js';
 import {renderRowHeader} from '@/views/report/designer/edit-table/utils/HeaderUtils.js';
 import {$t} from "@/locales";
@@ -14,6 +11,72 @@ import {
     removeCell
 } from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
+
+/**
+ * 插入行
+ * 在指定位置插入指定数量的行，同时调整单元格数据和行头信息
+ *
+ * @param {Object} table - Handsontable 实例
+ * @param {number} position - 插入位置（行索引，从0开始）
+ * @param {number} number - 插入行数，默认1
+ * @return {{ position: number, number: number, newRowHeight: number }} 插入信息，用于撤销/还原
+ */
+export function insertRow(table, position, number = 1) {
+    const defaultRowHeight = 25;
+    let rowHeights = table.getSettings().rowHeights;
+    let newRowHeights = rowHeights.concat([]);
+    for (let i = 0; i < number; i++) {
+        newRowHeights.splice(position, 0, defaultRowHeight);
+    }
+    table.alter("insert_row", position, number);
+    adjustInsertRowHeaders(position);
+    renderRowHeader(table);
+
+    buildNewRowCells(table, position, number);
+    table.updateSettings({
+        rowHeights: newRowHeights,
+        manualRowResize: newRowHeights
+    });
+    resetTableData(table);
+    setDirty();
+
+    return {position, number, newRowHeight: defaultRowHeight};
+}
+
+/**
+ * 构建新行的单元格数据
+ * 将 position 及之后的单元格行号下移 number 位，并在新位置创建空白单元格
+ *
+ * @param {Object} hot - Handsontable 实例
+ * @param {number} position - 插入位置
+ * @param {number} number - 插入行数
+ */
+function buildNewRowCells(hot, position, number) {
+    const countCols = hot.countCols();
+    const context = getContext();
+    const cellsMap = context.cellsMap;
+    const changeCells = [];
+    for (let cell of cellsMap.values()) {
+        let rowIndex = cell.rowNumber - 1;
+        if (rowIndex >= position) {
+            changeCells.push(cell);
+        }
+    }
+    for (let cell of changeCells) {
+        removeCell(cell);
+    }
+    for (let cell of changeCells) {
+        let newCell = deepCopy(cell);
+        newCell.rowNumber = cell.rowNumber + number;
+        addCell(newCell);
+    }
+    for (let i = 0; i < number; i++) {
+        for (let j = 0; j < countCols; j++) {
+            let newCellDef = buildNewCellDef(position + i + 1, (j + 1));
+            addCell(newCellDef);
+        }
+    }
+}
 
 export function doInsertRow(above, number = 1) {
     const selected = this.getSelected();
@@ -37,66 +100,22 @@ export function doInsertRow(above, number = 1) {
             position = endRow + 1;
         }
     }
-    let rowHeights = this.getSettings().rowHeights;
-    let newRowHeights = rowHeights.concat([]);
-    for (let i = 0; i < number; i++) {
-        newRowHeights.splice(position, 0, 25);
-    }
-    this.alter("insert_row", position, number);
-    adjustInsertRowHeaders(position);
-    renderRowHeader(this);
 
-    buildNewRowCells(this, position, number);
-    this.updateSettings({
-        rowHeights: newRowHeights,
-        manualRowResize: newRowHeights
-    });
-    resetTableData(this);
-    setDirty();
+    insertRow(this, position, number);
 
     const _this = this;
     const context = getContext();
-    const cellsMap = context.cellsMap
+    const cellsMap = context.cellsMap;
     const removeCells = [];
     let removeRowHeight = 25;
     undoManager.add({
         redo: function () {
-            rowHeights = _this.getSettings().rowHeights;
-            newRowHeights = rowHeights.concat([]);
-            for (let i = 0; i < number; i++) {
-                newRowHeights.splice(position, 0, removeRowHeight);
-            }
-            _this.alter("insert_row", position, number);
-            adjustInsertRowHeaders(position);
-            renderRowHeader(_this);
-            let changeCells = [];
-            for (let cell of cellsMap.values()) {
-                let rowIndex = cell.rowNumber - 1;
-                if (rowIndex >= position) {
-                    changeCells.push(cell);
-                }
-            }
-            for (let cell of changeCells) {
-                removeCell(cell);
-            }
-            for (let cell of changeCells) {
-                cell.rowNumber = cell.rowNumber + number;
-                addCell(cell);
-            }
-            for (let cell of removeCells) {
-                addCell(cell);
-            }
-            _this.updateSettings({
-                rowHeights: newRowHeights,
-                manualRowResize: newRowHeights
-            });
-            resetTableData(_this);
-            setDirty();
+            insertRow(_this, position, number);
         },
         undo: function () {
             removeCells.splice(0, removeCells.length);
-            rowHeights = _this.getSettings().rowHeights;
-            newRowHeights = rowHeights.concat([]);
+            let rowHeights = _this.getSettings().rowHeights;
+            let newRowHeights = rowHeights.concat([]);
             for (let i = 0; i < number; i++) {
                 removeRowHeight = newRowHeights[position];
                 newRowHeights.splice(position, 1);
@@ -132,37 +151,7 @@ export function doInsertRow(above, number = 1) {
                 cell.rowNumber = cell.rowNumber - number;
                 addCell(cell);
             }
-            resetTableData(_this);
             setDirty();
         }
     });
-};
-
-
-function buildNewRowCells(hot, position, number) {
-    const countCols = hot.countCols();
-    const countRows = hot.countRows();
-    const context = getContext();
-    const cellsMap = context.cellsMap;
-    const changeCells = [];
-    for (let cell of cellsMap.values()) {
-        let rowIndex = cell.rowNumber - 1;
-        if (rowIndex >= position) {
-            changeCells.push(cell);
-        }
-    }
-    for (let cell of changeCells) {
-        removeCell(cell);
-    }
-    for (let cell of changeCells) {
-        let newCell = deepCopy(cell);
-        newCell.rowNumber = cell.rowNumber + number;
-        addCell(newCell);
-    }
-    for (let i = 0; i < number; i++) {
-        for (let j = 0; j < countCols; j++) {
-            let newCellDef = buildNewCellDef(position + i + 1, (j + 1));
-            addCell(newCellDef);
-        }
-    }
-};
+}

@@ -1,14 +1,41 @@
 import type { ToolDefinition, ToolApiFormat } from './types'
 import {
+  searchComponentDocTool,
   readCellTool,
-  setCellTool,
-  getReportSchemaTool,
+  writeCellTool,
+  getDatasourcesTool,
+  setDatasourcesTool,
+  addDatasourceTool,
+  updateDatasourceTool,
+  removeDatasourceTool,
+  getDatasetsTool,
+  addDatasetTool,
+  updateDatasetTool,
+  removeDatasetTool,
+  getSearchFormTool,
+  setSearchFormTool,
+  getPaperConfigTool,
+  updatePaperTool,
+  getRowsTool,
+  setRowsTool,
+  updateRowTool,
+  insertRowTool,
+  deleteRowTool,
+  insertColTool,
+  deleteColTool,
   mergeCellsTool,
-  setCellStyleTool,
-  insertRowsTool,
-  insertColsTool,
-  searchComponentDocTool
+  backupDataTool,
+  restoreDataTool,
+  validateExpressionTool,
+  previewDataTool,
+  buildFieldsTool,
+  saveReportTool,
+  loadBuildinDatasourcesTool,
+  testConnectionTool,
+  loadBeanMethodsTool,
+  validateConditionTool
 } from './report-tools'
+import { loadReportIntroduceTool } from './doc-tools.ts'
 
 /**
  * 工具注册表
@@ -127,14 +154,41 @@ export class ToolRegistry {
 export function createDefaultRegistry(): ToolRegistry {
   const registry = new ToolRegistry()
   registry.registerAll([
+    searchComponentDocTool,
+    loadReportIntroduceTool,
     readCellTool,
-    setCellTool,
-    getReportSchemaTool,
+    writeCellTool,
+    getDatasourcesTool,
+    setDatasourcesTool,
+    addDatasourceTool,
+    updateDatasourceTool,
+    removeDatasourceTool,
+    getDatasetsTool,
+    addDatasetTool,
+    updateDatasetTool,
+    removeDatasetTool,
+    getSearchFormTool,
+    setSearchFormTool,
+    getPaperConfigTool,
+    updatePaperTool,
+    getRowsTool,
+    setRowsTool,
+    updateRowTool,
+    insertRowTool,
+    deleteRowTool,
+    insertColTool,
+    deleteColTool,
     mergeCellsTool,
-    setCellStyleTool,
-    insertRowsTool,
-    insertColsTool,
-    searchComponentDocTool
+    backupDataTool,
+    restoreDataTool,
+    validateExpressionTool,
+    previewDataTool,
+    buildFieldsTool,
+    saveReportTool,
+    loadBuildinDatasourcesTool,
+    testConnectionTool,
+    loadBeanMethodsTool,
+    validateConditionTool
   ])
   return registry
 }

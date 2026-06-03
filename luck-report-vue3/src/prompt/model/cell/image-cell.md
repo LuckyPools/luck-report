@@ -8,16 +8,16 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition` → `value(ImageValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
+**结构概览**：`cell` → `value(ImageValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、CellDefinition 单元格定义
+### 1、cell 单元格定义
 
-CellDefinition 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 CellDefinition 部分。图片单元格重点关注以下字段：
+cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。图片单元格重点关注以下字段：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
 | value | ImageValue | 单元格值对象 | 见 ImageValue 数据模型 |
-| expand | String | 展开方向 | `"Right"` / `"Down"` / `"None"`，仅当 `source` 为 `"expression"` 时可设置展开 |
+| expand | string | 展开方向 | `"Right"` / `"Down"` / `"None"`，仅当 `source` 为 `"expression"` 时可设置展开 |
 
 ---
 
@@ -25,11 +25,11 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 值类型 | 固定 `"image"`，标识为图片类型 |
-| source | String | 图片来源 | `"text"`（静态路径）/ `"expression"`（表达式） |
-| value | String | 图片路径或表达式文本 | 当 `source` 为 `"text"` 时为图片 URL 路径；当 `source` 为 `"expression"` 时为 JavaScript 表达式 |
-| width | Integer | 图片宽度（px） | 最小值 `1`，如 `100`、`200` |
-| height | Integer | 图片高度（px） | 最小值 `1`，如 `100`、`200` |
+| type | string | 值类型 | 固定 `"image"`，标识为图片类型 |
+| source | string | 图片来源 | `"text"`（静态路径）/ `"expression"`（表达式） |
+| value | string | 图片路径或表达式文本 | 当 `source` 为 `"text"` 时为图片 URL 路径；当 `source` 为 `"expression"` 时为 JavaScript 表达式 |
+| width | number | 图片宽度（px） | 最小值 `1`，如 `100`、`200` |
+| height | number | 图片高度（px） | 最小值 `1`，如 `100`、`200` |
 
 ---
 
@@ -152,3 +152,5 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 ```
 
 > **关键规则**：图片单元格的 `value.type` 必须为 `"image"`，`value.source` 决定图片来源模式。静态路径模式（`source` 为 `"text"`）下 `value.value` 为图片 URL；表达式模式（`source` 为 `"expression"`）下 `value.value` 为 JavaScript 表达式，返回图片路径。`width` 和 `height` 最小值为 `1`，单位为像素。仅表达式模式支持展开方向设置。
+
+---

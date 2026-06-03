@@ -6,6 +6,8 @@ import com.luck.agent.domain.vo.CompactResult;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ResultVO;
 import com.luck.agent.service.ModelConfigService;
+import com.luck.agent.domain.vo.AskModelRequest;
+import com.luck.agent.domain.vo.AskModelResponse;
 import com.luck.agent.util.ChatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,12 +70,12 @@ public class ChatCompactController {
             ModelConfig chatConfig = modelConfigService.getChatConfig(null);
             List<Map<String, Object>> messages = buildCompactMessages(request);
 
-            ChatUtils.AskModelRequest askRequest = new ChatUtils.AskModelRequest(chatConfig, messages)
+            AskModelRequest askRequest = new AskModelRequest(chatConfig, messages)
                     .stream(false)
                     .temperature(0.3)
                     .maxTokens(1024);
 
-            ChatUtils.AskModelResponse askResponse = ChatUtils.askModel(askRequest);
+            AskModelResponse askResponse = ChatUtils.askModel(askRequest);
 
             if (!askResponse.isSuccess()) {
                 log.error("压缩API调用失败: status={}", askResponse.getStatusCode());

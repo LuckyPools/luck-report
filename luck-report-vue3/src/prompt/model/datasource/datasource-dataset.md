@@ -27,9 +27,9 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 数据源名称 | 必填，报表内唯一标识，如 `"myUReportDatasource"` |
-| type | String | 数据源类型 | `jdbc` / `spring` / `buildin`（对应 DatasourceType 枚举） |
-| datasets | List\<Dataset\> | 数据集列表 | 数据源下的所有数据集 |
+| name | string | 数据源名称 | 必填，报表内唯一标识，如 `"myUReportDatasource"` |
+| type | string | 数据源类型 | `jdbc` / `spring` / `buildin`（对应 DatasourceType 枚举） |
+| datasets | Dataset[] | 数据集列表 | 数据源下的所有数据集 |
 
 ---
 
@@ -39,10 +39,10 @@ type 为 `jdbc` 时，额外包含以下属性：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| driver | String | JDBC 驱动类名 | 如 `"com.mysql.cj.jdbc.Driver"` |
-| url | String | 数据库连接 URL | 如 `"jdbc:mysql://localhost:3306/luck_product?serverTimezone=Asia/Shanghai"` |
-| username | String | 数据库用户名 | 如 `"root"` |
-| password | String | 数据库密码 | 如 `"root"` |
+| driver | string | JDBC 驱动类名 | 如 `"com.mysql.cj.jdbc.Driver"` |
+| url | string | 数据库连接 URL | 如 `"jdbc:mysql://localhost:3306/luck_product?serverTimezone=Asia/Shanghai"` |
+| username | string | 数据库用户名 | 如 `"root"` |
+| password | string | 数据库密码 | 如 `"root"` |
 
 ---
 
@@ -52,7 +52,7 @@ type 为 `spring` 时，额外包含以下属性：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| beanId | String | Spring Bean ID | 如 `"testBean"`，在 Spring 容器中注册的 Bean 名称 |
+| beanId | string | Spring Bean ID | 如 `"testBean"`，在 Spring 容器中注册的 Bean 名称 |
 
 ---
 
@@ -68,11 +68,11 @@ type 为 `buildin` 时，无额外属性，使用系统内置默认数据库连�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 数据集名称 | 必填，数据源内唯一，如 `"orders"`，单元格引用时使用此名称 |
-| sql | String | SQL 查询语句 | 支持参数占位符 `:paramName` 和脚本式 SQL（`${...}` 包裹） |
-| parameters | List\<Parameter\> | 查询参数列表 | SQL 中的参数定义，与查询表单组件的 `vModel` 对应 |
-| fields | List\<Field\> | 字段列表 | SQL 查询返回的字段名列表 |
-| sqlExpression | Object | SQL 表达式对象 | 脚本式 SQL 的表达式解析结果，普通 SQL 时为 `null` |
+| name | string | 数据集名称 | 必填，数据源内唯一，如 `"orders"`，单元格引用时使用此名称 |
+| sql | string | SQL 查询语句 | 支持参数占位符 `:paramName` 和脚本式 SQL（`${...}` 包裹） |
+| parameters | Parameter[] | 查询参数列表 | SQL 中的参数定义，与查询表单组件的 `vModel` 对应 |
+| fields | Field[] | 字段列表 | SQL 查询返回的字段名列表 |
+| sqlExpression | object | SQL 表达式对象 | 脚本式 SQL 的表达式解析结果，普通 SQL 时为 `null` |
 
 ---
 
@@ -82,10 +82,10 @@ type 为 `buildin` 时，无额外属性，使用系统内置默认数据库连�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 数据集名称 | 必填，数据源内唯一，如 `"simpleBeanData"` |
-| method | String | Bean 方法名 | 如 `"loadReportData"` |
-| clazz | String | 返回值类型 | 如 `"java.util.Map"`、`"java.util.List"` |
-| fields | List\<Field\> | 字段列表 | 方法返回数据的字段名列表 |
+| name | string | 数据集名称 | 必填，数据源内唯一，如 `"simpleBeanData"` |
+| method | string | Bean 方法名 | 如 `"loadReportData"` |
+| clazz | string | 返回值类型 | 如 `"java.util.Map"`、`"java.util.List"` |
+| fields | Field[] | 字段列表 | 方法返回数据的字段名列表 |
 
 ---
 
@@ -95,9 +95,9 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 参数名称 | 必填，需与查询表单组件的 `vModel` 一致，如 `"product_name"` |
-| type | String | 参数数据类型 | `Integer` / `Float` / `Boolean` / `String` / `Date` / `List`（对应 DataType 枚举） |
-| defaultValue | String | 默认值 | 参数为空时使用的默认值，空字符串 `""` 表示无默认值 |
+| name | string | 参数名称 | 必填，需与查询表单组件的 `vModel` 一致，如 `"product_name"` |
+| type | string | 参数数据类型 | `Integer` / `Float` / `Boolean` / `String` / `Date` / `List`（对应 DataType 枚举） |
+| defaultValue | string | 默认值 | 参数为空时使用的默认值，空字符串 `""` 表示无默认值 |
 
 ---
 
@@ -107,7 +107,7 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 字段名称 | 如 `"order_id"`、`"price"`、`"category_name"`，单元格数据集引用时使用此名称 |
+| name | string | 字段名称 | 如 `"order_id"`、`"price"`、`"category_name"`，单元格数据集引用时使用此名称 |
 
 ---
 
@@ -225,3 +225,26 @@ SQL 数据集中的查询参数，与查询表单输入组件通过 `vModel` 绑
 ```
 
 > **关键规则**：SQL 数据集中的 `parameters[].name` 必须与查询表单输入组件的 `vModel` 一致，表单提交时参数值回传给 SQL 实现数据筛选。脚本式 SQL 使用 `${...}` 包裹，内部通过 `param('参数名')` 获取参数值；普通 SQL 使用 `:参数名` 占位符。
+
+---
+
+## 五、工具调用
+
+| 操作 | 工具名称 | 说明 |
+|------|---------|------|
+| 读取数据源 | `get_datasources` | 不传 name 返回全部数据源列表，传入 name 返回指定数据源对象 |
+| 整体替换数据源 | `set_datasources` | 传入 datasources 数组整体替换全部数据源，会覆盖现有配置 |
+| 添加数据源 | `add_datasource` | 传入 datasource 对象添加一个新数据源 |
+| 更新数据源 | `update_datasource` | 传入 name 和 datasource 对象，按名称匹配替换数据源定义 |
+| 删除数据源 | `remove_datasource` | 传入 name 按名称删除数据源，不可撤销 |
+| 读取数据集 | `get_datasets` | 不传参数返回所有数据集；传 datasourceName 返回该数据源下数据集；同时传 datasourceName 和 datasetName 返回指定数据集 |
+| 添加数据集 | `add_dataset` | 传入 datasourceName 和 dataset 对象，向指定数据源下添加数据集 |
+| 更新数据集 | `update_dataset` | 传入 datasourceName、datasetName 和 dataset 对象，按名称匹配替换数据集定义 |
+| 删除数据集 | `remove_dataset` | 传入 datasourceName 和 datasetName 删除数据集，不可撤销 |
+| 查询文档 | `search_component_doc` | 搜索数据源、数据集等组件文档，componentType 可传 dataset |
+| 预览数据 | `preview_data` | 预览数据集查询结果 |
+| 构建字段 | `build_fields` | 自动解析数据集字段列表 |
+| 保存报表 | `save_report` | 保存当前报表到服务器 |
+| 获取内置数据源 | `load_buildin_datasources` | 获取Spring内置数据源列表 |
+| 测试连接 | `test_connection` | 测试数据库连接是否可用 |
+| 获取Bean方法 | `load_bean_methods` | 获取指定Spring Bean的方法列表 |

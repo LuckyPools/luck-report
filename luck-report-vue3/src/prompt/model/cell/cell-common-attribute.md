@@ -1,36 +1,36 @@
-# 单元格通用属性说明（CellDefinition）
+# 单元格通用属性说明（cell）
 
 ## 一、职能
-报表由一个个单元格组成，每个单元格通过 `CellDefinition` 定义其位置、数据值、样式、展开方式、父子格关系等属性。后台渲染报表时，根据单元格的展开方向和父子格关系进行数据填充和单元格复制，最终生成完整的报表。
+报表由一个个单元格组成，每个单元格通过 `cell` 定义其位置、数据值、样式、展开方式、父子格关系等属性。后台渲染报表时，根据单元格的展开方向和父子格关系进行数据填充和单元格复制，最终生成完整的报表。
 
 ---
 
 ## 二、数据模型
 
-**结构概览**：`cellsMap{ "row,col": CellDefinition }` → `CellDefinition`（含 `value`、`cellStyle`、`conditionPropertyItems`）
+**结构概览**：`cellsMap{ "row,col": cell }` → `cell`（含 `value`、`cellStyle`、`conditionPropertyItems`）
 
 ---
 
-### 1、CellDefinition（单元格定义）
+### 1、cell（单元格定义）
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| rowNumber | int | 行号 | 从 1 开始，对应 cellsMap 的 key 第一部分 |
-| columnNumber | int | 列号 | 从 1 开始，对应 cellsMap 的 key 第二部分 |
-| rowSpan | int | 行合并数 | `0` 表示不合并，>0 表示跨行数 |
-| colSpan | int | 列合并数 | `0` 表示不合并，>0 表示跨列数 |
-| name | String | 单元格名称 | 如 `"A1"`、`"B2"`，列字母+行号组合 |
+| rowNumber | number | 行号 | 从 1 开始，对应 cellsMap 的 key 第一部分 |
+| columnNumber | number | 列号 | 从 1 开始，对应 cellsMap 的 key 第二部分 |
+| rowSpan | number | 行合并数 | `0` 表示不合并，>0 表示跨行数 |
+| colSpan | number | 列合并数 | `0` 表示不合并，>0 表示跨列数 |
+| name | string | 单元格名称 | 如 `"A1"`、`"B2"`，列字母+行号组合 |
 | value | Value | 单元格值对象 | 根据 type 不同有多种结构，见下方 ValueType 说明 |
 | cellStyle | CellStyle | 单元格样式 | 见 CellStyle 数据模型 |
-| linkUrl | String | 链接地址 | 支持表达式 `${...}`，如 `"${ return 'http://www.baidu.com'}"`，`null` 为无链接 |
-| linkTargetWindow | String | 链接打开方式 | `"_blank"`（新窗口）/ `null`（当前窗口） |
-| linkParameters | List\<LinkParameter\> | 链接参数列表 | 点击链接时传递的参数，`null` 为无参数 |
+| linkUrl | string | 链接地址 | 支持表达式 `${...}`，如 `"${ return 'http://www.baidu.com'}"`，`null` 为无链接 |
+| linkTargetWindow | string | 链接打开方式 | `"_blank"`（新窗口）/ `null`（当前窗口） |
+| linkParameters | LinkParameter[] | 链接参数列表 | 点击链接时传递的参数，`null` 为无参数 |
 | fillBlankRows | boolean | 是否填充空白行 | `true` / `false`，当数据行数不足时是否补空白行 |
-| multiple | int | 填充行数倍数 | `0` 表示不限制，>0 时数据行数必须是该值的倍数，不足补空白行 |
-| expand | String | 展开方向 | `None`（不展开）/ `Down`（向下展开）/ `Right`（向右展开），对应 Expand 枚举 |
-| leftParentCellName | String | 左父格名称 | 如 `"A1"`，`null` 表示无左父格，`"root"` 表示根 |
-| topParentCellName | String | 上父格名称 | 如 `"A1"`，`null` 表示无上父格，`"root"` 表示根 |
-| conditionPropertyItems | List\<ConditionPropertyItem\> | 条件属性列表 | 满足条件时改变样式/值/链接等，`null` 为无条件属性 |
+| multiple | number | 填充行数倍数 | `0` 表示不限制，>0 时数据行数必须是该值的倍数，不足补空白行 |
+| expand | string | 展开方向 | `None`（不展开）/ `Down`（向下展开）/ `Right`（向右展开），对应 Expand 枚举 |
+| leftParentCellName | string | 左父格名称 | 如 `"A1"`，`null` 表示无左父格，`"root"` 表示根 |
+| topParentCellName | string | 上父格名称 | 如 `"A1"`，`null` 表示无上父格，`"root"` 表示根 |
+| conditionPropertyItems | ConditionPropertyItem[] | 条件属性列表 | 满足条件时改变样式/值/链接等，`null` 为无条件属性 |
 
 ---
 
@@ -66,18 +66,18 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| bgcolor | String | 背景色 | RGB 格式 `"R,G,B"`，如 `"255,0,0"`，`null` 为透明 |
-| forecolor | String | 前景色（字体颜色） | RGB 格式 `"R,G,B"`，如 `"0,0,0"` 为黑色 |
-| fontSize | int | 字体大小 | 如 `10`、`12`、`14` |
-| fontFamily | String | 字体族 | 如 `"宋体"`、`"微软雅黑"`、`"Arial"` |
-| format | String | 格式化模式 | 如 `"#.##"` 保留两位小数，`null` 为不格式化 |
-| lineHeight | float | 行高倍数 | `0` 为默认行高，>0 为行高倍数（如 `2` 表示两倍行高） |
-| align | String | 水平对齐 | `left` / `center` / `right`（对应 Alignment 枚举） |
-| valign | String | 垂直对齐 | `top` / `middle` / `bottom`（对应 Alignment 枚举） |
-| bold | Boolean | 是否加粗 | `true` / `false` / `null`（null 为不加粗） |
-| italic | Boolean | 是否斜体 | `true` / `false` / `null` |
-| underline | Boolean | 是否下划线 | `true` / `false` / `null` |
-| wrapCompute | Boolean | 是否自动换行 | `true` / `false` / `null` |
+| bgcolor | string | 背景色 | RGB 格式 `"R,G,B"`，如 `"255,0,0"`，`null` 为透明 |
+| forecolor | string | 前景色（字体颜色） | RGB 格式 `"R,G,B"`，如 `"0,0,0"` 为黑色 |
+| fontSize | number | 字体大小 | 如 `10`、`12`、`14` |
+| fontFamily | string | 字体族 | 如 `"宋体"`、`"微软雅黑"`、`"Arial"` |
+| format | string | 格式化模式 | 如 `"#.##"` 保留两位小数，`null` 为不格式化 |
+| lineHeight | number | 行高倍数 | `0` 为默认行高，>0 为行高倍数（如 `2` 表示两倍行高） |
+| align | string | 水平对齐 | `left` / `center` / `right`（对应 Alignment 枚举） |
+| valign | string | 垂直对齐 | `top` / `middle` / `bottom`（对应 Alignment 枚举） |
+| bold | boolean | 是否加粗 | `true` / `false` / `null`（null 为不加粗） |
+| italic | boolean | 是否斜体 | `true` / `false` / `null` |
+| underline | boolean | 是否下划线 | `true` / `false` / `null` |
+| wrapCompute | boolean | 是否自动换行 | `true` / `false` / `null` |
 | leftBorder | Border | 左边框 | 见 Border 数据模型，`null` 为无边框 |
 | rightBorder | Border | 右边框 | 见 Border 数据模型，`null` 为无边框 |
 | topBorder | Border | 上边框 | 见 Border 数据模型，`null` 为无边框 |
@@ -89,9 +89,9 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| width | int | 边框宽度 | 如 `1`、`2` |
-| color | String | 边框颜色 | RGB 格式 `"R,G,B"`，如 `"0,0,0"` |
-| style | String | 边框样式 | `solid`（实线）/ `dashed`（虚线）/ `doublesolid`（双实线），对应 BorderStyle 枚举 |
+| width | number | 边框宽度 | 如 `1`、`2` |
+| color | string | 边框颜色 | RGB 格式 `"R,G,B"`，如 `"0,0,0"` |
+| style | string | 边框样式 | `solid`（实线）/ `dashed`（虚线）/ `doublesolid`（双实线），对应 BorderStyle 枚举 |
 
 ---
 
@@ -99,9 +99,9 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 参数名 | 如 `"a"` |
-| value | String | 参数值 | 如 `"1"`，可为表达式 |
-| valueExpression | Object | 值表达式对象 | 表达式解析结果，设计器使用 |
+| name | string | 参数名 | 如 `"a"` |
+| value | string | 参数值 | 如 `"1"`，可为表达式 |
+| valueExpression | object | 值表达式对象 | 表达式解析结果，设计器使用 |
 
 ---
 
@@ -407,3 +407,17 @@
 > - `expand` 为 `Down` 时，单元格随数据行向下复制，需配合 `topParentCellName` 确定参照；`expand` 为 `Right` 时，需配合 `leftParentCellName` 确定参照。
 > - `fillBlankRows` 为 `true` 时，`multiple` 指定数据行数的最小倍数，不足时补空白行。
 > - `linkUrl` 支持表达式语法 `${...}`，表达式返回值作为链接地址。
+
+
+## 五、读取单元格步骤
+1、确认单元格坐标，坐标由行坐标 rowIndex 和列坐标 colIndex 构成，从0开始
+2、传入 rowIndex、colIndex 作为参数调用【read_cell】工具获取单元格数据
+3、read_cell 返回的单元格数据中 rowNumber/columnNumber 从1开始，name 格式为列字母+行号（如 A1），与 rowIndex/colIndex 的换算关系：rowIndex = rowNumber - 1，colIndex = columnNumber - 1，
+
+
+## 六、修改单元格步骤
+1、确认单元格坐标（rowIndex、colIndex，从0开始）
+2、传入 rowIndex、colIndex 调用【read_cell】工具获取当前单元格完整数据
+3、基于读取的数据，按用户要求修改对应字段，修改后的数据必须符合数据模型约束，表达式要调用【validate_expression】工具做校验
+4、传入 rowIndex、colIndex、修改后的完整单元格定义对象（cell）调用【write_cell】工具写入。write_cell 会自动备份原数据，返回 1 表示成功、0 表示失败
+5、若 write_cell 返回 0，可调用【restore_data】工具还原备份后重试

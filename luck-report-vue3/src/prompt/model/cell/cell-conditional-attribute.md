@@ -7,7 +7,7 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition.conditionPropertyItems[]` → `ConditionPropertyItem`（含 `conditions[]`、`cellStyle`、`paging`、`linkParameters[]`）
+**结构概览**：`cell.conditionPropertyItems[]` → `ConditionPropertyItem`（含 `conditions[]`、`cellStyle`、`paging`、`linkParameters[]`）
 
 ---
 
@@ -15,17 +15,17 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 条件分组名称 | 如 `"分组1"`、`"分组2"`，用于标识 |
-| conditions | List\<Condition\> | 条件列表 | 条件之间通过 `join` 连接，见 Condition 数据模型 |
-| rowHeight | int | 满足条件时的行高 | `-1` 表示不改变行高，>0 为指定行高值 |
-| colWidth | int | 满足条件时的列宽 | `-1` 表示不改变列宽，>0 为指定列宽值 |
-| newValue | String | 满足条件时替换的新值 | 如 `"9999"`，`null` 表示不改变值 |
-| linkUrl | String | 满足条件时的链接地址 | 如 `"http://www.baidu.com"`，`null` 表示不改变链接 |
-| linkTargetWindow | String | 链接打开方式 | `"_blank"`（新窗口）/ `null`（当前窗口） |
-| linkParameters | List\<LinkParameter\> | 链接参数列表 | 满足条件时链接携带的参数，`null` 为无参数 |
+| name | string | 条件分组名称 | 如 `"分组1"`、`"分组2"`，用于标识 |
+| conditions | Condition[] | 条件列表 | 条件之间通过 `join` 连接，见 Condition 数据模型 |
+| rowHeight | number | 满足条件时的行高 | `-1` 表示不改变行高，>0 为指定行高值 |
+| colWidth | number | 满足条件时的列宽 | `-1` 表示不改变列宽，>0 为指定列宽值 |
+| newValue | string | 满足条件时替换的新值 | 如 `"9999"`，`null` 表示不改变值 |
+| linkUrl | string | 满足条件时的链接地址 | 如 `"http://www.baidu.com"`，`null` 表示不改变链接 |
+| linkTargetWindow | string | 链接打开方式 | `"_blank"`（新窗口）/ `null`（当前窗口） |
+| linkParameters | LinkParameter[] | 链接参数列表 | 满足条件时链接携带的参数，`null` 为无参数 |
 | cellStyle | ConditionCellStyle | 条件样式 | 继承 CellStyle，额外增加各属性的 Scope 作用范围，`null` 表示不改变样式 |
 | paging | ConditionPaging | 条件分页 | 满足条件时触发分页，`null` 表示不分页 |
-| expr | String | 条件表达式字符串 | 表达式方式定义条件，`null` 表示使用 conditions 列表 |
+| expr | string | 条件表达式字符串 | 表达式方式定义条件，`null` 表示使用 conditions 列表 |
 
 ---
 
@@ -46,12 +46,12 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 条件类型 | `property` / `expression` / `cell` / `current`（对应 ConditionType 枚举） |
-| op | String | 比较操作符（枚举名） | `Equals` / `NotEquals` / `GreatThen` / `EqualsGreatThen` / `LessThen` / `EqualsLessThen` / `In` / `NotIn` / `Like`（对应 Op 枚举） |
-| operation | String | 比较操作符（符号） | `"=="` / `"!="` / `">"` / `">="` / `"<"` / `"<="` / `" in "` / `" not in "` / `" like "` |
-| join | String | 与下一条件的连接方式 | `"and"` / `"or"` / `null`（最后一个条件为 null），对应 Join 枚举 |
-| left | String | 左侧值 | property 类型为字段名（如 `"order_id"`），expression/cell 类型为表达式或单元格名，`null` 表示当前值 |
-| right | String | 右侧值 | 比较的目标值，如 `"1"`、`"10000"` |
+| type | string | 条件类型 | `property` / `expression` / `cell` / `current`（对应 ConditionType 枚举） |
+| op | string | 比较操作符（枚举名） | `Equals` / `NotEquals` / `GreatThen` / `EqualsGreatThen` / `LessThen` / `EqualsLessThen` / `In` / `NotIn` / `Like`（对应 Op 枚举） |
+| operation | string | 比较操作符（符号） | `"=="` / `"!="` / `">"` / `">="` / `"<"` / `"<="` / `" in "` / `" not in "` / `" like "` |
+| join | string | 与下一条件的连接方式 | `"and"` / `"or"` / `null`（最后一个条件为 null），对应 Join 枚举 |
+| left | string | 左侧值 | property 类型为字段名（如 `"order_id"`），expression/cell 类型为表达式或单元格名，`null` 表示当前值 |
+| right | string | 右侧值 | 比较的目标值，如 `"1"`、`"10000"` |
 | nextCondition | Condition | 下一个条件 | 链表结构，`null` 表示当前为最后一个条件 |
 
 ---
@@ -113,8 +113,8 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| position | String | 分页位置 | `before`（当前行前分页）/ `after`（当前行后分页），对应 PagingPosition 枚举 |
-| line | int | 分页行数 | 当 position 为 `after` 时，指定当前行后多少行进行分页 |
+| position | string | 分页位置 | `before`（当前行前分页）/ `after`（当前行后分页），对应 PagingPosition 枚举 |
+| line | number | 分页行数 | 当 position 为 `after` 时，指定当前行后多少行进行分页 |
 
 ---
 
@@ -122,9 +122,9 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 参数名 | 如 `"a"` |
-| value | String | 参数值 | 如 `"1"` |
-| valueExpression | Object | 值表达式对象 | 表达式解析结果，设计器使用 |
+| name | string | 参数名 | 如 `"a"` |
+| value | string | 参数值 | 如 `"1"` |
+| valueExpression | object | 值表达式对象 | 表达式解析结果，设计器使用 |
 
 ---
 
@@ -281,3 +281,5 @@
 > - `rowHeight` / `colWidth` 为 `-1` 表示不改变，`null` 值的样式属性也表示不改变。
 > - ConditionCellStyle 的 Scope 属性决定样式效果的作用范围：`cell` 仅当前格，`row` 整行生效，`column` 整列生效。
 > - 条件之间通过 `join` 字段连接形成链表，`nextCondition` 指向下一个条件，最后一个条件的 `nextCondition` 为 `null`。
+
+---

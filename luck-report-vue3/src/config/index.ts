@@ -13,10 +13,10 @@ export const contextConfig = {
   slidingWindowSize: 30,
 
   /** 触发自动摘要压缩的消息条数阈值 */
-  compactThreshold: 3,
+  compactThreshold: 30,
 
   /** 压缩后保留的最近消息条数 */
-  compactKeepRecent: 1,
+  compactKeepRecent: 10,
 
   /** 估算的上下文窗口 token 上限（取决于模型，qwen3.6-plus 约 128k） */
   contextWindowTokens: 128000,

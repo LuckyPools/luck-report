@@ -110,6 +110,7 @@ const zh = {
             "barcode": "条码"
         },
         "printLine": {
+            "title": "打印线",
             "showPrintLine": "显示打印线",
             "hidePrintLine": "隐藏打印线"
         }

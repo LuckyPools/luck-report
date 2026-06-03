@@ -42,7 +42,7 @@ public class ModelConfigService {
         chatConfig.setProvider("alibaba");
         chatConfig.setBaseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1");
         chatConfig.setApiKey("sk-391c6103719e4169933ebcd160280b12");
-        chatConfig.setModelName("qwen3.6-plus");
+        chatConfig.setModelName("qwen3.5-plus");
         chatConfig.setTemperature(0.7);
         chatConfig.setIsActive(true);
         chatConfig.setMaxTokens(8192);

@@ -5,6 +5,7 @@
  * - 所有操作方法都通过 Vuex dispatch 调用
  * - 保持了对 context 数据的集中管理
  * - 符合 Vuex 的最佳实践
+ * - 新增方法统一使用 ({ ... }) 解构对象参数格式，便于 iframe 消息传递调用
  *
  * 使用示例：
  * import { addCell, removeCell } from '@/utils/contextActions.js';
@@ -16,6 +17,8 @@
 
 import store from '@/store';
 import TableManager from '@/views/report/designer/edit-table/manager.js';
+import { deepCopy } from '@/components/utils';
+import { setDirty } from '@/utils/table';
 
 /**
  * 获取 context
@@ -44,7 +47,7 @@ export function removeCell(cell) {
  * 设置单元格（按行列号）
  * @param {number} rowIndex - 行索引（从 1 开始）
  * @param {number} colIndex - 列索引（从 1 开始）
- * @param {Object} cell - 单元格定义
+ * @param cell
  */
 export function setCell(rowIndex, colIndex, cell) {
   rowIndex++;
@@ -200,6 +203,208 @@ export function updateProperty(property, value) {
   store.dispatch('report/contextUpdateProperty', { property, value });
 }
 
+// ============ Agent 单元格操作 ============
+
+/**
+ * 读取指定坐标的单元格数据
+ * @param {Object} params - 参数对象
+ * @param {number} params.rowIndex - 单元格行坐标，从0开始
+ * @param {number} params.colIndex - 单元格列坐标，从0开始
+ * @return {Object|null} 单元格定义对象，不存在时返回 null
+ */
+export function readCell({ rowIndex, colIndex }) {
+  return getCell(rowIndex, colIndex);
+}
+
+/**
+ * 设置指定坐标的单元格值
+ * 执行后会自动触发编辑器组件更新和表格显示刷新
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} params.rowIndex - 单元格行坐标，从0开始
+ * @param {number} params.colIndex - 单元格列坐标，从0开始
+ * @param {string} params.cell - 要设置的单元格定义
+ * @return {Object} 操作结果
+ */
+export function writeCell({ rowIndex, colIndex, cell }) {
+  // 1. 更新 cellsMap 数据
+  setCell(rowIndex, colIndex, cell);
+
+  // 2. 触发编辑器组件更新（通过 isCellUpdate 状态变化通知监听组件）
+  store.dispatch('report/triggerCellUpdate');
+
+  // 3. 更新 Handsontable 表格显示
+  const hot = TableManager.get();
+  if (hot) {
+    // 获取单元格显示值：优先取 value.value，否则为空字符串
+    const displayValue = cell?.value?.value ?? '';
+    hot.setDataAtCell(rowIndex, colIndex, displayValue);
+    hot.render();
+  }
+}
+
+// ============ Datasource 操作 ============
+
+/**
+ * 获取数据源数据
+ * @param {Object} params - 参数对象
+ * @param {string} [params.name] - 数据源名称，不提供则返回全部数据源
+ * @returns {Object|Array|null} 提供name返回单个数据源对象，不提供返回数据源数组
+ */
+export function getDatasources({ name } = {}) {
+  return store.getters['report/getDatasources'](name);
+}
+
+/**
+ * 设置全部数据源
+ * @param {Object} params - 参数对象
+ * @param {Array} params.datasources - 数据源数组
+ */
+export function setDatasources({ datasources }) {
+  store.dispatch('report/contextSetDatasources', datasources);
+}
+
+/**
+ * 添加数据源
+ * @param {Object} params - 参数对象
+ * @param {Object} params.datasource - 数据源定义对象
+ */
+export function addDatasource({ datasource }) {
+  store.dispatch('report/contextAddDatasource', datasource);
+}
+
+/**
+ * 更新数据源（按name匹配替换）
+ * @param {Object} params - 参数对象
+ * @param {string} params.name - 目标数据源名称
+ * @param {Object} params.datasource - 新的数据源定义对象
+ */
+export function updateDatasource({ name, datasource }) {
+  store.dispatch('report/contextUpdateDatasource', { name, datasource });
+}
+
+/**
+ * 删除数据源（按name匹配）
+ * @param {Object} params - 参数对象
+ * @param {string} params.name - 要删除的数据源名称
+ */
+export function removeDatasource({ name }) {
+  store.dispatch('report/contextRemoveDatasource', name);
+}
+
+// ============ Dataset 操作 ============
+
+/**
+ * 获取数据集数据
+ * @param {Object} params - 参数对象
+ * @param {string} [params.datasourceName] - 数据源名称，不提供则返回所有数据源下的数据集
+ * @param {string} [params.datasetName] - 数据集名称，需配合datasourceName使用
+ * @returns {Object|Array|null} 返回数据集对象或数组
+ */
+export function getDatasets({ datasourceName, datasetName } = {}) {
+  return store.getters['report/getDatasets'](datasourceName, datasetName);
+}
+
+/**
+ * 添加数据集到指定数据源
+ * @param {Object} params - 参数对象
+ * @param {string} params.datasourceName - 目标数据源名称
+ * @param {Object} params.dataset - 数据集定义对象
+ */
+export function addDataset({ datasourceName, dataset }) {
+  store.dispatch('report/contextAddDataset', { datasourceName, dataset });
+}
+
+/**
+ * 更新指定数据源下的数据集
+ * @param {Object} params - 参数对象
+ * @param {string} params.datasourceName - 目标数据源名称
+ * @param {string} params.datasetName - 目标数据集名称
+ * @param {Object} params.dataset - 新的数据集定义对象
+ */
+export function updateDataset({ datasourceName, datasetName, dataset }) {
+  store.dispatch('report/contextUpdateDataset', { datasourceName, datasetName, dataset });
+}
+
+/**
+ * 删除指定数据源下的数据集
+ * @param {Object} params - 参数对象
+ * @param {string} params.datasourceName - 目标数据源名称
+ * @param {string} params.datasetName - 要删除的数据集名称
+ */
+export function removeDataset({ datasourceName, datasetName }) {
+  store.dispatch('report/contextRemoveDataset', { datasourceName, datasetName });
+}
+
+// ============ SearchForm 操作 ============
+
+/**
+ * 获取表单设计数据
+ * @returns {Object|null} 表单设计对象
+ */
+export function getSearchForm() {
+  return store.getters['report/getSearchForm'];
+}
+
+/**
+ * 设置表单设计数据（整体替换）
+ * @param {Object} params - 参数对象
+ * @param {Object} params.searchForm - 表单设计对象
+ */
+export function setSearchForm({ searchForm }) {
+  store.dispatch('report/contextSetSearchForm', searchForm);
+}
+
+// ============ Paper 操作 ============
+
+/**
+ * 获取页面配置数据
+ * @returns {Object|null} 页面配置对象
+ */
+export function getPaperConfig() {
+  return store.getters['report/getPaperConfig'];
+}
+
+/**
+ * 更新页面配置（合并更新）
+ * @param {Object} params - 参数对象
+ * @param {Object} params.paper - 要合并的页面配置属性
+ */
+export function updatePaper({ paper }) {
+  store.dispatch('report/contextUpdatePaper', paper);
+}
+
+// ============ Row 操作 ============
+
+/**
+ * 获取表格行数据
+ * @param {Object} params - 参数对象
+ * @param {number} [params.rowNumber] - 行号，不提供则返回全部行
+ * @returns {Object|Array|null} 提供rowNumber返回单行对象，不提供返回行数组
+ */
+export function getRows({ rowNumber } = {}) {
+  return store.getters['report/getRows'](rowNumber);
+}
+
+/**
+ * 设置全部行数据
+ * @param {Object} params - 参数对象
+ * @param {Array} params.rows - 行定义数组
+ */
+export function setRows({ rows }) {
+  store.dispatch('report/contextSetRows', rows);
+}
+
+/**
+ * 更新行（按rowNumber匹配替换）
+ * @param {Object} params - 参数对象
+ * @param {number} params.rowNumber - 目标行号
+ * @param {Object} params.row - 新的行定义对象
+ */
+export function updateRow({ rowNumber, row }) {
+  store.dispatch('report/contextUpdateRow', { rowNumber, row });
+}
+
 // 默认导出所有方法
 export default {
   getContext,
@@ -217,5 +422,23 @@ export default {
   batchExecute,
   setContext,
   updateReportDef,
-  updateProperty
+  updateProperty,
+  readCell,
+  writeCell,
+  getDatasources,
+  setDatasources,
+  addDatasource,
+  updateDatasource,
+  removeDatasource,
+  getDatasets,
+  addDataset,
+  updateDataset,
+  removeDataset,
+  getSearchForm,
+  setSearchForm,
+  getPaperConfig,
+  updatePaper,
+  getRows,
+  setRows,
+  updateRow
 };

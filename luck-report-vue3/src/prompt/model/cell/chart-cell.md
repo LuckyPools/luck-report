@@ -8,16 +8,16 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition` → `value(ChartValue)` → `chart(Chart)` → `dataset(Dataset)` + `xaxes(XAxes)` + `yaxes(YAxes)` + `options(List<Option>)` + `plugins(List<Plugin>)`
+**结构概览**：`cell` → `value(ChartValue)` → `chart(Chart)` → `dataset(Dataset)` + `xaxes(XAxes)` + `yaxes(YAxes)` + `options(Option[])` + `plugins(Plugin[])`
 
-### 1、CellDefinition 单元格定义
+### 1、cell 单元格定义
 
-CellDefinition 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 CellDefinition 部分。图表单元格重点关注以下字段：
+cell 的通用字段与普通文本单元格一致，详见[普通文本类型单元格说明](simple-text-cell.md)的 cell 部分。图表单元格重点关注以下字段：
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
 | value | ChartValue | 单元格值对象 | 见 ChartValue 数据模型 |
-| expand | String | 展开方向 | 图表单元格通常为 `"None"`（不展开） |
+| expand | string | 展开方向 | 图表单元格通常为 `"None"`（不展开） |
 
 ---
 
@@ -25,7 +25,7 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 值类型 | 固定 `"chart"`，标识为图表类型 |
+| type | string | 值类型 | 固定 `"chart"`，标识为图表类型 |
 | chart | Chart | 图表配置对象 | 见 Chart 数据模型 |
 
 ---
@@ -37,8 +37,8 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 | dataset | Dataset | 图表数据集配置 | 见 CategoryDataset 数据模型 |
 | xaxes | XAxes | X 轴配置 | 见 XAxes 数据模型，`null` 为无 X 轴配置 |
 | yaxes | YAxes | Y 轴配置 | 见 YAxes 数据模型，`null` 为无 Y 轴配置 |
-| options | List\<Option\> | 图表选项列表 | 可包含 TitleOption、LegendOption、LayoutOption、AnimationsOption |
-| plugins | List\<Plugin\> | 图表插件列表 | 可包含 DataLabelsPlugin |
+| options | Option[] | 图表选项列表 | 可包含 TitleOption、LegendOption、LayoutOption、AnimationsOption |
+| plugins | Plugin[] | 图表插件列表 | 可包含 DataLabelsPlugin |
 
 ---
 
@@ -46,14 +46,14 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| datasetName | String | 绑定的数据集名称 | 必须为报表中已定义的数据集名称 |
-| categoryProperty | String | 分类属性（X 轴字段） | 数据集中的字段名，如 `"category_name"` |
-| valueProperty | String | 值属性（Y 轴字段） | 数据集中的字段名，如 `"price"` |
-| seriesType | String | 系列类型 | `"text"`（静态文本）/ `"property"`（属性），默认 `"text"` |
-| seriesProperty | String | 系列属性字段 | 当 `seriesType` 为 `"property"` 时使用，指定数据集中的系列分组字段 |
-| seriesText | String | 系列静态文本 | 当 `seriesType` 为 `"text"` 时使用，如 `"销售额"` |
-| collectType | String | 聚合方式 | 见 CollectType 枚举值 |
-| format | String | 格式化模式 | 如 `"#.##"`、`"yyyy-MM-dd"`，`null` 为不格式化 |
+| datasetName | string | 绑定的数据集名称 | 必须为报表中已定义的数据集名称 |
+| categoryProperty | string | 分类属性（X 轴字段） | 数据集中的字段名，如 `"category_name"` |
+| valueProperty | string | 值属性（Y 轴字段） | 数据集中的字段名，如 `"price"` |
+| seriesType | string | 系列类型 | `"text"`（静态文本）/ `"property"`（属性），默认 `"text"` |
+| seriesProperty | string | 系列属性字段 | 当 `seriesType` 为 `"property"` 时使用，指定数据集中的系列分组字段 |
+| seriesText | string | 系列静态文本 | 当 `seriesType` 为 `"text"` 时使用，如 `"销售额"` |
+| collectType | string | 聚合方式 | 见 CollectType 枚举值 |
+| format | string | 格式化模式 | 如 `"#.##"`、`"yyyy-MM-dd"`，`null` 为不格式化 |
 
 ---
 
@@ -98,7 +98,7 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| rotation | Integer | 标签旋转角度 | 如 `0`、`45`、`90` |
+| rotation | number | 标签旋转角度 | 如 `0`、`45`、`90` |
 | scaleLabel | ScaleLabel | 轴标题配置 | 见 ScaleLabel 数据模型，`null` 为无标题 |
 
 ---
@@ -107,7 +107,7 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| rotation | Integer | 标签旋转角度 | 如 `0`、`45`、`90` |
+| rotation | number | 标签旋转角度 | 如 `0`、`45`、`90` |
 | scaleLabel | ScaleLabel | 轴标题配置 | 见 ScaleLabel 数据模型，`null` 为无标题 |
 
 ---
@@ -116,11 +116,11 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| display | Boolean | 是否显示轴标题 | `true` / `false`，默认 `false` |
-| labelString | String | 标题文本 | 如 `"金额"`、`"数量"` |
-| fontColor | String | 字体颜色 | 如 `"#666"` |
-| fontSize | Integer | 字体大小 | 如 `12` |
-| fontStyle | String | 字体样式 | `"normal"` / `"bold"` / `"italic"` |
+| display | boolean | 是否显示轴标题 | `true` / `false`，默认 `false` |
+| labelString | string | 标题文本 | 如 `"金额"`、`"数量"` |
+| fontColor | string | 字体颜色 | 如 `"#666"` |
+| fontSize | number | 字体大小 | 如 `12` |
+| fontStyle | string | 字体样式 | `"normal"` / `"bold"` / `"italic"` |
 
 ---
 
@@ -139,46 +139,46 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 选项类型 | 固定 `"title"` |
-| display | Boolean | 是否显示标题 | `true` / `false` |
-| text | String | 标题文本 | 如 `"销售统计图"` |
-| position | String | 标题位置 | `"top"` / `"bottom"` / `"left"` / `"right"` |
-| fontSize | Integer | 字体大小 | 如 `14` |
-| fontColor | String | 字体颜色 | 如 `"#666"` |
-| fontStyle | String | 字体样式 | `"normal"` / `"bold"` / `"italic"` |
-| padding | Integer | 内边距 | 如 `10` |
+| type | string | 选项类型 | 固定 `"title"` |
+| display | boolean | 是否显示标题 | `true` / `false` |
+| text | string | 标题文本 | 如 `"销售统计图"` |
+| position | string | 标题位置 | `"top"` / `"bottom"` / `"left"` / `"right"` |
+| fontSize | number | 字体大小 | 如 `14` |
+| fontColor | string | 字体颜色 | 如 `"#666"` |
+| fontStyle | string | 字体样式 | `"normal"` / `"bold"` / `"italic"` |
+| padding | number | 内边距 | 如 `10` |
 
 #### LegendOption 图例选项
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 选项类型 | 固定 `"legend"` |
-| display | Boolean | 是否显示图例 | `true` / `false`，默认 `true` |
-| position | String | 图例位置 | `"top"` / `"bottom"` / `"left"` / `"right"` |
+| type | string | 选项类型 | 固定 `"legend"` |
+| display | boolean | 是否显示图例 | `true` / `false`，默认 `true` |
+| position | string | 图例位置 | `"top"` / `"bottom"` / `"left"` / `"right"` |
 
 #### LayoutOption 布局选项
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 选项类型 | 固定 `"layout"` |
+| type | string | 选项类型 | 固定 `"layout"` |
 | padding | Padding | 内边距配置 | 见 Padding 数据模型 |
 
 #### Padding 内边距对象
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| left | Integer | 左内边距 | 如 `10` |
-| right | Integer | 右内边距 | 如 `10` |
-| top | Integer | 上内边距 | 如 `10` |
-| bottom | Integer | 下内边距 | 如 `10` |
+| left | number | 左内边距 | 如 `10` |
+| right | number | 右内边距 | 如 `10` |
+| top | number | 上内边距 | 如 `10` |
+| bottom | number | 下内边距 | 如 `10` |
 
 #### AnimationsOption 动画选项
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 选项类型 | 固定 `"animation"` |
-| duration | Integer | 动画时长（ms） | 如 `1000` |
-| easing | String | 缓动函数 | 见 Easing 枚举值 |
+| type | string | 选项类型 | 固定 `"animation"` |
+| duration | number | 动画时长（ms） | 如 `1000` |
+| easing | string | 缓动函数 | 见 Easing 枚举值 |
 
 ---
 
@@ -228,8 +228,8 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 插件名称 | 固定 `"data-labels"` |
-| display | Boolean | 是否显示数据标签 | `true` / `false` |
+| name | string | 插件名称 | 固定 `"data-labels"` |
+| display | boolean | 是否显示数据标签 | `true` / `false` |
 
 ---
 
@@ -459,3 +459,5 @@ CellDefinition 的通用字段与普通文本单元格一致，详见[普通文�
 ```
 
 > **关键规则**：图表单元格的 `value.type` 必须为 `"chart"`，`value.chart` 包含完整的图表配置。`chart.dataset` 必须指定 `datasetName`、`categoryProperty`、`valueProperty`，`seriesType` 决定系列来源（静态文本或属性分组），`collectType` 决定聚合方式。有 Y 轴的图表类型（柱状图、折线图等）需配置 `xaxes` 和 `yaxes`；无 Y 轴的类型（饼图、环形图等）无需配置。`chart.options` 数组存储标题、图例、布局、动画等配置，`chart.plugins` 数组存储数据标签等插件配置。图表单元格通常不展开（`expand` 为 `"None"`）。
+
+---

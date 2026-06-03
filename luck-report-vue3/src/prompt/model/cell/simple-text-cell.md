@@ -8,28 +8,28 @@
 
 ## 二、数据模型
 
-**结构概览**：`CellDefinition` → `value(SimpleValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
+**结构概览**：`cell` → `value(SimpleValue)` + `cellStyle(CellStyle)` + 链接/展开/条件属性等附属配置
 
-### 1、CellDefinition 单元格定义
+### 1、cell 单元格定义
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| rowNumber | Integer | 行号（从1开始） | 如 `1`、`2`、`3` |
-| columnNumber | Integer | 列号（从1开始） | 如 `1`、`2`、`3` |
-| rowSpan | Integer | 跨行数 | `0` 表示不跨行，`>0` 表示向下合并的行数 |
-| colSpan | Integer | 跨列数 | `0` 表示不跨列，`>0` 表示向右合并的列数 |
-| name | String | 单元格名称 | 由列字母+行号组成，如 `"A1"`、`"B3"` |
+| rowNumber | number | 行号（从1开始） | 如 `1`、`2`、`3` |
+| columnNumber | number | 列号（从1开始） | 如 `1`、`2`、`3` |
+| rowSpan | number | 跨行数 | `0` 表示不跨行，`>0` 表示向下合并的行数 |
+| colSpan | number | 跨列数 | `0` 表示不跨列，`>0` 表示向右合并的列数 |
+| name | string | 单元格名称 | 由列字母+行号组成，如 `"A1"`、`"B3"` |
 | value | SimpleValue | 单元格值对象 | 见 SimpleValue 数据模型 |
 | cellStyle | CellStyle | 单元格样式对象 | 见 CellStyle 数据模型 |
-| linkUrl | String | 超链接地址 | 支持普通URL或表达式（以 `${` 开头 `}` 结尾），`null` 为无链接 |
-| linkTargetWindow | String | 链接打开方式 | `"_self"` / `"_blank"` / `null` |
-| linkParameters | List\<LinkParameter\> | 链接参数列表 | 见 LinkParameter 数据模型，`null` 为无参数 |
-| fillBlankRows | Boolean | 是否填充空白行 | `true` / `false`，普通文本单元格通常为 `false` |
-| multiple | Integer | 填充空白行的倍数 | `fillBlankRows=true` 时生效，要求数据行数必须是该值的倍数 |
-| expand | String | 展开方向 | `"Right"`（向右展开）/ `"Down"`（向下展开）/ `"None"`（不展开），普通文本通常为 `"None"` |
-| leftParentCellName | String | 左父格名称 | 同行左侧父级单元格名称，如 `"A2"`，`null` 为无左父格 |
-| topParentCellName | String | 上父格名称 | 同列上方父级单元格名称，如 `"A1"`，`null` 为无上父格 |
-| conditionPropertyItems | List\<ConditionPropertyItem\> | 条件属性列表 | 见条件属性说明文档，`null` 为无条件 |
+| linkUrl | string | 超链接地址 | 支持普通URL或表达式（以 `${` 开头 `}` 结尾），`null` 为无链接 |
+| linkTargetWindow | string | 链接打开方式 | `"_self"` / `"_blank"` / `null` |
+| linkParameters | LinkParameter[] | 链接参数列表 | 见 LinkParameter 数据模型，`null` 为无参数 |
+| fillBlankRows | boolean | 是否填充空白行 | `true` / `false`，普通文本单元格通常为 `false` |
+| multiple | number | 填充空白行的倍数 | `fillBlankRows=true` 时生效，要求数据行数必须是该值的倍数 |
+| expand | string | 展开方向 | `"Right"`（向右展开）/ `"Down"`（向下展开）/ `"None"`（不展开），普通文本通常为 `"None"` |
+| leftParentCellName | string | 左父格名称 | 同行左侧父级单元格名称，如 `"A2"`，`null` 为无左父格 |
+| topParentCellName | string | 上父格名称 | 同列上方父级单元格名称，如 `"A1"`，`null` 为无上父格 |
+| conditionPropertyItems | ConditionPropertyItem[] | 条件属性列表 | 见条件属性说明文档，`null` 为无条件 |
 
 ---
 
@@ -37,8 +37,8 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| type | String | 值类型 | 固定 `"simple"`，标识为普通文本类型 |
-| value | String | 文本内容 | 任意字符串，如 `"订单编号"`、`"合计"`、`""`（空字符串） |
+| type | string | 值类型 | 固定 `"simple"`，标识为普通文本类型 |
+| value | string | 文本内容 | 任意字符串，如 `"订单编号"`、`"合计"`、`""`（空字符串） |
 
 ---
 
@@ -46,18 +46,18 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| bgcolor | String | 背景色 | RGB 格式 `"R,G,B"`，如 `"208,2,27"`、`"255,255,255"`，`null` 为无背景色 |
-| forecolor | String | 前景色（字体颜色） | RGB 格式 `"R,G,B"`，如 `"0,0,0"`、`"248,231,28"`，`null` 为默认黑色 |
-| fontSize | Integer | 字体大小（pt） | 如 `10`、`12`、`14` |
-| fontFamily | String | 字体名称 | 如 `"宋体"`、`"仿宋"`、`"黑体"`、`"Arial"` |
-| format | String | 格式化模式 | 如 `"#.##"`、`"#,###.00"`、`"yyyy-MM-dd"`，`null` 为不格式化 |
-| lineHeight | Float | 行高倍数 | 如 `0`（默认）、`1.5`、`2`、`5` |
-| align | String | 水平对齐方式 | `"left"` / `"right"` / `"center"` |
-| valign | String | 垂直对齐方式 | `"top"` / `"middle"` / `"bottom"` |
-| bold | Boolean | 是否加粗 | `true` / `false` / `null`（null 为不加粗） |
-| italic | Boolean | 是否斜体 | `true` / `false` / `null`（null 为不斜体） |
-| underline | Boolean | 是否下划线 | `true` / `false` / `null`（null 为无下划线） |
-| wrapCompute | Boolean | 是否自动换行 | `true` / `false` / `null`（null 为不自动换行） |
+| bgcolor | string | 背景色 | RGB 格式 `"R,G,B"`，如 `"208,2,27"`、`"255,255,255"`，`null` 为无背景色 |
+| forecolor | string | 前景色（字体颜色） | RGB 格式 `"R,G,B"`，如 `"0,0,0"`、`"248,231,28"`，`null` 为默认黑色 |
+| fontSize | number | 字体大小（pt） | 如 `10`、`12`、`14` |
+| fontFamily | string | 字体名称 | 如 `"宋体"`、`"仿宋"`、`"黑体"`、`"Arial"` |
+| format | string | 格式化模式 | 如 `"#.##"`、`"#,###.00"`、`"yyyy-MM-dd"`，`null` 为不格式化 |
+| lineHeight | number | 行高倍数 | 如 `0`（默认）、`1.5`、`2`、`5` |
+| align | string | 水平对齐方式 | `"left"` / `"right"` / `"center"` |
+| valign | string | 垂直对齐方式 | `"top"` / `"middle"` / `"bottom"` |
+| bold | boolean | 是否加粗 | `true` / `false` / `null`（null 为不加粗） |
+| italic | boolean | 是否斜体 | `true` / `false` / `null`（null 为不斜体） |
+| underline | boolean | 是否下划线 | `true` / `false` / `null`（null 为无下划线） |
+| wrapCompute | boolean | 是否自动换行 | `true` / `false` / `null`（null 为不自动换行） |
 | leftBorder | Border | 左边框 | 见 Border 数据模型，`null` 为无边框 |
 | rightBorder | Border | 右边框 | 见 Border 数据模型，`null` 为无边框 |
 | topBorder | Border | 上边框 | 见 Border 数据模型，`null` 为无边框 |
@@ -69,9 +69,9 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| width | Integer | 边框宽度 | 如 `1`、`2`、`3` |
-| color | String | 边框颜色 | RGB 格式 `"R,G,B"`，如 `"0,0,0"` |
-| style | String | 边框样式 | `"solid"`（实线）/ `"dashed"`（虚线）/ `"doublesolid"`（双实线） |
+| width | number | 边框宽度 | 如 `1`、`2`、`3` |
+| color | string | 边框颜色 | RGB 格式 `"R,G,B"`，如 `"0,0,0"` |
+| style | string | 边框样式 | `"solid"`（实线）/ `"dashed"`（虚线）/ `"doublesolid"`（双实线） |
 
 ---
 
@@ -79,8 +79,8 @@
 
 | 字段名 | 类型 | 说明 | 可选值 / 备注 |
 |--------|------|------|---------------|
-| name | String | 参数名 | 如 `"a"`、`"b"`、`"id"` |
-| value | String | 参数值 | 支持普通字符串或表达式，如 `"1"`、`"2"` |
+| name | string | 参数名 | 如 `"a"`、`"b"`、`"id"` |
+| value | string | 参数值 | 支持普通字符串或表达式，如 `"1"`、`"2"` |
 
 ---
 
@@ -238,3 +238,5 @@
 ```
 
 > **关键规则**：普通文本单元格的 `value.type` 必须为 `"simple"`，`value.value` 为要显示的文本字符串。当 `value.value` 为空字符串 `""` 时，单元格渲染为空白。`expand` 通常设为 `"None"`（不展开），因为普通文本无需按数据行展开。`rowSpan` 和 `colSpan` 为 `0` 时表示不合并单元格，大于 `0` 时表示合并对应行数或列数。
+
+---
