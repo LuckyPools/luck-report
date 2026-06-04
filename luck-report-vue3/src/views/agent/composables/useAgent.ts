@@ -57,6 +57,8 @@ export class AgentEngine {
   private onToolConfirmFn?: (toolCall: ToolCall) => Promise<boolean>
   /** 会话ID */
   private sessionId?: string
+  /** 大模型配置ID，用于指定使用哪个大模型 */
+  private modelId?: number
   /** 中断控制器 */
   private abortController: AbortController | null = null
   /** 是否正在运行 */
@@ -92,13 +94,18 @@ export class AgentEngine {
    * @param userMessage - 用户输入消息
    * @param onEvent - 事件回调，通知上层 Agent 循环的各种状态变化
    * @param signal - 可选的中断信号
+   * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
    */
   async start(
     userMessage: string,
     onEvent: (event: AgentEvent) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    modelId?: number
   ): Promise<void> {
     if (this._running) return
+
+    // 存储模型ID，供压缩时使用
+    this.modelId = modelId
 
     this._running = true
     this.abortController = signal ? null : new AbortController()
@@ -113,7 +120,8 @@ export class AgentEngine {
       onToolConfirm: this.onToolConfirmFn,
       sessionId: this.sessionId,
       onCaptureSnapshot: () => this.captureReportSnapshot(),
-      onAutoCompact: (mm) => this.autoCompact(mm)
+      onAutoCompact: (mm) => this.autoCompact(mm),
+      modelId
     }
 
     try {
@@ -157,6 +165,16 @@ export class AgentEngine {
     if (sessionId) {
       this.memoryManager.setSessionId(sessionId)
     }
+  }
+
+  /**
+   * 设置大模型配置ID
+   * 切换模型或加载历史对话时调用，确保压缩接口使用正确的模型配置
+   *
+   * @param modelId - 大模型配置ID
+   */
+  setModelId(modelId: number | undefined): void {
+    this.modelId = modelId
   }
 
   /**
@@ -364,7 +382,8 @@ export class AgentEngine {
         apiMessages,
         mm.getSummary() || undefined,
         mm.getKeyOperations().length > 0 ? mm.getKeyOperations() : undefined,
-        snapshotText
+        snapshotText,
+        this.modelId
       )
 
       mm.compact(result)

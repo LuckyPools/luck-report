@@ -91,9 +91,36 @@ async function get(url: string, config: AxiosRequestConfig = {}): Promise<unknow
   return dealAxiosResult(res)
 }
 
+/**
+ * PUT请求方法
+ *
+ * @param url 请求地址
+ * @param param 请求参数，默认为空对象
+ * @param config axios配置项，默认为空对象
+ * @returns {Promise<unknown>} 返回处理后的响应数据
+ */
+async function put(url: string, param: any = {}, config: AxiosRequestConfig = {}): Promise<unknown> {
+  const res = await request.put(url, param, config)
+  return dealAxiosResult(res)
+}
+
+/**
+ * DELETE请求方法
+ *
+ * @param url 请求地址
+ * @param config axios配置项，默认为空对象
+ * @returns {Promise<unknown>} 返回处理后的响应数据
+ */
+async function del(url: string, config: AxiosRequestConfig = {}): Promise<unknown> {
+  const res = await request.delete(url, config)
+  return dealAxiosResult(res)
+}
+
 export default {
   default: request,
   ...request,
   post,
-  get
+  get,
+  put,
+  del
 }

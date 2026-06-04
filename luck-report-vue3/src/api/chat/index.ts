@@ -208,6 +208,7 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
  * @param contextMessages - 可选，历史消息上下文列表
  * @param tools - 可选，工具定义列表（Agent Function Calling）
  * @param sessionId - 可选，会话ID，用于后端关联会话上下文
+ * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
  */
 export async function chatStream(
     message: string,
@@ -217,7 +218,8 @@ export async function chatStream(
     searchEnabled?: boolean,
     contextMessages?: ContextMessage[],
     tools?: ToolApiFormat[],
-    sessionId?: string
+    sessionId?: string,
+    modelId?: number
 ): Promise<void> {
   const requestBody: Record<string, unknown> = {
     message,
@@ -226,6 +228,10 @@ export async function chatStream(
 
   if (sessionId) {
     requestBody.sessionId = sessionId
+  }
+
+  if (modelId) {
+    requestBody.modelId = modelId
   }
 
   if (attachments && attachments.length > 0) {

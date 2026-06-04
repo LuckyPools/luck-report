@@ -5,7 +5,7 @@ import com.luck.agent.domain.vo.CompactRequest;
 import com.luck.agent.domain.vo.CompactResult;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ResultVO;
-import com.luck.agent.service.ModelConfigService;
+import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
 import com.luck.agent.domain.vo.AskModelRequest;
 import com.luck.agent.domain.vo.AskModelResponse;
 import com.luck.agent.util.ChatUtils;
@@ -38,22 +38,22 @@ public class ChatCompactController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatCompactController.class);
 
-    private final ModelConfigService modelConfigService;
+    private final ModelConfigDataService modelConfigDataService;
 
     /**
      * 初始化对话压缩控制器
      *
-     * @param modelConfigService 模型配置服务
+     * @param modelConfigDataService 模型配置数据服务
      */
-    public ChatCompactController(ModelConfigService modelConfigService) {
-        this.modelConfigService = modelConfigService;
+    public ChatCompactController(ModelConfigDataService modelConfigDataService) {
+        this.modelConfigDataService = modelConfigDataService;
     }
 
     /**
      * 对话压缩接口（POST）
      * 接收早期对话消息，通过 ChatUtils.askModel() 调用 LLM 生成结构化摘要
      *
-     * @param request 压缩请求，包含 messages、existingSummary、reportSnapshot、compactPrompt 等
+     * @param request 压缩请求，包含 messages、existingSummary、reportSnapshot、compactPrompt、modelId 等
      * @return ResultVO<CompactResult> 压缩结果，包含 summary 和 keyOperations
      */
     @PostMapping(value = "/compact", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -67,7 +67,8 @@ public class ChatCompactController {
         }
 
         try {
-            ModelConfig chatConfig = modelConfigService.getChatConfig(null);
+            // 根据modelId获取模型配置，如果未传则使用默认激活的第一个对话模型
+            ModelConfig chatConfig = modelConfigDataService.getChatConfig(request.getModelId());
             List<Map<String, Object>> messages = buildCompactMessages(request);
 
             AskModelRequest askRequest = new AskModelRequest(chatConfig, messages)

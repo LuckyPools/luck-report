@@ -37,7 +37,10 @@ import java.util.Map;
 @Configuration
 @EnableConfigurationProperties({DataSourceProperties.class,
         org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.class})
-@MapperScan(basePackages = "com.luck.agent.mapper", sqlSessionFactoryRef = "sqlSessionFactory")
+@MapperScan(basePackages = {"com.luck.agent.mapper", 
+        "com.luck.agent.moudules.modelconfig.mapper",
+        "com.luck.agent.moudules.businessKnowledgeConfig.mapper"}, 
+        sqlSessionFactoryRef = "sqlSessionFactory")
 public class DynamicDataSourceConfig {
 
     @Autowired

@@ -5,7 +5,7 @@ import com.luck.agent.domain.vo.ChatRequest;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ToolCallMessage;
 import com.luck.agent.domain.vo.ToolDefinition;
-import com.luck.agent.service.ModelConfigService;
+import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
 import com.luck.agent.domain.vo.AskModelRequest;
 import com.luck.agent.util.ChatUtils;
 import okhttp3.*;
@@ -39,18 +39,18 @@ public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
-    private final ModelConfigService modelConfigService;
+    private final ModelConfigDataService modelConfigDataService;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     /**
      * 初始化聊天控制器
-     * 注入 ModelConfigService 获取大模型配置
+     * 注入 ModelConfigDataService 获取大模型配置
      * HTTP 客户端和 Gson 由 ChatUtils 统一管理
      *
-     * @param modelConfigService 模型配置服务
+     * @param modelConfigDataService 模型配置数据服务
      */
-    public ChatController(ModelConfigService modelConfigService) {
-        this.modelConfigService = modelConfigService;
+    public ChatController(ModelConfigDataService modelConfigDataService) {
+        this.modelConfigDataService = modelConfigDataService;
     }
 
     /**
@@ -60,7 +60,7 @@ public class ChatController {
      * 支持 Function Calling：当请求携带 tools 参数时，将工具定义传给大模型，
      * 大模型可通过 tool_calls 返回工具调用指令，后端解析后以 tool_use 事件推送
      *
-     * @param request 聊天请求 DTO，包含消息内容、历史上下文、附件、工具定义等
+     * @param request 聊天请求 DTO，包含消息内容、历史上下文、附件、工具定义、模型ID等
      * @return SSE事件流，包含 message / tool_use / done / error 事件
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -69,7 +69,8 @@ public class ChatController {
 
         executorService.submit(() -> {
             try {
-                ModelConfig chatConfig = modelConfigService.getChatConfig(null);
+                // 根据modelId获取模型配置，如果未传则使用默认激活的第一个对话模型
+                ModelConfig chatConfig = modelConfigDataService.getChatConfig(request.getModelId());
                 List<Map<String, Object>> messages = buildMessages(request);
 
                 // 构建工具定义列表（OpenAI Function Calling 格式）

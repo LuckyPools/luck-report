@@ -22,6 +22,16 @@ const router = createRouter({
       path: '/export',
       name: 'export',
       component: () => import('@/views/export/index.vue')
+    },
+    {
+      path: '/model-config',
+      name: 'model-config',
+      component: () => import('@/views/model-config/index.vue')
+    },
+    {
+      path: '/business-knowledge-config',
+      name: 'business-knowledge-config',
+      component: () => import('@/views/business-knowledge-config/index.vue')
     }
   ],
 })

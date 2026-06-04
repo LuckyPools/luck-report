@@ -6,11 +6,14 @@
 
     <div v-if="chatVisible" class="chat-panel" :style="{ left: panelPosition.x + 'px', top: panelPosition.y + 'px' }">
       <ChatHeader
-        :current-model="currentModelDisplayName"
+        :model-list="modelList"
+        :current-model="currentModelInfo"
+        :is-pending="isPending"
         @close="toggleChat"
         @mousedown="onHeaderMouseDown"
         @delete-chat="handleDeleteChat"
         @open-chat-list="chatListVisible = true"
+        @model-change="handleModelChange"
       />
 
       <div ref="chatBodyRef" class="chat-body" @scroll="throttledHandleScroll">
@@ -159,11 +162,14 @@ const {
 } = useChat()
 
 const {
+  modelList,
   currentModelSupportVision,
   currentModelSupportTool,
   allProviderListByKey,
   currentModel: currentModelInfo,
-  isPending
+  isPending,
+  loadActiveModels,
+  setCurrentModelExact
 } = useModelList()
 
 const {
@@ -191,8 +197,16 @@ const showGuideAlert = computed(() => {
 /** 当前 Provider ID */
 const currentProviderId = computed(() => currentModelInfo.value?.provider?.id)
 
-/** 当前模型显示名称 */
-const currentModelDisplayName = computed(() => currentModelInfo.value?.displayName || '通义千问')
+/**
+ * 处理模型选择变化
+ * @param modelId 选中的模型ID
+ */
+const handleModelChange = (modelId: string) => {
+  const selectedModel = modelList.value.find(m => m.id === modelId)
+  if (selectedModel) {
+    setCurrentModelExact(selectedModel.provider.id, modelId)
+  }
+}
 
 /**
  * 判断指定索引的消息是否为连续消息
@@ -242,6 +256,8 @@ const getGreeting = (): string => {
 onMounted(() => {
   greetingText.value = getGreeting()
   setWebSearchEnabled(false)
+  // 从后台加载激活的模型列表
+  loadActiveModels()
 })
 
 const toggleChat = () => {
@@ -300,7 +316,9 @@ const handleDeleteChat = () => {
  */
 const handleSessionSelect = (sessionId: string) => {
   chatListVisible.value = false
-  loadSession(sessionId)
+  // 获取当前模型的 ID，确保压缩时使用正确的模型配置
+  const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
+  loadSession(sessionId, modelId)
 }
 
 /**
@@ -335,7 +353,9 @@ const handleChatListOpenChange = (open: boolean) => {
  * @param searchEnabled - 是否启用联网搜索
  */
 const handleSend = (content: string, attachments?: Attachment[], searchEnabled?: boolean) => {
-  sendMessage(content, attachments, searchEnabled)
+  // 获取当前模型的 ID（转换为数字类型）
+  const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
+  sendMessage(content, attachments, searchEnabled, modelId)
 }
 
 /**

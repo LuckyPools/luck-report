@@ -41,6 +41,8 @@ export interface AgentLoopConfig {
   onCaptureSnapshot?: () => Promise<ReportSnapshot | null>
   /** 自动压缩回调，当需要压缩时调用，由上层负责发起 LLM 压缩请求 */
   onAutoCompact?: (memoryManager: MemoryManager) => Promise<void>
+  /** 大模型配置ID，用于指定使用哪个大模型 */
+  modelId?: number
 }
 
 /**
@@ -151,7 +153,8 @@ export async function runAgentLoop(
         undefined,
         fullMessages,
         tools,
-        config.sessionId
+        config.sessionId,
+        config.modelId
       )
     } catch (err: any) {
       if (err.name === 'AbortError') {

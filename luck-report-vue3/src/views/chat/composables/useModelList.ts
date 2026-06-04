@@ -1,10 +1,11 @@
 import { ref, computed } from 'vue'
 import type { LLMModel, ModelProvider } from '../types/chat'
+import { getActiveModelConfigList, type ModelConfig } from '@/api/model-config'
 
 /**
  * 模型列表管理 Hook
- * 对应 HiveChat useModelListStore，管理模型列表、当前模型、模型能力检测
- * 当前暂用硬编码默认模型（通义千问），后续可对接后端 API 动态获取
+ * 从后台获取激活的对话模型列表，供用户在对话框中选择
+ * 支持多模型启用，用户可自由切换
  */
 export function useModelList() {
   const isPending = ref(false)
@@ -73,6 +74,49 @@ export function useModelList() {
   }
 
   /**
+   * 将后台模型配置转换为前端 LLMModel 格式
+   *
+   * @param config 后台模型配置
+   * @returns LLMModel 前端模型格式
+   */
+  const convertToLLMModel = (config: ModelConfig): LLMModel => {
+    return {
+      id: String(config.id),
+      displayName: config.configName || config.modelName, // 优先使用自定义名称
+      supportVision: false, // 默认不支持视觉，可根据模型名称判断
+      supportTool: true, // 默认支持工具调用
+      maxTokens: config.maxTokens || 8192,
+      selected: false,
+      provider: {
+        id: config.provider,
+        providerName: config.provider,
+        apiStyle: 'openai'
+      }
+    }
+  }
+
+  /**
+   * 从后台加载激活的对话模型列表
+   * 初始化时调用，获取所有启用的对话模型
+   */
+  const loadActiveModels = async () => {
+    isPending.value = true
+    try {
+      const response = await getActiveModelConfigList('CHAT')
+      if (response.code === 0 && response.data) {
+        const models = response.data.map(convertToLLMModel)
+        initModelList(models)
+      }
+    } catch (error) {
+      console.error('加载激活模型列表失败:', error)
+      // 失败时使用默认模型
+      initModelList([currentModel.value])
+    } finally {
+      isPending.value = false
+    }
+  }
+
+  /**
    * 初始化模型列表
    * 从 localStorage 恢复上次选择的模型
    *
@@ -123,6 +167,7 @@ export function useModelList() {
     currentModelSupportTool,
     allProviderListByKey,
     setCurrentModelExact,
-    initModelList
+    initModelList,
+    loadActiveModels
   }
 }

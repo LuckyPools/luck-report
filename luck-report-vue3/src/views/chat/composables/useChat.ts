@@ -304,12 +304,13 @@ export function useChat() {
    * 通过 AgentEngine 启动 Agentic Loop，替代直接调 chatStream
    *
    * @param content - 用户输入消息
+   * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
    */
-  const sendMessageViaAgent = async (content: string) => {
+  const sendMessageViaAgent = async (content: string, modelId?: number) => {
     abortController = new AbortController()
 
     try {
-      await agentEngine.start(content, handleAgentEvent, abortController.signal)
+      await agentEngine.start(content, handleAgentEvent, abortController.signal, modelId)
     } catch (error: unknown) {
       const err = error as Error
       if (err.name === 'AbortError') {
@@ -352,18 +353,20 @@ export function useChat() {
    * @param content - 用户输入的消息内容
    * @param attachments - 可选，图片附件列表
    * @param searchEnabled - 可选，是否启用联网搜索
+   * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
    */
   const sendMessage = async (
       content: string,
       attachments?: Attachment[],
-      searchEnabled?: boolean
+      searchEnabled?: boolean,
+      modelId?: number
   ) => {
     if (!content.trim() || responseStatus.value === 'pending') return
 
     // 首次发送消息时自动创建会话
     if (!currentSessionId.value) {
       try {
-        console.info('[sendMessage] 首次发消息，创建会话...')
+        console.info('[sendMessage] 馆次发消息，创建会话...')
         const session = await store.createNewSession()
         agentEngine.setSessionId(session.id)
         console.info('[sendMessage] 会话创建成功:', session.id)
@@ -395,7 +398,7 @@ export function useChat() {
     mcpTools.value = []
     pendingConfirmToolCall.value = null
 
-    await sendMessageViaAgent(content.trim())
+    await sendMessageViaAgent(content.trim(), modelId)
   }
 
   /**
@@ -428,8 +431,9 @@ export function useChat() {
    * 优先尝试从 localStorage 恢复 Agent 记忆（第5层），失败则从消息列表重建
    *
    * @param sessionId - 要加载的会话ID
+   * @param modelId - 可选，当前选中的大模型配置ID，用于压缩时使用正确的模型
    */
-  const loadSession = async (sessionId: string) => {
+  const loadSession = async (sessionId: string, modelId?: number) => {
     // 切换前先保存当前会话（异步执行，不阻塞会话切换）
     if (currentSessionId.value && store.getRoundStartIndex() < messageList.value.length) {
       store.persistMessages().catch(e => {
@@ -440,6 +444,8 @@ export function useChat() {
     // 清空 Agent 状态
     agentEngine.clearMemory()
     agentEngine.setSessionId(sessionId)
+    // 设置模型ID，确保压缩时使用正确的模型配置
+    agentEngine.setModelId(modelId)
 
     // 通过 store 加载会话数据
     await store.loadSession(sessionId)

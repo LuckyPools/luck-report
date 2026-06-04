@@ -3,8 +3,11 @@ package com.luck.agent.service.impl;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.luck.agent.domain.dto.ModelConfigDTO;
 import com.luck.agent.domain.entity.ModelConfig;
-import com.luck.agent.service.ModelConfigService;
+import com.luck.agent.domain.enums.ModelType;
+import com.luck.agent.moudules.modelconfig.converter.ModelConfigConverter;
+import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,18 +34,18 @@ public class EmbeddingService {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingService.class);
 
-    private final ModelConfigService modelConfigService;
+    private final ModelConfigDataService modelConfigDataService;
     private final OkHttpClient httpClient;
     private final Gson gson = new GsonBuilder().create();
 
     /**
      * 初始化 Embedding 服务
-     * 注入 ModelConfigService 获取嵌入模型配置，构建 OkHttp 客户端
+     * 注入 ModelConfigDataService 获取嵌入模型配置，构建 OkHttp 客户端
      *
-     * @param modelConfigService 模型配置服务
+     * @param modelConfigDataService 模型配置数据服务
      */
-    public EmbeddingService(ModelConfigService modelConfigService) {
-        this.modelConfigService = modelConfigService;
+    public EmbeddingService(ModelConfigDataService modelConfigDataService) {
+        this.modelConfigDataService = modelConfigDataService;
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
@@ -73,8 +76,8 @@ public class EmbeddingService {
             return Collections.emptyList();
         }
 
-        // 从 ModelConfigService 获取嵌入模型配置
-        ModelConfig embeddingConfig = modelConfigService.getEmbeddingConfig(null);
+        // 从 ModelConfigDataService 获取嵌入模型配置
+        ModelConfig embeddingConfig = getEmbeddingConfig();
         String baseUrl = embeddingConfig.getBaseUrl();
         String apiKey = embeddingConfig.getApiKey();
         String modelName = embeddingConfig.getModelName();
@@ -110,6 +113,24 @@ public class EmbeddingService {
             log.error("Embedding API 请求异常: {}", e.getMessage(), e);
             throw new RuntimeException("Embedding API 请求异常", e);
         }
+    }
+
+    /**
+     * 获取嵌入模型配置
+     * 使用默认激活的第一个嵌入模型
+     *
+     * @return ModelConfig 嵌入模型配置
+     * @throws RuntimeException 当找不到可用的嵌入模型时抛出
+     */
+    private ModelConfig getEmbeddingConfig() {
+        List<ModelConfigDTO> activeConfigs = modelConfigDataService.listActiveConfigsByType(ModelType.EMBEDDING);
+        if (activeConfigs == null || activeConfigs.isEmpty()) {
+            throw new RuntimeException("无可用的嵌入模型配置，请先在模型配置页面启用嵌入模型");
+        }
+
+        ModelConfigDTO dto = activeConfigs.get(0);
+        log.info("使用嵌入模型: id={}, modelName={}", dto.getId(), dto.getModelName());
+        return ModelConfigConverter.toEntity(dto);
     }
 
     /**

@@ -14,6 +14,13 @@ import java.util.List;
 public class CompactRequest {
 
     /**
+     * 大模型配置ID
+     * 用于指定使用哪个大模型进行对话压缩
+     * 如果不传，则使用默认激活的第一个对话模型
+     */
+    private Integer modelId;
+
+    /**
      * 需要压缩的历史消息列表
      * 通常是滑动窗口之外的早期消息
      */

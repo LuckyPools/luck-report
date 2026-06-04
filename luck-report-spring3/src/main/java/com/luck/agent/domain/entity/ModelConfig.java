@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * 大模型配置实体
  * 存储大模型的连接信息和调用参数，后期会提供管理界面维护
@@ -32,6 +34,12 @@ public class ModelConfig {
     /** 模型名称（如 qwen3.6-plus、text-embedding-v3） */
     private String modelName;
 
+    /** 自定义名称，最多50个字 */
+    private String configName;
+
+    /** 排序字段，数字越小越靠前 */
+    private Integer sort;
+
     /** 温度参数，控制生成随机性，0~1 */
     private Double temperature;
 
@@ -49,4 +57,28 @@ public class ModelConfig {
 
     /** Embeddings 路径（如 /embeddings） */
     private String embeddingsPath;
+
+    /** 创建时间 */
+    private LocalDateTime createdTime;
+
+    /** 更新时间 */
+    private LocalDateTime updatedTime;
+
+    /** 是否删除：0-未删除，1-已删除 */
+    private Integer isDeleted;
+
+    /** 是否启用代理：false-禁用，true-启用 */
+    private Boolean proxyEnabled;
+
+    /** 代理主机地址 */
+    private String proxyHost;
+
+    /** 代理端口 */
+    private Integer proxyPort;
+
+    /** 代理用户名（可选） */
+    private String proxyUsername;
+
+    /** 代理密码（可选） */
+    private String proxyPassword;
 }
