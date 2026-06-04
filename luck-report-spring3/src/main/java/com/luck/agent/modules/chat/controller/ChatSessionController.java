@@ -1,5 +1,6 @@
 package com.luck.agent.modules.chat.controller;
 
+import com.luck.agent.domain.vo.PageResultVO;
 import com.luck.agent.modules.chat.domain.entity.ChatSession;
 import com.luck.agent.domain.vo.ResultVO;
 import com.luck.agent.modules.chat.service.ChatSessionService;
@@ -50,6 +51,26 @@ public class ChatSessionController {
     public ResultVO<List<ChatSession>> getSessionsByUser(@PathVariable Long userId) {
         List<ChatSession> sessions = chatSessionService.findByUserId(userId);
         return ResultVO.success("查询成功", sessions);
+    }
+
+    /**
+     * 分页查询指定用户的会话列表
+     * 按置顶优先、更新时间倒序返回，支持滚动加载
+     *
+     * @param userId   用户ID
+     * @param pageNum  页码，从1开始，默认1
+     * @param pageSize 每页数量，默认10
+     * @return 分页结果
+     */
+    @GetMapping("/user/{userId}/page")
+    public ResultVO<PageResultVO<ChatSession>> getSessionsByUserWithPage(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        // 限制每页最大数量，防止一次加载过多
+        pageSize = Math.min(pageSize, 50);
+        PageResultVO<ChatSession> result = chatSessionService.findByUserIdWithPage(userId, pageNum, pageSize);
+        return ResultVO.success("查询成功", result);
     }
 
     /**

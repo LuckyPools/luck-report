@@ -101,17 +101,17 @@ public class BusinessKnowledgeController {
     }
 
     /**
-     * 设置召回状态
+     * 设置生效状态
      *
      * @param id 业务知识ID
-     * @param isRecall 是否召回
+     * @param enabled 是否生效
      * @return 设置结果
      */
-    @PostMapping("/recall/{id}")
-    public ApiResponse<Boolean> recallKnowledge(@PathVariable(value = "id") Long id,
-                                                 @RequestParam(value = "isRecall") Boolean isRecall) {
-        businessKnowledgeService.recallKnowledge(id, isRecall);
-        return ApiResponse.success("设置召回状态成功");
+    @PostMapping("/enable/{id}")
+    public ApiResponse<Boolean> enableKnowledge(@PathVariable(value = "id") Long id,
+                                                 @RequestParam(value = "enabled") Boolean enabled) {
+        businessKnowledgeService.recallKnowledge(id, enabled);
+        return ApiResponse.success("设置生效状态成功");
     }
 
     /**

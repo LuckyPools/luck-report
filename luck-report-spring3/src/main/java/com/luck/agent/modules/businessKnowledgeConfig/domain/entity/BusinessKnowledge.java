@@ -34,9 +34,9 @@ public class BusinessKnowledge {
     /** 同义词，多个用逗号分隔 */
     private String synonyms;
 
-    /** 是否召回（0:不召回, 1:召回） */
+    /** 是否生效（0:不生效, 1:生效） */
     @Builder.Default
-    private Integer isRecall = 1;
+    private Integer enabled = 1;
 
     /** 关联的嵌入模型ID */
     private Long modelId;

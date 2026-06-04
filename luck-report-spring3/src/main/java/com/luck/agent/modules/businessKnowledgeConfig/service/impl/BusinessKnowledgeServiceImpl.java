@@ -223,15 +223,15 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
     }
 
     /**
-     * 设置业务知识的召回状态
+     * 设置业务知识的生效状态
      * 仅更新MySQL，不更新向量库
      *
      * @param id 业务知识ID
-     * @param isRecall 是否召回
+     * @param enabled 是否生效
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void recallKnowledge(Long id, Boolean isRecall) {
+    public void recallKnowledge(Long id, Boolean enabled) {
         // 从数据库获取原始数据
         BusinessKnowledge knowledge = businessKnowledgeMapper.selectById(id);
         if (knowledge == null) {
@@ -239,7 +239,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
         }
 
         // 更新数据库即可，不需要更新向量库
-        knowledge.setIsRecall(isRecall ? 1 : 0);
+        knowledge.setEnabled(enabled ? 1 : 0);
         businessKnowledgeMapper.updateById(knowledge);
     }
 
@@ -256,16 +256,16 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
         metadata.put(DocumentMetadataConstant.VECTOR_TYPE, DocumentMetadataConstant.BUSINESS_TERM);
         reportAgentVectorStore.deleteByMetadata(metadata);
 
-        // 获取所有召回的业务知识
+        // 获取所有生效的业务知识
         List<BusinessKnowledge> allKnowledge = businessKnowledgeMapper.selectAll();
-        List<BusinessKnowledge> recalledKnowledge = allKnowledge.stream()
-                .filter(knowledge -> knowledge.getIsRecall() != null && knowledge.getIsRecall() == 1)
+        List<BusinessKnowledge> enabledKnowledge = allKnowledge.stream()
+                .filter(knowledge -> knowledge.getEnabled() != null && knowledge.getEnabled() == 1)
                 .filter(knowledge -> knowledge.getIsDeleted() == null || knowledge.getIsDeleted() == 0)
                 .collect(Collectors.toList());
 
         // 转换为向量文档并插入到向量存储
-        if (!recalledKnowledge.isEmpty()) {
-            List<VectorDocument> documents = recalledKnowledge.stream()
+        if (!enabledKnowledge.isEmpty()) {
+            List<VectorDocument> documents = enabledKnowledge.stream()
                     .map(DocumentConverterUtil::convertBusinessKnowledgeToDocument)
                     .collect(Collectors.toList());
             reportAgentVectorStore.addDocuments(documents);
@@ -289,9 +289,9 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             throw new RuntimeException("业务知识正在处理中，请等待");
         }
 
-        // 非召回的不处理
-        if (knowledge.getIsRecall() == null || knowledge.getIsRecall() == 0) {
-            throw new RuntimeException("业务知识未召回，请先召回");
+        // 未生效的不处理
+        if (knowledge.getEnabled() == null || knowledge.getEnabled() == 0) {
+            throw new RuntimeException("业务知识未生效，请先设为生效");
         }
 
         try {

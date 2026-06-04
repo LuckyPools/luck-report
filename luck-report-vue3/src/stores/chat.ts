@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { Message, ResponseStatus, HistoryType, SearchStatus, McpToolCall } from '@/views/chat/types/chat'
 import type { TokenUsage } from '@/api/chat'
 import type { ToolCall } from '@/views/agent/tools/types'
+import { getUserId } from '@/utils/user'
 import {
   createSession,
   batchSaveMessages,
@@ -11,6 +12,7 @@ import {
   deleteMessage as apiDeleteMessage,
   renameSession as apiRenameSession,
   listSessions,
+  listSessionsByUserPage,
   pinSession as apiPinSession,
   type SessionInfo,
   type BatchMessageItem
@@ -29,11 +31,20 @@ import {
 export const useChatStore = defineStore('chat', () => {
   // ==================== 会话列表 ====================
 
+  /** 每页加载数量 */
+  const PAGE_SIZE = 10
+
   /** 会话列表 */
   const sessionList = ref<SessionInfo[]>([])
 
   /** 会话列表加载状态 */
   const sessionListLoading = ref(false)
+
+  /** 是否还有更多数据 */
+  const sessionListHasMore = ref(true)
+
+  /** 当前页码 */
+  const sessionListPageNum = ref(1)
 
   // ==================== 当前会话 ====================
 
@@ -89,16 +100,45 @@ export const useChatStore = defineStore('chat', () => {
   // ==================== 会话列表操作 ====================
 
   /**
-   * 加载会话列表
-   * 从后端获取所有会话，按置顶优先、更新时间倒序
+   * 加载会话列表（分页首屏）
+   * 从后端分页获取第一页会话数据，重置页码和加载更多状态
    */
   const fetchSessionList = async () => {
     sessionListLoading.value = true
+    sessionListPageNum.value = 1
+    sessionListHasMore.value = true
     try {
-      sessionList.value = await listSessions()
+      const userId = getUserId()
+      const result = await listSessionsByUserPage(userId, 1, PAGE_SIZE)
+      sessionList.value = result.records
+      sessionListHasMore.value = result.records.length >= PAGE_SIZE
+      sessionListPageNum.value = result.pageNum
     } catch (e) {
       console.error('[chatStore] 加载会话列表失败:', e)
       throw e
+    } finally {
+      sessionListLoading.value = false
+    }
+  }
+
+  /**
+   * 加载更多会话（分页追加）
+   * 滚动到底部时调用，追加下一页数据到列表末尾
+   */
+  const loadMoreSessionList = async () => {
+    if (sessionListLoading.value || !sessionListHasMore.value) {
+      return
+    }
+    sessionListLoading.value = true
+    try {
+      const userId = getUserId()
+      const nextPage = sessionListPageNum.value + 1
+      const result = await listSessionsByUserPage(userId, nextPage, PAGE_SIZE)
+      sessionList.value = [...sessionList.value, ...result.records]
+      sessionListHasMore.value = result.records.length >= PAGE_SIZE
+      sessionListPageNum.value = result.pageNum
+    } catch (e) {
+      console.error('[chatStore] 加载更多会话失败:', e)
     } finally {
       sessionListLoading.value = false
     }
@@ -352,7 +392,9 @@ export const useChatStore = defineStore('chat', () => {
     // 会话列表
     sessionList,
     sessionListLoading,
+    sessionListHasMore,
     fetchSessionList,
+    loadMoreSessionList,
     deleteSession,
     renameSession,
     pinSession,

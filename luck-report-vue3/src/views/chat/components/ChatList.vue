@@ -1,6 +1,6 @@
 <template>
   <div class="chat-list-container">
-    <div v-if="store.sessionListLoading" class="chat-list-loading">
+    <div v-if="store.sessionListLoading && store.sessionList.length === 0" class="chat-list-loading">
       <a-spin />
     </div>
 
@@ -8,7 +8,7 @@
       <span class="empty-text">暂无对话记录</span>
     </div>
 
-    <div v-else class="chat-list-body">
+    <div v-else class="chat-list-body" ref="scrollContainer" @scroll="handleScroll">
       <div
         v-for="chat in store.sessionList"
         :key="chat.id"
@@ -45,6 +45,15 @@
             </a-menu>
           </template>
         </a-dropdown>
+      </div>
+
+      <!-- 底部加载更多 -->
+      <div v-if="store.sessionListLoading" class="load-more-loading">
+        <a-spin size="small" />
+        <span class="load-more-text">加载中...</span>
+      </div>
+      <div v-else-if="!store.sessionListHasMore" class="load-more-end">
+        <span>没有更多了</span>
       </div>
     </div>
 
@@ -91,6 +100,7 @@ import type { SessionInfo } from '@/api/chat/session.ts'
  * 从 chatStore 读取会话列表数据，确保与主面板数据同步
  * 提供历史对话的切换、重命名、置顶、删除功能
  * 以弹窗形式嵌入聊天面板，点击对话项加载该会话的所有消息
+ * 支持分页滚动加载，每次加载10条数据
  */
 
 interface Props {
@@ -107,6 +117,9 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const store = useChatStore()
+
+/** 滚动容器引用 */
+const scrollContainer = ref<HTMLElement | null>(null)
 
 /** 重命名弹窗可见性 */
 const renameModalVisible = ref(false)
@@ -208,6 +221,24 @@ const handleRenameConfirm = async () => {
   } catch (e) {
     console.error('[ChatList] 重命名失败:', e)
     message.error('重命名失败')
+  }
+}
+
+/**
+ * 滚动事件处理
+ * 当滚动到底部时触发加载更多
+ *
+ * @param event - 滚动事件
+ */
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  const scrollTop = target.scrollTop
+  const scrollHeight = target.scrollHeight
+  const clientHeight = target.clientHeight
+
+  // 距离底部小于50px时触发加载
+  if (scrollHeight - scrollTop - clientHeight < 50) {
+    store.loadMoreSessionList()
   }
 }
 
@@ -342,5 +373,27 @@ defineExpose({
 
 .delete-text {
   color: #ef4444;
+}
+
+.load-more-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.load-more-text {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.load-more-end {
+  text-align: center;
+  padding: 12px 0;
+  font-size: 12px;
+  color: #d1d5db;
 }
 </style>

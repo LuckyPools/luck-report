@@ -8,7 +8,7 @@ export interface BusinessKnowledge {
   businessTerm: string
   description: string
   synonyms?: string
-  isRecall?: boolean
+  enabled?: boolean
   modelId: number
   createdTime?: string
   updatedTime?: string
@@ -23,7 +23,7 @@ export interface CreateBusinessKnowledgeDTO {
   businessTerm: string
   description: string
   synonyms?: string
-  isRecall?: boolean
+  enabled?: boolean
   modelId: number
 }
 
@@ -113,17 +113,17 @@ export async function deleteBusinessKnowledge(
 }
 
 /**
- * 设置召回状态
+ * 设置生效状态
  * @param id 业务知识ID
- * @param isRecall 是否召回
+ * @param enabled 是否生效
  * @returns Promise包含设置结果
  */
-export async function recallKnowledge(
+export async function enableKnowledge(
   id: number,
-  isRecall: boolean
+  enabled: boolean
 ): Promise<ApiResponse<boolean>> {
-  const response = await request.post(`/business-knowledge/recall/${id}`, null, {
-    params: { isRecall }
+  const response = await request.post(`/business-knowledge/enable/${id}`, null, {
+    params: { enabled }
   })
   return response as ApiResponse<boolean>
 }

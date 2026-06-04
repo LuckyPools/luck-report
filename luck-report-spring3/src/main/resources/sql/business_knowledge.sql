@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `business_knowledge` (
   `business_term` VARCHAR(255) NOT NULL COMMENT '业务名词',
   `description` TEXT NOT NULL COMMENT '业务知识描述',
   `synonyms` VARCHAR(500) DEFAULT NULL COMMENT '同义词，多个用逗号分隔',
-  `is_recall` TINYINT DEFAULT 1 COMMENT '是否召回（0:不召回, 1:召回）',
+  `enabled` TINYINT DEFAULT 1 COMMENT '是否生效（0:不生效, 1:生效）',
   `model_id` BIGINT DEFAULT NULL COMMENT '关联的嵌入模型ID',
   `embedding_status` VARCHAR(20) DEFAULT 'PENDING' COMMENT '向量化状态：PENDING待处理，PROCESSING处理中，COMPLETED已完成，FAILED失败',
   `error_msg` VARCHAR(500) DEFAULT NULL COMMENT '操作失败的错误信息',
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `business_knowledge` (
   `updated_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_embedding_status` (`embedding_status`),
-  KEY `idx_is_recall` (`is_recall`),
+  KEY `idx_enabled` (`enabled`),
   KEY `idx_is_deleted` (`is_deleted`),
   KEY `idx_model_id` (`model_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='业务知识表';

@@ -30,9 +30,9 @@ public class CreateBusinessKnowledgeDTO {
     /** 同义词，多个用逗号分隔 */
     private String synonyms;
 
-    /** 是否召回 */
+    /** 是否生效 */
     @Builder.Default
-    private Boolean isRecall = true;
+    private Boolean enabled = true;
 
     /** 关联的嵌入模型ID */
     @NotNull(message = "嵌入模型ID不能为空")

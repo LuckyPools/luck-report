@@ -72,9 +72,9 @@
                   </a-tooltip>
                 </a-tag>
               </template>
-              <template v-if="column.key === 'isRecall'">
-                <a-tag :color="record.isRecall ? 'success' : 'default'">
-                  {{ record.isRecall ? '是' : '否' }}
+              <template v-if="column.key === 'enabled'">
+                <a-tag :color="record.enabled ? 'success' : 'default'">
+                  {{ record.enabled ? '是' : '否' }}
                 </a-tag>
               </template>
               <template v-if="column.key === 'action'">
@@ -92,20 +92,20 @@
                     重试
                   </a-button>
                   <a-button
-                    v-if="record.isRecall"
+                    v-if="record.enabled"
                     type="link"
                     size="small"
-                    @click="toggleRecall(record, false)"
+                    @click="toggleEnabled(record, false)"
                   >
-                    取消召回
+                    设为不生效
                   </a-button>
                   <a-button
                     v-else
                     type="link"
                     size="small"
-                    @click="toggleRecall(record, true)"
+                    @click="toggleEnabled(record, true)"
                   >
-                    设为召回
+                    设为生效
                   </a-button>
                   <a-button type="link" size="small" danger @click="deleteKnowledge(record)">
                     删除
@@ -222,7 +222,7 @@ import {
   createBusinessKnowledge,
   updateBusinessKnowledge,
   deleteBusinessKnowledge,
-  recallKnowledge,
+  enableKnowledge,
   refreshVectorStore as refreshVectorStoreApi,
   retryEmbedding as retryEmbeddingApi,
   type BusinessKnowledge,
@@ -275,9 +275,9 @@ const columns = [
     width: 120
   },
   {
-    title: '是否召回',
-    dataIndex: 'isRecall',
-    key: 'isRecall',
+    title: '是否生效',
+    dataIndex: 'enabled',
+    key: 'enabled',
     width: 100
   },
   {
@@ -321,7 +321,7 @@ const knowledgeForm = ref<BusinessKnowledge>({
   businessTerm: '',
   description: '',
   synonyms: '',
-  isRecall: false,
+  enabled: false,
   modelId: undefined as any
 })
 
@@ -378,7 +378,7 @@ const openCreateDialog = () => {
     businessTerm: '',
     description: '',
     synonyms: '',
-    isRecall: false,
+    enabled: false,
     modelId: undefined as any
   }
   dialogVisible.value = true
@@ -431,22 +431,22 @@ const deleteKnowledge = async (knowledge: BusinessKnowledge) => {
 }
 
 /**
- * 切换召回状态
+ * 切换生效状态
  */
-const toggleRecall = async (knowledge: BusinessKnowledge, isRecall: boolean) => {
+const toggleEnabled = async (knowledge: BusinessKnowledge, enabled: boolean) => {
   if (!knowledge.id) return
 
   try {
-    const response = await recallKnowledge(knowledge.id, isRecall)
+    const response = await enableKnowledge(knowledge.id, enabled)
     if (response.success) {
-      message.success(`${isRecall ? '设为召回' : '取消召回'}成功`)
-      knowledge.isRecall = isRecall
+      message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
+      knowledge.enabled = enabled
     } else {
-      message.error(`${isRecall ? '设为召回' : '取消召回'}失败`)
+      message.error(`${enabled ? '设为生效' : '设为不生效'}失败`)
     }
   } catch (error) {
-    message.error(`${isRecall ? '设为召回' : '取消召回'}失败`)
-    console.error('Failed to toggle recall:', error)
+    message.error(`${enabled ? '设为生效' : '设为不生效'}失败`)
+    console.error('Failed to toggle enabled:', error)
   }
 }
 
@@ -482,7 +482,7 @@ const saveKnowledge = async () => {
         businessTerm: knowledgeForm.value.businessTerm,
         description: knowledgeForm.value.description,
         synonyms: knowledgeForm.value.synonyms,
-        isRecall: knowledgeForm.value.isRecall,
+        enabled: knowledgeForm.value.enabled,
         modelId: knowledgeForm.value.modelId
       }
       const response = await createBusinessKnowledge(createData)

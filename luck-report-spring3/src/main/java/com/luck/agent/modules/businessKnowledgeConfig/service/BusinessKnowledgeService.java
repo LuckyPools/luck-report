@@ -64,12 +64,12 @@ public interface BusinessKnowledgeService {
     void deleteKnowledge(Long id);
 
     /**
-     * 设置业务知识的召回状态
+     * 设置业务知识的生效状态
      *
      * @param id 业务知识ID
-     * @param isRecall 是否召回
+     * @param enabled 是否生效
      */
-    void recallKnowledge(Long id, Boolean isRecall);
+    void recallKnowledge(Long id, Boolean enabled);
 
     /**
      * 刷新所有业务知识到向量存储

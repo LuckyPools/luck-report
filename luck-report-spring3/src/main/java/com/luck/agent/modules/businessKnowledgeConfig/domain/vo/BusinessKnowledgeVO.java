@@ -32,9 +32,9 @@ public class BusinessKnowledgeVO {
     /** 同义词 */
     private String synonyms;
 
-    /** 是否召回 */
+    /** 是否生效 */
     @JsonFormat(shape = JsonFormat.Shape.BOOLEAN)
-    private Boolean isRecall;
+    private Boolean enabled;
 
     /** 关联的嵌入模型ID */
     private Long modelId;

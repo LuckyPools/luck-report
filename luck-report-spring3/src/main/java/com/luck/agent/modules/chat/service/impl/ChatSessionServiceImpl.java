@@ -1,5 +1,6 @@
 package com.luck.agent.modules.chat.service.impl;
 
+import com.luck.agent.domain.vo.PageResultVO;
 import com.luck.agent.modules.chat.domain.entity.ChatSession;
 import com.luck.agent.modules.chat.mapper.ChatSessionMapper;
 import com.luck.agent.modules.chat.service.ChatSessionService;
@@ -32,6 +33,14 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     @Override
     public List<ChatSession> findByUserId(Long userId) {
         return chatSessionMapper.selectByUserId(userId);
+    }
+
+    @Override
+    public PageResultVO<ChatSession> findByUserIdWithPage(Long userId, int pageNum, int pageSize) {
+        long total = chatSessionMapper.countByUserId(userId);
+        int offset = (pageNum - 1) * pageSize;
+        List<ChatSession> records = chatSessionMapper.selectByUserIdWithPage(userId, offset, pageSize);
+        return new PageResultVO<>(records, total, pageNum, pageSize);
     }
 
     @Override

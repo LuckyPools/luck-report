@@ -1,5 +1,6 @@
 package com.luck.agent.modules.chat.service;
 
+import com.luck.agent.domain.vo.PageResultVO;
 import com.luck.agent.modules.chat.domain.entity.ChatSession;
 
 import java.util.List;
@@ -26,6 +27,16 @@ public interface ChatSessionService {
      * @return 该用户下的活跃会话列表，按置顶优先、更新时间倒序
      */
     List<ChatSession> findByUserId(Long userId);
+
+    /**
+     * 分页查询指定用户的会话列表
+     *
+     * @param userId   用户ID，不可为空
+     * @param pageNum  页码，从1开始
+     * @param pageSize 每页数量
+     * @return 分页结果，包含会话列表和总数
+     */
+    PageResultVO<ChatSession> findByUserIdWithPage(Long userId, int pageNum, int pageSize);
 
     /**
      * 根据会话ID查询会话详情

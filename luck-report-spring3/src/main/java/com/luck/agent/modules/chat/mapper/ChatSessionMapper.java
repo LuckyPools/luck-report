@@ -40,6 +40,33 @@ public interface ChatSessionMapper {
     List<ChatSession> selectByUserId(@Param("userId") Long userId);
 
     /**
+     * 根据用户ID分页查询会话列表
+     * 按置顶优先、更新时间倒序排列
+     *
+     * @param userId 用户ID
+     * @param offset 偏移量
+     * @param limit  每页数量
+     * @return 会话列表
+     */
+    @Select("SELECT * FROM chat_session " +
+            "WHERE user_id = #{userId} AND status != 'deleted' " +
+            "ORDER BY is_pinned DESC, update_time DESC " +
+            "LIMIT #{offset}, #{limit}")
+    List<ChatSession> selectByUserIdWithPage(@Param("userId") Long userId,
+                                              @Param("offset") int offset,
+                                              @Param("limit") int limit);
+
+    /**
+     * 统计指定用户下未删除的会话总数
+     *
+     * @param userId 用户ID
+     * @return 会话总数
+     */
+    @Select("SELECT COUNT(*) FROM chat_session " +
+            "WHERE user_id = #{userId} AND status != 'deleted'")
+    long countByUserId(@Param("userId") Long userId);
+
+    /**
      * 根据会话ID查询会话详情
      *
      * @param sessionId 会话ID

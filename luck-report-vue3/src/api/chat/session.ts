@@ -30,6 +30,15 @@ export interface SessionInfo {
   updateTime: string
 }
 
+/** 分页结果 */
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  pageNum: number
+  pageSize: number
+  hasMore: boolean
+}
+
 /** 消息对象 */
 export interface MessageInfo {
   id: number
@@ -95,6 +104,24 @@ export async function listSessions(): Promise<SessionInfo[]> {
  */
 export async function listSessionsByUser(userId: number): Promise<SessionInfo[]> {
   return request<SessionInfo[]>(`/api/sessions/user/${userId}`)
+}
+
+/**
+ * 分页查询指定用户的会话列表
+ *
+ * @param userId - 用户ID
+ * @param pageNum - 页码，从1开始
+ * @param pageSize - 每页数量，默认10
+ * @returns 分页结果
+ */
+export async function listSessionsByUserPage(
+  userId: number,
+  pageNum: number = 1,
+  pageSize: number = 10
+): Promise<PageResult<SessionInfo>> {
+  return request<PageResult<SessionInfo>>(
+    `/api/sessions/user/${userId}/page?pageNum=${pageNum}&pageSize=${pageSize}`
+  )
 }
 
 /**

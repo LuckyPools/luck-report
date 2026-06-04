@@ -20,9 +20,9 @@ public interface BusinessKnowledgeMapper {
      * @param knowledge 业务知识实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO business_knowledge (business_term, description, synonyms, is_recall, model_id, " +
+    @Insert("INSERT INTO business_knowledge (business_term, description, synonyms, enabled, model_id, " +
             "embedding_status, error_msg, is_deleted, created_time, updated_time) " +
-            "VALUES (#{businessTerm}, #{description}, #{synonyms}, #{isRecall}, #{modelId}, " +
+            "VALUES (#{businessTerm}, #{description}, #{synonyms}, #{enabled}, #{modelId}, " +
             "#{embeddingStatus}, #{errorMsg}, #{isDeleted}, #{createdTime}, #{updatedTime})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(BusinessKnowledge knowledge);
@@ -34,7 +34,7 @@ public interface BusinessKnowledgeMapper {
      * @return 影响行数
      */
     @Update("UPDATE business_knowledge SET business_term = #{businessTerm}, description = #{description}, " +
-            "synonyms = #{synonyms}, is_recall = #{isRecall}, model_id = #{modelId}, embedding_status = #{embeddingStatus}, " +
+            "synonyms = #{synonyms}, enabled = #{enabled}, model_id = #{modelId}, embedding_status = #{embeddingStatus}, " +
             "error_msg = #{errorMsg}, updated_time = #{updatedTime} WHERE id = #{id}")
     int updateById(BusinessKnowledge knowledge);
 
@@ -44,7 +44,7 @@ public interface BusinessKnowledgeMapper {
      * @param id 业务知识ID
      * @return 业务知识实体
      */
-    @Select("SELECT id, business_term, description, synonyms, is_recall, model_id, embedding_status, " +
+    @Select("SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status, " +
             "error_msg, is_deleted, created_time, updated_time FROM business_knowledge WHERE id = #{id} " +
             "AND is_deleted = 0")
     @Results({
@@ -52,7 +52,7 @@ public interface BusinessKnowledgeMapper {
             @Result(column = "business_term", property = "businessTerm"),
             @Result(column = "description", property = "description"),
             @Result(column = "synonyms", property = "synonyms"),
-            @Result(column = "is_recall", property = "isRecall"),
+            @Result(column = "enabled", property = "enabled"),
             @Result(column = "model_id", property = "modelId"),
             @Result(column = "embedding_status", property = "embeddingStatus"),
             @Result(column = "error_msg", property = "errorMsg"),
@@ -68,7 +68,7 @@ public interface BusinessKnowledgeMapper {
      * @param keyword 搜索关键词
      * @return 业务知识列表
      */
-    @Select("SELECT id, business_term, description, synonyms, is_recall, model_id, embedding_status, " +
+    @Select("SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status, " +
             "error_msg, is_deleted, created_time, updated_time FROM business_knowledge " +
             "WHERE is_deleted = 0 " +
             "AND (business_term LIKE CONCAT('%', #{keyword}, '%') " +
@@ -80,7 +80,7 @@ public interface BusinessKnowledgeMapper {
             @Result(column = "business_term", property = "businessTerm"),
             @Result(column = "description", property = "description"),
             @Result(column = "synonyms", property = "synonyms"),
-            @Result(column = "is_recall", property = "isRecall"),
+            @Result(column = "enabled", property = "enabled"),
             @Result(column = "model_id", property = "modelId"),
             @Result(column = "embedding_status", property = "embeddingStatus"),
             @Result(column = "error_msg", property = "errorMsg"),
@@ -95,7 +95,7 @@ public interface BusinessKnowledgeMapper {
      *
      * @return 业务知识列表
      */
-    @Select("SELECT id, business_term, description, synonyms, is_recall, model_id, embedding_status, " +
+    @Select("SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status, " +
             "error_msg, is_deleted, created_time, updated_time FROM business_knowledge " +
             "WHERE is_deleted = 0 ORDER BY created_time DESC")
     @Results({
@@ -103,7 +103,7 @@ public interface BusinessKnowledgeMapper {
             @Result(column = "business_term", property = "businessTerm"),
             @Result(column = "description", property = "description"),
             @Result(column = "synonyms", property = "synonyms"),
-            @Result(column = "is_recall", property = "isRecall"),
+            @Result(column = "enabled", property = "enabled"),
             @Result(column = "model_id", property = "modelId"),
             @Result(column = "embedding_status", property = "embeddingStatus"),
             @Result(column = "error_msg", property = "errorMsg"),
@@ -131,7 +131,7 @@ public interface BusinessKnowledgeMapper {
      * @return 业务知识列表
      */
     @Select("<script>" +
-            "SELECT id, business_term, description, synonyms, is_recall, model_id, embedding_status, " +
+            "SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status, " +
             "error_msg, is_deleted, created_time, updated_time FROM business_knowledge " +
             "WHERE is_deleted = 0 AND id IN " +
             "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
@@ -143,7 +143,7 @@ public interface BusinessKnowledgeMapper {
             @Result(column = "business_term", property = "businessTerm"),
             @Result(column = "description", property = "description"),
             @Result(column = "synonyms", property = "synonyms"),
-            @Result(column = "is_recall", property = "isRecall"),
+            @Result(column = "enabled", property = "enabled"),
             @Result(column = "model_id", property = "modelId"),
             @Result(column = "embedding_status", property = "embeddingStatus"),
             @Result(column = "error_msg", property = "errorMsg"),
