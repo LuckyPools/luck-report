@@ -20,13 +20,15 @@ public interface VectorDocumentMapper {
     /**
      * 插入或更新文档
      * 使用 ON CONFLICT 实现 upsert，冲突键为 id
+     * 注意：已去掉content字段，全量内容存储在MySQL中
      *
      * @param row 文档行数据
      * @return 影响行数
      */
-    @Insert("INSERT INTO vector_document (id, content, vector, metadata, vector_type, created_at) " +
-            "VALUES (#{id}, #{content}, #{vector}::vector, #{metadata}::jsonb, #{vectorType}, NOW()) " +
-            "ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content, " +
+    @DataSource("pgvector")
+    @Insert("INSERT INTO vector_document (id, vector, metadata, vector_type, created_at) " +
+            "VALUES (#{id}, #{vector}::vector, #{metadata}::jsonb, #{vectorType}, NOW()) " +
+            "ON CONFLICT (id) DO UPDATE SET " +
             "vector = EXCLUDED.vector, metadata = EXCLUDED.metadata, " +
             "vector_type = EXCLUDED.vector_type")
     int insertOrUpdate(VectorDocumentRow row);
@@ -37,6 +39,7 @@ public interface VectorDocumentMapper {
      * @param ids 文档ID列表
      * @return 影响行数
      */
+    @DataSource("pgvector")
     @Delete("<script>" +
             "DELETE FROM vector_document WHERE id IN " +
             "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
@@ -51,6 +54,7 @@ public interface VectorDocumentMapper {
      * @param vectorType 知识类型
      * @return 影响行数
      */
+    @DataSource("pgvector")
     @Delete("DELETE FROM vector_document WHERE vector_type = #{vectorType}")
     int deleteByVectorType(@Param("vectorType") String vectorType);
 
@@ -62,6 +66,7 @@ public interface VectorDocumentMapper {
      * @param metadataJson  元数据过滤 JSON 字符串
      * @return 影响行数
      */
+    @DataSource("pgvector")
     @Delete("DELETE FROM vector_document WHERE vector_type = #{vectorType} AND metadata @> #{metadataJson}::jsonb")
     int deleteByVectorTypeAndMetadata(@Param("vectorType") String vectorType,
                                       @Param("metadataJson") String metadataJson);
@@ -72,12 +77,14 @@ public interface VectorDocumentMapper {
      * @param metadataJson 元数据过滤 JSON 字符串
      * @return 影响行数
      */
+    @DataSource("pgvector")
     @Delete("DELETE FROM vector_document WHERE metadata @> #{metadataJson}::jsonb")
     int deleteByMetadata(@Param("metadataJson") String metadataJson);
 
     /**
      * 向量相似度检索（仅按向量类型过滤）
      * 使用 pgvector 的余弦距离操作符 <=> 进行 ANN 检索
+     * 注意：已去掉content字段，返回的content为空字符串
      *
      * @param queryVectorStr 查询向量字符串（pgvector 格式）
      * @param vectorType     知识类型
@@ -85,7 +92,8 @@ public interface VectorDocumentMapper {
      * @param topK           返回条数
      * @return 检索结果列表
      */
-    @Select("SELECT id, content, vector, metadata, vector_type, " +
+    @DataSource("pgvector")
+    @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
             "FROM vector_document " +
             "WHERE vector_type = #{vectorType} " +
@@ -93,7 +101,6 @@ public interface VectorDocumentMapper {
             "ORDER BY similarity DESC LIMIT #{topK}")
     @Results({
             @Result(column = "id", property = "id"),
-            @Result(column = "content", property = "content"),
             @Result(column = "vector", property = "vector"),
             @Result(column = "metadata", property = "metadata"),
             @Result(column = "vector_type", property = "vectorType"),
@@ -107,6 +114,7 @@ public interface VectorDocumentMapper {
     /**
      * 向量相似度检索（按向量类型 + 元数据过滤）
      * 先按 vectorType 和 metadata jsonb 过滤候选集，再计算余弦相似度
+     * 注意：已去掉content字段，返回的content为空字符串
      *
      * @param queryVectorStr 查询向量字符串（pgvector 格式）
      * @param vectorType     知识类型
@@ -115,7 +123,8 @@ public interface VectorDocumentMapper {
      * @param topK           返回条数
      * @return 检索结果列表
      */
-    @Select("SELECT id, content, vector, metadata, vector_type, " +
+    @DataSource("pgvector")
+    @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
             "FROM vector_document " +
             "WHERE vector_type = #{vectorType} " +
@@ -124,7 +133,6 @@ public interface VectorDocumentMapper {
             "ORDER BY similarity DESC LIMIT #{topK}")
     @Results({
             @Result(column = "id", property = "id"),
-            @Result(column = "content", property = "content"),
             @Result(column = "vector", property = "vector"),
             @Result(column = "metadata", property = "metadata"),
             @Result(column = "vector_type", property = "vectorType"),
@@ -138,6 +146,7 @@ public interface VectorDocumentMapper {
 
     /**
      * 向量相似度检索（仅按元数据过滤，不限向量类型）
+     * 注意：已去掉content字段，返回的content为空字符串
      *
      * @param queryVectorStr 查询向量字符串（pgvector 格式）
      * @param metadataJson   元数据过滤 JSON 字符串
@@ -145,7 +154,8 @@ public interface VectorDocumentMapper {
      * @param topK           返回条数
      * @return 检索结果列表
      */
-    @Select("SELECT id, content, vector, metadata, vector_type, " +
+    @DataSource("pgvector")
+    @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
             "FROM vector_document " +
             "WHERE metadata @> #{metadataJson}::jsonb " +
@@ -153,7 +163,6 @@ public interface VectorDocumentMapper {
             "ORDER BY similarity DESC LIMIT #{topK}")
     @Results({
             @Result(column = "id", property = "id"),
-            @Result(column = "content", property = "content"),
             @Result(column = "vector", property = "vector"),
             @Result(column = "metadata", property = "metadata"),
             @Result(column = "vector_type", property = "vectorType"),
@@ -166,20 +175,21 @@ public interface VectorDocumentMapper {
 
     /**
      * 无过滤条件的向量相似度检索
+     * 注意：已去掉content字段，返回的content为空字符串
      *
      * @param queryVectorStr 查询向量字符串（pgvector 格式）
      * @param threshold      相似度阈值
      * @param topK           返回条数
      * @return 检索结果列表
      */
-    @Select("SELECT id, content, vector, metadata, vector_type, " +
+    @DataSource("pgvector")
+    @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
             "FROM vector_document " +
             "WHERE 1 - (vector <=> #{queryVectorStr}::vector) >= #{threshold} " +
             "ORDER BY similarity DESC LIMIT #{topK}")
     @Results({
             @Result(column = "id", property = "id"),
-            @Result(column = "content", property = "content"),
             @Result(column = "vector", property = "vector"),
             @Result(column = "metadata", property = "metadata"),
             @Result(column = "vector_type", property = "vectorType"),

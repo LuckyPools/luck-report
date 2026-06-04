@@ -16,7 +16,6 @@ SELECT extname, extnamespace::regnamespace AS schema, extversion FROM pg_extensi
 
 CREATE TABLE IF NOT EXISTS luck_report_vector.vector_document (
     id          VARCHAR(64)    NOT NULL,
-    content     TEXT           NOT NULL,
     vector      luck_report_vector.vector(1024) NOT NULL,
     metadata    JSONB          NOT NULL DEFAULT '{}',
     vector_type VARCHAR(32)    NOT NULL DEFAULT 'UNKNOWN',
@@ -25,9 +24,8 @@ CREATE TABLE IF NOT EXISTS luck_report_vector.vector_document (
     );
 
 -- 给表和字段加注释（PostgreSQL 专用写法）
-COMMENT ON TABLE  luck_report_vector.vector_document IS '向量文档表';
+COMMENT ON TABLE  luck_report_vector.vector_document IS '向量文档表（不含content，全量数据存储在MySQL）';
 COMMENT ON COLUMN luck_report_vector.vector_document.id IS '文档唯一ID';
-COMMENT ON COLUMN luck_report_vector.vector_document.content IS '文本内容';
 COMMENT ON COLUMN luck_report_vector.vector_document.vector IS '向量数据，text-embedding-v3 输出 1024 维';
 COMMENT ON COLUMN luck_report_vector.vector_document.metadata IS '元数据，JSON格式，支持 jsonb 操作符过滤';
 COMMENT ON COLUMN luck_report_vector.vector_document.vector_type IS '知识类型: COMPONENT/TEMPLATE/DATASOURCE/BUSINESS';

@@ -5,7 +5,7 @@ import com.luck.agent.domain.vo.CompactRequest;
 import com.luck.agent.domain.vo.CompactResult;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ResultVO;
-import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
+import com.luck.agent.moudules.modelConfig.service.ModelConfigDataService;
 import com.luck.agent.domain.vo.AskModelRequest;
 import com.luck.agent.domain.vo.AskModelResponse;
 import com.luck.agent.util.ChatUtils;

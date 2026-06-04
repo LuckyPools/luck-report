@@ -5,7 +5,7 @@ import com.luck.agent.domain.vo.ChatRequest;
 import com.luck.agent.domain.vo.ContextMessage;
 import com.luck.agent.domain.vo.ToolCallMessage;
 import com.luck.agent.domain.vo.ToolDefinition;
-import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
+import com.luck.agent.moudules.modelConfig.service.ModelConfigDataService;
 import com.luck.agent.domain.vo.AskModelRequest;
 import com.luck.agent.util.ChatUtils;
 import okhttp3.*;

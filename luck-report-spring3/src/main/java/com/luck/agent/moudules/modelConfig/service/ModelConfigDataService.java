@@ -1,4 +1,4 @@
-package com.luck.agent.moudules.modelconfig.service;
+package com.luck.agent.moudules.modelConfig.service;
 
 import com.luck.agent.domain.dto.ModelConfigDTO;
 import com.luck.agent.domain.entity.ModelConfig;

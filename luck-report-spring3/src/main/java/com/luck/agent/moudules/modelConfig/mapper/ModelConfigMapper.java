@@ -1,4 +1,4 @@
-package com.luck.agent.moudules.modelconfig.mapper;
+package com.luck.agent.moudules.modelConfig.mapper;
 
 import com.luck.agent.domain.entity.ModelConfig;
 import org.apache.ibatis.annotations.*;

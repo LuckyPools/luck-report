@@ -1,4 +1,4 @@
-package com.luck.agent.moudules.modelconfig.converter;
+package com.luck.agent.moudules.modelConfig.converter;
 
 import com.luck.agent.domain.dto.ModelConfigDTO;
 import com.luck.agent.domain.entity.ModelConfig;

@@ -13,14 +13,14 @@ import java.util.*;
 
 /**
  * 报表 Agent 向量存储服务
- * 参照 AgentVectorStoreServiceImpl 的存储和读取模式
- * 封装业务语义的文档添加、删除、检索操作，底层委托给 PostgreSQLVectorStore
+ * 提供纯向量操作能力，不包含业务回填逻辑
+ * 业务回填由调用方（Controller）协调完成
  *
  * 知识类型（vectorType）：
  * - COMPONENT: 组件文档（图表类型、单元格属性、样式属性等）
  * - TEMPLATE: 报表模板/示例
  * - DATASOURCE: 数据源 Schema（表名、字段名、字段类型）
- * - BUSINESS: 业务知识/术语（GMV、同比环比等计算公式）
+ * - businessTerm: 业务知识/术语（GMV、同比环比等计算公式）
  *
  * @author luck
  */
@@ -43,7 +43,6 @@ public class ReportAgentVectorStore {
     /**
      * 添加文档到向量存储
      * 将业务数据封装为 VectorDocument，设置必要的元数据后存储
-     * 参照 AgentVectorStoreServiceImpl.addDocuments() 的验证逻辑
      *
      * @param documents 待添加的文档列表
      */
@@ -63,7 +62,6 @@ public class ReportAgentVectorStore {
 
     /**
      * 添加单条组件文档
-     * 参照 DocumentConverterUtil.convertColumnToDocument() 的创建方式
      * 将组件信息封装为 VectorDocument，自动构建 content 和 metadata
      *
      * @param name          组件名称，如 "柱状图"、"条件样式"
@@ -97,7 +95,6 @@ public class ReportAgentVectorStore {
 
     /**
      * 按知识类型删除文档
-     * 参照 AgentVectorStoreServiceImpl.deleteDocumentsByVectorType()
      *
      * @param vectorType 知识类型
      * @return 是否删除成功
@@ -110,8 +107,22 @@ public class ReportAgentVectorStore {
     }
 
     /**
+     * 按元数据条件删除文档
+     * 满足所有 metadata 条件的文档将被删除
+     *
+     * @param metadataFilter 元数据过滤条件，key=字段名, value=期望值
+     * @return 是否删除成功
+     */
+    public boolean deleteByMetadata(Map<String, Object> metadataFilter) {
+        Assert.notNull(metadataFilter, "元数据过滤条件不能为空");
+        Assert.isTrue(!metadataFilter.isEmpty(), "元数据过滤条件不能为空");
+        return vectorStore.deleteByMetadata(metadataFilter);
+    }
+
+    /**
      * 按知识类型检索文档
-     * 参照 AgentVectorStoreServiceImpl.getDocumentsForAgent()
+     * 返回原始向量检索结果，content可能为空（向量库不存储原文）
+     * 调用方需根据 vectorType 和 metadata 中的ID自行回填原文
      *
      * @param query      查询文本
      * @param vectorType 知识类型
@@ -123,6 +134,8 @@ public class ReportAgentVectorStore {
 
     /**
      * 按知识类型检索文档（自定义 topK 和阈值）
+     * 返回原始向量检索结果，content可能为空（向量库不存储原文）
+     * 调用方需根据 vectorType 和 metadata 中的ID自行回填原文
      *
      * @param query        查询文本
      * @param vectorType   知识类型

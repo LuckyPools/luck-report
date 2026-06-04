@@ -1,11 +1,10 @@
-package com.luck.agent.moudules.modelconfig.controller;
+package com.luck.agent.moudules.modelConfig.controller;
 
 import com.luck.agent.domain.dto.ModelConfigDTO;
 import com.luck.agent.domain.enums.ModelType;
 import com.luck.agent.domain.vo.ModelCheckVo;
 import com.luck.agent.domain.vo.ResultVO;
-import com.luck.agent.moudules.modelconfig.converter.ModelConfigConverter;
-import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
+import com.luck.agent.moudules.modelConfig.service.ModelConfigDataService;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;

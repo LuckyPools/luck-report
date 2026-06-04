@@ -9,7 +9,6 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -37,9 +36,9 @@ import java.util.Map;
 @Configuration
 @EnableConfigurationProperties({DataSourceProperties.class,
         org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.class})
-@MapperScan(basePackages = {"com.luck.agent.mapper", 
-        "com.luck.agent.moudules.modelconfig.mapper",
-        "com.luck.agent.moudules.businessKnowledgeConfig.mapper"}, 
+@MapperScan(basePackages = {"com.luck.agent.mapper",
+        "com.luck.agent.moudules.modelConfig.mapper",
+        "com.luck.agent.moudules.businessKnowledgeConfig.mapper"},
         sqlSessionFactoryRef = "sqlSessionFactory")
 public class DynamicDataSourceConfig {
 

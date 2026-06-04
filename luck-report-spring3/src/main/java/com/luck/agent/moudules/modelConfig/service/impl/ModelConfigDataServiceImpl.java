@@ -1,11 +1,11 @@
-package com.luck.agent.moudules.modelconfig.service.impl;
+package com.luck.agent.moudules.modelConfig.service.impl;
 
 import com.luck.agent.domain.dto.ModelConfigDTO;
 import com.luck.agent.domain.entity.ModelConfig;
 import com.luck.agent.domain.enums.ModelType;
-import com.luck.agent.moudules.modelconfig.converter.ModelConfigConverter;
-import com.luck.agent.moudules.modelconfig.mapper.ModelConfigMapper;
-import com.luck.agent.moudules.modelconfig.service.ModelConfigDataService;
+import com.luck.agent.moudules.modelConfig.converter.ModelConfigConverter;
+import com.luck.agent.moudules.modelConfig.mapper.ModelConfigMapper;
+import com.luck.agent.moudules.modelConfig.service.ModelConfigDataService;
 import com.luck.agent.util.CacheUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -104,8 +104,8 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
      */
     @Override
     public List<ModelConfigDTO> listActiveConfigsByType(ModelType modelType) {
-        String cacheKey = modelType == ModelType.CHAT 
-                ? CacheUtils.ACTIVE_CHAT_MODELS_KEY 
+        String cacheKey = modelType == ModelType.CHAT
+                ? CacheUtils.ACTIVE_CHAT_MODELS_KEY
                 : CacheUtils.ACTIVE_EMBEDDING_MODELS_KEY;
 
         // 先从缓存读取

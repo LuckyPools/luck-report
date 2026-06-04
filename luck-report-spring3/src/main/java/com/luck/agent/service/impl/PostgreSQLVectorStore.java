@@ -184,6 +184,7 @@ public class PostgreSQLVectorStore implements VectorStore {
     /**
      * 将 VectorDocument 转换为 VectorDocumentRow
      * 用于 Mapper 的插入操作
+     * 注意：已去掉content字段，全量内容存储在MySQL中
      *
      * @param doc 向量文档
      * @return 数据库行对象
@@ -191,7 +192,6 @@ public class PostgreSQLVectorStore implements VectorStore {
     private VectorDocumentRow toRow(VectorDocument doc) {
         VectorDocumentRow row = new VectorDocumentRow();
         row.setId(doc.getId());
-        row.setContent(doc.getContent());
         row.setVector(vectorToString(doc.getVector()));
         row.setMetadata(gson.toJson(doc.getMetadata()));
         row.setVectorType((String) doc.getMetadata().getOrDefault("vectorType", "UNKNOWN"));
@@ -201,6 +201,7 @@ public class PostgreSQLVectorStore implements VectorStore {
     /**
      * 将 VectorDocumentRow 转换为 VectorStoreSearchResult
      * 解析 vector 字符串和 metadata JSON
+     * 注意：已去掉content字段，返回的Document中content为空字符串
      *
      * @param row 数据库行对象
      * @return 检索结果
@@ -214,7 +215,9 @@ public class PostgreSQLVectorStore implements VectorStore {
             metadata = new HashMap<>();
         }
 
-        VectorDocument doc = new VectorDocument(row.getId(), row.getContent(), metadata);
+        // content字段已从向量表中移除，设置为空字符串
+        // 实际内容需要从MySQL中根据metadata中的ID查询
+        VectorDocument doc = new VectorDocument(row.getId(), "", metadata);
         doc.setVector(vector);
         return new VectorStoreSearchResult(doc, row.getSimilarity() != null ? row.getSimilarity() : 0.0);
     }

@@ -5,6 +5,8 @@ import com.luck.agent.domain.vo.ResultVO;
 import com.luck.agent.domain.vo.VectorAddRequest;
 import com.luck.agent.domain.vo.VectorSearchRequest;
 import com.luck.agent.domain.vo.VectorSearchResult;
+import com.luck.agent.moudules.businessKnowledgeConfig.constant.DocumentMetadataConstant;
+import com.luck.agent.moudules.businessKnowledgeConfig.service.BusinessKnowledgeService;
 import com.luck.agent.service.impl.ReportAgentVectorStore;
 import com.luck.agent.domain.entity.VectorDocument;
 import com.luck.agent.domain.dto.VectorStoreSearchResult;
@@ -32,12 +34,16 @@ public class ReportVectorStoreController {
     @Autowired
     private ReportAgentVectorStore reportAgentVectorStore;
 
+    @Autowired
+    private BusinessKnowledgeService businessKnowledgeService;
+
     /**
      * 向量检索接口
      * 前端 Agent 的 search_component_doc 等工具调用此接口
+     * 先调用向量检索，再根据 vectorType 回填原文内容
      *
      * @param request 检索请求，包含查询文本、知识类型、topK、阈值、元数据过滤
-     * @return 检索结果列表，按相似度降序
+     * @return 检索结果列表，按相似度降序，content已回填原文
      */
     @PostMapping("/search")
     public ResultVO<List<VectorSearchResult>> search(@RequestBody VectorSearchRequest request) {
@@ -51,6 +57,7 @@ public class ReportVectorStoreController {
         int topK = request.getTopK() != null ? request.getTopK() : 5;
         double threshold = request.getThreshold() != null ? request.getThreshold() : 0.5;
 
+        // 1. 调用向量检索
         List<VectorStoreSearchResult> results = reportAgentVectorStore.search(
                 request.getQuery(),
                 request.getVectorType(),
@@ -59,6 +66,12 @@ public class ReportVectorStoreController {
                 request.getMetadataFilters()
         );
 
+        // 2. 根据 vectorType 回填原文内容
+        if (DocumentMetadataConstant.BUSINESS_TERM.equals(request.getVectorType())) {
+            businessKnowledgeService.fillBusinessTermContent(results);
+        }
+
+        // 3. 转换为 VO 返回
         List<VectorSearchResult> voList = results.stream()
                 .map(r -> new VectorSearchResult(
                         r.getDocument().getId(),
