@@ -42,12 +42,23 @@ public class AgentVectorStore {
     private EmbeddingService embeddingService;
 
     /**
-     * 添加文档到向量存储
+     * 添加文档到向量存储（使用默认嵌入模型）
      * 将业务数据封装为 VectorDocument，设置必要的元数据后存储
      *
      * @param documents 待添加的文档列表
      */
     public void addDocuments(List<VectorDocument> documents) {
+        addDocuments(documents, null);
+    }
+
+    /**
+     * 添加文档到向量存储（指定嵌入模型）
+     * 将业务数据封装为 VectorDocument，设置必要的元数据后存储
+     *
+     * @param documents 待添加的文档列表
+     * @param modelId   嵌入模型配置ID，为null时使用默认嵌入模型
+     */
+    public void addDocuments(List<VectorDocument> documents, Long modelId) {
         Assert.notEmpty(documents, "文档列表不能为空");
 
         for (VectorDocument doc : documents) {
@@ -57,7 +68,7 @@ public class AgentVectorStore {
                     "文档元数据必须包含 vectorType 字段");
         }
 
-        vectorStore.add(documents);
+        vectorStore.add(documents, modelId);
         log.info("成功添加 {} 条文档到报表向量存储", documents.size());
     }
 
@@ -90,7 +101,7 @@ public class AgentVectorStore {
         }
 
         VectorDocument doc = new VectorDocument(content, metadata);
-        vectorStore.add(Collections.singletonList(doc));
+        vectorStore.add(Collections.singletonList(doc), null);
         log.info("添加组件文档: name={}, componentType={}", name, componentType);
     }
 

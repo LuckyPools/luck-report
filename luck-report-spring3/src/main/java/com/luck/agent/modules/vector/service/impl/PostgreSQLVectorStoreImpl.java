@@ -45,13 +45,25 @@ public class PostgreSQLVectorStoreImpl implements VectorStore {
     private EmbeddingService embeddingService;
 
     /**
-     * 添加文档到 PostgreSQL
+     * 添加文档到 PostgreSQL（使用默认嵌入模型）
      * 如果文档的 vector 为空，自动调用 EmbeddingService 生成向量
      *
      * @param documents 待添加的文档列表
      */
     @Override
     public void add(List<VectorDocument> documents) {
+        add(documents, null);
+    }
+
+    /**
+     * 添加文档到 PostgreSQL（指定嵌入模型）
+     * 如果文档的 vector 为空，自动调用 EmbeddingService 生成向量
+     *
+     * @param documents 待添加的文档列表
+     * @param modelId   嵌入模型配置ID，为null时使用默认嵌入模型
+     */
+    @Override
+    public void add(List<VectorDocument> documents, Long modelId) {
         if (documents == null || documents.isEmpty()) {
             return;
         }
@@ -66,7 +78,7 @@ public class PostgreSQLVectorStoreImpl implements VectorStore {
             List<String> texts = needEmbed.stream()
                     .map(VectorDocument::getContent)
                     .collect(Collectors.toList());
-            List<float[]> vectors = embeddingService.embedBatch(texts);
+            List<float[]> vectors = embeddingService.embedBatch(texts, modelId);
             for (int i = 0; i < needEmbed.size(); i++) {
                 needEmbed.get(i).setVector(vectors.get(i));
             }

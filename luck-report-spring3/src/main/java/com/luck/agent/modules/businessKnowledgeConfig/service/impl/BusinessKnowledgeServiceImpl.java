@@ -108,7 +108,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
         // 向量操作在事务外执行，此时 @DataSource("pgvector") 可正常切换数据源
         try {
             VectorDocument document = DocumentConverterUtil.convertBusinessKnowledgeToDocument(entity);
-            reportAgentVectorStore.addDocuments(Collections.singletonList(document));
+            reportAgentVectorStore.addDocuments(Collections.singletonList(document), entity.getModelId());
             entity.setEmbeddingStatus(EmbeddingStatus.COMPLETED);
             entity.setErrorMsg(null);
             businessKnowledgeMapper.updateById(entity);
@@ -178,7 +178,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
 
         // 添加新的向量数据
         VectorDocument newDocument = DocumentConverterUtil.convertBusinessKnowledgeToDocument(knowledge);
-        reportAgentVectorStore.addDocuments(Collections.singletonList(newDocument));
+        reportAgentVectorStore.addDocuments(Collections.singletonList(newDocument), knowledge.getModelId());
 
         log.info("成功更新向量存储, id: {}", knowledge.getId());
     }
@@ -263,12 +263,12 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
                 .filter(knowledge -> knowledge.getIsDeleted() == null || knowledge.getIsDeleted() == 0)
                 .collect(Collectors.toList());
 
-        // 转换为向量文档并插入到向量存储
+        // 转换为向量文档并插入到向量存储，每条知识使用各自的modelId
         if (!enabledKnowledge.isEmpty()) {
-            List<VectorDocument> documents = enabledKnowledge.stream()
-                    .map(DocumentConverterUtil::convertBusinessKnowledgeToDocument)
-                    .collect(Collectors.toList());
-            reportAgentVectorStore.addDocuments(documents);
+            for (BusinessKnowledge knowledge : enabledKnowledge) {
+                VectorDocument document = DocumentConverterUtil.convertBusinessKnowledgeToDocument(knowledge);
+                reportAgentVectorStore.addDocuments(Collections.singletonList(document), knowledge.getModelId());
+            }
         }
     }
 

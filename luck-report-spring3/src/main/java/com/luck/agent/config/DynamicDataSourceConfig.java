@@ -40,7 +40,9 @@ import java.util.Map;
         "com.luck.agent.modules.chat.mapper",
         "com.luck.agent.modules.vector.mapper",
         "com.luck.agent.modules.modelConfig.mapper",
-        "com.luck.agent.modules.businessKnowledgeConfig.mapper"},
+        "com.luck.agent.modules.businessKnowledgeConfig.mapper",
+        "com.luck.agent.modules.datasource.mapper",
+        "com.luck.agent.modules.agentKnowledgeConfig.mapper"},
         sqlSessionFactoryRef = "sqlSessionFactory")
 public class DynamicDataSourceConfig {
 

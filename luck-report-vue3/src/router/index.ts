@@ -32,6 +32,16 @@ const router = createRouter({
       path: '/business-knowledge-config',
       name: 'business-knowledge-config',
       component: () => import('@/views/business-knowledge-config/index.vue')
+    },
+    {
+      path: '/datasource',
+      name: 'datasource',
+      component: () => import('@/views/datasource/index.vue')
+    },
+    {
+      path: '/agent-knowledge-config',
+      name: 'agent-knowledge-config',
+      component: () => import('@/views/agent-knowledge-config/index.vue')
     }
   ],
 })

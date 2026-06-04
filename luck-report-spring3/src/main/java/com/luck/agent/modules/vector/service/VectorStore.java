@@ -16,12 +16,21 @@ import java.util.Map;
 public interface VectorStore {
 
     /**
-     * 添加文档到向量存储
+     * 添加文档到向量存储（使用默认嵌入模型）
      * 文档的 vector 字段如果为空，由实现类负责调用 EmbeddingService 生成
      *
      * @param documents 待添加的文档列表
      */
     void add(List<VectorDocument> documents);
+
+    /**
+     * 添加文档到向量存储（指定嵌入模型）
+     * 文档的 vector 字段如果为空，由实现类负责调用 EmbeddingService 生成
+     *
+     * @param documents 待添加的文档列表
+     * @param modelId   嵌入模型配置ID，为null时使用默认嵌入模型
+     */
+    void add(List<VectorDocument> documents, Long modelId);
 
     /**
      * 按文档ID删除

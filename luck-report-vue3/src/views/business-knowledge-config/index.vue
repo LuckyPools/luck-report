@@ -54,11 +54,11 @@
       <!-- 表格区域 -->
       <div class="config-table" v-if="!loading">
         <a-card :bordered="true">
-          <a-table 
-            :dataSource="businessKnowledgeList" 
-            :columns="columns" 
+          <a-table
+            :dataSource="businessKnowledgeList"
+            :columns="columns"
             :rowKey="record => record.id"
-            :scroll="{ x: 1200 }"
+            :scroll="{ x: 1200, y: 500 }"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'embeddingStatus'">
@@ -139,19 +139,40 @@
       :title="isEdit ? '编辑业务知识' : '添加业务知识'"
       width="800px"
       @ok="saveKnowledge"
-      @cancel="dialogVisible = false"
+      @cancel="handleCancel"
       :confirmLoading="saveLoading"
     >
       <a-form
         ref="formRef"
         :model="knowledgeForm"
         :rules="formRules"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
+        :label-col="{ span: 4 }"
+        :wrapper-col="{ span: 20 }"
       >
-        <a-form-item label="业务名词" name="businessTerm">
-          <a-input v-model:value="knowledgeForm.businessTerm" placeholder="请输入业务名词" />
-        </a-form-item>
+        <a-row :gutter="24">
+          <a-col :span="12">
+            <a-form-item label="业务名词" name="businessTerm" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+              <a-input v-model:value="knowledgeForm.businessTerm" placeholder="请输入业务名词" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="嵌入模型" name="modelId" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+              <a-select
+                v-model:value="knowledgeForm.modelId"
+                placeholder="请选择嵌入模型"
+                :loading="modelLoading"
+              >
+                <a-select-option
+                  v-for="model in embeddingModels"
+                  :key="model.id"
+                  :value="model.id"
+                >
+                  {{ model.configName || model.modelName }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
         <a-form-item label="描述" name="description">
           <a-textarea
@@ -167,23 +188,6 @@
             :rows="2"
             placeholder="请输入同义词，多个同义词用逗号分隔"
           />
-        </a-form-item>
-
-        <a-form-item label="嵌入模型" name="modelId">
-          <a-select
-            v-model:value="knowledgeForm.modelId"
-            placeholder="请选择嵌入模型"
-            :loading="modelLoading"
-          >
-            <a-select-option
-              v-for="model in embeddingModels"
-              :key="model.id"
-              :value="model.id"
-            >
-              {{ model.configName || model.modelName }}
-            </a-select-option>
-          </a-select>
-          <div class="form-tip">选择用于将业务知识转化为向量的嵌入模型</div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -215,7 +219,9 @@ import {
   Textarea as ATextarea,
   Tooltip as ATooltip,
   Spin as ASpin,
-  Empty as AEmpty
+  Empty as AEmpty,
+  Row as ARow,
+  Col as ACol
 } from 'ant-design-vue'
 import {
   getBusinessKnowledgeList,
@@ -385,6 +391,14 @@ const openCreateDialog = () => {
 }
 
 /**
+ * 关闭弹窗时清除校验状态
+ */
+const handleCancel = () => {
+  formRef.value?.clearValidate()
+  dialogVisible.value = false
+}
+
+/**
  * 处理搜索
  */
 const handleSearch = () => {
@@ -471,6 +485,7 @@ const saveKnowledge = async () => {
       const response = await updateBusinessKnowledge(currentEditId.value, updateData)
       if (response.success) {
         message.success('更新成功')
+        formRef.value?.clearValidate()
         dialogVisible.value = false
         await loadBusinessKnowledge()
       } else {
@@ -488,6 +503,7 @@ const saveKnowledge = async () => {
       const response = await createBusinessKnowledge(createData)
       if (response.success) {
         message.success('创建成功')
+        formRef.value?.clearValidate()
         dialogVisible.value = false
         await loadBusinessKnowledge()
       } else {

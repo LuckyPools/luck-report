@@ -12,12 +12,7 @@
 
       <!-- Tab切换区域 -->
       <div class="tab-section">
-        <a-radio-group v-model:value="tabSize" style="margin-bottom: 16px">
-          <a-radio-button value="small">紧凑</a-radio-button>
-          <a-radio-button value="default">标准</a-radio-button>
-          <a-radio-button value="large">宽松</a-radio-button>
-        </a-radio-group>
-        <a-tabs v-model:activeKey="activeTab" :size="tabSize">
+        <a-tabs v-model:activeKey="activeTab">
           <a-tab-pane key="CHAT" tab="对话模型">
             <!-- 对话模型内容 -->
             <div class="action-section">
@@ -40,11 +35,11 @@
             <!-- 对话模型表格 -->
             <div class="config-table" v-if="!loading">
               <a-card :bordered="true">
-                <a-table 
-                  :dataSource="chatConfigs" 
-                  :columns="columns" 
+                <a-table
+                  :dataSource="chatConfigs"
+                  :columns="columns"
                   :rowKey="record => record.id"
-                  :scroll="{ x: 1000 }"
+                  :scroll="{ x: 1000, y: 500 }"
                 >
                   <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'provider'">
@@ -123,11 +118,11 @@
             <!-- 嵌入模型表格 -->
             <div class="config-table" v-if="!loading">
               <a-card :bordered="true">
-                <a-table 
-                  :dataSource="embeddingConfigs" 
-                  :columns="embeddingColumns" 
+                <a-table
+                  :dataSource="embeddingConfigs"
+                  :columns="embeddingColumns"
                   :rowKey="record => record.id"
-                  :scroll="{ x: 800 }"
+                  :scroll="{ x: 800, y: 500 }"
                 >
                   <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'provider'">
@@ -196,40 +191,45 @@
     <a-modal
       v-model:open="dialogVisible"
       :title="dialogTitle"
-      width="600px"
+      width="800px"
       @ok="handleSubmit"
-      @cancel="dialogVisible = false"
+      @cancel="handleCancel"
       :confirmLoading="submitting"
     >
+      <div class="modal-form-scroll">
       <a-form
         ref="formRef"
         :model="formData"
         :rules="formRules"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
+        :label-col="{ span: 4 }"
+        :wrapper-col="{ span: 20 }"
       >
-        <a-form-item label="提供商" name="provider">
-          <a-select
-            v-model:value="formData.provider"
-            placeholder="请选择提供商"
-            @change="updateBaseUrlByProvider"
-          >
-            <a-select-option value="deepseek">DeepSeek</a-select-option>
-            <a-select-option value="qwen">Qwen</a-select-option>
-            <a-select-option value="openai">OpenAI</a-select-option>
-            <a-select-option value="siliconflow">Siliconflow</a-select-option>
-            <a-select-option value="custom">Custom</a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <a-form-item label="自定义名称" name="configName">
-          <a-input
-            v-model:value="formData.configName"
-            placeholder="最多50个字，用于在对话框中显示"
-            :maxlength="50"
-          />
-          <div class="form-tip">用于在对话框中显示，建议填写易于识别的名称</div>
-        </a-form-item>
+        <a-row :gutter="24">
+          <a-col :span="12">
+            <a-form-item label="提供商" name="provider" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+              <a-select
+                v-model:value="formData.provider"
+                placeholder="请选择提供商"
+                @change="updateBaseUrlByProvider"
+              >
+                <a-select-option value="deepseek">DeepSeek</a-select-option>
+                <a-select-option value="qwen">Qwen</a-select-option>
+                <a-select-option value="openai">OpenAI</a-select-option>
+                <a-select-option value="siliconflow">Siliconflow</a-select-option>
+                <a-select-option value="custom">Custom</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="自定义名称" name="configName" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+              <a-input
+                v-model:value="formData.configName"
+                placeholder="最多50个字，用于在对话框中显示"
+                :maxlength="50"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
         <a-form-item label="模型名称" name="modelName">
           <a-input
@@ -274,28 +274,30 @@
           />
         </a-form-item>
 
-        <a-form-item v-if="activeTab === 'CHAT'" label="温度" name="temperature">
-          <a-slider
-            v-model:value="formData.temperature"
-            :min="0"
-            :max="2"
-            :step="0.1"
-          />
-          <div class="form-tip">建议默认0。控制生成文本的随机性,值越高越随机</div>
-        </a-form-item>
+        <a-row v-if="activeTab === 'CHAT'" :gutter="24">
+          <a-col :span="12">
+            <a-form-item label="温度" name="temperature" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+              <a-slider
+                v-model:value="formData.temperature"
+                :min="0"
+                :max="2"
+                :step="0.1"
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="最大Token" name="maxTokens" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+              <a-input-number
+                v-model:value="formData.maxTokens"
+                :min="100"
+                :max="10000"
+                :step="100"
+                style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <a-form-item v-if="activeTab === 'CHAT'" label="最大Token" name="maxTokens">
-          <a-input-number
-            v-model:value="formData.maxTokens"
-            :min="100"
-            :max="10000"
-            :step="100"
-            style="width: 100%"
-          />
-          <div class="form-tip">控制生成文本的最大长度</div>
-        </a-form-item>
-
-        <a-divider>网络代理配置</a-divider>
 
         <a-form-item label="启用代理">
           <a-switch v-model:checked="formData.proxyEnabled" />
@@ -305,38 +307,46 @@
         </a-form-item>
 
         <div v-if="formData.proxyEnabled">
-          <a-form-item label="代理主机" name="proxyHost">
-            <a-input
-              v-model:value="formData.proxyHost"
-              placeholder="例如: 127.0.0.1 或 proxy.example.com"
-            />
-          </a-form-item>
+          <a-row :gutter="24">
+            <a-col :span="12">
+              <a-form-item label="代理主机" name="proxyHost" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                <a-input
+                  v-model:value="formData.proxyHost"
+                  placeholder="例如: 127.0.0.1 或 proxy.example.com"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="代理端口" name="proxyPort" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                <a-input-number
+                  v-model:value="formData.proxyPort"
+                  :min="1"
+                  :max="65535"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
 
-          <a-form-item label="代理端口" name="proxyPort">
-            <a-input-number
-              v-model:value="formData.proxyPort"
-              :min="1"
-              :max="65535"
-              style="width: 100%"
-            />
-          </a-form-item>
-
-          <a-form-item label="代理用户名" name="proxyUsername">
-            <a-input
-              v-model:value="formData.proxyUsername"
-              placeholder="可选,代理服务器需要认证时填写"
-            />
-          </a-form-item>
-
-          <a-form-item label="代理密码" name="proxyPassword">
-            <a-input-password
-              v-model:value="formData.proxyPassword"
-              placeholder="可选"
-            />
-          </a-form-item>
+          <a-row :gutter="24">
+            <a-col :span="12">
+              <a-form-item label="代理用户名" name="proxyUsername" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                <a-input
+                  v-model:value="formData.proxyUsername"
+                  placeholder="可选,代理服务器需要认证时填写"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="代理密码" name="proxyPassword" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+                <a-input-password
+                  v-model:value="formData.proxyPassword"
+                  placeholder="可选"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
         </div>
-
-        <a-divider>排序设置</a-divider>
 
         <a-form-item label="排序" name="sort">
           <a-input-number
@@ -349,6 +359,7 @@
           <div class="form-tip">数字越小越靠前，用于模型列表排序</div>
         </a-form-item>
       </a-form>
+      </div>
     </a-modal>
   </div>
 </template>
@@ -371,16 +382,15 @@ import {
   Input as AInput,
   InputPassword as AInputPassword,
   InputNumber as AInputNumber,
-  Radio as ARadio,
-  RadioButton as ARadioButton,
-  RadioGroup as ARadioGroup,
   Tabs as ATabs,
   TabPane as ATabPane,
   Slider as ASlider,
   Switch as ASwitch,
   Divider as ADivider,
   Spin as ASpin,
-  Empty as AEmpty
+  Empty as AEmpty,
+  Row as ARow,
+  Col as ACol
 } from 'ant-design-vue'
 import {
   getModelConfigList,
@@ -404,7 +414,6 @@ const isEditMode = ref(false)
 const submitting = ref(false)
 const activatingId = ref<number | null>(null)
 const activeTab = ref('CHAT') // 当前激活的tab
-const tabSize = ref('default') // tab大小
 const configs = ref<ModelConfig[]>([])
 const formRef = ref<FormInstance>()
 
@@ -629,6 +638,14 @@ const handleEdit = (config: ModelConfig) => {
 }
 
 /**
+ * 关闭弹窗时清除校验状态
+ */
+const handleCancel = () => {
+  formRef.value?.clearValidate()
+  dialogVisible.value = false
+}
+
+/**
  * 提交表单
  */
 const handleSubmit = async () => {
@@ -646,6 +663,7 @@ const handleSubmit = async () => {
       const result = await updateModelConfig(formData.value)
       if (result.code === 0) {
         message.success('配置更新成功')
+        formRef.value?.clearValidate()
         dialogVisible.value = false
         loadConfigs()
       } else {
@@ -656,6 +674,7 @@ const handleSubmit = async () => {
       const result = await addModelConfig(formData.value)
       if (result.code === 0) {
         message.success('配置添加成功')
+        formRef.value?.clearValidate()
         dialogVisible.value = false
         loadConfigs()
       } else {
@@ -781,7 +800,7 @@ onMounted(() => {
 }
 
 .main-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -843,5 +862,12 @@ onMounted(() => {
   color: #999;
   font-size: 12px;
   margin-top: 4px;
+}
+
+.modal-form-scroll {
+  max-height: 65vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 </style>

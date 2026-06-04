@@ -54,30 +54,53 @@ public class EmbeddingService {
     }
 
     /**
-     * 将单条文本转为向量
+     * 将单条文本转为向量（使用默认嵌入模型）
      *
      * @param text 输入文本，不能为空
-     * @return float[] 向量数组，维度 1024（text-embedding-v3）
+     * @return float[] 向量数组，维度由模型决定
      */
     public float[] embed(String text) {
-        List<float[]> results = embedBatch(Collections.singletonList(text));
+        return embed(text, null);
+    }
+
+    /**
+     * 将单条文本转为向量（指定嵌入模型）
+     *
+     * @param text    输入文本，不能为空
+     * @param modelId 嵌入模型配置ID，为null时使用默认激活的第一个嵌入模型
+     * @return float[] 向量数组，维度由模型决定
+     */
+    public float[] embed(String text, Long modelId) {
+        List<float[]> results = embedBatch(Collections.singletonList(text), modelId);
         return results.isEmpty() ? new float[0] : results.get(0);
     }
 
     /**
-     * 批量将文本转为向量
+     * 批量将文本转为向量（使用默认嵌入模型）
      * 百炼 API 单次最多支持 20 条文本
      *
      * @param texts 输入文本列表，不能为空，单次最多 20 条
      * @return List<float[]> 向量列表，顺序与输入一致
      */
     public List<float[]> embedBatch(List<String> texts) {
+        return embedBatch(texts, null);
+    }
+
+    /**
+     * 批量将文本转为向量（指定嵌入模型）
+     * 百炼 API 单次最多支持 20 条文本
+     *
+     * @param texts   输入文本列表，不能为空，单次最多 20 条
+     * @param modelId 嵌入模型配置ID，为null时使用默认激活的第一个嵌入模型
+     * @return List<float[]> 向量列表，顺序与输入一致
+     */
+    public List<float[]> embedBatch(List<String> texts, Long modelId) {
         if (texts == null || texts.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 从 ModelConfigDataService 获取嵌入模型配置
-        ModelConfig embeddingConfig = getEmbeddingConfig();
+        // 根据 modelId 获取嵌入模型配置，未指定时使用默认激活的第一个
+        ModelConfig embeddingConfig = getEmbeddingConfig(modelId);
         String baseUrl = embeddingConfig.getBaseUrl();
         String apiKey = embeddingConfig.getApiKey();
         String modelName = embeddingConfig.getModelName();
@@ -116,20 +139,45 @@ public class EmbeddingService {
     }
 
     /**
-     * 获取嵌入模型配置
-     * 使用默认激活的第一个嵌入模型
+     * 获取嵌入模型配置（使用默认激活的第一个嵌入模型）
      *
      * @return ModelConfig 嵌入模型配置
      * @throws RuntimeException 当找不到可用的嵌入模型时抛出
      */
     private ModelConfig getEmbeddingConfig() {
+        return getEmbeddingConfig(null);
+    }
+
+    /**
+     * 获取嵌入模型配置
+     * 指定 modelId 时按ID查找，未指定时使用默认激活的第一个嵌入模型
+     *
+     * @param modelId 嵌入模型配置ID，为null时使用默认激活的第一个
+     * @return ModelConfig 嵌入模型配置
+     * @throws RuntimeException 当找不到指定的嵌入模型或无可用嵌入模型时抛出
+     */
+    private ModelConfig getEmbeddingConfig(Long modelId) {
+        // 指定了modelId，按ID查找
+        if (modelId != null) {
+            ModelConfig config = modelConfigDataService.findById(modelId.intValue());
+            if (config == null) {
+                throw new RuntimeException("指定的嵌入模型不存在, modelId: " + modelId);
+            }
+            if (config.getModelType() != ModelType.EMBEDDING) {
+                throw new RuntimeException("指定的模型不是嵌入模型, modelId: " + modelId);
+            }
+            log.info("使用指定嵌入模型: id={}, modelName={}", config.getId(), config.getModelName());
+            return config;
+        }
+
+        // 未指定modelId，使用默认激活的第一个嵌入模型
         List<ModelConfigDTO> activeConfigs = modelConfigDataService.listActiveConfigsByType(ModelType.EMBEDDING);
         if (activeConfigs == null || activeConfigs.isEmpty()) {
             throw new RuntimeException("无可用的嵌入模型配置，请先在模型配置页面启用嵌入模型");
         }
 
         ModelConfigDTO dto = activeConfigs.get(0);
-        log.info("使用嵌入模型: id={}, modelName={}", dto.getId(), dto.getModelName());
+        log.info("使用默认嵌入模型: id={}, modelName={}", dto.getId(), dto.getModelName());
         return ModelConfigConverter.toEntity(dto);
     }
 
