@@ -7,6 +7,8 @@ import com.luck.agent.modules.vector.domain.vo.VectorSearchRequest;
 import com.luck.agent.modules.vector.domain.vo.VectorSearchResult;
 import com.luck.agent.modules.businessKnowledgeConfig.constant.DocumentMetadataConstant;
 import com.luck.agent.modules.businessKnowledgeConfig.service.BusinessKnowledgeService;
+import com.luck.agent.modules.agentKnowledgeConfig.constant.AgentKnowledgeMetadataConstant;
+import com.luck.agent.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
 import com.luck.agent.modules.vector.service.impl.AgentVectorStore;
 import com.luck.agent.modules.vector.domain.entity.VectorDocument;
 import com.luck.agent.modules.vector.domain.dto.VectorStoreSearchResult;
@@ -36,6 +38,9 @@ public class ReportVectorStoreController {
 
     @Autowired
     private BusinessKnowledgeService businessKnowledgeService;
+
+    @Autowired
+    private AgentKnowledgeService agentKnowledgeService;
 
     /**
      * 向量检索接口
@@ -69,6 +74,8 @@ public class ReportVectorStoreController {
         // 2. 根据 vectorType 回填原文内容
         if (DocumentMetadataConstant.BUSINESS_TERM.equals(request.getVectorType())) {
             businessKnowledgeService.fillBusinessTermContent(results);
+        } else if (AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE.equals(request.getVectorType())) {
+            agentKnowledgeService.fillAgentKnowledgeContent(results);
         }
 
         // 3. 转换为 VO 返回
