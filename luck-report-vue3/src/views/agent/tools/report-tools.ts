@@ -1,6 +1,7 @@
 import type { ToolDefinition } from './types'
 import { vectorSearch } from '@/api/vector'
 import { executeCode } from '@/views/export/iframe-utils'
+import { getSchemaPrompt, getBuildinDatasources } from '@/api/datasource'
 
 /**
  * 工具执行结果枚举
@@ -14,38 +15,73 @@ export const ToolResult = {
 } as const
 
 /**
- * 搜索组件文档工具
- * 通过后端向量检索 API 查询报表组件的属性、用法、示例
+ * 搜索业务知识工具
+ * 通过后端向量检索 API 查询业务相关的知识和术语
  * 只读工具，可并发执行
- * 调用后端 /api/vector/search 接口，传入 vectorType=COMPONENT
+ * 调用后端 /api/vector/search 接口，传入 vectorType=businessTerm
+ *
+ * 使用场景：
+ * - 用户询问与实际业务相关的问题时
+ * - 需要了解业务术语、业务规则、业务逻辑时
+ * - 需要查询业务背景知识时
  */
-export const searchComponentDocTool: ToolDefinition<{
+export const searchBusinessKnowledgeTool: ToolDefinition<{
   query: string;
-  componentType?: string;
   topK?: number;
 }> = {
-  name: 'search_component_doc',
-  description: '搜索报表组件的文档和用法，如图表类型、单元格属性、样式属性等。当用户提到不熟悉的组件或属性时调用此工具获取详细信息。',
+  name: 'search_business_knowledge',
+  description: '搜索业务知识和术语。当用户询问与实际业务相关的问题、需要了解业务术语、业务规则或业务背景知识时调用此工具。',
   inputSchema: {
     type: 'object',
     properties: {
-      query: { type: 'string', description: '搜索关键词，如"柱状图"、"条件样式"、"数据集绑定"' },
-      componentType: { type: 'string', description: '组件类型过滤，可选值：chart（图表）、cell（单元格）、dataset（数据集）、style（样式）' },
+      query: { type: 'string', description: '搜索关键词，如"销售额计算规则"、"客户等级分类"、"库存预警逻辑"' },
       topK: { type: 'integer', description: '返回条数，默认5' }
     },
     required: ['query']
   },
-  execute: async ({ query, componentType, topK }) => {
-    const metadataFilters: Record<string, any> = {}
-    if (componentType) {
-      metadataFilters.componentType = componentType
-    }
+  execute: async ({ query, topK }) => {
     return vectorSearch({
       query,
-      vectorType: 'COMPONENT',
+      vectorType: 'businessTerm',
       topK: topK ?? 5,
-      threshold: 0.5,
-      metadataFilters: Object.keys(metadataFilters).length > 0 ? metadataFilters : undefined
+      threshold: 0.5
+    })
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 搜索智能体知识工具
+ * 通过后端向量检索 API 查询报表制作的经验、案例、最佳实践
+ * 只读工具，可并发执行
+ * 调用后端 /api/vector/search 接口，传入 vectorType=agentKnowledge
+ *
+ * 使用场景：
+ * - 遇到难以解决的报表问题时
+ * - 需要参考报表制作的案例和最佳实践时
+ * - 需要了解报表设计的经验和技巧时
+ */
+export const searchAgentKnowledgeTool: ToolDefinition<{
+  query: string;
+  topK?: number;
+}> = {
+  name: 'search_agent_knowledge',
+  description: '搜索报表制作的经验、案例和最佳实践。当遇到难以解决的报表问题、需要参考案例或了解报表设计经验时调用此工具。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: '搜索关键词，如"动态列报表"、"分组汇总"、"条件格式化"' },
+      topK: { type: 'integer', description: '返回条数，默认5' }
+    },
+    required: ['query']
+  },
+  execute: async ({ query, topK }) => {
+    return vectorSearch({
+      query,
+      vectorType: 'agentKnowledge',
+      topK: topK ?? 5,
+      threshold: 0.5
     })
   },
   readOnly: true,
@@ -234,6 +270,89 @@ export const removeDatasourceTool: ToolDefinition<{
   },
   readOnly: false,
   requireConfirm: true
+}
+
+/**
+ * 获取Schema提示词工具
+ * 调用agent后台的schema-prompt接口，获取数据源的表关联关系和结构信息
+ * 支持通过数据源ID或名称查询（二选一）
+ * 通过向量检索召回相关表结构，合并逻辑外键，生成格式化的提示词
+ * 用于Agent构建SQL时理解数据源的表结构
+ * 只读工具，可并发执行
+ */
+export const getTableRelationTool: ToolDefinition<{
+  datasourceId?: number;
+  datasourceName?: string;
+  query: string;
+}> = {
+  name: 'get_table_relation',
+  description: '获取内置数据源的表字段和表关联信息。可以传入datasourceId或datasourceName（二选一），返回格式化的表结构信息，包括表名、字段、表关联关系等，用于构建SQL数据集。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      datasourceId: {
+        type: 'integer',
+        description: '数据源ID（与datasourceName二选一），从设计器内置数据源列表中获取'
+      },
+      datasourceName: {
+        type: 'string',
+        description: '数据源名称（与datasourceId二选一），设计器内置数据源的名称'
+      },
+      query: {
+        type: 'string',
+        description: '待查询的表名，如"用户表"'
+      }
+    },
+    required: ['query']
+  },
+  execute: async ({ datasourceId, datasourceName, query }) => {
+    // 调用agent后台的schema-prompt接口
+    const params: { id?: number; name?: string; query: string } = { query }
+
+    if (datasourceId !== undefined) {
+      params.id = datasourceId
+    } else if (datasourceName !== undefined) {
+      params.name = datasourceName
+    } else {
+      throw new Error('必须提供 datasourceId 或 datasourceName')
+    }
+
+    const response = await getSchemaPrompt(params)
+    if (response.success) {
+      return response.data
+    } else {
+      throw new Error(response.message || '获取Schema提示词失败')
+    }
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 获取所有可用的数据源列表工具（来自Agent数据库）
+ * 调用agent后台的buildin/list接口，获取所有注册到Spring容器的BuildinDatasource Bean信息
+ * 返回数据源名称、ID等信息，用于在设计报表时选择使用哪个数据源
+ * 只读工具，可并发执行
+ */
+export const getAvailableDatasourcesTool: ToolDefinition<{}> = {
+  name: 'get_available_datasources',
+  description: '获取所有可用的数据源列表（来自Agent后台数据库配置）。返回数据源名称、ID等信息，用于在设计报表时选择使用哪个数据源。',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+    required: []
+  },
+  execute: async () => {
+    // 调用Agent后台接口获取内置数据源列表
+    const response = await getBuildinDatasources()
+    if (response.success) {
+      return response.data
+    } else {
+      throw new Error(response.message || '获取数据源列表失败')
+    }
+  },
+  readOnly: true,
+  requireConfirm: false
 }
 
 // ============ 数据集操作工具 ============

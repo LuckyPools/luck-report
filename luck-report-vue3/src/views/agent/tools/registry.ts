@@ -1,6 +1,7 @@
 import type { ToolDefinition, ToolApiFormat } from './types'
 import {
-  searchComponentDocTool,
+  searchBusinessKnowledgeTool,
+  searchAgentKnowledgeTool,
   readCellTool,
   writeCellTool,
   getDatasourcesTool,
@@ -8,6 +9,7 @@ import {
   addDatasourceTool,
   updateDatasourceTool,
   removeDatasourceTool,
+  getTableRelationTool,
   getDatasetsTool,
   addDatasetTool,
   updateDatasetTool,
@@ -154,7 +156,8 @@ export class ToolRegistry {
 export function createDefaultRegistry(): ToolRegistry {
   const registry = new ToolRegistry()
   registry.registerAll([
-    searchComponentDocTool,
+    searchBusinessKnowledgeTool,
+    searchAgentKnowledgeTool,
     loadReportIntroduceTool,
     readCellTool,
     writeCellTool,
@@ -163,6 +166,7 @@ export function createDefaultRegistry(): ToolRegistry {
     addDatasourceTool,
     updateDatasourceTool,
     removeDatasourceTool,
+    getTableRelationTool,
     getDatasetsTool,
     addDatasetTool,
     updateDatasetTool,

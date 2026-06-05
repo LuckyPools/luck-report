@@ -14,6 +14,7 @@
         <module>luck-report-core</module>
         <module>luck-report-font</module>
         <module>luck-report-pub</module>
+        <module>luck-report-agent</module>
     </modules>
 
     <properties>
@@ -40,6 +41,11 @@
         <ooxml-schemas.version>1.4</ooxml-schemas.version>
         <zxing-core.version>3.5.4</zxing-core.version>
         <jsqlparser.version>4.9</jsqlparser.version>
+        <!-- agent模块依赖版本 -->
+        <mybatis-spring-boot.version>2.3.2</mybatis-spring-boot.version>
+        <postgresql.version>42.7.3</postgresql.version>
+        <commons-collections4.version>4.4</commons-collections4.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
     </properties>
 
 
@@ -142,6 +148,23 @@
                 <artifactId>jsqlparser</artifactId>
                 <version>${jsqlparser.version}</version>
             </dependency>
+            
+            <!-- agent模块依赖 -->
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>${mybatis-spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${commons-collections4.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -150,7 +173,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <source>8</source>
                     <target>8</target>

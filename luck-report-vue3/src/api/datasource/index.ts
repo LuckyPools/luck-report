@@ -266,3 +266,33 @@ export async function saveLogicalRelations(
   )
   return response as ApiResponse<LogicalRelation[]>
 }
+
+/**
+ * 获取格式化的Schema提示词文本
+ * 通过向量检索召回与查询相关的表结构，合并逻辑外键，生成格式化的提示词
+ * 用于Agent构建SQL时获取数据源的表关联关系
+ * 支持通过数据源ID或名称查询（二选一）
+ *
+ * @param params 查询参数，包含id或name，以及query
+ * @returns Promise包含格式化后的Schema提示词文本
+ */
+export async function getSchemaPrompt(
+  params: { id?: number; name?: string; query: string }
+): Promise<ApiResponse<string>> {
+  const response = await request.post('/datasource/schema-prompt', null, {
+    params
+  })
+  return response as ApiResponse<string>
+}
+
+/**
+ * 获取内置数据源列表（包含ID和名称）
+ * 返回所有注册到Spring容器的BuildinDatasource Bean信息
+ * 用于设计器端获取可用的数据源列表
+ *
+ * @returns Promise包含内置数据源列表
+ */
+export async function getBuildinDatasources(): Promise<ApiResponse<Array<{name: string, id: number}>>> {
+  const response = await request.get('/datasource/buildin/list')
+  return response as ApiResponse<Array<{name: string, id: number}>>
+}

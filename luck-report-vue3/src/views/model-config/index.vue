@@ -358,7 +358,7 @@
           />
           <div class="form-tip">数字越小越靠前，用于模型列表排序</div>
         </a-form-item>
-      </a-form>
+      </a-form>。
       </div>
     </a-modal>
   </div>

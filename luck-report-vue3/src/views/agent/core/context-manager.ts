@@ -72,7 +72,8 @@ export class ContextManager {
    * 加载系统角色定义和报表说明文档，用分界线拼接
    */
   private async getDefaultPrompt(): Promise<string> {
-    return loadPromptDocs([PromptDocName.SYSTEM, PromptDocName.REPORT_DEFINITION])
+    return loadPromptDocs([PromptDocName.SYSTEM])
+    // return loadPromptDocs([PromptDocName.SYSTEM, PromptDocName.REPORT_DEFINITION])
   }
 
   /**

@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
+ * 内置数据源接口
  * @author Jacky.gao
  * @since 2017年2月9日
  */
@@ -32,4 +33,15 @@ public interface BuildinDatasource {
      * @return 返回当前采用数据源的一个连接
      */
     Connection getConnection();
+    
+    /**
+     * 获取数据源唯一标识
+     * 用于Agent调用schema-prompt接口时传递数据源信息
+     * 动态生成的内置数据源返回数据库中的ID，静态配置的内置数据源返回null
+     * 
+     * @return 数据源ID（Integer类型），如果未实现则返回null
+     */
+    default Integer getId() {
+        return null;
+    }
 }

@@ -17,6 +17,7 @@ package com.luck.report.core;
 
 import com.luck.report.core.build.Context;
 import com.luck.report.core.definition.datasource.BuildinDatasource;
+import com.luck.report.core.definition.datasource.BuildinDatasourceRegistry;
 import com.luck.report.core.exception.ConvertException;
 import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.model.Cell;
@@ -40,7 +41,6 @@ import java.util.*;
  */
 public class Utils implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
-    private static Collection<BuildinDatasource> buildinDatasources;
     private static Collection<ImageProvider> imageProviders;
     private static boolean debug;
 
@@ -65,22 +65,48 @@ public class Utils implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         Utils.applicationContext = applicationContext;
-        buildinDatasources = new ArrayList<BuildinDatasource>();
-        buildinDatasources.addAll(applicationContext.getBeansOfType(BuildinDatasource.class).values());
         imageProviders = new ArrayList<ImageProvider>();
         imageProviders.addAll(applicationContext.getBeansOfType(ImageProvider.class).values());
     }
 
+    /**
+     * 获取所有内置数据源
+     * 优先从 BuildinDatasourceRegistry 动态获取（agent 模块从数据库加载）
+     * 如果没有 Registry，则从 Spring 容器直接获取 BuildinDatasource Bean
+     *
+     * @return 内置数据源集合
+     */
     public static Collection<BuildinDatasource> getBuildinDatasources() {
-        return buildinDatasources;
+        if (applicationContext == null) {
+            return new ArrayList<BuildinDatasource>();
+        }
+
+        // 优先从 BuildinDatasourceRegistry 动态获取（agent 模块已加载）
+        Map<String, BuildinDatasourceRegistry> registryBeans = applicationContext.getBeansOfType(BuildinDatasourceRegistry.class);
+        if (!registryBeans.isEmpty()) {
+            List<BuildinDatasource> result = new ArrayList<BuildinDatasource>();
+            for (BuildinDatasourceRegistry registry : registryBeans.values()) {
+                result.addAll(registry.getBuildinDatasources());
+            }
+            return result;
+        }
+
+        // 备选方案：从 Spring 容器直接获取 BuildinDatasource Bean
+        return new ArrayList<BuildinDatasource>(applicationContext.getBeansOfType(BuildinDatasource.class).values());
     }
 
     public static Collection<ImageProvider> getImageProviders() {
         return imageProviders;
     }
 
+    /**
+     * 根据名称获取内置数据源的数据库连接
+     *
+     * @param name 数据源名称
+     * @return 数据库连接，不存在返回 null
+     */
     public static Connection getBuildinConnection(String name) {
-        for (BuildinDatasource datasource : buildinDatasources) {
+        for (BuildinDatasource datasource : getBuildinDatasources()) {
             if (name.equals(datasource.name())) {
                 return datasource.getConnection();
             }
