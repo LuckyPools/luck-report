@@ -6,7 +6,7 @@
         <!-- 数据集绑定选项卡 -->
         <ChartDataConfig
             ref="datasetTab"
-            :dataset="datasetValues.dataset"
+            :datasetName="datasetValues.datasetName"
             :categoryProperty="datasetValues.categoryProperty"
             :xProperty="datasetValues.xProperty"
             :yProperty="datasetValues.yProperty"
@@ -84,7 +84,7 @@ export default {
 
       // 数据集相关 - 使用一个对象来管理所有数据集相关的值
       datasetValues: {
-        dataset: '',
+        datasetName: '',
         categoryProperty: '',
         xProperty: '',
         yProperty: ''
@@ -179,7 +179,7 @@ export default {
      * @return {Array} 字段数组，未选择数据集时返回空数组
      */
     currentFields() {
-      const datasetName = this.datasetValues.dataset;
+      const datasetName = this.datasetValues.datasetName;
       if (!datasetName) return [];
       for (let datasource of this.context.reportDef.datasources) {
         let datasets = datasource.datasets || [];
@@ -220,7 +220,7 @@ export default {
       // 加载数据集配置
       const dataset = chart.dataset || {};
       this.datasetValues = {
-        dataset: dataset.datasetName || '',
+        datasetName: dataset.datasetName || '',
         categoryProperty: dataset.categoryProperty || '',
         xProperty: dataset.xProperty || '',
         yProperty: dataset.yProperty || ''
