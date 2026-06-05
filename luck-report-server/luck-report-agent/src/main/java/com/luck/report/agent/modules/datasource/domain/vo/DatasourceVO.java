@@ -57,6 +57,9 @@ public class DatasourceVO {
     /** 描述 */
     private String description;
 
+    /** 已初始化的表名列表（JSON格式存储，如["table1","table2"]） */
+    private String initializedTables;
+
     /** 创建人ID */
     private Long creatorId;
 

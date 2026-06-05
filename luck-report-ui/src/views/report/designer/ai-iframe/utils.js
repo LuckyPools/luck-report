@@ -29,6 +29,7 @@ import { insertRow as doInsertRow } from '@/views/report/designer/edit-table/uti
 import { deleteRow as doDeleteRow } from '@/views/report/designer/edit-table/utils/operation/DeleteRowOperation.js';
 import { insertCol as doInsertCol } from '@/views/report/designer/edit-table/utils/operation/InsertColOperation.js';
 import { deleteCol as doDeleteCol } from '@/views/report/designer/edit-table/utils/operation/DeleteColOperation.js';
+import { cleanCells as doCleanCells } from '@/views/report/designer/edit-table/utils/operation/ClearCellOperation.js';
 import { pushBackup, popAndRestore, getBackupCount, getBackupSummary, clearBackup } from './backupManager';
 import { deepCopy } from "@/components/utils";
 import {
@@ -105,7 +106,10 @@ export const agentMethodRegistry = {
     testConnection,
     loadBeanMethods,
     validateCondition,
-    getReportSchema
+    getReportSchema,
+    clearCellContent,
+    clearCellStyle,
+    clearCellAll
 };
 
 /**
@@ -162,12 +166,13 @@ function writeCell({ rowIndex, colIndex, cell }) {
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endRow - 结束行索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function mergeCells({ startRow, startCol, endRow, endCol }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] mergeCells: 表格实例不存在');
+        return ToolResult.ERROR;
     }
 
     const oldMergeCells = deepCopy(table.getSettings().mergeCells || []);
@@ -183,8 +188,13 @@ function mergeCells({ startRow, startCol, endRow, endCol }) {
         }
     });
 
-    const result = doMergeCells(startRow, startCol, endRow, endCol, table);
-    return { success: true, action: result.action, message: `${result.action === 'merge' ? '合并' : '拆分'}单元格成功` };
+    try {
+        const result = doMergeCells(startRow, startCol, endRow, endCol, table);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] mergeCells 执行失败:', error);
+        return ToolResult.ERROR;
+    }
 }
 
 /**
@@ -194,15 +204,17 @@ function mergeCells({ startRow, startCol, endRow, endCol }) {
  * @param {Object} params - 参数对象
  * @param {number} params.position - 插入位置（行索引），从0开始
  * @param {number} [params.number=1] - 插入行数
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function insertRow({ position, number = 1 }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] insertRow: 表格实例不存在');
+        return ToolResult.ERROR;
     }
     if (position < 0 || position > table.countRows()) {
-        return { success: false, message: `插入位置无效: ${position}，有效范围 0-${table.countRows()}` };
+        console.error(`[AiIframe] insertRow: 插入位置无效: ${position}，有效范围 0-${table.countRows()}`);
+        return ToolResult.ERROR;
     }
 
     const oldRowHeights = deepCopy(table.getSettings().rowHeights);
@@ -220,8 +232,14 @@ function insertRow({ position, number = 1 }) {
         }
     });
 
-    doInsertRow(table, position, number);
-    return { success: true, message: `已在位置 ${position} 插入 ${number} 行` };
+    try {
+        doInsertRow(table, position, number);
+        console.log(`[AiIframe] insertRow: 已在位置 ${position} 插入 ${number} 行`);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] insertRow 执行失败:', error);
+        return ToolResult.ERROR;
+    }
 }
 
 /**
@@ -231,16 +249,18 @@ function insertRow({ position, number = 1 }) {
  * @param {Object} params - 参数对象
  * @param {number} params.startRow - 起始行索引，从0开始
  * @param {number} params.endRow - 结束行索引，从0开始
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function deleteRow({ startRow, endRow }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] deleteRow: 表格实例不存在');
+        return ToolResult.ERROR;
     }
     const countRows = table.countRows();
     if (startRow < 0 || endRow >= countRows || startRow > endRow) {
-        return { success: false, message: `行范围无效: ${startRow}-${endRow}，有效范围 0-${countRows - 1}` };
+        console.error(`[AiIframe] deleteRow: 行范围无效: ${startRow}-${endRow}，有效范围 0-${countRows - 1}`);
+        return ToolResult.ERROR;
     }
 
     const oldRowHeights = deepCopy(table.getSettings().rowHeights);
@@ -260,8 +280,14 @@ function deleteRow({ startRow, endRow }) {
         }
     });
 
-    doDeleteRow(table, startRow, endRow);
-    return { success: true, message: `已删除行 ${startRow}-${endRow}` };
+    try {
+        doDeleteRow(table, startRow, endRow);
+        console.log(`[AiIframe] deleteRow: 已删除行 ${startRow}-${endRow}`);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] deleteRow 执行失败:', error);
+        return ToolResult.ERROR;
+    }
 }
 
 /**
@@ -271,15 +297,17 @@ function deleteRow({ startRow, endRow }) {
  * @param {Object} params - 参数对象
  * @param {number} params.position - 插入位置（列索引），从0开始
  * @param {number} [params.number=1] - 插入列数
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function insertCol({ position, number = 1 }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] insertCol: 表格实例不存在');
+        return ToolResult.ERROR;
     }
     if (position < 0 || position > table.countCols()) {
-        return { success: false, message: `插入位置无效: ${position}，有效范围 0-${table.countCols()}` };
+        console.error(`[AiIframe] insertCol: 插入位置无效: ${position}，有效范围 0-${table.countCols()}`);
+        return ToolResult.ERROR;
     }
 
     const oldColWidths = deepCopy(table.getSettings().colWidths);
@@ -297,8 +325,14 @@ function insertCol({ position, number = 1 }) {
         }
     });
 
-    doInsertCol(table, position, number);
-    return { success: true, message: `已在位置 ${position} 插入 ${number} 列` };
+    try {
+        doInsertCol(table, position, number);
+        console.log(`[AiIframe] insertCol: 已在位置 ${position} 插入 ${number} 列`);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] insertCol 执行失败:', error);
+        return ToolResult.ERROR;
+    }
 }
 
 /**
@@ -308,16 +342,18 @@ function insertCol({ position, number = 1 }) {
  * @param {Object} params - 参数对象
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function deleteCol({ startCol, endCol }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] deleteCol: 表格实例不存在');
+        return ToolResult.ERROR;
     }
     const countCols = table.countCols();
     if (startCol < 0 || endCol >= countCols || startCol > endCol) {
-        return { success: false, message: `列范围无效: ${startCol}-${endCol}，有效范围 0-${countCols - 1}` };
+        console.error(`[AiIframe] deleteCol: 列范围无效: ${startCol}-${endCol}，有效范围 0-${countCols - 1}`);
+        return ToolResult.ERROR;
     }
 
     const oldColWidths = deepCopy(table.getSettings().colWidths);
@@ -337,8 +373,14 @@ function deleteCol({ startCol, endCol }) {
         }
     });
 
-    doDeleteCol(table, startCol, endCol);
-    return { success: true, message: `已删除列 ${startCol}-${endCol}` };
+    try {
+        doDeleteCol(table, startCol, endCol);
+        console.log(`[AiIframe] deleteCol: 已删除列 ${startCol}-${endCol}`);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] deleteCol 执行失败:', error);
+        return ToolResult.ERROR;
+    }
 }
 
 /**
@@ -348,12 +390,13 @@ function deleteCol({ startCol, endCol }) {
  * @param {Object} params - 参数对象
  * @param {number} params.rowNumber - 目标行号（从1开始）
  * @param {Object} params.row - 新的行定义对象，包含 height 等属性
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function updateRow({ rowNumber, row }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] updateRow: 表格实例不存在');
+        return ToolResult.ERROR;
     }
 
     // 备份当前行数据
@@ -376,30 +419,36 @@ function updateRow({ rowNumber, row }) {
         }
     });
 
-    // 1. 更新 Vuex store 数据
-    doUpdateRow({ rowNumber, row });
+    try {
+        // 1. 更新 Vuex store 数据
+        doUpdateRow({ rowNumber, row });
 
-    // 2. 同步更新 Handsontable 表格行高
-    if (row && row.height !== undefined) {
-        // reportDef 中 height 是 point 单位，Handsontable 使用 pixel 单位
-        // 转换公式：pixel = point * 1.33
-        const heightInPixel = Math.round(row.height * 1.33);
+        // 2. 同步更新 Handsontable 表格行高
+        if (row && row.height !== undefined) {
+            // reportDef 中 height 是 point 单位，Handsontable 使用 pixel 单位
+            // 转换公式：pixel = point * 1.33
+            const heightInPixel = Math.round(row.height * 1.33);
 
-        const rowHeights = table.getSettings().rowHeights || [];
-        // 确保 rowHeights 数组长度足够
-        while (rowHeights.length <= rowIndex) {
-            rowHeights.push(table.getSettings().defaultRowHeight || 23);
+            const rowHeights = table.getSettings().rowHeights || [];
+            // 确保 rowHeights 数组长度足够
+            while (rowHeights.length <= rowIndex) {
+                rowHeights.push(table.getSettings().defaultRowHeight || 23);
+            }
+            rowHeights[rowIndex] = heightInPixel;
+
+            table.updateSettings({
+                rowHeights: rowHeights,
+                manualRowResize: rowHeights
+            });
+            table.render();
         }
-        rowHeights[rowIndex] = heightInPixel;
 
-        table.updateSettings({
-            rowHeights: rowHeights,
-            manualRowResize: rowHeights
-        });
-        table.render();
+        console.log(`[AiIframe] updateRow: 已更新行 ${rowNumber} 定义`);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] updateRow 执行失败:', error);
+        return ToolResult.ERROR;
     }
-
-    return { success: true, message: `已更新行 ${rowNumber} 定义` };
 }
 
 // ============ 列操作方法 ============
@@ -422,12 +471,13 @@ function getColumns({ columnNumber } = {}) {
  *
  * @param {Object} params - 参数对象
  * @param {Array} params.columns - 列定义数组
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function setColumns({ columns }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] setColumns: 表格实例不存在');
+        return ToolResult.ERROR;
     }
 
     // 备份当前列数据
@@ -445,27 +495,33 @@ function setColumns({ columns }) {
         }
     });
 
-    // 1. 更新 Vuex store 数据
-    doSetColumns({ columns });
+    try {
+        // 1. 更新 Vuex store 数据
+        doSetColumns({ columns });
 
-    // 2. 同步更新 Handsontable 表格列宽
-    if (columns && columns.length > 0) {
-        const colWidths = [];
-        columns.forEach(col => {
-            if (col.width !== undefined) {
-                // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
-                // 转换公式：pixel = point * 1.33
-                colWidths.push(Math.round(col.width * 1.33));
-            } else {
-                colWidths.push(table.getSettings().defaultColWidth || 100);
-            }
-        });
+        // 2. 同步更新 Handsontable 表格列宽
+        if (columns && columns.length > 0) {
+            const colWidths = [];
+            columns.forEach(col => {
+                if (col.width !== undefined) {
+                    // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
+                    // 转换公式：pixel = point * 1.33
+                    colWidths.push(Math.round(col.width * 1.33));
+                } else {
+                    colWidths.push(table.getSettings().defaultColWidth || 100);
+                }
+            });
 
-        table.updateSettings({ colWidths: colWidths });
-        table.render();
+            table.updateSettings({ colWidths: colWidths });
+            table.render();
+        }
+
+        console.log('[AiIframe] setColumns: 已整体替换列数据');
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] setColumns 执行失败:', error);
+        return ToolResult.ERROR;
     }
-
-    return { success: true, message: '已整体替换列数据' };
 }
 
 /**
@@ -475,12 +531,13 @@ function setColumns({ columns }) {
  * @param {Object} params - 参数对象
  * @param {number} params.columnNumber - 目标列号（从1开始）
  * @param {Object} params.column - 新的列定义对象，包含 width 等属性
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function updateColumn({ columnNumber, column }) {
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在' };
+        console.error('[AiIframe] updateColumn: 表格实例不存在');
+        return ToolResult.ERROR;
     }
 
     // 备份当前列数据
@@ -503,27 +560,33 @@ function updateColumn({ columnNumber, column }) {
         }
     });
 
-    // 1. 更新 Vuex store 数据
-    doUpdateColumn({ columnNumber, column });
+    try {
+        // 1. 更新 Vuex store 数据
+        doUpdateColumn({ columnNumber, column });
 
-    // 2. 同步更新 Handsontable 表格列宽
-    if (column && column.width !== undefined) {
-        // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
-        // 转换公式：pixel = point * 1.33
-        const widthInPixel = Math.round(column.width * 1.33);
+        // 2. 同步更新 Handsontable 表格列宽
+        if (column && column.width !== undefined) {
+            // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
+            // 转换公式：pixel = point * 1.33
+            const widthInPixel = Math.round(column.width * 1.33);
 
-        const colWidths = table.getSettings().colWidths || [];
-        // 确保 colWidths 数组长度足够
-        while (colWidths.length <= colIndex) {
-            colWidths.push(table.getSettings().defaultColWidth || 100);
+            const colWidths = table.getSettings().colWidths || [];
+            // 确保 colWidths 数组长度足够
+            while (colWidths.length <= colIndex) {
+                colWidths.push(table.getSettings().defaultColWidth || 100);
+            }
+            colWidths[colIndex] = widthInPixel;
+
+            table.updateSettings({ colWidths: colWidths });
+            table.render();
         }
-        colWidths[colIndex] = widthInPixel;
 
-        table.updateSettings({ colWidths: colWidths });
-        table.render();
+        console.log(`[AiIframe] updateColumn: 已更新列 ${columnNumber} 定义`);
+        return ToolResult.SUCCESS;
+    } catch (error) {
+        console.error('[AiIframe] updateColumn 执行失败:', error);
+        return ToolResult.ERROR;
     }
-
-    return { success: true, message: `已更新列 ${columnNumber} 定义` };
 }
 
 /**
@@ -534,7 +597,7 @@ function updateColumn({ columnNumber, column }) {
  * @param {Object} params - 参数对象
  * @param {string} params.description - 备份描述，说明当前操作内容
  * @param {string} [params.type] - 备份数据类型标识
- * @return {Object} 备份结果，包含当前备份栈大小
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function backupData({ description, type } = {}) {
     const desc = description || '手动备份';
@@ -542,7 +605,8 @@ function backupData({ description, type } = {}) {
 
     const table = TableManager.get();
     if (!table) {
-        return { success: false, message: '表格实例不存在，无法备份' };
+        console.error('[AiIframe] backupData: 表格实例不存在，无法备份');
+        return ToolResult.ERROR;
     }
 
     const snapshot = {
@@ -562,7 +626,8 @@ function backupData({ description, type } = {}) {
         }
     });
 
-    return { success: true, message: `已备份: ${desc}`, backupCount: getBackupCount() };
+    console.log(`[AiIframe] backupData: 已备份 - ${desc}，当前备份数量: ${getBackupCount()}`);
+    return ToolResult.SUCCESS;
 }
 
 /**
@@ -594,11 +659,12 @@ function getBackupInfo() {
  * 清空备份栈
  * 清除所有已保存的备份数据
  *
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
  */
 function clearBackupData() {
     clearBackup();
-    return { success: true, message: '已清空备份栈' };
+    console.log('[AiIframe] clearBackupData: 已清空备份栈');
+    return ToolResult.SUCCESS;
 }
 
 /**
@@ -897,6 +963,177 @@ function getReportSchema() {
         dataBindings,
         timestamp: Date.now()
     };
+}
+
+/**
+ * 清空单元格内容（AI Agent 版本）
+ * 将指定区域内的单元格内容清空，保留样式不变，执行前自动备份
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} params.startRow - 起始行索引，从0开始
+ * @param {number} params.endRow - 结束行索引，从0开始
+ * @param {number} params.startCol - 起始列索引，从0开始
+ * @param {number} params.endCol - 结束列索引，从0开始
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ */
+function clearCellContent({ startRow, endRow, startCol, endCol }) {
+    const table = TableManager.get();
+    if (!table) {
+        console.error('[AiIframe] clearCellContent: 表格实例不存在');
+        return ToolResult.ERROR;
+    }
+    if (startRow < 0 || endRow >= table.countRows() || startRow > endRow) {
+        console.error('[AiIframe] clearCellContent: 行范围无效');
+        return ToolResult.ERROR;
+    }
+    if (startCol < 0 || endCol >= table.countCols() || startCol > endCol) {
+        console.error('[AiIframe] clearCellContent: 列范围无效');
+        return ToolResult.ERROR;
+    }
+
+    // 备份当前区域单元格数据
+    const oldCells = [];
+    for (let i = startRow; i <= endRow; i++) {
+        for (let j = startCol; j <= endCol; j++) {
+            const cell = getCell(i, j);
+            if (cell) {
+                oldCells.push({ row: i, col: j, cell: deepCopy(cell) });
+            }
+        }
+    }
+
+    pushBackup({
+        description: `清空单元格内容 (${startRow},${startCol})-(${endRow},${endCol})`,
+        type: 'clearCellContent',
+        restore: function () {
+            for (const item of oldCells) {
+                doWriteCell({ rowIndex: item.row, colIndex: item.col, cell: deepCopy(item.cell) });
+            }
+        }
+    });
+
+    try {
+        doCleanCells(startRow, endRow, startCol, endCol, 'content');
+    } catch (error) {
+        console.error('[AiIframe] clearCellContent 执行失败:', error);
+        return ToolResult.ERROR;
+    }
+
+    return ToolResult.SUCCESS;
+}
+
+/**
+ * 清空单元格样式（AI Agent 版本）
+ * 将指定区域内的单元格样式重置为默认样式，保留内容不变，执行前自动备份
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} params.startRow - 起始行索引，从0开始
+ * @param {number} params.endRow - 结束行索引，从0开始
+ * @param {number} params.startCol - 起始列索引，从0开始
+ * @param {number} params.endCol - 结束列索引，从0开始
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ */
+function clearCellStyle({ startRow, endRow, startCol, endCol }) {
+    const table = TableManager.get();
+    if (!table) {
+        console.error('[AiIframe] clearCellStyle: 表格实例不存在');
+        return ToolResult.ERROR;
+    }
+    if (startRow < 0 || endRow >= table.countRows() || startRow > endRow) {
+        console.error('[AiIframe] clearCellStyle: 行范围无效');
+        return ToolResult.ERROR;
+    }
+    if (startCol < 0 || endCol >= table.countCols() || startCol > endCol) {
+        console.error('[AiIframe] clearCellStyle: 列范围无效');
+        return ToolResult.ERROR;
+    }
+
+    // 备份当前区域单元格数据
+    const oldCells = [];
+    for (let i = startRow; i <= endRow; i++) {
+        for (let j = startCol; j <= endCol; j++) {
+            const cell = getCell(i, j);
+            if (cell) {
+                oldCells.push({ row: i, col: j, cell: deepCopy(cell) });
+            }
+        }
+    }
+
+    pushBackup({
+        description: `清空单元格样式 (${startRow},${startCol})-(${endRow},${endCol})`,
+        type: 'clearCellStyle',
+        restore: function () {
+            for (const item of oldCells) {
+                doWriteCell({ rowIndex: item.row, colIndex: item.col, cell: deepCopy(item.cell) });
+            }
+        }
+    });
+
+    try {
+        doCleanCells(startRow, endRow, startCol, endCol, 'style');
+    } catch (error) {
+        console.error('[AiIframe] clearCellStyle 执行失败:', error);
+        return ToolResult.ERROR;
+    }
+
+    return ToolResult.SUCCESS;
+}
+
+/**
+ * 清空单元格全部（AI Agent 版本）
+ * 将指定区域内的单元格内容和样式全部清空，重置为默认空白单元格，执行前自动备份
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} params.startRow - 起始行索引，从0开始
+ * @param {number} params.endRow - 结束行索引，从0开始
+ * @param {number} params.startCol - 起始列索引，从0开始
+ * @param {number} params.endCol - 结束列索引，从0开始
+ * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ */
+function clearCellAll({ startRow, endRow, startCol, endCol }) {
+    const table = TableManager.get();
+    if (!table) {
+        console.error('[AiIframe] clearCellAll: 表格实例不存在');
+        return ToolResult.ERROR;
+    }
+    if (startRow < 0 || endRow >= table.countRows() || startRow > endRow) {
+        console.error('[AiIframe] clearCellAll: 行范围无效');
+        return ToolResult.ERROR;
+    }
+    if (startCol < 0 || endCol >= table.countCols() || startCol > endCol) {
+        console.error('[AiIframe] clearCellAll: 列范围无效');
+        return ToolResult.ERROR;
+    }
+
+    // 备份当前区域单元格数据
+    const oldCells = [];
+    for (let i = startRow; i <= endRow; i++) {
+        for (let j = startCol; j <= endCol; j++) {
+            const cell = getCell(i, j);
+            if (cell) {
+                oldCells.push({ row: i, col: j, cell: deepCopy(cell) });
+            }
+        }
+    }
+
+    pushBackup({
+        description: `清空单元格全部 (${startRow},${startCol})-(${endRow},${endCol})`,
+        type: 'clearCellAll',
+        restore: function () {
+            for (const item of oldCells) {
+                doWriteCell({ rowIndex: item.row, colIndex: item.col, cell: deepCopy(item.cell) });
+            }
+        }
+    });
+
+    try {
+        doCleanCells(startRow, endRow, startCol, endCol, 'all');
+    } catch (error) {
+        console.error('[AiIframe] clearCellAll 执行失败:', error);
+        return ToolResult.ERROR;
+    }
+
+    return ToolResult.SUCCESS;
 }
 
 export function getAgentMethodArgs() {

@@ -422,3 +422,10 @@
 4. 基于获取的单元格数据，按用户要求修改对应字段，修改后的数据必须符合数据模型约束，表达式要调用【validate_expression】工具做校验
 5. 传入 rowIndex、colIndex、修改后的完整单元格定义对象（cell）调用【write_cell】工具写入。write_cell 会自动备份原数据，返回 1 表示成功、0 表示失败
 6. 若 write_cell 返回 0，可调用【restore_data】工具还原备份后重试
+
+### (三) 清空单元格步骤
+1. 确认要清空的区域范围（startRow、endRow、startCol、endCol，从0开始）
+2. 根据清空需求选择对应工具：
+   - 仅清空内容（保留样式）→ 调用【clear_cell_content】
+   - 仅清空样式（保留内容）→ 调用【clear_cell_style】
+   - 全部清空（内容+样式）→ 调用【clear_cell_all】

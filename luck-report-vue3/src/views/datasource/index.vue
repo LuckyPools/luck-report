@@ -545,6 +545,19 @@ const loadDatasourceList = async () => {
     const response = await getDatasourceList(params)
     if (response.success) {
       datasourceList.value = response.data
+      // 从后端返回的initializedTables字段初始化已选中的表，参照data-agent的selectTables回显逻辑
+      for (const ds of response.data) {
+        if (ds.id && ds.initializedTables) {
+          try {
+            const tables: string[] = JSON.parse(ds.initializedTables)
+            if (Array.isArray(tables) && tables.length > 0) {
+              selectedTablesMap[ds.id] = [...tables]
+            }
+          } catch (e) {
+            // JSON解析失败则忽略
+          }
+        }
+      }
     } else {
       message.error('加载数据源列表失败')
     }
@@ -752,8 +765,22 @@ const loadTables = async (record: Datasource) => {
     const response = await getDatasourceTables(record.id)
     if (response.success) {
       tableListMap[record.id] = response.data
-      if (!selectedTablesMap[record.id]) {
-        selectedTablesMap[record.id] = []
+      // 如果尚未初始化已选择的表，则从数据源的initializedTables字段回显
+      if (!selectedTablesMap[record.id] || selectedTablesMap[record.id].length === 0) {
+        if (record.initializedTables) {
+          try {
+            const tables: string[] = JSON.parse(record.initializedTables)
+            if (Array.isArray(tables)) {
+              selectedTablesMap[record.id] = [...tables]
+            } else {
+              selectedTablesMap[record.id] = []
+            }
+          } catch (e) {
+            selectedTablesMap[record.id] = []
+          }
+        } else {
+          selectedTablesMap[record.id] = []
+        }
       }
       message.success(`成功加载 ${response.data.length} 个表`)
     } else {

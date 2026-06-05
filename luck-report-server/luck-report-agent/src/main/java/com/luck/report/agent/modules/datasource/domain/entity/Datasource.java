@@ -63,6 +63,9 @@ public class Datasource {
     /** 嵌入模型配置ID，用于指定向量化时使用的嵌入模型 */
     private Long modelId;
 
+    /** 已初始化的表名列表（JSON格式存储，如["table1","table2"]） */
+    private String initializedTables;
+
     /** 创建人ID */
     private Long creatorId;
 

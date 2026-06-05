@@ -626,7 +626,7 @@ export const updateRowTool: ToolDefinition<{
   row: any;
 }> = {
   name: 'update_row',
-  description: '按行号匹配更新行定义。会完全替换该行号的行配置。',
+  description: `按行号匹配更新行定义。会完全替换该行号的行配置。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -681,7 +681,7 @@ export const setColumnsTool: ToolDefinition<{
   columns: any[];
 }> = {
   name: 'set_columns',
-  description: '整体替换全部列数据。此操作会覆盖现有列配置，请谨慎使用。',
+  description: `整体替换全部列数据。此操作会覆盖现有列配置，请谨慎使用。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -706,7 +706,7 @@ export const updateColumnTool: ToolDefinition<{
   column: any;
 }> = {
   name: 'update_column',
-  description: '按列号匹配更新列定义。会完全替换该列号的列配置。',
+  description: `按列号匹配更新列定义。会完全替换该列号的列配置。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -732,7 +732,7 @@ export const insertRowTool: ToolDefinition<{
   number?: number;
 }> = {
   name: 'insert_row',
-  description: '在指定位置插入行。会同时处理单元格数据和行头信息，确保数据一致性。position为行索引从0开始，number为插入行数默认1。',
+  description: `在指定位置插入行。会同时处理单元格数据和行头信息，确保数据一致性。position为行索引从0开始，number为插入行数默认1。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -758,7 +758,7 @@ export const deleteRowTool: ToolDefinition<{
   endRow: number;
 }> = {
   name: 'delete_row',
-  description: '删除指定范围的行。会同时处理单元格数据、合并单元格配置和行头信息。startRow和endRow为行索引从0开始。',
+  description: `删除指定范围的行。会同时处理单元格数据、合并单元格配置和行头信息。startRow和endRow为行索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -784,7 +784,7 @@ export const insertColTool: ToolDefinition<{
   number?: number;
 }> = {
   name: 'insert_col',
-  description: '在指定位置插入列。会同时处理单元格数据，确保数据一致性。position为列索引从0开始，number为插入列数默认1。',
+  description: `在指定位置插入列。会同时处理单元格数据，确保数据一致性。position为列索引从0开始，number为插入列数默认1。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -810,7 +810,7 @@ export const deleteColTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'delete_col',
-  description: '删除指定范围的列。会同时处理单元格数据、合并单元格配置。startCol和endCol为列索引从0开始。',
+  description: `删除指定范围的列。会同时处理单元格数据、合并单元格配置。startCol和endCol为列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -838,7 +838,7 @@ export const mergeCellsTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'merge_cells',
-  description: '合并或拆分单元格。如果选中区域已合并则拆分，未合并则合并。行列索引从0开始。',
+  description: `合并或拆分单元格。如果选中区域已合并则拆分，未合并则合并。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -866,7 +866,7 @@ export const backupDataTool: ToolDefinition<{
   type?: string;
 }> = {
   name: 'backup_data',
-  description: '备份当前报表数据快照。在执行修改操作前自动调用，也可手动调用。最多保留最近20步备份。',
+  description: `备份当前报表数据快照。在执行修改操作前自动调用，也可手动调用。最多保留最近20步备份。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -1147,5 +1147,97 @@ export const validateConditionTool: ToolDefinition<{
     return executeCode(`validateCondition({expression:'${escaped}'})`)
   },
   readOnly: true,
+  requireConfirm: false
+}
+
+// ============ 单元格清空操作工具 ============
+
+/**
+ * 清空单元格内容工具
+ * 将指定区域内的单元格内容清空，保留样式不变
+ * 写操作工具，需串行执行
+ */
+export const clearCellContentTool: ToolDefinition<{
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+}> = {
+  name: 'clear_cell_content',
+  description: `清空指定区域单元格的内容，保留样式不变。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      startRow: { type: 'integer', description: '起始行索引，从0开始' },
+      endRow: { type: 'integer', description: '结束行索引，从0开始' },
+      startCol: { type: 'integer', description: '起始列索引，从0开始' },
+      endCol: { type: 'integer', description: '结束列索引，从0开始' }
+    },
+    required: ['startRow', 'endRow', 'startCol', 'endCol']
+  },
+  execute: async ({ startRow, endRow, startCol, endCol }) => {
+    return executeCode(`clearCellContent({startRow:${startRow},endRow:${endRow},startCol:${startCol},endCol:${endCol}})`)
+  },
+  readOnly: false,
+  requireConfirm: false
+}
+
+/**
+ * 清空单元格样式工具
+ * 将指定区域内的单元格样式重置为默认样式，保留内容不变
+ * 写操作工具，需串行执行
+ */
+export const clearCellStyleTool: ToolDefinition<{
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+}> = {
+  name: 'clear_cell_style',
+  description: `清空指定区域单元格的样式，重置为默认样式，保留内容不变。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      startRow: { type: 'integer', description: '起始行索引，从0开始' },
+      endRow: { type: 'integer', description: '结束行索引，从0开始' },
+      startCol: { type: 'integer', description: '起始列索引，从0开始' },
+      endCol: { type: 'integer', description: '结束列索引，从0开始' }
+    },
+    required: ['startRow', 'endRow', 'startCol', 'endCol']
+  },
+  execute: async ({ startRow, endRow, startCol, endCol }) => {
+    return executeCode(`clearCellStyle({startRow:${startRow},endRow:${endRow},startCol:${startCol},endCol:${endCol}})`)
+  },
+  readOnly: false,
+  requireConfirm: false
+}
+
+/**
+ * 清空单元格全部工具
+ * 将指定区域内的单元格内容和样式全部清空，重置为默认空白单元格
+ * 写操作工具，需串行执行
+ */
+export const clearCellAllTool: ToolDefinition<{
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+}> = {
+  name: 'clear_cell_all',
+  description: `清空指定区域单元格的全部内容和样式，重置为默认空白单元格。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      startRow: { type: 'integer', description: '起始行索引，从0开始' },
+      endRow: { type: 'integer', description: '结束行索引，从0开始' },
+      startCol: { type: 'integer', description: '起始列索引，从0开始' },
+      endCol: { type: 'integer', description: '结束列索引，从0开始' }
+    },
+    required: ['startRow', 'endRow', 'startCol', 'endCol']
+  },
+  execute: async ({ startRow, endRow, startCol, endCol }) => {
+    return executeCode(`clearCellAll({startRow:${startRow},endRow:${endRow},startCol:${startCol},endCol:${endCol}})`)
+  },
+  readOnly: false,
   requireConfirm: false
 }

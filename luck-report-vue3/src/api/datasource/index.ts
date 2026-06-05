@@ -27,6 +27,7 @@ export interface Datasource {
   testStatus?: string
   description?: string
   modelId?: number
+  initializedTables?: string
   creatorId?: number
   createTime?: string
   updateTime?: string

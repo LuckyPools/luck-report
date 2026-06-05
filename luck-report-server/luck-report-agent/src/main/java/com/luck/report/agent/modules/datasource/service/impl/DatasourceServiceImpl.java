@@ -8,6 +8,7 @@ import com.luck.report.agent.modules.datasource.domain.dto.TableDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.vo.DatasourceVO;
+import com.luck.report.agent.modules.datasource.config.BuildinDatasourceLoader;
 import com.luck.report.agent.modules.datasource.handler.DatasourcePromptHelper;
 import com.luck.report.agent.modules.datasource.handler.DatasourceTypeHandler;
 import com.luck.report.agent.modules.datasource.handler.DatasourceTypeHandlerRegistry;
@@ -44,6 +45,8 @@ public class DatasourceServiceImpl implements DatasourceService {
     private final DynamicDatasourceManager dynamicDatasourceManager;
     private final DatasourceTypeHandlerRegistry handlerRegistry;
     private final AgentVectorStore agentVectorStore;
+    /** 内置数据源加载器，用于同步更新数据源缓存 */
+    private final BuildinDatasourceLoader buildinDatasourceLoader;
 
     @Override
     public List<DatasourceVO> getAllDatasource() {
@@ -93,6 +96,8 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
 
         datasourceMapper.insert(datasource);
+        // 同步更新内置数据源缓存
+        buildinDatasourceLoader.addOrUpdateDatasource(datasource);
         log.info("创建数据源: id={}, name={}, type={}", datasource.getId(), datasource.getName(), datasource.getType());
         return toVO(datasource);
     }
@@ -121,19 +126,30 @@ public class DatasourceServiceImpl implements DatasourceService {
         datasourceMapper.updateById(datasource);
         // 更新后重建连接池
         dynamicDatasourceManager.removeDatasourcePool(id);
+        // 同步更新内置数据源缓存
+        Datasource updated = datasourceMapper.selectById(id);
+        buildinDatasourceLoader.addOrUpdateDatasource(updated);
         log.info("更新数据源: id={}", id);
-        return toVO(datasourceMapper.selectById(id));
+        return toVO(updated);
     }
 
     @Override
     @Transactional
     public void deleteDatasource(Integer id) {
+        // 先获取数据源信息，用于删除缓存
+        Datasource datasource = datasourceMapper.selectById(id);
+        String datasourceName = datasource != null ? datasource.getName() : null;
+        
         // 删除关联的逻辑外键
         logicalRelationMapper.deleteByDatasourceId(id);
         // 删除数据源
         datasourceMapper.deleteById(id);
         // 关闭连接池
         dynamicDatasourceManager.removeDatasourcePool(id);
+        // 同步删除内置数据源缓存
+        if (datasourceName != null) {
+            buildinDatasourceLoader.removeDatasource(datasourceName);
+        }
         // 删除向量库中该数据源的所有Schema文档（TABLE + COLUMN + 旧版DATASOURCE）
         for (String vectorType : Arrays.asList("TABLE", "COLUMN", "DATASOURCE")) {
             Map<String, Object> filter = new HashMap<>();
@@ -305,11 +321,31 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
         log.info("初始化数据源Schema到向量库: datasourceId={}, tables={}, TABLE文档={}, COLUMN文档={}, 总文档数={}",
                 id, tables.size(), tableDocuments.size(), columnDocuments.size(), allDocuments.size());
+
+        // 保存已初始化的表名列表到数据源记录，用于前端回显
+        try {
+            String initializedTablesJson = objectMapper.writeValueAsString(tables);
+            datasourceMapper.updateInitializedTables(id, initializedTablesJson);
+            log.info("保存已初始化表列表: datasourceId={}, tables={}", id, tables);
+        } catch (Exception e) {
+            log.warn("保存已初始化表列表失败: datasourceId={}, error={}", id, e.getMessage());
+        }
     }
 
     @Override
     public void updateStatus(Integer id, String status) {
         datasourceMapper.updateStatusById(id, status);
+        // 同步更新内置数据源缓存
+        Datasource datasource = datasourceMapper.selectById(id);
+        if (datasource != null) {
+            if ("active".equals(status)) {
+                // 状态变为 active，添加到缓存
+                buildinDatasourceLoader.addOrUpdateDatasource(datasource);
+            } else {
+                // 状态变为非 active，从缓存移除
+                buildinDatasourceLoader.removeDatasource(datasource.getName());
+            }
+        }
         log.info("更新数据源状态: id={}, status={}", id, status);
     }
 
@@ -435,6 +471,7 @@ public class DatasourceServiceImpl implements DatasourceService {
                 .status(datasource.getStatus())
                 .testStatus(datasource.getTestStatus())
                 .description(datasource.getDescription())
+                .initializedTables(datasource.getInitializedTables())
                 .creatorId(datasource.getCreatorId())
                 .createTime(datasource.getCreateTime())
                 .updateTime(datasource.getUpdateTime())

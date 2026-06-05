@@ -107,6 +107,9 @@ export class AgentEngine {
     // 存储模型ID，供压缩时使用
     this.modelId = modelId
 
+    // 清空上一轮的任务列表，避免新消息显示旧任务进度
+    this.taskListManager.clearTasks()
+
     this._running = true
     this.abortController = signal ? null : new AbortController()
     const effectiveSignal = signal || this.abortController!.signal

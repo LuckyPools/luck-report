@@ -35,7 +35,10 @@ import {
   loadBuildinDatasourcesTool,
   testConnectionTool,
   loadBeanMethodsTool,
-  validateConditionTool
+  validateConditionTool,
+  clearCellContentTool,
+  clearCellStyleTool,
+  clearCellAllTool
 } from './report-tools'
 import { loadReportIntroduceTool } from './doc-tools.ts'
 
@@ -192,7 +195,10 @@ export function createDefaultRegistry(): ToolRegistry {
     loadBuildinDatasourcesTool,
     testConnectionTool,
     loadBeanMethodsTool,
-    validateConditionTool
+    validateConditionTool,
+    clearCellContentTool,
+    clearCellStyleTool,
+    clearCellAllTool
   ])
   return registry
 }

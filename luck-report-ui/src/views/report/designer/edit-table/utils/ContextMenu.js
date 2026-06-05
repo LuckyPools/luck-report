@@ -7,6 +7,7 @@ import {doInsertRow} from '@/views/report/designer/edit-table/utils/operation/In
 import {doInsertCol} from '@/views/report/designer/edit-table/utils/operation/InsertColOperation.js';
 import {doDeleteRow} from '@/views/report/designer/edit-table/utils/operation/DeleteRowOperation.js';
 import {doDeleteCol} from '@/views/report/designer/edit-table/utils/operation/DeleteColOperation.js';
+import {doCleanContent, doCleanStyle, doCleanAll} from '@/views/report/designer/edit-table/utils/operation/ClearCellOperation.js';
 import {renderRowHeader} from '@/views/report/designer/edit-table/utils/HeaderUtils.js';
 import Class from '@/views/report/designer/edit-table/row-col-width-height-dialog/class';
 import RowColNumberDialogClass from '@/views/report/designer/edit-table/row-col-number-dialog/class';
@@ -57,15 +58,7 @@ export default function buildMenuConfigure(){
                 const endRow = Math.max(row1, row2);
                 const startCol = Math.min(col1, col2);
                 const endCol = Math.max(col1, col2);
-                let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
-                undoManager.add({
-                    redo:function(){
-                        removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
-                    },
-                    undo:function(){
-                        undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, 'content');
-                    }
-                })
+                doCleanContent(startRow, endRow, startCol, endCol);
             }else if(key==='clean_style'){
                 const selected=this.getSelected();
                 if(!selected || selected.length === 0){
@@ -80,15 +73,7 @@ export default function buildMenuConfigure(){
                 const endRow = Math.max(row1, row2);
                 const startCol = Math.min(col1, col2);
                 const endCol = Math.max(col1, col2);
-                let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
-                undoManager.add({
-                    redo:function(){
-                        removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
-                    },
-                    undo:function(){
-                        undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, 'style');
-                    }
-                })
+                doCleanStyle(startRow, endRow, startCol, endCol);
             }else if(key==='clean'){
                 const selected=this.getSelected();
                 if(!selected || selected.length === 0){
@@ -103,15 +88,7 @@ export default function buildMenuConfigure(){
                 const endRow = Math.max(row1, row2);
                 const startCol = Math.min(col1, col2);
                 const endCol = Math.max(col1, col2);
-                let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
-                undoManager.add({
-                    redo:function(){
-                        removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
-                    },
-                    undo:function(){
-                        undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, 'all');
-                    }
-                });
+                doCleanAll(startRow, endRow, startCol, endCol);
             }else if(key==='repeat_row_header'){
                 const selected=this.getSelected();
                 const [row1,,row2] = selected[0];
@@ -303,59 +280,6 @@ export default function buildMenuConfigure(){
         }
     };
 
-    function undoCleanCells(startRow, endRow, startCol, endCol, removeCellsMap, type) {
-        const hot = TableManager.get();
-        for(let i=startRow;i<=endRow;i++) {
-            for (let j = startCol; j <= endCol; j++) {
-                let cell = getCell(i, j);
-                if (!cell) {
-                    continue;
-                }
-                let key=cell.rowNumber+","+cell.columnNumber;
-                if(type==='content'){
-                    let orgValue=removeCellsMap.get(key);
-                    if(!orgValue){
-                        showAlert($t('table.contextMenu.cancelConetntFail'));
-                        return;
-                    }
-                    cell.value=orgValue;
-                    let value=cell.value;
-                    let valueType=value.type;
-                    let text=value.value;
-                    if(valueType==='dataset'){
-                        text=value.datasetName+"."+value.aggregate+"("+value.property+")";
-                    }
-                    hot.setDataAtCell(i,j,text);
-                }else if(type==='style'){
-                    let orgStyle=removeCellsMap.get(key);
-                    if(!orgStyle){
-                        showAlert($t('table.contextMenu.cancelStyleFail'));
-                        return;
-                    }
-                    cell.cellStyle=orgStyle;
-                }else if(type==='all'){
-                    removeCell(cell);
-                    let orgCell=removeCellsMap.get(key);
-                    if(!orgCell){
-                        showAlert($t('table.contextMenu.cancelClearFail'));
-                        return;
-                    }
-                    addCell(orgCell);
-                    let value=orgCell.value;
-                    let valueType=value.type;
-                    let text=value.value;
-                    if(valueType==='dataset'){
-                        text=value.datasetName+"."+value.aggregate+"("+value.property+")";
-                    }
-                    hot.setDataAtCell(i,j,text);
-                }
-            }
-        }
-        Handsontable.hooks.run(hot, 'afterSelectionEnd',startRow,startCol,endRow,endCol);
-        hot.render();
-    };
-
-
     function undoPasteStyle(startRow,endRow,startCol,endCol,oldStyleMap){
         const style=window.__copy_cell_style__;
         let cellsMap = new Map(), hot = TableManager.get();
@@ -406,51 +330,6 @@ export default function buildMenuConfigure(){
         Handsontable.hooks.run(hot, 'afterSelectionEnd',startRow,startCol,endRow,endCol);
         hot.render();
         return cellsMap;
-    };
-
-    function cleanCells(startRow, endRow, startCol, endCol, type) {
-        let removeCellsMap = new Map(), hot = TableManager.get();
-        for(let i=startRow;i<=endRow;i++){
-            for(let j=startCol;j<=endCol;j++){
-                let cell=getCell(i,j);
-                if(!cell){
-                    continue;
-                }
-                cell.cellStyle.format=null;
-                let key=cell.rowNumber+","+cell.columnNumber;
-                if(type==='content'){
-                    removeCellsMap.set(key,cell.value);
-                    cell.value={
-                        type:'simple',
-                        value:''
-                    };
-                    cell.expand='None';
-                    cell.conditionPropertyItems=null;
-                    hot.setDataAtCell(i,j,'');
-                }else if(type==='style'){
-                    removeCellsMap.set(key,cell.cellStyle);
-                    cell.cellStyle={fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'};
-                }else if(type==='all'){
-                    removeCell(cell);
-                    removeCellsMap.set(key,cell);
-                    let newCell={
-                        rowNumber:cell.rowNumber,
-                        columnNumber:cell.columnNumber,
-                        expand:'None',
-                        value:{
-                            type:'simple',
-                            value:''
-                        },
-                        cellStyle:{fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}
-                    };
-                    addCell(newCell);
-                    hot.setDataAtCell(i,j,'');
-                }
-            }
-        }
-        Handsontable.hooks.run(hot, 'afterSelectionEnd',startRow,startCol,endRow,endCol);
-        hot.render();
-        return removeCellsMap;
     };
 
     function checkCopyOperationDisabled(){

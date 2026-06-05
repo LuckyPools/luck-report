@@ -21,9 +21,9 @@ public interface DatasourceMapper {
      * @return 影响行数
      */
     @Insert("INSERT INTO datasource (name, type, host, port, database_name, username, password, " +
-            "connection_url, status, test_status, description, model_id, creator_id) " +
+            "connection_url, status, test_status, description, model_id, initialized_tables, creator_id) " +
             "VALUES (#{name}, #{type}, #{host}, #{port}, #{databaseName}, #{username}, #{password}, " +
-            "#{connectionUrl}, #{status}, #{testStatus}, #{description}, #{modelId}, #{creatorId})")
+            "#{connectionUrl}, #{status}, #{testStatus}, #{description}, #{modelId}, #{initializedTables}, #{creatorId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Datasource datasource);
 
@@ -36,7 +36,7 @@ public interface DatasourceMapper {
     @Update("UPDATE datasource SET name = #{name}, type = #{type}, host = #{host}, port = #{port}, " +
             "database_name = #{databaseName}, username = #{username}, password = #{password}, " +
             "connection_url = #{connectionUrl}, status = #{status}, description = #{description}, " +
-            "model_id = #{modelId} " +
+            "model_id = #{modelId}, initialized_tables = #{initializedTables} " +
             "WHERE id = #{id}")
     int updateById(Datasource datasource);
 
@@ -47,7 +47,7 @@ public interface DatasourceMapper {
      * @return 数据源实体
      */
     @Select("SELECT id, name, type, host, port, database_name, username, password, connection_url, " +
-            "status, test_status, description, model_id, creator_id, create_time, update_time " +
+            "status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time " +
             "FROM datasource WHERE id = #{id}")
     @Results({
             @Result(column = "id", property = "id"),
@@ -63,6 +63,7 @@ public interface DatasourceMapper {
             @Result(column = "test_status", property = "testStatus"),
             @Result(column = "description", property = "description"),
             @Result(column = "model_id", property = "modelId"),
+            @Result(column = "initialized_tables", property = "initializedTables"),
             @Result(column = "creator_id", property = "creatorId"),
             @Result(column = "create_time", property = "createTime"),
             @Result(column = "update_time", property = "updateTime")
@@ -75,7 +76,7 @@ public interface DatasourceMapper {
      * @return 数据源列表
      */
     @Select("SELECT id, name, type, host, port, database_name, username, password, connection_url, " +
-            "status, test_status, description, model_id, creator_id, create_time, update_time " +
+            "status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time " +
             "FROM datasource ORDER BY create_time DESC")
     @Results({
             @Result(column = "id", property = "id"),
@@ -91,6 +92,7 @@ public interface DatasourceMapper {
             @Result(column = "test_status", property = "testStatus"),
             @Result(column = "description", property = "description"),
             @Result(column = "model_id", property = "modelId"),
+            @Result(column = "initialized_tables", property = "initializedTables"),
             @Result(column = "creator_id", property = "creatorId"),
             @Result(column = "create_time", property = "createTime"),
             @Result(column = "update_time", property = "updateTime")
@@ -104,7 +106,7 @@ public interface DatasourceMapper {
      * @return 数据源列表
      */
     @Select("SELECT id, name, type, host, port, database_name, username, password, connection_url, " +
-            "status, test_status, description, model_id, creator_id, create_time, update_time " +
+            "status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time " +
             "FROM datasource WHERE status = #{status} ORDER BY create_time DESC")
     @Results({
             @Result(column = "id", property = "id"),
@@ -120,6 +122,7 @@ public interface DatasourceMapper {
             @Result(column = "test_status", property = "testStatus"),
             @Result(column = "description", property = "description"),
             @Result(column = "model_id", property = "modelId"),
+            @Result(column = "initialized_tables", property = "initializedTables"),
             @Result(column = "creator_id", property = "creatorId"),
             @Result(column = "create_time", property = "createTime"),
             @Result(column = "update_time", property = "updateTime")
@@ -133,7 +136,7 @@ public interface DatasourceMapper {
      * @return 数据源列表
      */
     @Select("SELECT id, name, type, host, port, database_name, username, password, connection_url, " +
-            "status, test_status, description, model_id, creator_id, create_time, update_time " +
+            "status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time " +
             "FROM datasource WHERE type = #{type} ORDER BY create_time DESC")
     @Results({
             @Result(column = "id", property = "id"),
@@ -149,6 +152,7 @@ public interface DatasourceMapper {
             @Result(column = "test_status", property = "testStatus"),
             @Result(column = "description", property = "description"),
             @Result(column = "model_id", property = "modelId"),
+            @Result(column = "initialized_tables", property = "initializedTables"),
             @Result(column = "creator_id", property = "creatorId"),
             @Result(column = "create_time", property = "createTime"),
             @Result(column = "update_time", property = "updateTime")
@@ -192,7 +196,7 @@ public interface DatasourceMapper {
      * @return 数据源实体，不存在则返回null
      */
     @Select("SELECT id, name, type, host, port, database_name, username, password, connection_url, " +
-            "status, test_status, description, model_id, creator_id, create_time, update_time " +
+            "status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time " +
             "FROM datasource WHERE name = #{name}")
     @Results({
             @Result(column = "id", property = "id"),
@@ -208,9 +212,20 @@ public interface DatasourceMapper {
             @Result(column = "test_status", property = "testStatus"),
             @Result(column = "description", property = "description"),
             @Result(column = "model_id", property = "modelId"),
+            @Result(column = "initialized_tables", property = "initializedTables"),
             @Result(column = "creator_id", property = "creatorId"),
             @Result(column = "create_time", property = "createTime"),
             @Result(column = "update_time", property = "updateTime")
     })
     Datasource selectByName(@Param("name") String name);
+
+    /**
+     * 更新已初始化的表名列表
+     *
+     * @param id 数据源ID
+     * @param initializedTables 已初始化的表名列表（JSON格式）
+     * @return 影响行数
+     */
+    @Update("UPDATE datasource SET initialized_tables = #{initializedTables} WHERE id = #{id}")
+    int updateInitializedTables(@Param("id") Integer id, @Param("initializedTables") String initializedTables);
 }
