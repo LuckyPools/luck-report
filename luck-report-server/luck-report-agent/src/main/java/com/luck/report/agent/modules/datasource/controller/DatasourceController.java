@@ -1,6 +1,9 @@
 package com.luck.report.agent.modules.datasource.controller;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.agent.domain.vo.ResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.CreateLogicalRelationDTO;
+import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceTypeDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.InitSchemaRequestDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
@@ -9,7 +12,6 @@ import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.enums.DatasourceTypeEnum;
 import com.luck.report.agent.modules.datasource.domain.vo.DatasourceVO;
 import com.luck.report.agent.modules.datasource.service.DatasourceService;
-import com.luck.report.agent.modules.businessKnowledgeConfig.domain.vo.ApiResponse;
 import com.luck.report.core.definition.datasource.BuildinDatasource;
 import com.luck.report.core.Utils;
 import javax.validation.Valid;
@@ -43,7 +45,7 @@ public class DatasourceController {
      * @return 数据源类型DTO列表
      */
     @GetMapping("/types")
-    public ApiResponse<List<DatasourceTypeDTO>> getDatasourceTypes() {
+    public ResultVO<List<DatasourceTypeDTO>> getDatasourceTypes() {
         List<DatasourceTypeEnum> supportedTypes = Arrays.asList(
                 DatasourceTypeEnum.MYSQL, DatasourceTypeEnum.POSTGRESQL,
                 DatasourceTypeEnum.DAMENG, DatasourceTypeEnum.SQL_SERVER,
@@ -58,7 +60,7 @@ public class DatasourceController {
                         .build())
                 .collect(Collectors.toList());
 
-        return ApiResponse.success("获取数据源类型成功", types);
+        return ResultVO.success("获取数据源类型成功", types);
     }
 
     /**
@@ -69,7 +71,7 @@ public class DatasourceController {
      * @return 数据源VO列表
      */
     @GetMapping("/list")
-    public ApiResponse<List<DatasourceVO>> list(
+    public ResultVO<List<DatasourceVO>> list(
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "type", required = false) String type) {
         List<DatasourceVO> result;
@@ -80,7 +82,23 @@ public class DatasourceController {
         } else {
             result = datasourceService.getAllDatasource();
         }
-        return ApiResponse.success("查询数据源列表成功", result);
+        return ResultVO.success("查询数据源列表成功", result);
+    }
+
+    /**
+     * 分页查询数据源列表
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    @PostMapping("/query/page")
+    public PageResultVO<DatasourceVO> queryByPage(@Valid @RequestBody DatasourceQueryDTO queryDTO) {
+        try {
+            return datasourceService.queryByPage(queryDTO);
+        } catch (Exception e) {
+            log.error("分页查询数据源列表失败", e);
+            return PageResultVO.error("分页查询失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -90,12 +108,12 @@ public class DatasourceController {
      * @return 数据源VO
      */
     @GetMapping("/detail/{id}")
-    public ApiResponse<DatasourceVO> getDetail(@PathVariable Integer id) {
+    public ResultVO<DatasourceVO> getDetail(@PathVariable Integer id) {
         DatasourceVO vo = datasourceService.getDatasourceById(id);
         if (vo == null) {
-            return ApiResponse.error("数据源不存在");
+            return ResultVO.error("数据源不存在");
         }
-        return ApiResponse.success("查询数据源详情成功", vo);
+        return ResultVO.success("查询数据源详情成功", vo);
     }
 
     /**
@@ -105,14 +123,14 @@ public class DatasourceController {
      * @return 创建后的数据源VO
      */
     @PostMapping("/create")
-    public ApiResponse<DatasourceVO> create(@RequestBody DatasourceVO vo) {
+    public ResultVO<DatasourceVO> create(@RequestBody DatasourceVO vo) {
         try {
             Datasource entity = toEntity(vo);
             DatasourceVO created = datasourceService.createDatasource(entity);
-            return ApiResponse.success("创建数据源成功", created);
+            return ResultVO.success("创建数据源成功", created);
         } catch (Exception e) {
             log.error("创建数据源失败", e);
-            return ApiResponse.error("创建数据源失败：" + e.getMessage());
+            return ResultVO.error("创建数据源失败：" + e.getMessage());
         }
     }
 
@@ -124,14 +142,14 @@ public class DatasourceController {
      * @return 更新后的数据源VO
      */
     @PutMapping("/update/{id}")
-    public ApiResponse<DatasourceVO> update(@PathVariable Integer id, @RequestBody DatasourceVO vo) {
+    public ResultVO<DatasourceVO> update(@PathVariable Integer id, @RequestBody DatasourceVO vo) {
         try {
             Datasource entity = toEntity(vo);
             DatasourceVO updated = datasourceService.updateDatasource(id, entity);
-            return ApiResponse.success("更新数据源成功", updated);
+            return ResultVO.success("更新数据源成功", updated);
         } catch (Exception e) {
             log.error("更新数据源失败", e);
-            return ApiResponse.error("更新数据源失败：" + e.getMessage());
+            return ResultVO.error("更新数据源失败：" + e.getMessage());
         }
     }
 
@@ -142,13 +160,13 @@ public class DatasourceController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    public ApiResponse<Void> delete(@PathVariable Integer id) {
+    public ResultVO<String> delete(@PathVariable Integer id) {
         try {
             datasourceService.deleteDatasource(id);
-            return ApiResponse.success("删除数据源成功");
+            return ResultVO.success("删除数据源成功", "删除数据源成功");
         } catch (Exception e) {
             log.error("删除数据源失败", e);
-            return ApiResponse.error("删除数据源失败：" + e.getMessage());
+            return ResultVO.error("删除数据源失败：" + e.getMessage(), "删除数据源失败：" + e.getMessage());
         }
     }
 
@@ -159,13 +177,13 @@ public class DatasourceController {
      * @return 测试结果
      */
     @PostMapping("/test/{id}")
-    public ApiResponse<Boolean> testConnection(@PathVariable Integer id) {
+    public ResultVO<Boolean> testConnection(@PathVariable Integer id) {
         try {
             boolean success = datasourceService.testConnection(id);
-            return ApiResponse.success(success ? "连接测试成功" : "连接测试失败", success);
+            return ResultVO.success(success ? "连接测试成功" : "连接测试失败", success);
         } catch (Exception e) {
             log.error("连接测试异常", e);
-            return ApiResponse.error("连接测试失败：" + e.getMessage());
+            return ResultVO.error("连接测试失败：" + e.getMessage(), false);
         }
     }
 
@@ -177,14 +195,14 @@ public class DatasourceController {
      * @return 操作结果
      */
     @PostMapping("/status/{id}")
-    public ApiResponse<Void> updateStatus(@PathVariable Integer id,
+    public ResultVO<String> updateStatus(@PathVariable Integer id,
                                            @RequestParam(value = "status") String status) {
         try {
             datasourceService.updateStatus(id, status);
-            return ApiResponse.success("更新状态成功");
+            return ResultVO.success("更新状态成功", "更新状态成功");
         } catch (Exception e) {
             log.error("更新状态失败", e);
-            return ApiResponse.error("更新状态失败：" + e.getMessage());
+            return ResultVO.error("更新状态失败：" + e.getMessage(), "更新状态失败：" + e.getMessage());
         }
     }
 
@@ -195,13 +213,13 @@ public class DatasourceController {
      * @return 表名列表
      */
     @GetMapping("/{id}/tables")
-    public ApiResponse<List<String>> getTables(@PathVariable Integer id) {
+    public ResultVO<List<String>> getTables(@PathVariable Integer id) {
         try {
             List<String> tables = datasourceService.getDatasourceTables(id);
-            return ApiResponse.success("获取表列表成功", tables);
+            return ResultVO.success("获取表列表成功", tables);
         } catch (Exception e) {
             log.error("获取表列表失败", e);
-            return ApiResponse.error("获取表列表失败：" + e.getMessage());
+            return ResultVO.error("获取表列表失败：" + e.getMessage());
         }
     }
 
@@ -213,14 +231,14 @@ public class DatasourceController {
      * @return 字段名列表
      */
     @GetMapping("/{id}/tables/{tableName}/columns")
-    public ApiResponse<List<String>> getTableColumns(@PathVariable Integer id,
+    public ResultVO<List<String>> getTableColumns(@PathVariable Integer id,
                                                       @PathVariable String tableName) {
         try {
             List<String> columns = datasourceService.getTableColumns(id, tableName);
-            return ApiResponse.success("获取字段列表成功", columns);
+            return ResultVO.success("获取字段列表成功", columns);
         } catch (Exception e) {
             log.error("获取字段列表失败", e);
-            return ApiResponse.error("获取字段列表失败：" + e.getMessage());
+            return ResultVO.error("获取字段列表失败：" + e.getMessage());
         }
     }
 
@@ -233,14 +251,14 @@ public class DatasourceController {
      * @return 初始化结果
      */
     @PostMapping("/{id}/init-schema")
-    public ApiResponse<Void> initSchema(@PathVariable Integer id,
+    public ResultVO<String> initSchema(@PathVariable Integer id,
                                          @RequestBody InitSchemaRequestDTO request) {
         try {
             datasourceService.initTableSchema(id, request.getTables(), request.getModelId());
-            return ApiResponse.success("初始化Schema成功");
+            return ResultVO.success("初始化Schema成功", "初始化Schema成功");
         } catch (Exception e) {
             log.error("初始化Schema失败", e);
-            return ApiResponse.error("初始化Schema失败：" + e.getMessage());
+            return ResultVO.error("初始化Schema失败：" + e.getMessage(), "初始化Schema失败：" + e.getMessage());
         }
     }
 
@@ -251,13 +269,13 @@ public class DatasourceController {
      * @return 逻辑外键列表
      */
     @GetMapping("/{id}/logical-relations")
-    public ApiResponse<List<LogicalRelation>> getLogicalRelations(@PathVariable Integer id) {
+    public ResultVO<List<LogicalRelation>> getLogicalRelations(@PathVariable Integer id) {
         try {
             List<LogicalRelation> relations = datasourceService.getLogicalRelations(id);
-            return ApiResponse.success("获取逻辑外键列表成功", relations);
+            return ResultVO.success("获取逻辑外键列表成功", relations);
         } catch (Exception e) {
             log.error("获取逻辑外键列表失败", e);
-            return ApiResponse.error("获取逻辑外键列表失败：" + e.getMessage());
+            return ResultVO.error("获取逻辑外键列表失败：" + e.getMessage());
         }
     }
 
@@ -269,7 +287,7 @@ public class DatasourceController {
      * @return 添加后的逻辑外键
      */
     @PostMapping("/{id}/logical-relations")
-    public ApiResponse<LogicalRelation> addLogicalRelation(@PathVariable Integer id,
+    public ResultVO<LogicalRelation> addLogicalRelation(@PathVariable Integer id,
                                                             @Valid @RequestBody CreateLogicalRelationDTO dto) {
         try {
             LogicalRelation relation = LogicalRelation.builder()
@@ -281,10 +299,10 @@ public class DatasourceController {
                     .description(dto.getDescription())
                     .build();
             LogicalRelation created = datasourceService.addLogicalRelation(id, relation);
-            return ApiResponse.success("添加逻辑外键成功", created);
+            return ResultVO.success("添加逻辑外键成功", created);
         } catch (Exception e) {
             log.error("添加逻辑外键失败", e);
-            return ApiResponse.error("添加逻辑外键失败：" + e.getMessage());
+            return ResultVO.error("添加逻辑外键失败：" + e.getMessage());
         }
     }
 
@@ -297,7 +315,7 @@ public class DatasourceController {
      * @return 更新后的逻辑外键
      */
     @PutMapping("/{id}/logical-relations/{relationId}")
-    public ApiResponse<LogicalRelation> updateLogicalRelation(@PathVariable Integer id,
+    public ResultVO<LogicalRelation> updateLogicalRelation(@PathVariable Integer id,
                                                                @PathVariable Integer relationId,
                                                                @RequestBody UpdateLogicalRelationDTO dto) {
         try {
@@ -310,10 +328,10 @@ public class DatasourceController {
                     .description(dto.getDescription())
                     .build();
             LogicalRelation updated = datasourceService.updateLogicalRelation(id, relationId, relation);
-            return ApiResponse.success("更新逻辑外键成功", updated);
+            return ResultVO.success("更新逻辑外键成功", updated);
         } catch (Exception e) {
             log.error("更新逻辑外键失败", e);
-            return ApiResponse.error("更新逻辑外键失败：" + e.getMessage());
+            return ResultVO.error("更新逻辑外键失败：" + e.getMessage());
         }
     }
 
@@ -325,14 +343,14 @@ public class DatasourceController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}/logical-relations/{relationId}")
-    public ApiResponse<Void> deleteLogicalRelation(@PathVariable Integer id,
+    public ResultVO<String> deleteLogicalRelation(@PathVariable Integer id,
                                                     @PathVariable Integer relationId) {
         try {
             datasourceService.deleteLogicalRelation(id, relationId);
-            return ApiResponse.success("删除逻辑外键成功");
+            return ResultVO.success("删除逻辑外键成功", "删除逻辑外键成功");
         } catch (Exception e) {
             log.error("删除逻辑外键失败", e);
-            return ApiResponse.error("删除逻辑外键失败：" + e.getMessage());
+            return ResultVO.error("删除逻辑外键失败：" + e.getMessage(), "删除逻辑外键失败：" + e.getMessage());
         }
     }
 
@@ -344,14 +362,14 @@ public class DatasourceController {
      * @return 保存后的逻辑外键列表
      */
     @PutMapping("/{id}/logical-relations")
-    public ApiResponse<List<LogicalRelation>> saveLogicalRelations(@PathVariable Integer id,
+    public ResultVO<List<LogicalRelation>> saveLogicalRelations(@PathVariable Integer id,
                                                                     @RequestBody List<LogicalRelation> logicalRelations) {
         try {
             List<LogicalRelation> saved = datasourceService.saveLogicalRelations(id, logicalRelations);
-            return ApiResponse.success("批量保存逻辑外键成功", saved);
+            return ResultVO.success("批量保存逻辑外键成功", saved);
         } catch (Exception e) {
             log.error("批量保存逻辑外键失败", e);
-            return ApiResponse.error("批量保存逻辑外键失败：" + e.getMessage());
+            return ResultVO.error("批量保存逻辑外键失败：" + e.getMessage());
         }
     }
 
@@ -364,14 +382,14 @@ public class DatasourceController {
      * @return SchemaDTO
      */
     @PostMapping("/{id}/schema-dto")
-    public ApiResponse<SchemaDTO> buildSchemaDTO(@PathVariable Integer id,
+    public ResultVO<SchemaDTO> buildSchemaDTO(@PathVariable Integer id,
                                                  @RequestParam(value = "query") String query) {
         try {
             SchemaDTO schemaDTO = datasourceService.buildSchemaDTO(id, query);
-            return ApiResponse.success("构建SchemaDTO成功", schemaDTO);
+            return ResultVO.success("构建SchemaDTO成功", schemaDTO);
         } catch (Exception e) {
             log.error("构建SchemaDTO失败", e);
-            return ApiResponse.error("构建SchemaDTO失败：" + e.getMessage());
+            return ResultVO.error("构建SchemaDTO失败：" + e.getMessage());
         }
     }
 
@@ -386,7 +404,7 @@ public class DatasourceController {
      * @return 格式化后的Schema提示词文本
      */
     @PostMapping("/schema-prompt")
-    public ApiResponse<String> getSchemaPrompt(
+    public ResultVO<String> getSchemaPrompt(
         @RequestParam(value = "name", required = false) String name,
         @RequestParam(value = "id", required = false) Integer id,
         @RequestParam(value = "query") String query) {
@@ -396,20 +414,20 @@ public class DatasourceController {
             if (datasourceId == null && name != null) {
                 DatasourceVO datasource = datasourceService.getDatasourceByName(name);
                 if (datasource == null) {
-                    return ApiResponse.error("数据源不存在: " + name);
+                    return ResultVO.error("数据源不存在: " + name);
                 }
                 datasourceId = datasource.getId();
             }
             
             if (datasourceId == null) {
-                return ApiResponse.error("必须提供id或name参数");
+                return ResultVO.error("必须提供id或name参数");
             }
             
             String prompt = datasourceService.getSchemaPrompt(datasourceId, query);
-            return ApiResponse.success("获取Schema提示词成功", prompt);
+            return ResultVO.success("获取Schema提示词成功", prompt);
         } catch (Exception e) {
             log.error("获取Schema提示词失败", e);
-            return ApiResponse.error("获取Schema提示词失败：" + e.getMessage());
+            return ResultVO.error("获取Schema提示词失败：" + e.getMessage());
         }
     }
 
@@ -421,7 +439,7 @@ public class DatasourceController {
      * @return 内置数据源列表，每项包含name和id
      */
     @GetMapping("/buildin/list")
-    public ApiResponse<List<Map<String, Object>>> getBuildinDatasources() {
+    public ResultVO<List<Map<String, Object>>> getBuildinDatasources() {
         try {
             Collection<BuildinDatasource> datasources = Utils.getBuildinDatasources();
             List<Map<String, Object>> result = new ArrayList<>();
@@ -433,10 +451,10 @@ public class DatasourceController {
                 result.add(item);
             }
             
-            return ApiResponse.success("获取内置数据源列表成功", result);
+            return ResultVO.success("获取内置数据源列表成功", result);
         } catch (Exception e) {
             log.error("获取内置数据源列表失败", e);
-            return ApiResponse.error("获取内置数据源列表失败：" + e.getMessage());
+            return ResultVO.error("获取内置数据源列表失败：" + e.getMessage());
         }
     }
 

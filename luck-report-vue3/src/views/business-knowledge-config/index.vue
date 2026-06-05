@@ -59,6 +59,15 @@
             :columns="columns"
             :rowKey="record => record.id"
             :scroll="{ x: 1200, y: 500 }"
+            :pagination="{
+              current: pageNum,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (t: number) => `共 ${t} 条`
+            }"
+            @change="(pag: any) => { pageNum = pag.current; pageSize = pag.pageSize; loadBusinessKnowledge() }"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'embeddingStatus'">
@@ -224,7 +233,7 @@ import {
   Col as ACol
 } from 'ant-design-vue'
 import {
-  getBusinessKnowledgeList,
+  queryBusinessKnowledgeByPage,
   createBusinessKnowledge,
   updateBusinessKnowledge,
   deleteBusinessKnowledge,
@@ -232,6 +241,7 @@ import {
   refreshVectorStore as refreshVectorStoreApi,
   retryEmbedding as retryEmbeddingApi,
   type BusinessKnowledge,
+  type BusinessKnowledgeQueryDTO,
   type CreateBusinessKnowledgeDTO,
   type UpdateBusinessKnowledgeDTO
 } from '@/api/business-knowledge-config'
@@ -318,6 +328,11 @@ const refreshLoading = ref(false)
 const retryLoadingMap = ref<Record<number, boolean>>({})
 const formRef = ref<FormInstance>()
 
+// 分页变量
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+
 // 嵌入模型列表
 const embeddingModels = ref<ModelConfig[]>([])
 const modelLoading = ref(false)
@@ -340,9 +355,15 @@ const currentEditId = ref<number | null>(null)
 const loadBusinessKnowledge = async () => {
   loading.value = true
   try {
-    const response = await getBusinessKnowledgeList(searchKeyword.value)
-    if (response.success) {
-      businessKnowledgeList.value = response.data
+    const queryDTO: BusinessKnowledgeQueryDTO = {
+      businessTerm: searchKeyword.value || undefined,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    }
+    const response = await queryBusinessKnowledgeByPage(queryDTO)
+    if (response.code === 0) {
+      businessKnowledgeList.value = response.records
+      total.value = response.total
     } else {
       message.error('加载业务知识列表失败')
     }
@@ -402,6 +423,7 @@ const handleCancel = () => {
  * 处理搜索
  */
 const handleSearch = () => {
+  pageNum.value = 1
   loadBusinessKnowledge()
 }
 
@@ -430,7 +452,7 @@ const deleteKnowledge = async (knowledge: BusinessKnowledge) => {
     onOk: async () => {
       try {
         const response = await deleteBusinessKnowledge(knowledge.id!)
-        if (response.success) {
+        if (response.code === 0) {
           message.success('删除成功')
           await loadBusinessKnowledge()
         } else {
@@ -452,7 +474,7 @@ const toggleEnabled = async (knowledge: BusinessKnowledge, enabled: boolean) => 
 
   try {
     const response = await enableKnowledge(knowledge.id, enabled)
-    if (response.success) {
+    if (response.code === 0) {
       message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
       knowledge.enabled = enabled
     } else {
@@ -483,7 +505,7 @@ const saveKnowledge = async () => {
         modelId: knowledgeForm.value.modelId
       }
       const response = await updateBusinessKnowledge(currentEditId.value, updateData)
-      if (response.success) {
+      if (response.code === 0) {
         message.success('更新成功')
         formRef.value?.clearValidate()
         dialogVisible.value = false
@@ -501,7 +523,7 @@ const saveKnowledge = async () => {
         modelId: knowledgeForm.value.modelId
       }
       const response = await createBusinessKnowledge(createData)
-      if (response.success) {
+      if (response.code === 0) {
         message.success('创建成功')
         formRef.value?.clearValidate()
         dialogVisible.value = false
@@ -530,7 +552,7 @@ const refreshVectorStore = async () => {
       try {
         refreshLoading.value = true
         const response = await refreshVectorStoreApi()
-        if (response.success) {
+        if (response.code === 0) {
           message.success('同步到向量库成功')
         } else {
           message.error('同步到向量库失败')
@@ -555,7 +577,7 @@ const retryEmbedding = async (knowledge: BusinessKnowledge) => {
     retryLoadingMap.value[knowledge.id] = true
 
     const response = await retryEmbeddingApi(knowledge.id)
-    if (response.success) {
+    if (response.code === 0) {
       message.success('重试向量化成功')
       await loadBusinessKnowledge()
     } else {

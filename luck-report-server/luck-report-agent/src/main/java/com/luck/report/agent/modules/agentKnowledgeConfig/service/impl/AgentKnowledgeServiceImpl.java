@@ -9,7 +9,7 @@ import com.luck.report.agent.modules.agentKnowledgeConfig.domain.entity.AgentKno
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.enums.EmbeddingStatus;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.enums.KnowledgeType;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.PageResult;
+import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.mapper.AgentKnowledgeMapper;
 import com.luck.report.agent.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
 import com.luck.report.agent.modules.vector.domain.entity.VectorDocument;
@@ -319,7 +319,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @return 分页结果
      */
     @Override
-    public PageResult<AgentKnowledgeVO> queryByPage(AgentKnowledgeQueryDTO queryDTO) {
+    public PageResultVO<AgentKnowledgeVO> queryByPage(AgentKnowledgeQueryDTO queryDTO) {
         int offset = (queryDTO.getPageNum() - 1) * queryDTO.getPageSize();
 
         Long total = agentKnowledgeMapper.countByConditions(queryDTO);
@@ -329,14 +329,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
                 .map(agentKnowledgeConverter::toVo)
                 .collect(Collectors.toList());
 
-        PageResult<AgentKnowledgeVO> pageResult = new PageResult<>();
-        pageResult.setData(dataListVO);
-        pageResult.setTotal(total);
-        pageResult.setPageNum(queryDTO.getPageNum());
-        pageResult.setPageSize(queryDTO.getPageSize());
-        pageResult.calculateTotalPages();
-
-        return pageResult;
+        return PageResultVO.success(dataListVO, total, queryDTO.getPageNum(), queryDTO.getPageSize());
     }
 
     /**

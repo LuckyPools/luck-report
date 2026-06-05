@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * 逻辑外键Mapper
- * 操作MySQL的logical_relation表
+ * 操作MySQL的luck_logical_relation表
  *
  * @author luck
  */
@@ -20,7 +20,7 @@ public interface LogicalRelationMapper {
      * @param relation 逻辑外键实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO logical_relation (datasource_id, source_table_name, source_column_name, " +
+    @Insert("INSERT INTO luck_logical_relation (datasource_id, source_table_name, source_column_name, " +
             "target_table_name, target_column_name, relation_type, description) " +
             "VALUES (#{datasourceId}, #{sourceTableName}, #{sourceColumnName}, " +
             "#{targetTableName}, #{targetColumnName}, #{relationType}, #{description})")
@@ -33,7 +33,7 @@ public interface LogicalRelationMapper {
      * @param relation 逻辑外键实体
      * @return 影响行数
      */
-    @Update("UPDATE logical_relation SET source_table_name = #{sourceTableName}, " +
+    @Update("UPDATE luck_logical_relation SET source_table_name = #{sourceTableName}, " +
             "source_column_name = #{sourceColumnName}, target_table_name = #{targetTableName}, " +
             "target_column_name = #{targetColumnName}, relation_type = #{relationType}, " +
             "description = #{description} WHERE id = #{id}")
@@ -48,7 +48,7 @@ public interface LogicalRelationMapper {
     @Select("SELECT id, datasource_id, source_table_name, source_column_name, " +
             "target_table_name, target_column_name, relation_type, description, " +
             "is_deleted, created_time, updated_time " +
-            "FROM logical_relation WHERE id = #{id} AND is_deleted = 0")
+            "FROM luck_logical_relation WHERE id = #{id} AND is_deleted = 0")
     @Results({
             @Result(column = "id", property = "id"),
             @Result(column = "datasource_id", property = "datasourceId"),
@@ -73,7 +73,7 @@ public interface LogicalRelationMapper {
     @Select("SELECT id, datasource_id, source_table_name, source_column_name, " +
             "target_table_name, target_column_name, relation_type, description, " +
             "is_deleted, created_time, updated_time " +
-            "FROM logical_relation WHERE datasource_id = #{datasourceId} AND is_deleted = 0 " +
+            "FROM luck_logical_relation WHERE datasource_id = #{datasourceId} AND is_deleted = 0 " +
             "ORDER BY created_time DESC")
     @Results({
             @Result(column = "id", property = "id"),
@@ -96,7 +96,7 @@ public interface LogicalRelationMapper {
      * @param id 逻辑外键ID
      * @return 影响行数
      */
-    @Update("UPDATE logical_relation SET is_deleted = 1 WHERE id = #{id}")
+    @Update("UPDATE luck_logical_relation SET is_deleted = 1 WHERE id = #{id}")
     int deleteById(@Param("id") Integer id);
 
     /**
@@ -109,7 +109,7 @@ public interface LogicalRelationMapper {
      * @param targetColumnName 关联表字段名
      * @return 存在的记录数
      */
-    @Select("SELECT COUNT(*) FROM logical_relation " +
+    @Select("SELECT COUNT(*) FROM luck_logical_relation " +
             "WHERE datasource_id = #{datasourceId} AND source_table_name = #{sourceTableName} " +
             "AND source_column_name = #{sourceColumnName} AND target_table_name = #{targetTableName} " +
             "AND target_column_name = #{targetColumnName} AND is_deleted = 0")
@@ -125,6 +125,6 @@ public interface LogicalRelationMapper {
      * @param datasourceId 数据源ID
      * @return 影响行数
      */
-    @Update("UPDATE logical_relation SET is_deleted = 1 WHERE datasource_id = #{datasourceId}")
+    @Update("UPDATE luck_logical_relation SET is_deleted = 1 WHERE datasource_id = #{datasourceId}")
     int deleteByDatasourceId(@Param("datasourceId") Integer datasourceId);
 }

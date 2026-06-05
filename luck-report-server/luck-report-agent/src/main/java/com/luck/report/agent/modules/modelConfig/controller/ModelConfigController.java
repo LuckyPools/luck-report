@@ -1,6 +1,8 @@
 package com.luck.report.agent.modules.modelConfig.controller;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigDTO;
+import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
 import com.luck.report.agent.modules.modelConfig.domain.enums.ModelType;
 import com.luck.report.agent.modules.chat.domain.vo.ModelCheckVo;
 import com.luck.report.agent.domain.vo.ResultVO;
@@ -35,6 +37,21 @@ public class ModelConfigController {
             return ResultVO.success("获取模型配置列表成功", modelConfigDataService.listConfigs());
         } catch (Exception e) {
             return ResultVO.error("获取模型配置列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 分页查询模型配置列表
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    @PostMapping("/query/page")
+    public PageResultVO<ModelConfigDTO> queryByPage(@Valid @RequestBody ModelConfigQueryDTO queryDTO) {
+        try {
+            return modelConfigDataService.queryByPage(queryDTO);
+        } catch (Exception e) {
+            return PageResultVO.error("分页查询失败: " + e.getMessage());
         }
     }
 

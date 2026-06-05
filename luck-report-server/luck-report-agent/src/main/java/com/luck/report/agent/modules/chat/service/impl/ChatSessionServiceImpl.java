@@ -40,7 +40,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
         long total = chatSessionMapper.countByUserId(userId);
         int offset = (pageNum - 1) * pageSize;
         List<ChatSession> records = chatSessionMapper.selectByUserIdWithPage(userId, offset, pageSize);
-        return new PageResultVO<>(records, total, pageNum, pageSize);
+        return PageResultVO.success(records, total, pageNum, pageSize);
     }
 
     @Override

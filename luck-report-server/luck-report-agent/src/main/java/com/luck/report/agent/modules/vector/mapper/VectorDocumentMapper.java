@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * 向量文档 Mapper
- * 操作 PostgreSQL 的 vector_document 表，标注 @DataSource("vector") 使用 PostgreSQL 数据源
+ * 操作 PostgreSQL 的 luck_vector_document 表，标注 @DataSource("vector") 使用 PostgreSQL 数据源
  * 包含文档的增删查操作，支持 vector 的向量检索和 jsonb 元数据过滤
  *
  * @author luck
@@ -26,7 +26,7 @@ public interface VectorDocumentMapper {
      * @return 影响行数
      */
     @DataSource("vector")
-    @Insert("INSERT INTO vector_document (id, vector, metadata, vector_type, created_at) " +
+    @Insert("INSERT INTO luck_vector_document (id, vector, metadata, vector_type, created_at) " +
             "VALUES (#{id}, #{vector}::vector, #{metadata}::jsonb, #{vectorType}, NOW()) " +
             "ON CONFLICT (id) DO UPDATE SET " +
             "vector = EXCLUDED.vector, metadata = EXCLUDED.metadata, " +
@@ -41,7 +41,7 @@ public interface VectorDocumentMapper {
      */
     @DataSource("vector")
     @Delete("<script>" +
-            "DELETE FROM vector_document WHERE id IN " +
+            "DELETE FROM luck_vector_document WHERE id IN " +
             "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
             "#{id}" +
             "</foreach>" +
@@ -55,7 +55,7 @@ public interface VectorDocumentMapper {
      * @return 影响行数
      */
     @DataSource("vector")
-    @Delete("DELETE FROM vector_document WHERE vector_type = #{vectorType}")
+    @Delete("DELETE FROM luck_vector_document WHERE vector_type = #{vectorType}")
     int deleteByVectorType(@Param("vectorType") String vectorType);
 
     /**
@@ -67,7 +67,7 @@ public interface VectorDocumentMapper {
      * @return 影响行数
      */
     @DataSource("vector")
-    @Delete("DELETE FROM vector_document WHERE vector_type = #{vectorType} AND metadata @> #{metadataJson}::jsonb")
+    @Delete("DELETE FROM luck_vector_document WHERE vector_type = #{vectorType} AND metadata @> #{metadataJson}::jsonb")
     int deleteByVectorTypeAndMetadata(@Param("vectorType") String vectorType,
                                       @Param("metadataJson") String metadataJson);
 
@@ -78,7 +78,7 @@ public interface VectorDocumentMapper {
      * @return 影响行数
      */
     @DataSource("vector")
-    @Delete("DELETE FROM vector_document WHERE metadata @> #{metadataJson}::jsonb")
+    @Delete("DELETE FROM luck_vector_document WHERE metadata @> #{metadataJson}::jsonb")
     int deleteByMetadata(@Param("metadataJson") String metadataJson);
 
     /**
@@ -95,7 +95,7 @@ public interface VectorDocumentMapper {
     @DataSource("vector")
     @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
-            "FROM vector_document " +
+            "FROM luck_vector_document " +
             "WHERE vector_type = #{vectorType} " +
             "AND 1 - (vector <=> #{queryVectorStr}::vector) >= #{threshold} " +
             "ORDER BY similarity DESC LIMIT #{topK}")
@@ -126,7 +126,7 @@ public interface VectorDocumentMapper {
     @DataSource("vector")
     @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
-            "FROM vector_document " +
+            "FROM luck_vector_document " +
             "WHERE vector_type = #{vectorType} " +
             "AND metadata @> #{metadataJson}::jsonb " +
             "AND 1 - (vector <=> #{queryVectorStr}::vector) >= #{threshold} " +
@@ -157,7 +157,7 @@ public interface VectorDocumentMapper {
     @DataSource("vector")
     @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
-            "FROM vector_document " +
+            "FROM luck_vector_document " +
             "WHERE metadata @> #{metadataJson}::jsonb " +
             "AND 1 - (vector <=> #{queryVectorStr}::vector) >= #{threshold} " +
             "ORDER BY similarity DESC LIMIT #{topK}")
@@ -185,7 +185,7 @@ public interface VectorDocumentMapper {
     @DataSource("vector")
     @Select("SELECT id, vector, metadata, vector_type, " +
             "1 - (vector <=> #{queryVectorStr}::vector) AS similarity " +
-            "FROM vector_document " +
+            "FROM luck_vector_document " +
             "WHERE 1 - (vector <=> #{queryVectorStr}::vector) >= #{threshold} " +
             "ORDER BY similarity DESC LIMIT #{topK}")
     @Results({

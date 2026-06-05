@@ -2,7 +2,9 @@ package com.luck.report.agent.modules.datasource.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
+import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.TableDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
@@ -633,5 +635,25 @@ public class DatasourceServiceImpl implements DatasourceService {
                 .column(columns)
                 .primaryKeys(primaryKeys)
                 .build();
+    }
+
+    /**
+     * 分页条件查询数据源
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    @Override
+    public PageResultVO<DatasourceVO> queryByPage(DatasourceQueryDTO queryDTO) {
+        int offset = (queryDTO.getPageNum() - 1) * queryDTO.getPageSize();
+
+        Long total = datasourceMapper.countByConditions(queryDTO);
+
+        List<Datasource> dataList = datasourceMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<DatasourceVO> dataListVO = dataList.stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+
+        return PageResultVO.success(dataListVO, total, queryDTO.getPageNum(), queryDTO.getPageSize());
     }
 }

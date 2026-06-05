@@ -12,7 +12,7 @@
 
       <!-- Tab切换区域 -->
       <div class="tab-section">
-        <a-tabs v-model:activeKey="activeTab">
+        <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
           <a-tab-pane key="CHAT" tab="对话模型">
             <!-- 对话模型内容 -->
             <div class="action-section">
@@ -40,6 +40,15 @@
                   :columns="columns"
                   :rowKey="record => record.id"
                   :scroll="{ x: 1000, y: 500 }"
+                  :pagination="{
+                    current: pageNum,
+                    pageSize: pageSize,
+                    total: total,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (t: number) => `共 ${t} 条`
+                  }"
+                  @change="(pag: any) => { pageNum = pag.current; pageSize = pag.pageSize; loadConfigs() }"
                 >
                   <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'provider'">
@@ -123,6 +132,15 @@
                   :columns="embeddingColumns"
                   :rowKey="record => record.id"
                   :scroll="{ x: 800, y: 500 }"
+                  :pagination="{
+                    current: pageNum,
+                    pageSize: pageSize,
+                    total: total,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (t: number) => `共 ${t} 条`
+                  }"
+                  @change="(pag: any) => { pageNum = pag.current; pageSize = pag.pageSize; loadConfigs() }"
                 >
                   <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'provider'">
@@ -393,13 +411,14 @@ import {
   Col as ACol
 } from 'ant-design-vue'
 import {
-  getModelConfigList,
+  queryModelConfigByPage,
   addModelConfig,
   updateModelConfig,
   deleteModelConfig,
   activateModelConfig,
   deactivateModelConfig,
-  type ModelConfig
+  type ModelConfig,
+  type ModelConfigQueryDTO
 } from '@/api/model-config'
 
 /**
@@ -416,6 +435,11 @@ const activatingId = ref<number | null>(null)
 const activeTab = ref('CHAT') // 当前激活的tab
 const configs = ref<ModelConfig[]>([])
 const formRef = ref<FormInstance>()
+
+// 分页变量
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 // 表单数据
 const formData = ref<ModelConfig>({
@@ -586,13 +610,33 @@ const embeddingConfigs = computed(() => {
 
 // 方法
 /**
+ * Tab切换处理
+ * 切换Tab时重置页码并重新查询
+ */
+const handleTabChange = () => {
+  pageNum.value = 1
+  loadConfigs()
+}
+
+/**
  * 加载模型配置列表
  */
 const loadConfigs = async () => {
   loading.value = true
   try {
-    const response = await getModelConfigList()
-    configs.value = response.data || []
+    const queryDTO: ModelConfigQueryDTO = {
+      modelType: activeTab.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    }
+    const response = await queryModelConfigByPage(queryDTO)
+    if (response.code === 0) {
+      configs.value = response.records
+      total.value = response.total
+    } else {
+      message.error('获取模型配置列表失败')
+      configs.value = []
+    }
   } catch (error) {
     message.error('获取模型配置列表失败,请检查网络!')
     configs.value = []

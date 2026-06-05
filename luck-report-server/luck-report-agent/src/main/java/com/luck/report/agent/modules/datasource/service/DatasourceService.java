@@ -1,5 +1,7 @@
 package com.luck.report.agent.modules.datasource.service;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
@@ -189,4 +191,12 @@ public interface DatasourceService {
      * @return 数据源VO，不存在则返回null
      */
     DatasourceVO getDatasourceByName(String name);
+
+    /**
+     * 分页条件查询数据源
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    PageResultVO<DatasourceVO> queryByPage(DatasourceQueryDTO queryDTO);
 }

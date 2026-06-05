@@ -1,6 +1,8 @@
 package com.luck.report.agent.modules.modelConfig.service;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigDTO;
+import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
 import com.luck.report.agent.modules.modelConfig.domain.entity.ModelConfig;
 import com.luck.report.agent.modules.modelConfig.domain.enums.ModelType;
 
@@ -103,4 +105,12 @@ public interface ModelConfigDataService {
      * @throws RuntimeException 当找不到可用的对话模型时抛出
      */
     ModelConfig getChatConfig(Integer modelId);
+
+    /**
+     * 分页条件查询模型配置
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    PageResultVO<ModelConfigDTO> queryByPage(ModelConfigQueryDTO queryDTO);
 }

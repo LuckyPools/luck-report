@@ -5,7 +5,7 @@ import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.CreateAgent
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.UpdateAgentKnowledgeDTO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.PageResult;
+import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;
 
 import java.util.List;
@@ -57,7 +57,7 @@ public interface AgentKnowledgeService {
      * @param queryDTO 查询条件
      * @return 分页结果
      */
-    PageResult<AgentKnowledgeVO> queryByPage(AgentKnowledgeQueryDTO queryDTO);
+    PageResultVO<AgentKnowledgeVO> queryByPage(AgentKnowledgeQueryDTO queryDTO);
 
     /**
      * 更新智能体知识的生效状态

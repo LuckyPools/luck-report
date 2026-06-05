@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import type {ResultVO,PageResultVO} from "@/api/type.ts";
 
 /**
  * 业务知识接口定义
@@ -38,12 +39,14 @@ export interface UpdateBusinessKnowledgeDTO {
 }
 
 /**
- * API响应接口定义
+ * 业务知识分页查询DTO接口定义
  */
-export interface ApiResponse<T> {
-  message: string
-  data: T
-  success: boolean
+export interface BusinessKnowledgeQueryDTO {
+  businessTerm?: string
+  enabled?: boolean
+  embeddingStatus?: string
+  pageNum: number
+  pageSize: number
 }
 
 /**
@@ -53,13 +56,25 @@ export interface ApiResponse<T> {
  */
 export async function getBusinessKnowledgeList(
   keyword?: string
-): Promise<ApiResponse<BusinessKnowledge[]>> {
+): Promise<ResultVO<BusinessKnowledge[]>> {
   const params: any = {}
   if (keyword) {
     params.keyword = keyword
   }
   const response = await request.get('/business-knowledge/list', { params })
-  return response as ApiResponse<BusinessKnowledge[]>
+  return response as ResultVO<BusinessKnowledge[]>
+}
+
+/**
+ * 分页查询业务知识列表
+ * @param queryDTO 查询条件
+ * @returns Promise包含分页结果
+ */
+export async function queryBusinessKnowledgeByPage(
+  queryDTO: BusinessKnowledgeQueryDTO
+): Promise<PageResultVO<BusinessKnowledge>> {
+  const response = await request.post('/business-knowledge/query/page', queryDTO)
+  return response as PageResultVO<BusinessKnowledge>
 }
 
 /**
@@ -69,9 +84,9 @@ export async function getBusinessKnowledgeList(
  */
 export async function getBusinessKnowledgeById(
   id: number
-): Promise<ApiResponse<BusinessKnowledge>> {
+): Promise<ResultVO<BusinessKnowledge>> {
   const response = await request.get(`/business-knowledge/detail/${id}`)
-  return response as ApiResponse<BusinessKnowledge>
+  return response as ResultVO<BusinessKnowledge>
 }
 
 /**
@@ -81,9 +96,9 @@ export async function getBusinessKnowledgeById(
  */
 export async function createBusinessKnowledge(
   data: CreateBusinessKnowledgeDTO
-): Promise<ApiResponse<BusinessKnowledge>> {
+): Promise<ResultVO<BusinessKnowledge>> {
   const response = await request.post('/business-knowledge/create', data)
-  return response as ApiResponse<BusinessKnowledge>
+  return response as ResultVO<BusinessKnowledge>
 }
 
 /**
@@ -95,9 +110,9 @@ export async function createBusinessKnowledge(
 export async function updateBusinessKnowledge(
   id: number,
   data: UpdateBusinessKnowledgeDTO
-): Promise<ApiResponse<BusinessKnowledge>> {
+): Promise<ResultVO<BusinessKnowledge>> {
   const response = await request.put(`/business-knowledge/update/${id}`, data)
-  return response as ApiResponse<BusinessKnowledge>
+  return response as ResultVO<BusinessKnowledge>
 }
 
 /**
@@ -107,9 +122,9 @@ export async function updateBusinessKnowledge(
  */
 export async function deleteBusinessKnowledge(
   id: number
-): Promise<ApiResponse<boolean>> {
+): Promise<ResultVO<boolean>> {
   const response = await request.del(`/business-knowledge/delete/${id}`)
-  return response as ApiResponse<boolean>
+  return response as ResultVO<boolean>
 }
 
 /**
@@ -121,11 +136,11 @@ export async function deleteBusinessKnowledge(
 export async function enableKnowledge(
   id: number,
   enabled: boolean
-): Promise<ApiResponse<boolean>> {
+): Promise<ResultVO<boolean>> {
   const response = await request.post(`/business-knowledge/enable/${id}`, null, {
     params: { enabled }
   })
-  return response as ApiResponse<boolean>
+  return response as ResultVO<boolean>
 }
 
 /**
@@ -134,9 +149,9 @@ export async function enableKnowledge(
  * @returns Promise包含刷新结果
  */
 export async function refreshVectorStore(
-): Promise<ApiResponse<boolean>> {
+): Promise<ResultVO<boolean>> {
   const response = await request.post('/business-knowledge/refresh-vector-store')
-  return response as ApiResponse<boolean>
+  return response as ResultVO<boolean>
 }
 
 /**
@@ -147,7 +162,7 @@ export async function refreshVectorStore(
  */
 export async function retryEmbedding(
   id: number
-): Promise<ApiResponse<boolean>> {
+): Promise<ResultVO<boolean>> {
   const response = await request.post(`/business-knowledge/retry-embedding/${id}`)
-  return response as ApiResponse<boolean>
+  return response as ResultVO<boolean>
 }

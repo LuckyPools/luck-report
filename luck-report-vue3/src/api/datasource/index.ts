@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import type {ResultVO,PageResultVO} from "@/api/type.ts";
 
 /**
  * 数据源类型接口定义
@@ -51,21 +52,23 @@ export interface LogicalRelation {
 }
 
 /**
- * API响应接口定义
+ * 数据源分页查询DTO接口定义
  */
-export interface ApiResponse<T> {
-  message: string
-  data: T
-  success: boolean
+export interface DatasourceQueryDTO {
+  name?: string
+  type?: string
+  status?: string
+  pageNum: number
+  pageSize: number
 }
 
 /**
  * 获取数据源类型列表
  * @returns Promise包含数据源类型列表
  */
-export async function getDatasourceTypes(): Promise<ApiResponse<DatasourceType[]>> {
+export async function getDatasourceTypes(): Promise<ResultVO<DatasourceType[]>> {
   const response = await request.get('/datasource/types')
-  return response as ApiResponse<DatasourceType[]>
+  return response as ResultVO<DatasourceType[]>
 }
 
 /**
@@ -75,9 +78,21 @@ export async function getDatasourceTypes(): Promise<ApiResponse<DatasourceType[]
  */
 export async function getDatasourceList(
   params?: { status?: string; type?: string }
-): Promise<ApiResponse<Datasource[]>> {
+): Promise<ResultVO<Datasource[]>> {
   const response = await request.get('/datasource/list', { params })
-  return response as ApiResponse<Datasource[]>
+  return response as ResultVO<Datasource[]>
+}
+
+/**
+ * 分页查询数据源列表
+ * @param queryDTO 查询条件
+ * @returns Promise包含分页结果
+ */
+export async function queryDatasourceByPage(
+  queryDTO: DatasourceQueryDTO
+): Promise<PageResultVO<Datasource>> {
+  const response = await request.post('/datasource/query/page', queryDTO)
+  return response as PageResultVO<Datasource>
 }
 
 /**
@@ -85,9 +100,9 @@ export async function getDatasourceList(
  * @param id 数据源ID
  * @returns Promise包含数据源详情
  */
-export async function getDatasourceById(id: number): Promise<ApiResponse<Datasource>> {
+export async function getDatasourceById(id: number): Promise<ResultVO<Datasource>> {
   const response = await request.get(`/datasource/detail/${id}`)
-  return response as ApiResponse<Datasource>
+  return response as ResultVO<Datasource>
 }
 
 /**
@@ -95,9 +110,9 @@ export async function getDatasourceById(id: number): Promise<ApiResponse<Datasou
  * @param data 数据源信息
  * @returns Promise包含创建的数据源
  */
-export async function createDatasource(data: Datasource): Promise<ApiResponse<Datasource>> {
+export async function createDatasource(data: Datasource): Promise<ResultVO<Datasource>> {
   const response = await request.post('/datasource/create', data)
-  return response as ApiResponse<Datasource>
+  return response as ResultVO<Datasource>
 }
 
 /**
@@ -109,9 +124,9 @@ export async function createDatasource(data: Datasource): Promise<ApiResponse<Da
 export async function updateDatasource(
   id: number,
   data: Datasource
-): Promise<ApiResponse<Datasource>> {
+): Promise<ResultVO<Datasource>> {
   const response = await request.put(`/datasource/update/${id}`, data)
-  return response as ApiResponse<Datasource>
+  return response as ResultVO<Datasource>
 }
 
 /**
@@ -119,9 +134,9 @@ export async function updateDatasource(
  * @param id 数据源ID
  * @returns Promise包含删除结果
  */
-export async function deleteDatasource(id: number): Promise<ApiResponse<void>> {
+export async function deleteDatasource(id: number): Promise<ResultVO<string>> {
   const response = await request.del(`/datasource/delete/${id}`)
-  return response as ApiResponse<void>
+  return response as ResultVO<string>
 }
 
 /**
@@ -129,9 +144,9 @@ export async function deleteDatasource(id: number): Promise<ApiResponse<void>> {
  * @param id 数据源ID
  * @returns Promise包含测试结果
  */
-export async function testConnection(id: number): Promise<ApiResponse<boolean>> {
+export async function testConnection(id: number): Promise<ResultVO<boolean>> {
   const response = await request.post(`/datasource/test/${id}`)
-  return response as ApiResponse<boolean>
+  return response as ResultVO<boolean>
 }
 
 /**
@@ -143,11 +158,11 @@ export async function testConnection(id: number): Promise<ApiResponse<boolean>> 
 export async function updateDatasourceStatus(
   id: number,
   status: string
-): Promise<ApiResponse<void>> {
+): Promise<ResultVO<string>> {
   const response = await request.post(`/datasource/status/${id}`, null, {
     params: { status }
   })
-  return response as ApiResponse<void>
+  return response as ResultVO<string>
 }
 
 /**
@@ -155,9 +170,9 @@ export async function updateDatasourceStatus(
  * @param id 数据源ID
  * @returns Promise包含表名列表
  */
-export async function getDatasourceTables(id: number): Promise<ApiResponse<string[]>> {
+export async function getDatasourceTables(id: number): Promise<ResultVO<string[]>> {
   const response = await request.get(`/datasource/${id}/tables`)
-  return response as ApiResponse<string[]>
+  return response as ResultVO<string[]>
 }
 
 /**
@@ -169,9 +184,9 @@ export async function getDatasourceTables(id: number): Promise<ApiResponse<strin
 export async function getTableColumns(
   id: number,
   tableName: string
-): Promise<ApiResponse<string[]>> {
+): Promise<ResultVO<string[]>> {
   const response = await request.get(`/datasource/${id}/tables/${tableName}/columns`)
-  return response as ApiResponse<string[]>
+  return response as ResultVO<string[]>
 }
 
 /**
@@ -185,9 +200,9 @@ export async function initTableSchema(
   id: number,
   tables: string[],
   modelId?: number
-): Promise<ApiResponse<void>> {
+): Promise<ResultVO<string>> {
   const response = await request.post(`/datasource/${id}/init-schema`, { tables, modelId })
-  return response as ApiResponse<void>
+  return response as ResultVO<string>
 }
 
 /**
@@ -197,9 +212,9 @@ export async function initTableSchema(
  */
 export async function getLogicalRelations(
   datasourceId: number
-): Promise<ApiResponse<LogicalRelation[]>> {
+): Promise<ResultVO<LogicalRelation[]>> {
   const response = await request.get(`/datasource/${datasourceId}/logical-relations`)
-  return response as ApiResponse<LogicalRelation[]>
+  return response as ResultVO<LogicalRelation[]>
 }
 
 /**
@@ -211,9 +226,9 @@ export async function getLogicalRelations(
 export async function addLogicalRelation(
   datasourceId: number,
   data: LogicalRelation
-): Promise<ApiResponse<LogicalRelation>> {
+): Promise<ResultVO<LogicalRelation>> {
   const response = await request.post(`/datasource/${datasourceId}/logical-relations`, data)
-  return response as ApiResponse<LogicalRelation>
+  return response as ResultVO<LogicalRelation>
 }
 
 /**
@@ -227,12 +242,12 @@ export async function updateLogicalRelation(
   datasourceId: number,
   relationId: number,
   data: LogicalRelation
-): Promise<ApiResponse<LogicalRelation>> {
+): Promise<ResultVO<LogicalRelation>> {
   const response = await request.put(
     `/datasource/${datasourceId}/logical-relations/${relationId}`,
     data
   )
-  return response as ApiResponse<LogicalRelation>
+  return response as ResultVO<LogicalRelation>
 }
 
 /**
@@ -244,11 +259,11 @@ export async function updateLogicalRelation(
 export async function deleteLogicalRelation(
   datasourceId: number,
   relationId: number
-): Promise<ApiResponse<void>> {
+): Promise<ResultVO<string>> {
   const response = await request.del(
     `/datasource/${datasourceId}/logical-relations/${relationId}`
   )
-  return response as ApiResponse<void>
+  return response as ResultVO<string>
 }
 
 /**
@@ -260,12 +275,12 @@ export async function deleteLogicalRelation(
 export async function saveLogicalRelations(
   datasourceId: number,
   relations: LogicalRelation[]
-): Promise<ApiResponse<LogicalRelation[]>> {
+): Promise<ResultVO<LogicalRelation[]>> {
   const response = await request.put(
     `/datasource/${datasourceId}/logical-relations`,
     relations
   )
-  return response as ApiResponse<LogicalRelation[]>
+  return response as ResultVO<LogicalRelation[]>
 }
 
 /**
@@ -279,11 +294,11 @@ export async function saveLogicalRelations(
  */
 export async function getSchemaPrompt(
   params: { id?: number; name?: string; query: string }
-): Promise<ApiResponse<string>> {
+): Promise<ResultVO<string>> {
   const response = await request.post('/datasource/schema-prompt', null, {
     params
   })
-  return response as ApiResponse<string>
+  return response as ResultVO<string>
 }
 
 /**
@@ -293,7 +308,7 @@ export async function getSchemaPrompt(
  *
  * @returns Promise包含内置数据源列表
  */
-export async function getBuildinDatasources(): Promise<ApiResponse<Array<{name: string, id: number}>>> {
+export async function getBuildinDatasources(): Promise<ResultVO<Array<{name: string, id: number}>>> {
   const response = await request.get('/datasource/buildin/list')
-  return response as ApiResponse<Array<{name: string, id: number}>>
+  return response as ResultVO<Array<{name: string, id: number}>>
 }

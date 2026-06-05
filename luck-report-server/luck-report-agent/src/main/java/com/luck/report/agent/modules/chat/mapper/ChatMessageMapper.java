@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * 聊天消息 Mapper
- * 提供 chat_message 表的 CRUD 操作，支持单条插入和批量插入
+ * 提供 luck_chat_message 表的 CRUD 操作，支持单条插入和批量插入
  * 使用 Spring Boot 默认主数据源
  *
  * @author luck
@@ -22,7 +22,7 @@ public interface ChatMessageMapper {
      * @param sessionId 会话ID
      * @return 消息列表
      */
-    @Select("SELECT * FROM chat_message " +
+    @Select("SELECT * FROM luck_chat_message " +
             "WHERE session_id = #{sessionId} " +
             "ORDER BY create_time ASC")
     List<ChatMessage> selectBySessionId(@Param("sessionId") String sessionId);
@@ -33,7 +33,7 @@ public interface ChatMessageMapper {
      * @param id 消息ID
      * @return 消息实体
      */
-    @Select("SELECT * FROM chat_message WHERE id = #{id}")
+    @Select("SELECT * FROM luck_chat_message WHERE id = #{id}")
     ChatMessage selectById(@Param("id") Long id);
 
     /**
@@ -42,7 +42,7 @@ public interface ChatMessageMapper {
      * @param sessionId 会话ID
      * @return 消息数量
      */
-    @Select("SELECT COUNT(*) FROM chat_message WHERE session_id = #{sessionId}")
+    @Select("SELECT COUNT(*) FROM luck_chat_message WHERE session_id = #{sessionId}")
     int countBySessionId(@Param("sessionId") String sessionId);
 
     /**
@@ -51,7 +51,7 @@ public interface ChatMessageMapper {
      * @param message 消息实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO chat_message (session_id, role, content, message_type, metadata, create_time) " +
+    @Insert("INSERT INTO luck_chat_message (session_id, role, content, message_type, metadata, create_time) " +
             "VALUES (#{sessionId}, #{role}, #{content}, #{messageType}, #{metadata}, NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     int insert(ChatMessage message);
@@ -65,7 +65,7 @@ public interface ChatMessageMapper {
      * @return 影响行数
      */
     @Insert("<script>" +
-            "INSERT INTO chat_message (session_id, role, content, message_type, metadata, create_time) VALUES " +
+            "INSERT INTO luck_chat_message (session_id, role, content, message_type, metadata, create_time) VALUES " +
             "<foreach collection='list' item='item' separator=','>" +
             "(#{item.sessionId}, #{item.role}, #{item.content}, #{item.messageType}, #{item.metadata}, NOW())" +
             "</foreach>" +
@@ -78,7 +78,7 @@ public interface ChatMessageMapper {
      * @param id 消息ID
      * @return 影响行数
      */
-    @Delete("DELETE FROM chat_message WHERE id = #{id}")
+    @Delete("DELETE FROM luck_chat_message WHERE id = #{id}")
     int deleteById(@Param("id") Long id);
 
     /**
@@ -88,6 +88,6 @@ public interface ChatMessageMapper {
      * @param sessionId 会话ID
      * @return 影响行数
      */
-    @Delete("DELETE FROM chat_message WHERE session_id = #{sessionId}")
+    @Delete("DELETE FROM luck_chat_message WHERE session_id = #{sessionId}")
     int deleteBySessionId(@Param("sessionId") String sessionId);
 }

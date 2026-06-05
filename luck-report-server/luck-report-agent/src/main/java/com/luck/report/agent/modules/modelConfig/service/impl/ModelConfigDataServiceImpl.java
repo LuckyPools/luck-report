@@ -1,6 +1,8 @@
 package com.luck.report.agent.modules.modelConfig.service.impl;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigDTO;
+import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
 import com.luck.report.agent.modules.modelConfig.domain.entity.ModelConfig;
 import com.luck.report.agent.modules.modelConfig.domain.enums.ModelType;
 import com.luck.report.agent.modules.modelConfig.converter.ModelConfigConverter;
@@ -346,5 +348,25 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
 
         log.info("使用默认对话模型: id={}, modelName={}", dto.getId(), dto.getModelName());
         return ModelConfigConverter.toEntity(dto);
+    }
+
+    /**
+     * 分页条件查询模型配置
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    @Override
+    public PageResultVO<ModelConfigDTO> queryByPage(ModelConfigQueryDTO queryDTO) {
+        int offset = (queryDTO.getPageNum() - 1) * queryDTO.getPageSize();
+
+        Long total = modelConfigMapper.countByConditions(queryDTO);
+
+        List<ModelConfig> dataList = modelConfigMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<ModelConfigDTO> dataListDTO = dataList.stream()
+                .map(ModelConfigConverter::toDTO)
+                .collect(Collectors.toList());
+
+        return PageResultVO.success(dataListDTO, total, queryDTO.getPageNum(), queryDTO.getPageSize());
     }
 }

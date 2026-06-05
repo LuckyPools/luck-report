@@ -1,8 +1,8 @@
 -- 智能体知识表（MySQL）
 -- 存储智能体知识的全量数据，包括标题、类型、内容等
--- 向量化后的数据存储在 PostgreSQL 的 vector_document 表中
+-- 向量化后的数据存储在 PostgreSQL 的 luck_vector_document 表中
 
-CREATE TABLE IF NOT EXISTS `agent_knowledge` (
+CREATE TABLE IF NOT EXISTS `luck_agent_knowledge` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `title` VARCHAR(255) NOT NULL COMMENT '知识标题',
   `type` VARCHAR(20) NOT NULL COMMENT '知识类型：DOCUMENT-文档，QA-问答对，FAQ-常见问题',

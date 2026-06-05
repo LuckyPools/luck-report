@@ -1,9 +1,11 @@
 package com.luck.report.agent.modules.businessKnowledgeConfig.controller;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.agent.domain.vo.ResultVO;
+import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.CreateBusinessKnowledgeDTO;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.UpdateBusinessKnowledgeDTO;
 import com.luck.report.agent.modules.businessKnowledgeConfig.service.BusinessKnowledgeService;
-import com.luck.report.agent.modules.businessKnowledgeConfig.domain.vo.ApiResponse;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.vo.BusinessKnowledgeVO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +37,7 @@ public class BusinessKnowledgeController {
      * @return 业务知识列表
      */
     @GetMapping("/list")
-    public ApiResponse<List<BusinessKnowledgeVO>> list(@RequestParam(value = "keyword", required = false) String keyword) {
+    public ResultVO<List<BusinessKnowledgeVO>> list(@RequestParam(value = "keyword", required = false) String keyword) {
         List<BusinessKnowledgeVO> result;
 
         if (StringUtils.hasText(keyword)) {
@@ -43,7 +45,23 @@ public class BusinessKnowledgeController {
         } else {
             result = businessKnowledgeService.getKnowledge();
         }
-        return ApiResponse.success("查询业务知识列表成功", result);
+        return ResultVO.success("查询业务知识列表成功", result);
+    }
+
+    /**
+     * 分页查询业务知识列表
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    @PostMapping("/query/page")
+    public PageResultVO<BusinessKnowledgeVO> queryByPage(@Validated @RequestBody BusinessKnowledgeQueryDTO queryDTO) {
+        try {
+            return businessKnowledgeService.queryByPage(queryDTO);
+        } catch (Exception e) {
+            log.error("分页查询业务知识列表失败", e);
+            return PageResultVO.error("分页查询失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -53,12 +71,12 @@ public class BusinessKnowledgeController {
      * @return 业务知识详情
      */
     @GetMapping("/detail/{id}")
-    public ApiResponse<BusinessKnowledgeVO> get(@PathVariable(value = "id") Long id) {
+    public ResultVO<BusinessKnowledgeVO> get(@PathVariable(value = "id") Long id) {
         BusinessKnowledgeVO vo = businessKnowledgeService.getKnowledgeById(id);
         if (vo == null) {
-            return ApiResponse.error("业务知识不存在");
+            return ResultVO.error("业务知识不存在");
         }
-        return ApiResponse.success("查询业务知识详情成功", vo);
+        return ResultVO.success("查询业务知识详情成功", vo);
     }
 
     /**
@@ -68,8 +86,8 @@ public class BusinessKnowledgeController {
      * @return 创建的业务知识
      */
     @PostMapping("/create")
-    public ApiResponse<BusinessKnowledgeVO> create(@RequestBody @Validated CreateBusinessKnowledgeDTO knowledge) {
-        return ApiResponse.success("创建业务知识成功", businessKnowledgeService.addKnowledge(knowledge));
+    public ResultVO<BusinessKnowledgeVO> create(@RequestBody @Validated CreateBusinessKnowledgeDTO knowledge) {
+        return ResultVO.success("创建业务知识成功", businessKnowledgeService.addKnowledge(knowledge));
     }
 
     /**
@@ -80,9 +98,9 @@ public class BusinessKnowledgeController {
      * @return 更新的业务知识
      */
     @PutMapping("/update/{id}")
-    public ApiResponse<BusinessKnowledgeVO> update(@PathVariable(value = "id") Long id,
+    public ResultVO<BusinessKnowledgeVO> update(@PathVariable(value = "id") Long id,
                                                     @RequestBody @Validated UpdateBusinessKnowledgeDTO knowledge) {
-        return ApiResponse.success("更新业务知识成功", businessKnowledgeService.updateKnowledge(id, knowledge));
+        return ResultVO.success("更新业务知识成功", businessKnowledgeService.updateKnowledge(id, knowledge));
     }
 
     /**
@@ -92,12 +110,12 @@ public class BusinessKnowledgeController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    public ApiResponse<Boolean> delete(@PathVariable(value = "id") Long id) {
+    public ResultVO<Boolean> delete(@PathVariable(value = "id") Long id) {
         if (businessKnowledgeService.getKnowledgeById(id) == null) {
-            return ApiResponse.error("业务知识不存在");
+            return ResultVO.error("业务知识不存在", false);
         }
         businessKnowledgeService.deleteKnowledge(id);
-        return ApiResponse.success("删除业务知识成功");
+        return ResultVO.success("删除业务知识成功", true);
     }
 
     /**
@@ -108,10 +126,10 @@ public class BusinessKnowledgeController {
      * @return 设置结果
      */
     @PostMapping("/enable/{id}")
-    public ApiResponse<Boolean> enableKnowledge(@PathVariable(value = "id") Long id,
+    public ResultVO<Boolean> enableKnowledge(@PathVariable(value = "id") Long id,
                                                  @RequestParam(value = "enabled") Boolean enabled) {
         businessKnowledgeService.recallKnowledge(id, enabled);
-        return ApiResponse.success("设置生效状态成功");
+        return ResultVO.success("设置生效状态成功", true);
     }
 
     /**
@@ -121,13 +139,13 @@ public class BusinessKnowledgeController {
      * @return 刷新结果
      */
     @PostMapping("/refresh-vector-store")
-    public ApiResponse<Boolean> refreshAllKnowledgeToVectorStore() {
+    public ResultVO<Boolean> refreshAllKnowledgeToVectorStore() {
         try {
             businessKnowledgeService.refreshAllKnowledgeToVectorStore();
-            return ApiResponse.success("同步到向量库成功");
+            return ResultVO.success("同步到向量库成功", true);
         } catch (Exception e) {
             log.error("刷新向量库失败", e);
-            return ApiResponse.error("同步到向量库失败");
+            return ResultVO.error("同步到向量库失败", false);
         }
     }
 
@@ -139,8 +157,8 @@ public class BusinessKnowledgeController {
      * @return 重试结果
      */
     @PostMapping("/retry-embedding/{id}")
-    public ApiResponse<Boolean> retryEmbedding(@PathVariable(value = "id") Long id) {
+    public ResultVO<Boolean> retryEmbedding(@PathVariable(value = "id") Long id) {
         businessKnowledgeService.retryEmbedding(id);
-        return ApiResponse.success("重试向量化成功");
+        return ResultVO.success("重试向量化成功", true);
     }
 }

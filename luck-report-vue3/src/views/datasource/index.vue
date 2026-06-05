@@ -61,6 +61,15 @@
             :scroll="{ x: 1400, y: 500 }"
             :expandedRowKeys="expandedRowKeys"
             @expand="handleExpand"
+            :pagination="{
+              current: pageNum,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (t: number) => `共 ${t} 条`
+            }"
+            @change="(pag: any, _filters: any, _sorter: any, extra: any) => { if (extra.action === 'paginate') { pageNum = pag.current; pageSize = pag.pageSize; loadDatasourceList() } }"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'connectionUrl'">
@@ -389,7 +398,7 @@ import {
 } from 'ant-design-vue'
 import {
   getDatasourceTypes,
-  getDatasourceList,
+  queryDatasourceByPage,
   createDatasource,
   updateDatasource,
   deleteDatasource,
@@ -402,6 +411,7 @@ import {
   saveLogicalRelations,
   type Datasource,
   type DatasourceType,
+  type DatasourceQueryDTO,
   type LogicalRelation
 } from '@/api/datasource'
 import {
@@ -455,6 +465,11 @@ const datasourceList = ref<Datasource[]>([])
 const datasourceTypes = ref<DatasourceType[]>([])
 const filterType = ref<string | undefined>(undefined)
 const filterStatus = ref<string | undefined>(undefined)
+
+// 分页变量
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 // 对话框状态
 const dialogVisible = ref(false)
@@ -525,7 +540,7 @@ const fkForm = ref<{
 const loadDatasourceTypes = async () => {
   try {
     const response = await getDatasourceTypes()
-    if (response.success) {
+    if (response.code === 0) {
       datasourceTypes.value = response.data
     }
   } catch (error) {
@@ -539,14 +554,18 @@ const loadDatasourceTypes = async () => {
 const loadDatasourceList = async () => {
   loading.value = true
   try {
-    const params: { status?: string; type?: string } = {}
-    if (filterType.value) params.type = filterType.value
-    if (filterStatus.value) params.status = filterStatus.value
-    const response = await getDatasourceList(params)
-    if (response.success) {
-      datasourceList.value = response.data
+    const queryDTO: DatasourceQueryDTO = {
+      type: filterType.value || undefined,
+      status: filterStatus.value || undefined,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    }
+    const response = await queryDatasourceByPage(queryDTO)
+    if (response.code === 0) {
+      datasourceList.value = response.records
+      total.value = response.total
       // 从后端返回的initializedTables字段初始化已选中的表，参照data-agent的selectTables回显逻辑
-      for (const ds of response.data) {
+      for (const ds of response.records) {
         if (ds.id && ds.initializedTables) {
           try {
             const tables: string[] = JSON.parse(ds.initializedTables)
@@ -573,6 +592,7 @@ const loadDatasourceList = async () => {
  * 筛选处理
  */
 const handleFilter = () => {
+  pageNum.value = 1
   loadDatasourceList()
 }
 
@@ -645,7 +665,7 @@ const handleSave = async () => {
 
     if (isEdit.value && currentEditId.value) {
       const response = await updateDatasource(currentEditId.value, data)
-      if (response.success) {
+      if (response.code === 0) {
         message.success('更新成功')
         formRef.value?.clearValidate()
         dialogVisible.value = false
@@ -655,7 +675,7 @@ const handleSave = async () => {
       }
     } else {
       const response = await createDatasource(data)
-      if (response.success) {
+      if (response.code === 0) {
         message.success('创建成功')
         formRef.value?.clearValidate()
         dialogVisible.value = false
@@ -685,7 +705,7 @@ const handleDelete = (record: Datasource) => {
     onOk: async () => {
       try {
         const response = await deleteDatasource(record.id!)
-        if (response.success) {
+        if (response.code === 0) {
           message.success('删除成功')
           await loadDatasourceList()
         } else {
@@ -708,7 +728,7 @@ const handleTestConnection = async (record: Datasource) => {
     message.loading('正在测试连接...', 0)
     const response = await testConnection(record.id)
     message.destroy()
-    if (response.success && response.data) {
+    if (response.code === 0 && response.data) {
       message.success('连接测试成功')
     } else {
       message.error('连接测试失败')
@@ -729,7 +749,7 @@ const handleToggleStatus = async (record: Datasource, status: string) => {
   if (!record.id) return
   try {
     const response = await updateDatasourceStatus(record.id, status)
-    if (response.success) {
+    if (response.code === 0) {
       message.success(`${status === 'active' ? '启用' : '禁用'}成功`)
       await loadDatasourceList()
     } else {
@@ -763,7 +783,7 @@ const loadTables = async (record: Datasource) => {
   tableLoadingMap[record.id] = true
   try {
     const response = await getDatasourceTables(record.id)
-    if (response.success) {
+    if (response.code === 0) {
       tableListMap[record.id] = response.data
       // 如果尚未初始化已选择的表，则从数据源的initializedTables字段回显
       if (!selectedTablesMap[record.id] || selectedTablesMap[record.id].length === 0) {
@@ -830,7 +850,7 @@ const handleInitSchema = async (record: Datasource) => {
   initSchemaLoadingMap[record.id] = true
   try {
     const response = await initTableSchema(record.id, tables, modelId)
-    if (response.success) {
+    if (response.code === 0) {
       message.success('更新数据表成功')
     } else {
       message.error('更新数据表失败')
@@ -854,7 +874,7 @@ const openForeignKeyDialog = async (record: Datasource) => {
   // 加载表列表
   try {
     const response = await getDatasourceTables(record.id)
-    if (response.success) {
+    if (response.code === 0) {
       fkTableList.value = response.data
     }
   } catch (error) {
@@ -864,7 +884,7 @@ const openForeignKeyDialog = async (record: Datasource) => {
   // 加载逻辑外键
   try {
     const response = await getLogicalRelations(record.id)
-    if (response.success) {
+    if (response.code === 0) {
       foreignKeyList.value = response.data
     }
   } catch (error) {
@@ -885,7 +905,7 @@ const handleSourceTableChange = async (tableName: string) => {
   }
   try {
     const response = await getTableColumns(currentDatasource.value.id, tableName)
-    if (response.success) {
+    if (response.code === 0) {
       sourceColumnList.value = response.data
       fkForm.value.sourceColumnName = ''
     }
@@ -905,7 +925,7 @@ const handleTargetTableChange = async (tableName: string) => {
   }
   try {
     const response = await getTableColumns(currentDatasource.value.id, tableName)
-    if (response.success) {
+    if (response.code === 0) {
       targetColumnList.value = response.data
       fkForm.value.targetColumnName = ''
     }
@@ -933,13 +953,13 @@ const editForeignKey = async (fk: LogicalRelation) => {
   if (fk.sourceTableName && currentDatasource.value?.id) {
     try {
       const response = await getTableColumns(currentDatasource.value.id, fk.sourceTableName)
-      if (response.success) sourceColumnList.value = response.data
+      if (response.code === 0) sourceColumnList.value = response.data
     } catch (error) { console.error(error) }
   }
   if (fk.targetTableName && currentDatasource.value?.id) {
     try {
       const response = await getTableColumns(currentDatasource.value.id, fk.targetTableName)
-      if (response.success) targetColumnList.value = response.data
+      if (response.code === 0) targetColumnList.value = response.data
     } catch (error) { console.error(error) }
   }
 }
@@ -1014,7 +1034,7 @@ const saveForeignKeyConfig = async () => {
   savingForeignKeys.value = true
   try {
     const response = await saveLogicalRelations(currentDatasource.value.id, foreignKeyList.value)
-    if (response.success) {
+    if (response.code === 0) {
       message.success('保存成功')
       foreignKeyDialogVisible.value = false
     } else {

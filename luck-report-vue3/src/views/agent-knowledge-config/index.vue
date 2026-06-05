@@ -523,9 +523,9 @@ const loadKnowledgeList = async () => {
   loading.value = true
   try {
     const response = await queryAgentKnowledgeByPage(queryParams)
-    if (response.success) {
-      knowledgeList.value = response.data.data
-      total.value = response.data.total
+    if (response.code === 0) {
+      knowledgeList.value = response.records
+      total.value = response.total
     } else {
       message.error('加载知识列表失败')
     }
@@ -647,7 +647,7 @@ const toggleEnabled = async (knowledge: AgentKnowledge, enabled: boolean) => {
 
   try {
     const response = await enableKnowledge(knowledge.id, enabled)
-    if (response.success) {
+    if (response.code === 0) {
       message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
       knowledge.enabled = enabled
       // 如果返回了新的embeddingStatus，也更新
@@ -678,7 +678,7 @@ const deleteKnowledge = async (knowledge: AgentKnowledge) => {
     onOk: async () => {
       try {
         const response = await deleteAgentKnowledge(knowledge.id!)
-        if (response.success) {
+        if (response.code === 0) {
           message.success('删除成功')
           await loadKnowledgeList()
         } else {
@@ -701,7 +701,7 @@ const retryEmbeddingAction = async (knowledge: AgentKnowledge) => {
   try {
     retryLoadingMap.value[knowledge.id] = true
     const response = await retryEmbeddingApi(knowledge.id)
-    if (response.success) {
+    if (response.code === 0) {
       message.success('重试向量化成功')
       await loadKnowledgeList()
     } else {
@@ -733,7 +733,7 @@ const saveKnowledge = async () => {
         modelId: knowledgeForm.value.modelId
       }
       const response = await updateAgentKnowledge(currentEditId.value, updateData)
-      if (response.success) {
+      if (response.code === 0) {
         message.success('更新成功')
         formRef.value?.clearValidate()
         dialogVisible.value = false
@@ -755,7 +755,7 @@ const saveKnowledge = async () => {
         modelId: knowledgeForm.value.modelId!
       }
       const response = await createAgentKnowledge(createData, uploadFile.value || undefined)
-      if (response.success) {
+      if (response.code === 0) {
         message.success('创建成功')
         formRef.value?.clearValidate()
         dialogVisible.value = false

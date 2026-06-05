@@ -1,7 +1,7 @@
 -- 报表 Agent 数据库初始化脚本
 
 -- 会话表
-CREATE TABLE IF NOT EXISTS `chat_session` (
+CREATE TABLE IF NOT EXISTS `luck_chat_session` (
     `id` varchar(36) NOT NULL COMMENT '会话ID（UUID）',
     `title` varchar(255) DEFAULT '新对话' COMMENT '会话标题',
     `status` varchar(50) DEFAULT 'active' COMMENT '状态：active-活跃，archived-归档，deleted-已删除',
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `chat_session` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='聊天会话表';
 
 -- 消息表
-CREATE TABLE IF NOT EXISTS `chat_message` (
+CREATE TABLE IF NOT EXISTS `luck_chat_message` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '消息ID',
     `session_id` varchar(36) NOT NULL COMMENT '会话ID',
     `role` varchar(20) NOT NULL COMMENT '角色：user-用户，assistant-助手，system-系统，tool_result-工具结果',
@@ -30,5 +30,5 @@ CREATE TABLE IF NOT EXISTS `chat_message` (
     KEY `idx_role` (`role`),
     KEY `idx_message_type` (`message_type`),
     KEY `idx_create_time` (`create_time`),
-    CONSTRAINT `chat_message_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `chat_session` (`id`) ON DELETE CASCADE
+    CONSTRAINT `luck_chat_message_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `luck_chat_session` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='聊天消息表';

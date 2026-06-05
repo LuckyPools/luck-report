@@ -1,7 +1,7 @@
 -- 数据源管理功能数据库初始化脚本
 
 -- 数据源配置表
-CREATE TABLE IF NOT EXISTS `datasource` (
+CREATE TABLE IF NOT EXISTS `luck_datasource` (
     `id`              INT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     `name`            VARCHAR(100) NOT NULL COMMENT '数据源名称',
     `type`            VARCHAR(50) NOT NULL COMMENT '数据源类型：mysql/postgresql/oracle/dameng/sqlserver/hive',
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `datasource` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据源配置表';
 
 -- 逻辑外键配置表
-CREATE TABLE IF NOT EXISTS `logical_relation` (
+CREATE TABLE IF NOT EXISTS `luck_logical_relation` (
     `id`                 INT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     `datasource_id`      INT NOT NULL COMMENT '数据源ID',
     `source_table_name`  VARCHAR(100) NOT NULL COMMENT '主表名',
@@ -39,5 +39,5 @@ CREATE TABLE IF NOT EXISTS `logical_relation` (
     INDEX `idx_datasource_id` (`datasource_id`),
     INDEX `idx_source_table` (`source_table_name`),
     INDEX `idx_target_table` (`target_table_name`),
-    CONSTRAINT `fk_logical_relation_datasource` FOREIGN KEY (`datasource_id`) REFERENCES `datasource` (`id`)
+    CONSTRAINT `fk_luck_logical_relation_datasource` FOREIGN KEY (`datasource_id`) REFERENCES `luck_datasource` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='逻辑外键配置表';

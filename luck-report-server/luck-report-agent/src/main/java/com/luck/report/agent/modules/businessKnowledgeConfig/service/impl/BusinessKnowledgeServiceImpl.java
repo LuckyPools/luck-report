@@ -1,5 +1,7 @@
 package com.luck.report.agent.modules.businessKnowledgeConfig.service.impl;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
 import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;
 import com.luck.report.agent.modules.vector.domain.entity.VectorDocument;
 import com.luck.report.agent.modules.businessKnowledgeConfig.constant.DocumentMetadataConstant;
@@ -414,5 +416,25 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             }
         }
         return null;
+    }
+
+    /**
+     * 分页条件查询业务知识
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    @Override
+    public PageResultVO<BusinessKnowledgeVO> queryByPage(BusinessKnowledgeQueryDTO queryDTO) {
+        int offset = (queryDTO.getPageNum() - 1) * queryDTO.getPageSize();
+
+        Long total = businessKnowledgeMapper.countByConditions(queryDTO);
+
+        List<BusinessKnowledge> dataList = businessKnowledgeMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<BusinessKnowledgeVO> dataListVO = dataList.stream()
+                .map(businessKnowledgeConverter::toVo)
+                .collect(Collectors.toList());
+
+        return PageResultVO.success(dataListVO, total, queryDTO.getPageNum(), queryDTO.getPageSize());
     }
 }

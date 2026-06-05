@@ -1,8 +1,8 @@
 -- 业务知识表（MySQL）
 -- 存储业务知识的全量数据，包括业务名词、描述、同义词等
--- 向量化后的数据存储在 PostgreSQL 的 vector_document 表中
+-- 向量化后的数据存储在 PostgreSQL 的 luck_vector_document 表中
 
-CREATE TABLE IF NOT EXISTS `business_knowledge` (
+CREATE TABLE IF NOT EXISTS `luck_business_knowledge` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `business_term` VARCHAR(255) NOT NULL COMMENT '业务名词',
   `description` TEXT NOT NULL COMMENT '业务知识描述',

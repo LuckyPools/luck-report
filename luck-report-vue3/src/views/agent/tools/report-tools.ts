@@ -318,7 +318,7 @@ export const getTableRelationTool: ToolDefinition<{
     }
 
     const response = await getSchemaPrompt(params)
-    if (response.success) {
+    if (response.code === 0) {
       return response.data
     } else {
       throw new Error(response.message || '获取Schema提示词失败')
@@ -345,7 +345,7 @@ export const getAvailableDatasourcesTool: ToolDefinition<{}> = {
   execute: async () => {
     // 调用Agent后台接口获取内置数据源列表
     const response = await getBuildinDatasources()
-    if (response.success) {
+    if (response.code === 0) {
       return response.data
     } else {
       throw new Error(response.message || '获取数据源列表失败')

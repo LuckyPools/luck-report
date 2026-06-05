@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * 智能体知识Mapper
- * 操作MySQL的agent_knowledge表
+ * 操作MySQL的luck_agent_knowledge表
  *
  * @author luck
  */
@@ -21,7 +21,7 @@ public interface AgentKnowledgeMapper {
      * @param knowledge 智能体知识实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO agent_knowledge (title, type, question, content, enabled, " +
+    @Insert("INSERT INTO luck_agent_knowledge (title, type, question, content, enabled, " +
             "embedding_status, error_msg, source_filename, file_path, file_size, file_type, " +
             "splitter_type, model_id, is_deleted, is_resource_cleaned, created_time, updated_time) " +
             "VALUES (#{title}, #{type}, #{question}, #{content}, #{enabled}, " +
@@ -37,7 +37,7 @@ public interface AgentKnowledgeMapper {
      * @return 影响行数
      */
     @Update("<script>" +
-            "UPDATE agent_knowledge " +
+            "UPDATE luck_agent_knowledge " +
             "<set>" +
             "<if test='title != null'>title = #{title},</if>" +
             "<if test='content != null'>content = #{content},</if>" +
@@ -69,7 +69,7 @@ public interface AgentKnowledgeMapper {
     @Select("SELECT id, title, type, question, content, enabled, embedding_status, " +
             "error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id, " +
             "is_deleted, is_resource_cleaned, created_time, updated_time " +
-            "FROM agent_knowledge WHERE id = #{id} AND is_deleted = 0")
+            "FROM luck_agent_knowledge WHERE id = #{id} AND is_deleted = 0")
     @Results({
             @Result(column = "id", property = "id"),
             @Result(column = "title", property = "title"),
@@ -103,7 +103,7 @@ public interface AgentKnowledgeMapper {
             "SELECT id, title, type, question, content, enabled, embedding_status, " +
             "error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id, " +
             "is_deleted, is_resource_cleaned, created_time, updated_time " +
-            "FROM agent_knowledge " +
+            "FROM luck_agent_knowledge " +
             "WHERE is_deleted = 0 " +
             "<if test='queryDTO.title != null and queryDTO.title != \"\"'>" +
             "AND title LIKE CONCAT('%', #{queryDTO.title}, '%') " +
@@ -147,7 +147,7 @@ public interface AgentKnowledgeMapper {
      * @return 符合条件的记录数
      */
     @Select("<script>" +
-            "SELECT COUNT(*) FROM agent_knowledge " +
+            "SELECT COUNT(*) FROM luck_agent_knowledge " +
             "WHERE is_deleted = 0 " +
             "<if test='queryDTO.title != null and queryDTO.title != \"\"'>" +
             "AND title LIKE CONCAT('%', #{queryDTO.title}, '%') " +
@@ -166,7 +166,7 @@ public interface AgentKnowledgeMapper {
      *
      * @return 生效的智能体知识ID列表
      */
-    @Select("SELECT id FROM agent_knowledge WHERE enabled = 1 AND is_deleted = 0")
+    @Select("SELECT id FROM luck_agent_knowledge WHERE enabled = 1 AND is_deleted = 0")
     List<Long> selectEnabledKnowledgeIds();
 
     /**
@@ -180,7 +180,7 @@ public interface AgentKnowledgeMapper {
             "SELECT id, title, type, question, content, enabled, embedding_status, " +
             "error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id, " +
             "is_deleted, is_resource_cleaned, created_time, updated_time " +
-            "FROM agent_knowledge " +
+            "FROM luck_agent_knowledge " +
             "WHERE id IN " +
             "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
             "#{id}" +

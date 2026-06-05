@@ -1,5 +1,6 @@
 package com.luck.report.agent.modules.modelConfig.mapper;
 
+import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
 import com.luck.report.agent.modules.modelConfig.domain.entity.ModelConfig;
 import org.apache.ibatis.annotations.*;
 
@@ -22,7 +23,7 @@ public interface ModelConfigMapper {
     @Select("SELECT id, provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens, " +
             "model_type, completions_path, embeddings_path, created_time, updated_time, is_deleted, " +
             "proxy_enabled, proxy_host, proxy_port, proxy_username, proxy_password " +
-            "FROM model_config WHERE is_deleted = 0 ORDER BY sort ASC, created_time DESC")
+            "FROM luck_model_config WHERE is_deleted = 0 ORDER BY sort ASC, created_time DESC")
     List<ModelConfig> findAll();
 
     /**
@@ -34,7 +35,7 @@ public interface ModelConfigMapper {
     @Select("SELECT id, provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens, " +
             "model_type, completions_path, embeddings_path, created_time, updated_time, is_deleted, " +
             "proxy_enabled, proxy_host, proxy_port, proxy_username, proxy_password " +
-            "FROM model_config WHERE id = #{id} AND is_deleted = 0")
+            "FROM luck_model_config WHERE id = #{id} AND is_deleted = 0")
     ModelConfig findById(Integer id);
 
     /**
@@ -46,7 +47,7 @@ public interface ModelConfigMapper {
     @Select("SELECT id, provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens, " +
             "model_type, completions_path, embeddings_path, created_time, updated_time, is_deleted, " +
             "proxy_enabled, proxy_host, proxy_port, proxy_username, proxy_password " +
-            "FROM model_config WHERE model_type = #{modelType} AND is_active = 1 AND is_deleted = 0 ORDER BY sort ASC, created_time DESC")
+            "FROM luck_model_config WHERE model_type = #{modelType} AND is_active = 1 AND is_deleted = 0 ORDER BY sort ASC, created_time DESC")
     List<ModelConfig> selectActiveListByType(@Param("modelType") String modelType);
 
     /**
@@ -55,7 +56,7 @@ public interface ModelConfigMapper {
      * @param modelType 模型类型(CHAT/EMBEDDING)
      * @return 激活的配置数量
      */
-    @Select("SELECT COUNT(*) FROM model_config WHERE model_type = #{modelType} AND is_active = 1 AND is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM luck_model_config WHERE model_type = #{modelType} AND is_active = 1 AND is_deleted = 0")
     int countActiveByType(@Param("modelType") String modelType);
 
     /**
@@ -64,7 +65,7 @@ public interface ModelConfigMapper {
      * @param modelConfig 模型配置实体
      * @return 影响的行数
      */
-    @Insert("INSERT INTO model_config (provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens, " +
+    @Insert("INSERT INTO luck_model_config (provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens, " +
             "model_type, completions_path, embeddings_path, created_time, updated_time, is_deleted, " +
             "proxy_enabled, proxy_host, proxy_port, proxy_username, proxy_password) " +
             "VALUES (#{provider}, #{baseUrl}, #{apiKey}, #{modelName}, #{configName}, #{sort}, #{temperature}, #{isActive}, #{maxTokens}, " +
@@ -81,7 +82,7 @@ public interface ModelConfigMapper {
      * @return 影响的行数
      */
     @Update("<script>" +
-            "UPDATE model_config " +
+            "UPDATE luck_model_config " +
             "<trim prefix='SET' suffixOverrides=','>" +
             "<if test='provider != null'>provider = #{provider},</if>" +
             "<if test='baseUrl != null'>base_url = #{baseUrl},</if>" +
@@ -113,6 +114,78 @@ public interface ModelConfigMapper {
      * @param id 配置ID
      * @return 影响的行数
      */
-    @Update("UPDATE model_config SET is_deleted = 1 WHERE id = #{id}")
+    @Update("UPDATE luck_model_config SET is_deleted = 1 WHERE id = #{id}")
     int deleteById(Integer id);
+
+    /**
+     * 分页条件查询模型配置
+     *
+     * @param queryDTO 查询条件
+     * @param offset 偏移量
+     * @return 模型配置列表
+     */
+    @Select("<script>" +
+            "SELECT id, provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens, " +
+            "model_type, completions_path, embeddings_path, created_time, updated_time, is_deleted, " +
+            "proxy_enabled, proxy_host, proxy_port, proxy_username, proxy_password " +
+            "FROM luck_model_config " +
+            "WHERE is_deleted = 0 " +
+            "<if test='queryDTO.configName != null and queryDTO.configName != \"\"'>" +
+            "AND config_name LIKE CONCAT('%', #{queryDTO.configName}, '%') " +
+            "</if>" +
+            "<if test='queryDTO.modelType != null and queryDTO.modelType != \"\"'>" +
+            "AND model_type = #{queryDTO.modelType} " +
+            "</if>" +
+            "<if test='queryDTO.isActive != null'>" +
+            "AND is_active = #{queryDTO.isActive} " +
+            "</if>" +
+            "ORDER BY sort ASC, created_time DESC " +
+            "LIMIT #{offset}, #{queryDTO.pageSize}" +
+            "</script>")
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "provider", property = "provider"),
+            @Result(column = "base_url", property = "baseUrl"),
+            @Result(column = "api_key", property = "apiKey"),
+            @Result(column = "model_name", property = "modelName"),
+            @Result(column = "config_name", property = "configName"),
+            @Result(column = "sort", property = "sort"),
+            @Result(column = "temperature", property = "temperature"),
+            @Result(column = "is_active", property = "isActive"),
+            @Result(column = "max_tokens", property = "maxTokens"),
+            @Result(column = "model_type", property = "modelType"),
+            @Result(column = "completions_path", property = "completionsPath"),
+            @Result(column = "embeddings_path", property = "embeddingsPath"),
+            @Result(column = "created_time", property = "createdTime"),
+            @Result(column = "updated_time", property = "updatedTime"),
+            @Result(column = "is_deleted", property = "isDeleted"),
+            @Result(column = "proxy_enabled", property = "proxyEnabled"),
+            @Result(column = "proxy_host", property = "proxyHost"),
+            @Result(column = "proxy_port", property = "proxyPort"),
+            @Result(column = "proxy_username", property = "proxyUsername"),
+            @Result(column = "proxy_password", property = "proxyPassword")
+    })
+    List<ModelConfig> selectByConditionsWithPage(@Param("queryDTO") ModelConfigQueryDTO queryDTO,
+                                                     @Param("offset") Integer offset);
+
+    /**
+     * 统计符合条件的模型配置数量
+     *
+     * @param queryDTO 查询条件
+     * @return 符合条件的记录数
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM luck_model_config " +
+            "WHERE is_deleted = 0 " +
+            "<if test='queryDTO.configName != null and queryDTO.configName != \"\"'>" +
+            "AND config_name LIKE CONCAT('%', #{queryDTO.configName}, '%') " +
+            "</if>" +
+            "<if test='queryDTO.modelType != null and queryDTO.modelType != \"\"'>" +
+            "AND model_type = #{queryDTO.modelType} " +
+            "</if>" +
+            "<if test='queryDTO.isActive != null'>" +
+            "AND is_active = #{queryDTO.isActive} " +
+            "</if>" +
+            "</script>")
+    Long countByConditions(@Param("queryDTO") ModelConfigQueryDTO queryDTO);
 }

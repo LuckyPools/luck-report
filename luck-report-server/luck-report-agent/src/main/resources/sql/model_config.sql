@@ -2,7 +2,7 @@
 -- 用于存储大模型的连接信息和调用参数,支持多种模型提供商
 -- 后期会提供管理界面维护
 
-CREATE TABLE IF NOT EXISTS `model_config` (
+CREATE TABLE IF NOT EXISTS `luck_model_config` (
     `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '配置ID',
     `provider` varchar(255) NOT NULL COMMENT '厂商标识(如 alibaba、openai、deepseek),方便前端展示回显',
     `base_url` varchar(255) NOT NULL COMMENT 'API基础地址(如 https://dashscope.aliyuncs.com/compatible-mode/v1)',

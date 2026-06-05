@@ -1,5 +1,7 @@
 package com.luck.report.agent.modules.businessKnowledgeConfig.service;
 
+import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
 import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.CreateBusinessKnowledgeDTO;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.UpdateBusinessKnowledgeDTO;
@@ -101,4 +103,12 @@ public interface BusinessKnowledgeService {
      * @param results 向量检索结果列表
      */
     void fillBusinessTermContent(List<VectorStoreSearchResult> results);
+
+    /**
+     * 分页条件查询业务知识
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    PageResultVO<BusinessKnowledgeVO> queryByPage(BusinessKnowledgeQueryDTO queryDTO);
 }
