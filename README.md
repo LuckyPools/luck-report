@@ -10,7 +10,7 @@
 
 Luck-Report 是一款基于开源项目 UReport2 重构的 Java 高性能报表引擎，通过迭代单元格可以实现任意复杂的中国式报表。相较于 UReport2，Luck-Report 在技术架构上进行了全新升级，后端基于 SpringBoot 框架开发、前端采用 Vue 框架构建，技术选型贴合当下主流项目开发标准，可精准适配各类实际开发需求。
 
-Luck-Report 提供了全新的基于网页的报表设计器，可以在 Chrome、Firefox、Edge 等各种主流浏览器运行（IE 浏览器除外）。使用 Luck-Report，打开浏览器即可完成各种复杂报表的设计制作。
+Luck-Report 提供了全新的基于网页的报表设计器，支持通过 SQL、Bean 构建数据集，内置强大的表达式引擎，具备复杂业务场景下的数据处理能力。使用 Luck-Report，打开浏览器即可完成各种复杂报表的设计制作。
 
 Luck-Report 基于 Apache-2.0 开源协议开源
 

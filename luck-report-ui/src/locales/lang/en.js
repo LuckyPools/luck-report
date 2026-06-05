@@ -959,6 +959,31 @@ const en = {
     },
     "methodSelect": {
         "loadFail": "Failed to load method [{beanId}]"
+    },
+    "validation": {
+        "cell": {
+            "datasetNameRequired": "{cell} cell dataset property cannot be empty!",
+            "propertyRequired": "{cell} cell property cannot be empty!",
+            "aggregateRequired": "{cell} cell aggregate property cannot be empty!",
+            "expressionRequired": "{cell} cell expression cannot be empty",
+            "imagePathRequired": "{cell} cell image path cannot be empty!",
+            "imageExpressionRequired": "{cell} cell image expression cannot be empty!",
+            "zxingTextRequired": "{cell} cell barcode text cannot be empty!",
+            "zxingExpressionRequired": "{cell} cell barcode expression cannot be empty!",
+            "chartDatasetRequired": "{cell} cell chart dataset cannot be empty!",
+            "chartValuePropertyRequired": "{cell} cell chart value property cannot be empty!",
+            "chartCollectTypeRequired": "{cell} cell chart aggregate type cannot be empty!",
+            "chartCategoryPropertyRequired": "{cell} cell chart category property cannot be empty!",
+            "chartSeriesPropertyRequired": "{cell} cell chart series property cannot be empty!",
+            "chartSeriesTextRequired": "{cell} cell chart series text cannot be empty!",
+            "scatterCategoryPropertyRequired": "{cell} cell scatter chart category property cannot be empty!",
+            "scatterXPropertyRequired": "{cell} cell scatter chart X-axis property cannot be empty!",
+            "scatterYPropertyRequired": "{cell} cell scatter chart Y-axis property cannot be empty!",
+            "bubbleCategoryPropertyRequired": "{cell} cell bubble chart category property cannot be empty!",
+            "bubbleXPropertyRequired": "{cell} cell bubble chart X-axis property cannot be empty!",
+            "bubbleYPropertyRequired": "{cell} cell bubble chart Y-axis property cannot be empty!",
+            "bubbleRPropertyRequired": "{cell} cell bubble chart radius property cannot be empty!"
+        }
     }
 }
 

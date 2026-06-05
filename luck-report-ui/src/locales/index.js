@@ -33,11 +33,12 @@ export default i18n;
 
 /**
  * 供其他js使用
- * @param args
+ * @param key 翻译键
+ * @param values 插值参数对象
  * @returns {string}
  */
-export function $t(args) {
-    return i18n.tc.call(i18n, args);
+export function $t(key, values) {
+    return i18n.t(key, i18n.locale, values);
 }
 
 /**

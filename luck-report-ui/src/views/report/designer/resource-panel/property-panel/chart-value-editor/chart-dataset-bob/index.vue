@@ -4,7 +4,7 @@
     <u-form :label-width="100" labelPosition="left">
       <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
-          v-model="localDataset"
+          v-model="localDatasetName"
           @change="handleDatasetChange"
         >
           <u-option
@@ -92,7 +92,7 @@ export default {
     UOption
   },
   props: {
-    dataset: {
+    datasetName: {
       type: String,
       default: ''
     },
@@ -127,7 +127,7 @@ export default {
   },
   data() {
     return {
-      localDataset: '',
+      localDatasetName: '',
       localCategoryProperty: '',
       localXProperty: '',
       localYProperty: '',
@@ -149,9 +149,9 @@ export default {
     }
   },
   watch: {
-    dataset: {
+    datasetName: {
       handler(newVal) {
-        this.localDataset = newVal || '';
+        this.localDatasetName = newVal || '';
       },
       immediate: true
     },
@@ -192,7 +192,7 @@ export default {
 
       // 通知父组件更新配置
       this.$emit('update-dataset', {
-        datasetName: this.localDataset,
+        datasetName: this.localDatasetName,
         categoryProperty: '',
         xProperty: '',
         yProperty: '',

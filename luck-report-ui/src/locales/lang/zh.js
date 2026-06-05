@@ -54,7 +54,7 @@ const zh = {
             "size": "尺寸",
             "color": "颜色",
             "preset": "预设",
-            "text": "预设"
+            "text": "文本"
         },
         "chart": {
             "chart": "图表",
@@ -960,6 +960,31 @@ const zh = {
     },
     "methodSelect": {
         "loadFail": "加载方法[{beanId}]失败"
+    },
+    "validation": {
+        "cell": {
+            "datasetNameRequired": "{cell}单元格数据集属性不能为空！",
+            "propertyRequired": "{cell}单元格属性不能为空！",
+            "aggregateRequired": "{cell}单元格聚合方式属性不能为空！",
+            "expressionRequired": "{cell}单元格表达式不能为空",
+            "imagePathRequired": "{cell}单元格图片路径不能为空！",
+            "imageExpressionRequired": "{cell}单元格图片表达式不能为空！",
+            "zxingTextRequired": "{cell}单元格条码文本不能为空！",
+            "zxingExpressionRequired": "{cell}单元格条码表达式不能为空！",
+            "chartDatasetRequired": "{cell}单元格图表数据集不能为空！",
+            "chartValuePropertyRequired": "{cell}单元格图表值属性不能为空！",
+            "chartCollectTypeRequired": "{cell}单元格图表聚合方式不能为空！",
+            "chartCategoryPropertyRequired": "{cell}单元格图表分类属性不能为空！",
+            "chartSeriesPropertyRequired": "{cell}单元格图表系列属性不能为空！",
+            "chartSeriesTextRequired": "{cell}单元格图表系列文本不能为空！",
+            "scatterCategoryPropertyRequired": "{cell}单元格散点图分类属性不能为空！",
+            "scatterXPropertyRequired": "{cell}单元格散点图X轴属性不能为空！",
+            "scatterYPropertyRequired": "{cell}单元格散点图Y轴属性不能为空！",
+            "bubbleCategoryPropertyRequired": "{cell}单元格气泡图分类属性不能为空！",
+            "bubbleXPropertyRequired": "{cell}单元格气泡图X轴属性不能为空！",
+            "bubbleYPropertyRequired": "{cell}单元格气泡图Y轴属性不能为空！",
+            "bubbleRPropertyRequired": "{cell}单元格气泡图半径属性不能为空！"
+        }
     }
 }
 export default zh;
