@@ -206,7 +206,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
 
         // MySQL操作放在编程式事务内
         transactionTemplate.executeWithoutResult(status -> {
-            if (businessKnowledgeMapper.logicalDelete(id, 1) <= 0) {
+            if (businessKnowledgeMapper.logicalDelete(id, 1, java.time.LocalDateTime.now()) <= 0) {
                 throw new RuntimeException("逻辑删除业务知识失败");
             }
         });
@@ -430,7 +430,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
 
         Long total = businessKnowledgeMapper.countByConditions(queryDTO);
 
-        List<BusinessKnowledge> dataList = businessKnowledgeMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<BusinessKnowledge> dataList = businessKnowledgeMapper.selectByConditionsWithPage(queryDTO, offset, queryDTO.getPageSize());
         List<BusinessKnowledgeVO> dataListVO = dataList.stream()
                 .map(businessKnowledgeConverter::toVo)
                 .collect(Collectors.toList());

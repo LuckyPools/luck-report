@@ -1,8 +1,7 @@
 package com.luck.report.agent.config;
 
-import com.luck.report.agent.domain.dto.DataSourceItem;
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -21,7 +20,8 @@ import java.util.Map;
  *
  * 数据源规划：
  * - mainDbDataSource：主数据源，从 spring.datasource.* 读取配置，MyBatis 默认使用
- * - pgVectorDataSource：PostgreSQL 向量存储数据源，从 luck-report.datasource.vector.* 读取配置
+ * - vectorDataSource：PostgreSQL 向量存储数据源，由 PgVectorStoreAutoConfiguration 条件创建，
+ *   仅当 luck-report.vector.enabled=true 时存在
  * - dynamicDataSource：路由数据源，根据 @DataSource 注解切换，@Primary 供 MyBatis 使用
  *
  * 注意：由于本配置类创建了 DataSource Bean，Spring Boot 的 DataSourceAutoConfiguration
@@ -50,37 +50,26 @@ public class DynamicDataSourceConfig {
     }
 
     /**
-     * 向量存储数据源（HikariCP）
-     * 从 luck-report.datasource.vector.* 读取配置
-     *
-     * @param dataSourceProperties 自定义数据源配置，绑定 luck-report.datasource 前缀
+     * 向量存储数据源（可选注入）
+     * 由 PgVectorStoreAutoConfiguration 条件创建，当 enabled=false 时不存在
+     * 使用 required=false 避免第三方不使用 vector 时启动报错
      */
-    @Bean(name = "vectorDataSource")
-    public DataSource pgVectorDataSource(DataSourceProperties dataSourceProperties) {
-        DataSourceItem item = dataSourceProperties.getVector();
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(item.getUrl());
-        config.setUsername(item.getUsername());
-        config.setPassword(item.getPassword());
-        config.setDriverClassName(item.getDriverClassName());
-        config.setMaximumPoolSize(item.getMaximumPoolSize());
-        config.setPoolName("vector-pool");
-        return new HikariDataSource(config);
-    }
+    @Autowired(required = false)
+    @Qualifier("vectorDataSource")
+    private DataSource vectorDataSource;
 
     /**
      * 动态路由数据源
      * 根据 DataSourceContextHolder 中的标识选择目标数据源
      * 默认指向主数据源，@DataSource("vector") 注解可切换到 vector
+     * 当 vectorDataSource 不存在时（第三方自定义实现），仅注册主数据源
      *
-     * @param mainDbDataSource   主数据源（来自 spring.datasource.*）
-     * @param vectorDataSource   PostgreSQL 向量存储数据源
+     * @param mainDbDataSource 主数据源（来自 spring.datasource.*）
      * @return 路由数据源
      */
     @Bean(name = "dynamicDataSource")
     @Primary
-    public DataSource dynamicDataSource(@Qualifier("mainDbDataSource") DataSource mainDbDataSource,
-                                        @Qualifier("vectorDataSource") DataSource vectorDataSource) {
+    public DataSource dynamicDataSource(@Qualifier("mainDbDataSource") DataSource mainDbDataSource) {
         AbstractRoutingDataSource routing = new AbstractRoutingDataSource() {
             @Override
             protected Object determineCurrentLookupKey() {
@@ -90,7 +79,11 @@ public class DynamicDataSourceConfig {
 
         Map<Object, Object> targetDataSources = new HashMap<>(2);
         targetDataSources.put(DataSourceContextHolder.DEFAULT, mainDbDataSource);
-        targetDataSources.put(DataSourceContextHolder.VECTOR, vectorDataSource);
+
+        // 仅当 vector 数据源存在时注册，第三方自定义实现时无需 vector 数据源
+        if (vectorDataSource != null) {
+            targetDataSources.put(DataSourceContextHolder.VECTOR, vectorDataSource);
+        }
 
         routing.setTargetDataSources(targetDataSources);
         routing.setDefaultTargetDataSource(mainDbDataSource);

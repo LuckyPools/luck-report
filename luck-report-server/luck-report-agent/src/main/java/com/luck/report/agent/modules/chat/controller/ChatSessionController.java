@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/sessions")
+@RequestMapping("${luck-report.servletPrefix:}/sessions")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ChatSessionController {

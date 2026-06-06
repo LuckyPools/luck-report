@@ -7,6 +7,7 @@ import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceTypeDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.InitSchemaRequestDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
+import com.luck.report.agent.modules.datasource.domain.dto.SchemaSearchResultDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.UpdateLogicalRelationDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.enums.DatasourceTypeEnum;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestController
-@RequestMapping("/datasource")
+@RequestMapping("${luck-report.servletPrefix:}/datasource")
 @CrossOrigin(origins = "*")
 @AllArgsConstructor
 public class DatasourceController {
@@ -428,6 +429,26 @@ public class DatasourceController {
         } catch (Exception e) {
             log.error("获取Schema提示词失败", e);
             return ResultVO.error("获取Schema提示词失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 跨数据源搜索Schema
+     * 遍历所有active状态的数据源，通过向量检索召回与查询相关的表结构
+     * 返回每个匹配数据源的基本信息和格式化的Schema提示词，供Agent快速定位合适的数据源
+     *
+     * @param query 用户自然语言查询
+     * @return 搜索结果列表，每项包含数据源ID、名称、类型和Schema提示词
+     */
+    @PostMapping("/search-schema")
+    public ResultVO<List<SchemaSearchResultDTO>> searchSchema(
+            @RequestParam(value = "query") String query) {
+        try {
+            List<SchemaSearchResultDTO> results = datasourceService.searchSchema(query);
+            return ResultVO.success("搜索Schema成功", results);
+        } catch (Exception e) {
+            log.error("搜索Schema失败", e);
+            return ResultVO.error("搜索Schema失败：" + e.getMessage());
         }
     }
 

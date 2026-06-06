@@ -34,7 +34,7 @@ import java.util.*;
  * @author luck
  */
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("${luck-report.servletPrefix:}/chat")
 public class ChatCompactController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatCompactController.class);

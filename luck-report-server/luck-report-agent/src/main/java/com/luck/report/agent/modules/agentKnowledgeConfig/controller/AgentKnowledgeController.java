@@ -23,7 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Slf4j
 @RestController
-@RequestMapping("/agent-knowledge")
+@RequestMapping("${luck-report.servletPrefix:}/agent-knowledge")
 @CrossOrigin(origins = "*")
 @AllArgsConstructor
 public class AgentKnowledgeController {

@@ -1,7 +1,7 @@
 import type { ToolDefinition } from './types'
 import { vectorSearch } from '@/api/vector'
 import { executeCode } from '@/views/export/iframe-utils'
-import { getSchemaPrompt, getBuildinDatasources } from '@/api/datasource'
+import { getSchemaPrompt, getBuildinDatasources, searchSchema } from '@/api/datasource'
 
 /**
  * 工具执行结果枚举
@@ -349,6 +349,39 @@ export const getAvailableDatasourcesTool: ToolDefinition<{}> = {
       return response.data
     } else {
       throw new Error(response.message || '获取数据源列表失败')
+    }
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 跨数据源搜索Schema工具
+ * 遍历所有active状态的数据源，通过向量检索召回与查询相关的表结构
+ * 返回每个匹配数据源的基本信息和格式化的Schema提示词，供Agent快速定位合适的数据源
+ * 只读工具，可并发执行
+ */
+export const searchSchemaTool: ToolDefinition<{
+  query: string;
+}> = {
+  name: 'search_schema',
+  description: '跨数据源搜索表结构信息。传入自然语言查询，返回所有匹配的数据源及其表结构信息。当不确定应该使用哪个数据源时，调用此工具快速定位包含相关表的数据源。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: '自然语言查询，描述要查找的表或业务概念，如"销售订单"、"库存管理"、"用户信息"'
+      }
+    },
+    required: ['query']
+  },
+  execute: async ({ query }) => {
+    const response = await searchSchema(query)
+    if (response.code === 0) {
+      return response.data
+    } else {
+      throw new Error(response.message || '搜索Schema失败')
     }
   },
   readOnly: true,

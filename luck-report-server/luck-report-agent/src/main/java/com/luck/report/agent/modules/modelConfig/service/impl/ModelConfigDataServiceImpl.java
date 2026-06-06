@@ -387,7 +387,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
 
         Long total = modelConfigMapper.countByConditions(queryDTO);
 
-        List<ModelConfig> dataList = modelConfigMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<ModelConfig> dataList = modelConfigMapper.selectByConditionsWithPage(queryDTO, offset, queryDTO.getPageSize());
         List<ModelConfigDTO> dataListDTO = dataList.stream()
                 .map(ModelConfigConverter::toDTO)
                 .collect(Collectors.toList());

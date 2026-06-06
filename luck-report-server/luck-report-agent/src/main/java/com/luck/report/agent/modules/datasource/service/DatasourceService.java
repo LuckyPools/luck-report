@@ -3,6 +3,7 @@ package com.luck.report.agent.modules.datasource.service;
 import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
+import com.luck.report.agent.modules.datasource.domain.dto.SchemaSearchResultDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.vo.DatasourceVO;
@@ -199,4 +200,14 @@ public interface DatasourceService {
      * @return 分页结果
      */
     PageResultVO<DatasourceVO> queryByPage(DatasourceQueryDTO queryDTO);
+
+    /**
+     * 跨数据源搜索Schema
+     * 遍历所有active状态的数据源，通过向量检索召回与查询相关的表结构
+     * 返回每个匹配数据源的基本信息和格式化的Schema提示词，供Agent快速定位合适的数据源
+     *
+     * @param query 用户自然语言查询
+     * @return 搜索结果列表，按相关度排序
+     */
+    List<SchemaSearchResultDTO> searchSchema(String query);
 }

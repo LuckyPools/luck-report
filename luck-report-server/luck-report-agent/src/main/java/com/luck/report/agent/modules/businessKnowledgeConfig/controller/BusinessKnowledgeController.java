@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/business-knowledge")
+@RequestMapping("${luck-report.servletPrefix:}/business-knowledge")
 @CrossOrigin(origins = "*")
 @AllArgsConstructor
 public class BusinessKnowledgeController {

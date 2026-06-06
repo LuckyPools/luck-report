@@ -312,3 +312,34 @@ export async function getBuildinDatasources(): Promise<ResultVO<Array<{name: str
   const response = await request.get('/datasource/buildin/list')
   return response as ResultVO<Array<{name: string, id: number}>>
 }
+
+/**
+ * Schema搜索结果项接口定义
+ */
+export interface SchemaSearchResult {
+  /** 数据源ID */
+  datasourceId: number
+  /** 数据源名称 */
+  datasourceName: string
+  /** 数据源类型 */
+  datasourceType: string
+  /** 匹配的Schema提示词文本 */
+  schemaPrompt: string
+}
+
+/**
+ * 跨数据源搜索Schema
+ * 遍历所有active状态的数据源，通过向量检索召回与查询相关的表结构
+ * 返回每个匹配数据源的基本信息和格式化的Schema提示词，供Agent快速定位合适的数据源
+ *
+ * @param query 用户自然语言查询
+ * @returns Promise包含搜索结果列表
+ */
+export async function searchSchema(
+  query: string
+): Promise<ResultVO<SchemaSearchResult[]>> {
+  const response = await request.post('/datasource/search-schema', null, {
+    params: { query }
+  })
+  return response as ResultVO<SchemaSearchResult[]>
+}

@@ -8,8 +8,8 @@ import java.util.List;
 
 /**
  * 聊天会话 Mapper
- * 提供 luck_chat_session 表的 CRUD 操作，使用注解方式定义 SQL
- * 使用 Spring Boot 默认主数据源
+ * 提供 luck_chat_session 表的 CRUD 操作
+ * SQL 定义在 resources/mapper/{databaseId}/ChatSessionMapper.xml 中，支持多数据库方言
  *
  * @author luck
  */
@@ -22,9 +22,6 @@ public interface ChatSessionMapper {
      *
      * @return 会话列表
      */
-    @Select("SELECT * FROM luck_chat_session " +
-            "WHERE status != 'deleted' " +
-            "ORDER BY is_pinned DESC, update_time DESC")
     List<ChatSession> selectAll();
 
     /**
@@ -34,27 +31,20 @@ public interface ChatSessionMapper {
      * @param userId 用户ID
      * @return 会话列表
      */
-    @Select("SELECT * FROM luck_chat_session " +
-            "WHERE user_id = #{userId} AND status != 'deleted' " +
-            "ORDER BY is_pinned DESC, update_time DESC")
     List<ChatSession> selectByUserId(@Param("userId") Long userId);
 
     /**
      * 根据用户ID分页查询会话列表
-     * 按置顶优先、更新时间倒序排列
+     * 分页由拦截器自动改写，SQL 中无需手写 LIMIT
      *
-     * @param userId 用户ID
-     * @param offset 偏移量
-     * @param limit  每页数量
+     * @param userId   用户ID
+     * @param offset   偏移量
+     * @param pageSize 每页数量
      * @return 会话列表
      */
-    @Select("SELECT * FROM luck_chat_session " +
-            "WHERE user_id = #{userId} AND status != 'deleted' " +
-            "ORDER BY is_pinned DESC, update_time DESC " +
-            "LIMIT #{offset}, #{limit}")
     List<ChatSession> selectByUserIdWithPage(@Param("userId") Long userId,
                                               @Param("offset") int offset,
-                                              @Param("limit") int limit);
+                                              @Param("pageSize") int pageSize);
 
     /**
      * 统计指定用户下未删除的会话总数
@@ -62,8 +52,6 @@ public interface ChatSessionMapper {
      * @param userId 用户ID
      * @return 会话总数
      */
-    @Select("SELECT COUNT(*) FROM luck_chat_session " +
-            "WHERE user_id = #{userId} AND status != 'deleted'")
     long countByUserId(@Param("userId") Long userId);
 
     /**
@@ -72,8 +60,6 @@ public interface ChatSessionMapper {
      * @param sessionId 会话ID
      * @return 会话实体，不存在返回 null
      */
-    @Select("SELECT * FROM luck_chat_session " +
-            "WHERE id = #{sessionId} AND status != 'deleted'")
     ChatSession selectBySessionId(@Param("sessionId") String sessionId);
 
     /**
@@ -82,8 +68,6 @@ public interface ChatSessionMapper {
      * @param session 会话实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO luck_chat_session (id, title, status, is_pinned, user_id, create_time, update_time) " +
-            "VALUES (#{id}, #{title}, #{status}, #{isPinned}, #{userId}, #{createTime}, #{updateTime})")
     int insert(ChatSession session);
 
     /**
@@ -93,7 +77,6 @@ public interface ChatSessionMapper {
      * @param updateTime 更新时间
      * @return 影响行数
      */
-    @Update("UPDATE luck_chat_session SET update_time = #{updateTime} WHERE id = #{sessionId}")
     int updateSessionTime(@Param("sessionId") String sessionId, @Param("updateTime") LocalDateTime updateTime);
 
     /**
@@ -104,7 +87,6 @@ public interface ChatSessionMapper {
      * @param updateTime 更新时间
      * @return 影响行数
      */
-    @Update("UPDATE luck_chat_session SET is_pinned = #{isPinned}, update_time = #{updateTime} WHERE id = #{sessionId}")
     int updatePinStatus(@Param("sessionId") String sessionId, @Param("isPinned") Integer isPinned,
                         @Param("updateTime") LocalDateTime updateTime);
 
@@ -116,7 +98,6 @@ public interface ChatSessionMapper {
      * @param updateTime 更新时间
      * @return 影响行数
      */
-    @Update("UPDATE luck_chat_session SET title = #{title}, update_time = #{updateTime} WHERE id = #{sessionId}")
     int updateTitle(@Param("sessionId") String sessionId, @Param("title") String title,
                     @Param("updateTime") LocalDateTime updateTime);
 
@@ -128,7 +109,6 @@ public interface ChatSessionMapper {
      * @param updateTime 更新时间
      * @return 影响行数
      */
-    @Update("UPDATE luck_chat_session SET status = 'deleted', update_time = #{updateTime} WHERE id = #{sessionId}")
     int softDeleteById(@Param("sessionId") String sessionId, @Param("updateTime") LocalDateTime updateTime);
 
     /**
@@ -138,6 +118,5 @@ public interface ChatSessionMapper {
      * @param updateTime 更新时间
      * @return 影响行数
      */
-    @Update("UPDATE luck_chat_session SET status = 'deleted', update_time = #{updateTime} WHERE user_id = #{userId}")
     int softDeleteByUserId(@Param("userId") Long userId, @Param("updateTime") LocalDateTime updateTime);
 }

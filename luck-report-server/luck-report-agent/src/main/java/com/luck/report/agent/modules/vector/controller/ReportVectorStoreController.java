@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * @author luck
  */
 @RestController
-@RequestMapping("/vector")
+@RequestMapping("${luck-report.servletPrefix:}/vector")
 public class ReportVectorStoreController {
 
     private static final Logger log = LoggerFactory.getLogger(ReportVectorStoreController.class);

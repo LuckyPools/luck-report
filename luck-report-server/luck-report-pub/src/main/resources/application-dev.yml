@@ -1,9 +1,9 @@
 spring:
   datasource:
-    username: root
+    username: postgres
     password: root
-    url: jdbc:mysql://localhost:3306/luck_report_agent?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://localhost:5432/postgres?currentSchema=luck_report_vector
+    driver-class-name: org.postgresql.Driver
 
 luck-report:
   # 请求前缀

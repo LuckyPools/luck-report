@@ -21,7 +21,7 @@ import java.util.List;
  */
 @AllArgsConstructor
 @RestController
-@RequestMapping("/model-config")
+@RequestMapping("${luck-report.servletPrefix:}/model-config")
 public class ModelConfigController {
 
     private final ModelConfigDataService modelConfigDataService;

@@ -29,6 +29,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public ChatMessage saveMessage(ChatMessage message) {
+        // Java侧赋值createTime，替代数据库NOW()函数，抹除数据库特性差异
+        message.setCreateTime(java.time.LocalDateTime.now());
         chatMessageMapper.insert(message);
         log.info("保存消息: id={}, sessionId={}, role={}", message.getId(), message.getSessionId(), message.getRole());
         return message;
@@ -39,6 +41,9 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         if (messages == null || messages.isEmpty()) {
             return 0;
         }
+        // Java侧赋值createTime，替代数据库NOW()函数，抹除数据库特性差异
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        messages.forEach(m -> m.setCreateTime(now));
         int count = chatMessageMapper.batchInsert(messages);
         log.info("批量保存消息: count={}, sessionId={}", count, messages.get(0).getSessionId());
         return count;

@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
  * @author luck
  */
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("${luck-report.servletPrefix:}/chat")
 public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);

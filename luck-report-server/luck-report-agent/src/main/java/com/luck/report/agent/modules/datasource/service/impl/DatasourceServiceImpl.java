@@ -6,6 +6,7 @@ import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
+import com.luck.report.agent.modules.datasource.domain.dto.SchemaSearchResultDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.TableDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
@@ -22,6 +23,7 @@ import com.luck.report.agent.modules.vector.domain.entity.VectorDocument;
 import com.luck.report.agent.modules.vector.service.impl.AgentVectorStore;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -649,11 +651,70 @@ public class DatasourceServiceImpl implements DatasourceService {
 
         Long total = datasourceMapper.countByConditions(queryDTO);
 
-        List<Datasource> dataList = datasourceMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<Datasource> dataList = datasourceMapper.selectByConditionsWithPage(queryDTO, offset, queryDTO.getPageSize());
         List<DatasourceVO> dataListVO = dataList.stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
 
         return PageResultVO.success(dataListVO, total, queryDTO.getPageNum(), queryDTO.getPageSize());
+    }
+
+    /**
+     * 跨数据源搜索Schema
+     * 遍历所有active状态的数据源，对每个数据源执行向量检索
+     * 将有匹配结果的数据源组装为SchemaSearchResultDTO返回
+     *
+     * @param query 用户自然语言查询
+     * @return 搜索结果列表，按相关度排序
+     */
+    @Override
+    public List<SchemaSearchResultDTO> searchSchema(String query) {
+        // 查询所有active状态的数据源
+        List<Datasource> activeDatasources = datasourceMapper.selectByStatus("active");
+        if (activeDatasources == null || activeDatasources.isEmpty()) {
+            log.warn("没有找到active状态的数据源");
+            return new ArrayList<>();
+        }
+
+        List<SchemaSearchResultDTO> results = new ArrayList<>();
+
+        for (Datasource datasource : activeDatasources) {
+            try {
+                // 对每个数据源执行向量检索，检索TABLE文档判断是否有相关表
+                Map<String, Object> extraFilters = new HashMap<>();
+                extraFilters.put("datasourceId", datasource.getId());
+                List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(
+                        query, "TABLE", 3, 0.5, extraFilters);
+
+                // 没有匹配结果则跳过该数据源
+                if (tableSearchResults.isEmpty()) {
+                    continue;
+                }
+
+                // 复用已有的buildSchemaDTO获取完整的Schema信息
+                SchemaDTO schemaDTO = buildSchemaDTO(datasource.getId(), query);
+                // 如果构建结果没有表，也跳过
+                if (schemaDTO == null || CollectionUtils.isEmpty(schemaDTO.getTable())) {
+                    continue;
+                }
+
+                String schemaPrompt = DatasourcePromptHelper.buildSchemaPrompt(schemaDTO);
+                results.add(SchemaSearchResultDTO.builder()
+                        .datasourceId(datasource.getId())
+                        .datasourceName(datasource.getName())
+                        .datasourceType(datasource.getType())
+                        .schemaPrompt(schemaPrompt)
+                        .build());
+
+                log.info("跨数据源搜索命中: datasourceId={}, name={}, 匹配表数={}",
+                        datasource.getId(), datasource.getName(), schemaDTO.getTable().size());
+            } catch (Exception e) {
+                log.error("搜索数据源Schema失败: datasourceId={}, name={}, error={}",
+                        datasource.getId(), datasource.getName(), e.getMessage());
+            }
+        }
+
+        log.info("跨数据源搜索完成: query={}, 命中数据源数={}", query, results.size());
+        return results;
     }
 }

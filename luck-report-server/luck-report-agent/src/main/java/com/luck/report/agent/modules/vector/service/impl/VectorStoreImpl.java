@@ -10,6 +10,7 @@ import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
  * @author luck
  */
 @Repository
+@ConditionalOnProperty(name = "luck-report.vector.enabled", havingValue = "true", matchIfMissing = true)
 public class VectorStoreImpl implements VectorStore {
 
     private static final Logger log = LoggerFactory.getLogger(VectorStoreImpl.class);

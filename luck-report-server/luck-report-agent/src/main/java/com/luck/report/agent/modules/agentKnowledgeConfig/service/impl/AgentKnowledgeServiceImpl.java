@@ -324,7 +324,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
 
         Long total = agentKnowledgeMapper.countByConditions(queryDTO);
 
-        List<AgentKnowledge> dataList = agentKnowledgeMapper.selectByConditionsWithPage(queryDTO, offset);
+        List<AgentKnowledge> dataList = agentKnowledgeMapper.selectByConditionsWithPage(queryDTO, offset, queryDTO.getPageSize());
         List<AgentKnowledgeVO> dataListVO = dataList.stream()
                 .map(agentKnowledgeConverter::toVo)
                 .collect(Collectors.toList());
