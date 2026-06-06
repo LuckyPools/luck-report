@@ -71,7 +71,7 @@ export class AgentEngine {
     this.onToolConfirmFn = config.onToolConfirm
     this.sessionId = config.sessionId
     this.contextManager = new ContextManager(this.memoryManager, this.toolRegistry)
-    
+
     // 注册任务管理工具
     const taskTools = createTaskTools(
       this.taskListManager.updateTasks,

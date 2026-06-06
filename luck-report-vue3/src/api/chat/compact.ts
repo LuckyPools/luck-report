@@ -7,7 +7,7 @@
 
 import type { ContextMessage } from './index'
 import type { CompactResult } from '@/views/agent/memory/types'
-import { loadPromptDocByEnum, PromptDocName } from '@/prompt'
+import { loadPromptDocByEnum, type PromptDocName } from '@/prompt'
 
 /** 后端统一响应结构 */
 interface ApiResponse<T = any> {
@@ -51,7 +51,7 @@ export async function compactConversation(
   reportSnapshot?: string,
   modelId?: number
 ): Promise<CompactResult> {
-  const compactPrompt = await loadPromptDocByEnum(PromptDocName.COMPACT)
+  const compactPrompt = await loadPromptDocByEnum('COMPACT')
 
   const requestBody: CompactRequestBody = {
     messages,

@@ -10,10 +10,10 @@
  */
 export const contextConfig = {
   /** 滑动窗口保留的最大消息条数 */
-  slidingWindowSize: 30,
+  slidingWindowSize: 40,
 
   /** 触发自动摘要压缩的消息条数阈值 */
-  compactThreshold: 30,
+  compactThreshold: 50,
 
   /** 压缩后保留的最近消息条数 */
   compactKeepRecent: 10,
@@ -28,7 +28,7 @@ export const contextConfig = {
   toolResultMaxChars: 0,
 
   /** Agent 循环最大轮次，防止无限循环 */
-  maxAgentIterations: 10,
+  maxAgentIterations: 15,
 
   /** 滑动窗口回溯最大条数，防止 findSafeCutPoint 无限循环 */
   maxSlidingWindowLookback: 20,

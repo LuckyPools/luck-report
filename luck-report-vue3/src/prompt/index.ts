@@ -7,63 +7,36 @@
  * 无需 fetch 网络请求，开发和生产环境均可直接使用
  */
 
-/**
- * 提示词文档枚举名
- * 枚举值即为名称本身，供 loadPromptDocByEnum 和工具调用时使用
- * 实际文件路径通过 PROMPT_DOC_PATH_MAP 映射
- */
-export enum PromptDocName {
-  SYSTEM = 'SYSTEM',
-  REPORT_DEFINITION = 'REPORT_DEFINITION',
-  CELL_RENDER_ORDER = 'CELL_RENDER_ORDER',
-  PARENT_CELL_RELATION = 'PARENT_CELL_RELATION',
-  BARCODE_CELL = 'BARCODE_CELL',
-  CELL_COMMON_ATTRIBUTE = 'CELL_COMMON_ATTRIBUTE',
-  CELL_CONDITIONAL_ATTRIBUTE = 'CELL_CONDITIONAL_ATTRIBUTE',
-  CHART_CELL = 'CHART_CELL',
-  DATASET_CELL = 'DATASET_CELL',
-  DIAGONAL_HEADER_CELL = 'DIAGONAL_HEADER_CELL',
-  EXPRESSION_CELL = 'EXPRESSION_CELL',
-  IMAGE_CELL = 'IMAGE_CELL',
-  QRCODE_CELL = 'QRCODE_CELL',
-  SIMPLE_TEXT_CELL = 'SIMPLE_TEXT_CELL',
-  DATASOURCE_DATASET = 'DATASOURCE_DATASET',
-  EXPRESSION = 'EXPRESSION',
-  FUNCTION = 'FUNCTION',
-  FORM_DESIGN = 'FORM_DESIGN',
-  PAGE_CONFIG = 'PAGE_CONFIG',
-  TABLE_ROW = 'TABLE_ROW',
-  TABLE_COL = 'TABLE_COL',
-  COMPACT = 'COMPACT'
-}
+/** 提示词文档名称联合类型，由 PROMPT_DOC_PATH_MAP 的键推导 */
+export type PromptDocName = keyof typeof PROMPT_DOC_PATH_MAP
 
 /**
- * 枚举名到实际文件路径的映射
- * 路径相对于 src/prompt 目录，不含 .md 后缀
+ * 提示词文档名到实际文件路径的映射
+ * 键为文档名称，路径相对于 src/prompt 目录，不含 .md 后缀
  */
-const PROMPT_DOC_PATH_MAP: Record<PromptDocName, string> = {
-  [PromptDocName.SYSTEM]: 'plan/system',
-  [PromptDocName.REPORT_DEFINITION]: 'instruction/report-definition',
-  [PromptDocName.CELL_RENDER_ORDER]: 'instruction/cell-render-order',
-  [PromptDocName.PARENT_CELL_RELATION]: 'instruction/parent-cell-relation',
-  [PromptDocName.BARCODE_CELL]: 'model/cell/barcode-cell',
-  [PromptDocName.CELL_COMMON_ATTRIBUTE]: 'model/cell/cell-common-attribute',
-  [PromptDocName.CELL_CONDITIONAL_ATTRIBUTE]: 'model/cell/cell-conditional-attribute',
-  [PromptDocName.CHART_CELL]: 'model/cell/chart-cell',
-  [PromptDocName.DATASET_CELL]: 'model/cell/dataset-cell',
-  [PromptDocName.DIAGONAL_HEADER_CELL]: 'model/cell/diagonal-header-cell',
-  [PromptDocName.EXPRESSION_CELL]: 'model/cell/expression-cell',
-  [PromptDocName.IMAGE_CELL]: 'model/cell/image-cell',
-  [PromptDocName.QRCODE_CELL]: 'model/cell/qrcode-cell',
-  [PromptDocName.SIMPLE_TEXT_CELL]: 'model/cell/simple-text-cell',
-  [PromptDocName.DATASOURCE_DATASET]: 'model/datasource/datasource-dataset',
-  [PromptDocName.EXPRESSION]: 'formura/expression/expression',
-  [PromptDocName.FUNCTION]: 'formura/expression/function',
-  [PromptDocName.FORM_DESIGN]: 'model/form-design/form-design',
-  [PromptDocName.PAGE_CONFIG]: 'model/page-config/page-config',
-  [PromptDocName.TABLE_ROW]: 'model/table/row',
-  [PromptDocName.TABLE_COL]: 'model/table/col',
-  [PromptDocName.COMPACT]: 'compact/compact'
+export const PROMPT_DOC_PATH_MAP = {
+  SYSTEM: 'plan/system',
+  REPORT_DEFINITION: 'instruction/report-definition',
+  CELL_RENDER_ORDER: 'instruction/cell-render-order',
+  PARENT_CELL_RELATION: 'instruction/parent-cell-relation',
+  BARCODE_CELL: 'model/cell/barcode-cell',
+  CELL_COMMON_ATTRIBUTE: 'model/cell/cell-common-attribute',
+  CELL_CONDITIONAL_ATTRIBUTE: 'model/cell/cell-conditional-attribute',
+  CHART_CELL: 'model/cell/chart-cell',
+  DATASET_CELL: 'model/cell/dataset-cell',
+  DIAGONAL_HEADER_CELL: 'model/cell/diagonal-header-cell',
+  EXPRESSION_CELL: 'model/cell/expression-cell',
+  IMAGE_CELL: 'model/cell/image-cell',
+  QRCODE_CELL: 'model/cell/qrcode-cell',
+  SIMPLE_TEXT_CELL: 'model/cell/simple-text-cell',
+  DATASOURCE_DATASET: 'model/datasource/datasource-dataset',
+  EXPRESSION: 'formura/expression/expression',
+  FUNCTION: 'formura/expression/function',
+  FORM_DESIGN: 'model/form-design/form-design',
+  PAGE_CONFIG: 'model/page-config/page-config',
+  TABLE_ROW: 'model/table/row',
+  TABLE_COL: 'model/table/col',
+  COMPACT: 'compact/compact'
 }
 
 /**
@@ -127,16 +100,16 @@ export async function loadPromptDoc(relativePath: string): Promise<string> {
 }
 
 /**
- * 根据枚举名加载提示词文档
- * 通过 PROMPT_DOC_PATH_MAP 映射枚举值到实际文件路径，委托 loadPromptDoc 统一加载
+ * 根据文档名加载提示词文档
+ * 通过 PROMPT_DOC_PATH_MAP 映射文档名到实际文件路径，委托 loadPromptDoc 统一加载
  *
- * @param name - 提示词文档枚举名，PromptDocName 枚举值
+ * @param name - 提示词文档名称，string，不可为空
  * @returns 压缩后的文档文本内容，string
  */
-export async function loadPromptDocByEnum(name: PromptDocName): Promise<string> {
+export async function loadPromptDocByEnum(name: string): Promise<string> {
   const filePath = PROMPT_DOC_PATH_MAP[name]
   if (!filePath) {
-    throw new Error(`未知的提示词文档枚举名: ${name}`)
+    throw new Error(`未知的提示词文档名: ${name}`)
   }
   return loadPromptDoc(filePath)
 }
@@ -145,10 +118,10 @@ export async function loadPromptDocByEnum(name: PromptDocName): Promise<string> 
  * 批量加载提示词文档并用分界线拼接
  * 供需要同时加载多段提示词的场景使用，如对话开始时加载系统提示词 + 报表说明
  *
- * @param names - 提示词文档枚举名数组，PromptDocName[]，不可为空
+ * @param names - 提示词文档名称数组，string[]，不可为空
  * @returns 拼接后的完整提示词文本，string
  */
-export async function loadPromptDocs(names: PromptDocName[]): Promise<string> {
+export async function loadPromptDocs(names: string[]): Promise<string> {
   const SEPARATOR = '\n---- 分界线 ----\n'
   const contents = await Promise.all(names.map(name => loadPromptDocByEnum(name)))
   return contents.join(SEPARATOR)

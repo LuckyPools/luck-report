@@ -155,7 +155,7 @@ export const getDatasourcesTool: ToolDefinition<{
   name?: string;
 }> = {
   name: 'get_datasources',
-  description: '获取数据源数据。不传name返回全部数据源列表，传入name返回指定名称的数据源对象。',
+  description: '获取设计器已添加的数据源数据。不传name返回全部数据源列表，传入name返回指定名称的数据源对象。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -934,7 +934,7 @@ export const validateExpressionTool: ToolDefinition<{
 
 /**
  * 数据集预览数据工具
- * 调用后端 previewData 接口预览指定数据集的数据
+ * 验证SQL和数据源配置是否正确，仅返回执行成功或失败，不返回查询结果数据以节省token
  * 只读工具，可并发执行
  */
 export const previewDataTool: ToolDefinition<{
@@ -948,7 +948,7 @@ export const previewDataTool: ToolDefinition<{
   name?: string;
 }> = {
   name: 'preview_data',
-  description: '预览数据集的数据。根据SQL和数据源类型查询预览数据，返回字段列表和数据行。type为jdbc时需提供username/password/driver/url，type为buildin时需提供name。',
+  description: `验证数据集SQL是否可正确执行。根据SQL和数据源类型执行预览查询，仅返回执行结果（${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败），不返回查询数据以节省token。type为jdbc时需提供username/password/driver/url，type为buildin时需提供name。`,
   inputSchema: {
     type: 'object',
     properties: {

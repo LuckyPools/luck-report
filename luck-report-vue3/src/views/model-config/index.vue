@@ -308,7 +308,7 @@
               <a-input-number
                 v-model:value="formData.maxTokens"
                 :min="100"
-                :max="10000"
+                :max="200000"
                 :step="100"
                 style="width: 100%"
               />
@@ -590,7 +590,7 @@ const formRules = {
     { type: 'number', min: 0, max: 2, message: '温度值必须在0-2之间', trigger: 'blur' }
   ],
   maxTokens: [
-    { type: 'number', min: 100, max: 10000, message: '最大Token必须在100-10000之间', trigger: 'blur' }
+    { type: 'number', min: 100, max: 200000, message: '最大Token必须在100-200000之间', trigger: 'blur' }
   ]
 }
 

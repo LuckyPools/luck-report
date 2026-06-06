@@ -8,7 +8,7 @@ import com.luck.report.agent.modules.modelConfig.domain.enums.ModelType;
 import com.luck.report.agent.modules.modelConfig.converter.ModelConfigConverter;
 import com.luck.report.agent.modules.modelConfig.mapper.ModelConfigMapper;
 import com.luck.report.agent.modules.modelConfig.service.ModelConfigDataService;
-import com.luck.report.agent.util.CacheUtils;
+import com.luck.report.core.cache.CacheUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +30,31 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ModelConfigDataServiceImpl implements ModelConfigDataService {
 
+    /** 缓存键前缀：模型配置 */
+    private static final String MODEL_CONFIG_PREFIX = "model_config:";
+
+    /** 缓存键：所有激活的对话模型列表 */
+    private static final String ACTIVE_CHAT_MODELS_KEY = MODEL_CONFIG_PREFIX + "active_chat_models";
+
+    /** 缓存键：所有激活的嵌入模型列表 */
+    private static final String ACTIVE_EMBEDDING_MODELS_KEY = MODEL_CONFIG_PREFIX + "active_embedding_models";
+
+    /** 缓存键：单个模型配置（后缀为模型ID） */
+    private static final String MODEL_BY_ID_PREFIX = MODEL_CONFIG_PREFIX + "id:";
+
     private final ModelConfigMapper modelConfigMapper;
+
+    /**
+     * 清除所有模型配置相关的缓存
+     * 当模型配置发生变更时调用，清空所有模型配置缓存
+     */
+    private void clearModelConfigCache() {
+        Set<String> keys = CacheUtils.keys(MODEL_CONFIG_PREFIX);
+        if (keys != null) {
+            keys.forEach(CacheUtils::remove);
+        }
+        log.info("已清空所有模型配置缓存");
+    }
 
     /**
      * 根据ID查询模型配置
@@ -62,7 +87,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
         modelConfigMapper.updateById(entity);
 
         // 清空模型配置缓存
-        CacheUtils.clearModelConfigCache();
+        clearModelConfigCache();
         log.info("已启用模型配置: id={}, modelName={}", id, entity.getModelName());
     }
 
@@ -94,7 +119,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
         modelConfigMapper.updateById(entity);
 
         // 清空模型配置缓存
-        CacheUtils.clearModelConfigCache();
+        clearModelConfigCache();
         log.info("已禁用模型配置: id={}, modelName={}", id, entity.getModelName());
     }
 
@@ -107,8 +132,8 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
     @Override
     public List<ModelConfigDTO> listActiveConfigsByType(ModelType modelType) {
         String cacheKey = modelType == ModelType.CHAT
-                ? CacheUtils.ACTIVE_CHAT_MODELS_KEY
-                : CacheUtils.ACTIVE_EMBEDDING_MODELS_KEY;
+                ? ACTIVE_CHAT_MODELS_KEY
+                : ACTIVE_EMBEDDING_MODELS_KEY;
 
         // 先从缓存读取
         List<ModelConfigDTO> cachedList = CacheUtils.get(cacheKey);
@@ -164,7 +189,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
         // 只存库,不切换
         modelConfigMapper.insert(ModelConfigConverter.toEntity(dto));
         // 清空模型配置缓存
-        CacheUtils.clearModelConfigCache();
+        clearModelConfigCache();
         log.info("新增模型配置: modelName={}", dto.getModelName());
     }
 
@@ -217,7 +242,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
         modelConfigMapper.updateById(entity);
 
         // 清空模型配置缓存
-        CacheUtils.clearModelConfigCache();
+        clearModelConfigCache();
         log.info("更新模型配置: id={}, modelName={}", dto.getId(), dto.getModelName());
 
         return entity;
@@ -282,7 +307,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
         }
 
         // 清空模型配置缓存
-        CacheUtils.clearModelConfigCache();
+        clearModelConfigCache();
         log.info("删除模型配置: id={}, modelName={}", id, entity.getModelName());
     }
 
@@ -317,7 +342,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
     public ModelConfig getChatConfig(Integer modelId) {
         if (modelId != null) {
             // 根据ID获取指定模型配置，优先从缓存读取
-            String cacheKey = CacheUtils.MODEL_BY_ID_PREFIX + modelId;
+            String cacheKey = MODEL_BY_ID_PREFIX + modelId;
             ModelConfig cachedConfig = CacheUtils.get(cacheKey, ModelConfig.class);
             if (cachedConfig != null) {
                 log.debug("从缓存获取模型配置: id={}", modelId);

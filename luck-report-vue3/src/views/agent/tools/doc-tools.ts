@@ -1,12 +1,13 @@
 import type { ToolDefinition } from './types'
-import { loadPromptDocByEnum, PromptDocName } from '@/prompt'
+import {loadPromptDocByEnum, PROMPT_DOC_PATH_MAP} from '@/prompt'
+import {type PromptDocName} from '@/prompt'
 
 /**
- * 工具可用的指令文档枚举值列表
+ * 工具可用的指令文档名列表
  * 排除 SYSTEM 等内部文档，仅暴露给 AI 工具调用的指令类文档
  */
-const INSTRUCTION_DOC_NAMES = Object.values(PromptDocName).filter(
-  name => name !== PromptDocName.SYSTEM
+const INSTRUCTION_DOC_NAMES = Object.keys(PROMPT_DOC_PATH_MAP).filter(
+  name => name !== 'SYSTEM'
 )
 
 /**
@@ -41,7 +42,7 @@ export const loadReportIntroduceTool: ToolDefinition<{
 
     const SEPARATOR = '\n---- 分界线 ----\n'
     const contents = await Promise.all(
-      fileNames.map(fileName => loadPromptDocByEnum(fileName as PromptDocName))
+      fileNames.map(fileName => loadPromptDocByEnum(fileName))
     )
     return contents.join(SEPARATOR)
   },

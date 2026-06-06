@@ -619,7 +619,7 @@ export function useChat() {
     removeCurrentSession,
     loadSession,
     getFilteredMessages,
-    
+
     // 任务列表管理器
     taskListManager: agentEngine.getTaskListManager()
   }

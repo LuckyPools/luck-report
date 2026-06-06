@@ -1,7 +1,7 @@
 import { MemoryManager } from '../memory/memory-manager'
 import { ToolRegistry } from '../tools/registry'
 import { executeCode } from '@/views/export/iframe-utils'
-import { loadPromptDocs, PromptDocName } from '@/prompt'
+import { loadPromptDocs, type PromptDocName } from '@/prompt'
 import { contextConfig } from '@/config'
 
 /**
@@ -72,8 +72,8 @@ export class ContextManager {
    * 加载系统角色定义和报表说明文档，用分界线拼接
    */
   private async getDefaultPrompt(): Promise<string> {
-    return loadPromptDocs([PromptDocName.SYSTEM])
-    // return loadPromptDocs([PromptDocName.SYSTEM, PromptDocName.REPORT_DEFINITION])
+    return loadPromptDocs(['SYSTEM'])
+    // return loadPromptDocs(['SYSTEM', 'REPORT_DEFINITION'])
   }
 
   /**

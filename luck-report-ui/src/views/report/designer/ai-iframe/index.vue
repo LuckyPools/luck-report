@@ -1,21 +1,21 @@
 <template>
   <div class="ai-iframe-container">
-    <div 
-      class="ai-dialog-wrapper" 
+    <div
+      class="ai-dialog-wrapper"
       v-if="visible"
       :style="{
         transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`
       }"
     >
-      <div 
+      <div
         class="ai-dialog-header"
         @mousedown="handleMouseDown"
         :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
       >
-        <span class="ai-dialog-title">AI 助手</span>
+        <span class="ai-dialog-title" @click="handTest">AI 助手</span>
         <div class="ai-dialog-actions">
-          <button class="ai-dialog-btn" @click="handTest">打印</button>
-          <button class="ai-dialog-btn" @click="handInput">输入</button>
+<!--          <button class="ai-dialog-btn" @click="handTest">打印</button>-->
+<!--          <button class="ai-dialog-btn" @click="handInput">输入</button>-->
         </div>
         <button class="ai-dialog-close" @click="handleClose">×</button>
       </div>

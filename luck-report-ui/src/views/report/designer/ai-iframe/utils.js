@@ -705,11 +705,11 @@ async function validateExpression({ expression }) {
  * @param {string} [params.driver] - JDBC 驱动（type=jdbc 时必填）
  * @param {string} [params.url] - JDBC 连接 URL（type=jdbc 时必填）
  * @param {string} [params.name] - 内置数据源名称（type=buildin 时必填）
- * @return {Promise<Object>} 预览结果，包含 data（fields、data、total、currentTotal）
+ * @return {Promise<number>} ToolResult.SUCCESS 表示执行成功，ToolResult.ERROR 表示执行失败
  */
 async function previewData({ sql, type, parameters, username, password, driver, url, name }) {
     if (!sql) {
-        return { success: false, message: 'SQL不能为空' };
+        return ToolResult.ERROR;
     }
     const params = { sql, type, parameters: parameters || [] };
     if (type === 'jdbc') {
@@ -721,10 +721,11 @@ async function previewData({ sql, type, parameters, username, password, driver, 
         params.name = name;
     }
     try {
-        const data = await apiPreviewData(params);
-        return { success: true, data };
+        await apiPreviewData(params);
+        return ToolResult.SUCCESS;
     } catch (error) {
-        return { success: false, message: error.msg || '预览数据失败' };
+        console.error('[AiIframe] previewData 执行失败:', error.msg || '预览数据失败');
+        return ToolResult.ERROR;
     }
 }
 
