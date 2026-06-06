@@ -1,6 +1,6 @@
-package com.luck.report.web.sql;
+package com.luck.report.core.sql;
 
-import com.luck.report.web.sql.enums.DbType;
+import com.luck.report.core.sql.enums.DbType;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 

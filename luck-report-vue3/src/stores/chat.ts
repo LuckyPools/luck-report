@@ -312,6 +312,11 @@ export const useChatStore = defineStore('chat', () => {
       const msg = messageList.value[i]
       if (msg.type === 'break' || msg.type === 'error') continue
 
+      // 过滤掉 text 类型且内容为空的消息（工具调用产生的中间空消息，无实际意义）
+      if ((msg.type === 'text' || !msg.type) && (!msg.content || msg.content.trim() === '')) {
+        continue
+      }
+
       const item: BatchMessageItem = {
         role: msg.role,
         content: msg.content

@@ -2,6 +2,9 @@
  * Agent 上下文管理配置
  * 集中管理对话数量限制、token 数量限制等参数
  * 供 MemoryManager、AgentLoop 等模块引用，替代硬编码值
+ *
+ * 注意：contextWindowTokens 已移除，改为从当前选中模型的 maxTokens 动态获取，
+ * 确保不同模型使用各自的上下文窗口上限
  */
 
 /**
@@ -17,9 +20,6 @@ export const contextConfig = {
 
   /** 压缩后保留的最近消息条数 */
   compactKeepRecent: 10,
-
-  /** 估算的上下文窗口 token 上限（取决于模型，qwen3.6-plus 约 128k） */
-  contextWindowTokens: 128000,
 
   /** 触发自动压缩的 token 占比阈值（0.7 表示上下文占 70% 时触发压缩） */
   autoCompactTokenRatio: 0.7,

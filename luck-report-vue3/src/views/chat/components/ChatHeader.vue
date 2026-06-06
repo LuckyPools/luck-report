@@ -25,9 +25,10 @@
         ok-text="确定"
         cancel-text="取消"
         @confirm="emit('deleteChat')"
+        :disabled="!canDelete"
       >
         <a-tooltip title="删除聊天">
-          <a-button type="text" size="small" @click.stop>
+          <a-button type="text" size="small" :disabled="!canDelete" @click.stop>
             <template #icon><DeleteOutlined /></template>
           </a-button>
         </a-tooltip>
@@ -68,6 +69,8 @@ interface Props {
   currentModel: LLMModel
   /** 是否正在加载 */
   isPending?: boolean
+  /** 当前会话ID，为空时表示新对话或空白对话 */
+  currentSessionId?: string | null
 }
 
 interface Emits {
@@ -83,6 +86,12 @@ const emit = defineEmits<Emits>()
 
 /** 当前选中的模型ID */
 const selectedModelId = ref<string>(props.currentModel?.id || '')
+
+/**
+ * 是否可删除当前对话
+ * 仅当存在有效会话ID时允许删除，新对话或空白对话不可删除
+ */
+const canDelete = computed(() => !!props.currentSessionId)
 
 /**
  * 监听 currentModel 变化，更新选中状态
@@ -136,15 +145,28 @@ const handleMouseDown = (e: MouseEvent) => {
 }
 
 .model-select {
-  width: 180px;
+  width: 160px;
   font-size: 14px;
 }
 
 .model-select :deep(.ant-select-selector) {
-  border: none;
+  border: none !important;
   background-color: transparent;
   font-weight: 500;
   color: #374151;
+  box-shadow: none !important;
+}
+
+/* 去除 hover 时的边框 */
+.model-select :deep(.ant-select:hover .ant-select-selector) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 去除激活时的边框 */
+.model-select :deep(.ant-select-focused .ant-select-selector) {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .model-select :deep(.ant-select-selection-item) {

@@ -305,12 +305,13 @@ export function useChat() {
    *
    * @param content - 用户输入消息
    * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
+   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
    */
-  const sendMessageViaAgent = async (content: string, modelId?: number) => {
+  const sendMessageViaAgent = async (content: string, modelId?: number, maxTokens?: number) => {
     abortController = new AbortController()
 
     try {
-      await agentEngine.start(content, handleAgentEvent, abortController.signal, modelId)
+      await agentEngine.start(content, handleAgentEvent, abortController.signal, modelId, maxTokens)
     } catch (error: unknown) {
       const err = error as Error
       if (err.name === 'AbortError') {
@@ -354,12 +355,14 @@ export function useChat() {
    * @param attachments - 可选，图片附件列表
    * @param searchEnabled - 可选，是否启用联网搜索
    * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
+   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
    */
   const sendMessage = async (
       content: string,
       attachments?: Attachment[],
       searchEnabled?: boolean,
-      modelId?: number
+      modelId?: number,
+      maxTokens?: number
   ) => {
     if (!content.trim() || responseStatus.value === 'pending') return
 
@@ -398,7 +401,7 @@ export function useChat() {
     mcpTools.value = []
     pendingConfirmToolCall.value = null
 
-    await sendMessageViaAgent(content.trim(), modelId)
+    await sendMessageViaAgent(content.trim(), modelId, maxTokens)
   }
 
   /**
@@ -432,8 +435,9 @@ export function useChat() {
    *
    * @param sessionId - 要加载的会话ID
    * @param modelId - 可选，当前选中的大模型配置ID，用于压缩时使用正确的模型
+   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
    */
-  const loadSession = async (sessionId: string, modelId?: number) => {
+  const loadSession = async (sessionId: string, modelId?: number, maxTokens?: number) => {
     // 切换前先保存当前会话（异步执行，不阻塞会话切换）
     if (currentSessionId.value && store.getRoundStartIndex() < messageList.value.length) {
       store.persistMessages().catch(e => {
@@ -445,7 +449,7 @@ export function useChat() {
     agentEngine.clearMemory()
     agentEngine.setSessionId(sessionId)
     // 设置模型ID，确保压缩时使用正确的模型配置
-    agentEngine.setModelId(modelId)
+    agentEngine.setModelId(modelId, maxTokens)
 
     // 通过 store 加载会话数据
     await store.loadSession(sessionId)

@@ -153,6 +153,7 @@ export interface SessionPersistence {
 /**
  * 上下文窗口配置
  * 控制各层策略的触发阈值
+ * 注意：contextWindowTokens 已移除，改为从当前选中模型的 maxTokens 动态获取
  */
 export interface ContextWindowConfig {
   /** 工具结果截断阈值（字符数），默认 2000 */
@@ -163,8 +164,6 @@ export interface ContextWindowConfig {
   compactThreshold: number
   /** 压缩后保留的最近消息条数，默认 10 */
   compactKeepRecent: number
-  /** 估算的上下文窗口 token 上限，默认 120000 */
-  contextWindowTokens: number
   /** 触发自动压缩的 token 占比阈值，默认 0.7 */
   autoCompactTokenRatio: number
 }

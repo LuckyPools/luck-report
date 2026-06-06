@@ -9,6 +9,7 @@
         :model-list="modelList"
         :current-model="currentModelInfo"
         :is-pending="isPending"
+        :current-session-id="currentSessionId"
         @close="toggleChat"
         @mousedown="onHeaderMouseDown"
         @delete-chat="handleDeleteChat"
@@ -316,9 +317,10 @@ const handleDeleteChat = () => {
  */
 const handleSessionSelect = (sessionId: string) => {
   chatListVisible.value = false
-  // 获取当前模型的 ID，确保压缩时使用正确的模型配置
+  // 获取当前模型的 ID 和 maxTokens，确保压缩时使用正确的模型配置
   const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
-  loadSession(sessionId, modelId)
+  const maxTokens = currentModelInfo.value?.maxTokens
+  loadSession(sessionId, modelId, maxTokens)
 }
 
 /**
@@ -353,9 +355,10 @@ const handleChatListOpenChange = (open: boolean) => {
  * @param searchEnabled - 是否启用联网搜索
  */
 const handleSend = (content: string, attachments?: Attachment[], searchEnabled?: boolean) => {
-  // 获取当前模型的 ID（转换为数字类型）
+  // 获取当前模型的 ID（转换为数字类型）和 maxTokens
   const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
-  sendMessage(content, attachments, searchEnabled, modelId)
+  const maxTokens = currentModelInfo.value?.maxTokens
+  sendMessage(content, attachments, searchEnabled, modelId, maxTokens)
 }
 
 /**

@@ -1,6 +1,6 @@
 package com.luck.report.web.utils;
 
-import com.luck.report.web.sql.enums.DbType;
+import com.luck.report.core.sql.enums.DbType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

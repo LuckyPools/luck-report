@@ -49,6 +49,9 @@ export class MemoryManager {
   /** 上下文窗口配置 */
   private config: ContextWindowConfig
 
+  /** 上下文窗口 token 上限，从当前选中模型的 maxTokens 动态获取 */
+  private _contextWindowTokens: number = 128000
+
   /** 长期记忆存储 key 前缀 */
   private static STORAGE_KEY = 'report_agent_long_term_memory'
 
@@ -61,12 +64,29 @@ export class MemoryManager {
     slidingWindowSize: contextConfig.slidingWindowSize,
     compactThreshold: contextConfig.compactThreshold,
     compactKeepRecent: contextConfig.compactKeepRecent,
-    contextWindowTokens: contextConfig.contextWindowTokens,
     autoCompactTokenRatio: contextConfig.autoCompactTokenRatio
   }
 
   constructor(config?: Partial<ContextWindowConfig>) {
     this.config = { ...MemoryManager.DEFAULT_CONFIG, ...config }
+  }
+
+  /**
+   * 设置上下文窗口 token 上限
+   * 由 AgentEngine 在切换模型时调用，根据当前选中模型的 maxTokens 动态更新
+   *
+   * @param tokens - 模型的上下文窗口 token 上限
+   */
+  setContextWindowTokens(tokens: number): void {
+    this._contextWindowTokens = tokens
+  }
+
+  /**
+   * 获取当前上下文窗口 token 上限
+   * @returns token 上限值
+   */
+  getContextWindowTokens(): number {
+    return this._contextWindowTokens
   }
 
   // ==================== 第1层：工具结果截断 ====================
@@ -315,7 +335,7 @@ export class MemoryManager {
     }
     // 估算当前上下文 token 占比
     const estimatedTokens = this.estimateContextTokens()
-    const threshold = this.config.contextWindowTokens * this.config.autoCompactTokenRatio
+    const threshold = this._contextWindowTokens * this.config.autoCompactTokenRatio
     return estimatedTokens > threshold
   }
 

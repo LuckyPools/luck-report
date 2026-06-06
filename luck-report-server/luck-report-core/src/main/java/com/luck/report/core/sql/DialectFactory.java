@@ -1,13 +1,9 @@
-package com.luck.report.web.sql;
+package com.luck.report.core.sql;
 
 import com.luck.report.core.Utils;
-import com.luck.report.core.cache.CacheUtils;
-import com.luck.report.core.cache.ReportCache;
-import com.luck.report.core.exception.ReportException;
-import com.luck.report.web.sql.enums.DbType;
+import com.luck.report.core.sql.enums.DbType;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;

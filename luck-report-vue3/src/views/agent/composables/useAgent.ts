@@ -59,6 +59,8 @@ export class AgentEngine {
   private sessionId?: string
   /** 大模型配置ID，用于指定使用哪个大模型 */
   private modelId?: number
+  /** 当前模型的上下文窗口 token 上限 */
+  private _maxTokens: number = 128000
   /** 中断控制器 */
   private abortController: AbortController | null = null
   /** 是否正在运行 */
@@ -95,17 +97,25 @@ export class AgentEngine {
    * @param onEvent - 事件回调，通知上层 Agent 循环的各种状态变化
    * @param signal - 可选的中断信号
    * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
+   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
    */
   async start(
     userMessage: string,
     onEvent: (event: AgentEvent) => void,
     signal?: AbortSignal,
-    modelId?: number
+    modelId?: number,
+    maxTokens?: number
   ): Promise<void> {
     if (this._running) return
 
     // 存储模型ID，供压缩时使用
     this.modelId = modelId
+
+    // 更新上下文窗口 token 上限，用于判断是否需要压缩
+    if (maxTokens) {
+      this._maxTokens = maxTokens
+      this.memoryManager.setContextWindowTokens(maxTokens)
+    }
 
     // 清空上一轮的任务列表，避免新消息显示旧任务进度
     this.taskListManager.clearTasks()
@@ -175,9 +185,14 @@ export class AgentEngine {
    * 切换模型或加载历史对话时调用，确保压缩接口使用正确的模型配置
    *
    * @param modelId - 大模型配置ID
+   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限
    */
-  setModelId(modelId: number | undefined): void {
+  setModelId(modelId: number | undefined, maxTokens?: number): void {
     this.modelId = modelId
+    if (maxTokens) {
+      this._maxTokens = maxTokens
+      this.memoryManager.setContextWindowTokens(maxTokens)
+    }
   }
 
   /**

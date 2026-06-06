@@ -1,4 +1,4 @@
-package com.luck.report.web.sql.enums;
+package com.luck.report.core.sql.enums;
 
 public enum DbType {
     MYSQL("mysql", "MySql数据库"),
