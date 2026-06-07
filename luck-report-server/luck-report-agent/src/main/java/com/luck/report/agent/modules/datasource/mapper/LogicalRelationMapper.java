@@ -91,6 +91,37 @@ public interface LogicalRelationMapper {
     List<LogicalRelation> selectByDatasourceId(@Param("datasourceId") Integer datasourceId);
 
     /**
+     * 按数据源ID列表批量查询逻辑外键
+     *
+     * @param datasourceIds 数据源ID列表，不可为空
+     * @return 逻辑外键列表
+     */
+    @Select({"<script>",
+            "SELECT id, datasource_id, source_table_name, source_column_name, ",
+            "target_table_name, target_column_name, relation_type, description, ",
+            "is_deleted, created_time, updated_time ",
+            "FROM luck_logical_relation WHERE datasource_id IN ",
+            "<foreach collection='datasourceIds' item='dsId' open='(' separator=',' close=')'>",
+            "#{dsId}",
+            "</foreach>",
+            " AND is_deleted = 0 ORDER BY created_time DESC",
+            "</script>"})
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "datasource_id", property = "datasourceId"),
+            @Result(column = "source_table_name", property = "sourceTableName"),
+            @Result(column = "source_column_name", property = "sourceColumnName"),
+            @Result(column = "target_table_name", property = "targetTableName"),
+            @Result(column = "target_column_name", property = "targetColumnName"),
+            @Result(column = "relation_type", property = "relationType"),
+            @Result(column = "description", property = "description"),
+            @Result(column = "is_deleted", property = "isDeleted"),
+            @Result(column = "created_time", property = "createdTime"),
+            @Result(column = "updated_time", property = "updatedTime")
+    })
+    List<LogicalRelation> selectByDatasourceIds(@Param("datasourceIds") List<Integer> datasourceIds);
+
+    /**
      * 逻辑删除逻辑外键
      *
      * @param id 逻辑外键ID

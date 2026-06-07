@@ -6,7 +6,7 @@ import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
-import com.luck.report.agent.modules.datasource.domain.dto.SchemaSearchResultDTO;
+import com.luck.report.agent.modules.datasource.domain.vo.SchemaSearchResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.TableDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
@@ -660,58 +660,144 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     /**
-     * 跨数据源搜索Schema
-     * 遍历所有active状态的数据源，对每个数据源执行向量检索
-     * 将有匹配结果的数据源组装为SchemaSearchResultDTO返回
+     * 跨数据源搜索Schema（优化版）
+     * 一次性从向量库检索TABLE和COLUMN文档，按datasourceId分组后批量查数据库，避免N+1查询
      *
      * @param query 用户自然语言查询
-     * @return 搜索结果列表，按相关度排序
+     * @return 搜索结果列表，每项包含数据源信息和Schema提示词
      */
     @Override
-    public List<SchemaSearchResultDTO> searchSchema(String query) {
-        // 查询所有active状态的数据源
-        List<Datasource> activeDatasources = datasourceMapper.selectByStatus("active");
-        if (activeDatasources == null || activeDatasources.isEmpty()) {
-            log.warn("没有找到active状态的数据源");
+    public List<SchemaSearchResultVO> searchSchema(String query) {
+        // 第一步：一次性向量检索所有TABLE文档（不按datasourceId过滤，topK放大以覆盖多数据源）
+        List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(query, "TABLE", 30, 0.5, null);
+        if (tableSearchResults.isEmpty()) {
+            log.info("跨数据源搜索未命中任何TABLE文档: query={}", query);
             return new ArrayList<>();
         }
 
-        List<SchemaSearchResultDTO> results = new ArrayList<>();
+        // 第二步：一次性向量检索所有COLUMN文档
+        List<VectorStoreSearchResult> columnSearchResults = agentVectorStore.search(query, "COLUMN", 50, 0.4, null);
 
-        for (Datasource datasource : activeDatasources) {
-            try {
-                // 对每个数据源执行向量检索，检索TABLE文档判断是否有相关表
-                Map<String, Object> extraFilters = new HashMap<>();
-                extraFilters.put("datasourceId", datasource.getId());
-                List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(
-                        query, "TABLE", 3, 0.5, extraFilters);
+        // 第三步：TABLE文档按datasourceId分组，同时收集表名映射
+        Map<Integer, List<VectorStoreSearchResult>> tableResultsByDsId = new LinkedHashMap<>();
+        Map<Integer, Map<String, VectorDocument>> tableDocMapByDsId = new LinkedHashMap<>();
+        Map<Integer, Set<String>> recalledTableNamesByDsId = new LinkedHashMap<>();
 
-                // 没有匹配结果则跳过该数据源
-                if (tableSearchResults.isEmpty()) {
-                    continue;
-                }
-
-                // 复用已有的buildSchemaDTO获取完整的Schema信息
-                SchemaDTO schemaDTO = buildSchemaDTO(datasource.getId(), query);
-                // 如果构建结果没有表，也跳过
-                if (schemaDTO == null || CollectionUtils.isEmpty(schemaDTO.getTable())) {
-                    continue;
-                }
-
-                String schemaPrompt = DatasourcePromptHelper.buildSchemaPrompt(schemaDTO);
-                results.add(SchemaSearchResultDTO.builder()
-                        .datasourceId(datasource.getId())
-                        .datasourceName(datasource.getName())
-                        .datasourceType(datasource.getType())
-                        .schemaPrompt(schemaPrompt)
-                        .build());
-
-                log.info("跨数据源搜索命中: datasourceId={}, name={}, 匹配表数={}",
-                        datasource.getId(), datasource.getName(), schemaDTO.getTable().size());
-            } catch (Exception e) {
-                log.error("搜索数据源Schema失败: datasourceId={}, name={}, error={}",
-                        datasource.getId(), datasource.getName(), e.getMessage());
+        for (VectorStoreSearchResult result : tableSearchResults) {
+            VectorDocument doc = result.getDocument();
+            if (doc == null || doc.getMetadata() == null) {
+                continue;
             }
+            Object dsIdObj = doc.getMetadata().get("datasourceId");
+            if (dsIdObj == null) {
+                continue;
+            }
+            Integer dsId = dsIdObj instanceof Integer ? (Integer) dsIdObj : Integer.valueOf(dsIdObj.toString());
+            String tableName = (String) doc.getMetadata().get("name");
+
+            tableResultsByDsId.computeIfAbsent(dsId, k -> new ArrayList<>()).add(result);
+            tableDocMapByDsId.computeIfAbsent(dsId, k -> new LinkedHashMap<>());
+            recalledTableNamesByDsId.computeIfAbsent(dsId, k -> new LinkedHashSet<>());
+
+            if (tableName != null && !recalledTableNamesByDsId.get(dsId).contains(tableName)) {
+                recalledTableNamesByDsId.get(dsId).add(tableName);
+                tableDocMapByDsId.get(dsId).put(tableName, doc);
+            }
+        }
+
+        if (tableResultsByDsId.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 第四步：COLUMN文档按datasourceId + tableName分组，仅保留与召回表匹配的列
+        Map<Integer, Map<String, List<VectorDocument>>> columnDocMapByDsId = new LinkedHashMap<>();
+        for (VectorStoreSearchResult result : columnSearchResults) {
+            VectorDocument doc = result.getDocument();
+            if (doc == null || doc.getMetadata() == null) {
+                continue;
+            }
+            Object dsIdObj = doc.getMetadata().get("datasourceId");
+            if (dsIdObj == null) {
+                continue;
+            }
+            Integer dsId = dsIdObj instanceof Integer ? (Integer) dsIdObj : Integer.valueOf(dsIdObj.toString());
+            String tableName = (String) doc.getMetadata().get("tableName");
+
+            Set<String> recalledTables = recalledTableNamesByDsId.get(dsId);
+            if (recalledTables != null && tableName != null && recalledTables.contains(tableName)) {
+                columnDocMapByDsId.computeIfAbsent(dsId, k -> new LinkedHashMap<>());
+                columnDocMapByDsId.get(dsId).computeIfAbsent(tableName, k -> new ArrayList<>()).add(doc);
+            }
+        }
+
+        // 第五步：批量查询命中的数据源和逻辑外键
+        List<Integer> hitDsIds = new ArrayList<>(tableResultsByDsId.keySet());
+        Map<Integer, Datasource> datasourceMap = datasourceMapper.selectByIds(hitDsIds).stream()
+                .collect(Collectors.toMap(Datasource::getId, ds -> ds, (a, b) -> a));
+        Map<Integer, List<LogicalRelation>> relationMapByDsId = logicalRelationMapper.selectByDatasourceIds(hitDsIds).stream()
+                .collect(Collectors.groupingBy(LogicalRelation::getDatasourceId));
+
+        // 第六步：按数据源组装SchemaDTO和提示词
+        List<SchemaSearchResultVO> results = new ArrayList<>();
+        for (Integer dsId : hitDsIds) {
+            Datasource datasource = datasourceMap.get(dsId);
+            if (datasource == null) {
+                continue;
+            }
+
+            Set<String> recalledTableNames = recalledTableNamesByDsId.get(dsId);
+            Map<String, VectorDocument> tableDocMap = tableDocMapByDsId.get(dsId);
+            Map<String, List<VectorDocument>> columnDocMap = columnDocMapByDsId.getOrDefault(dsId, new LinkedHashMap<>());
+
+            // 构建TableDTO列表
+            List<TableDTO> tableList = new ArrayList<>();
+            for (String tableName : recalledTableNames) {
+                VectorDocument tableDoc = tableDocMap.get(tableName);
+                List<VectorDocument> columnDocs = columnDocMap.getOrDefault(tableName, new ArrayList<>());
+                tableList.add(buildTableDTOFromMetadata(tableDoc, columnDocs));
+            }
+
+            // 合并物理外键和逻辑外键
+            Set<String> foreignKeySet = new LinkedHashSet<>();
+            for (VectorDocument tableDoc : tableDocMap.values()) {
+                String fkStr = (String) tableDoc.getMetadata().getOrDefault("foreignKey", "");
+                if (StringUtils.isNotBlank(fkStr)) {
+                    for (String fk : fkStr.split("、")) {
+                        if (StringUtils.isNotBlank(fk)) {
+                            foreignKeySet.add(fk);
+                        }
+                    }
+                }
+            }
+            List<LogicalRelation> relations = relationMapByDsId.getOrDefault(dsId, new ArrayList<>());
+            for (LogicalRelation relation : relations) {
+                boolean sourceInRecalled = recalledTableNames.contains(relation.getSourceTableName());
+                boolean targetInRecalled = recalledTableNames.contains(relation.getTargetTableName());
+                if (sourceInRecalled || targetInRecalled) {
+                    String fkStr = relation.getSourceTableName() + "." + relation.getSourceColumnName()
+                            + "=" + relation.getTargetTableName() + "." + relation.getTargetColumnName();
+                    foreignKeySet.add(fkStr);
+                }
+            }
+
+            SchemaDTO schemaDTO = SchemaDTO.builder()
+                    .name(datasource.getDatabaseName())
+                    .description(datasource.getDescription())
+                    .tableCount(tableList.size())
+                    .table(tableList)
+                    .foreignKeys(new ArrayList<>(foreignKeySet))
+                    .build();
+
+            String schemaPrompt = DatasourcePromptHelper.buildSchemaPrompt(schemaDTO);
+            results.add(SchemaSearchResultVO.builder()
+                    .datasourceId(dsId)
+                    .datasourceName(datasource.getName())
+                    .datasourceType(datasource.getType())
+                    .schemaPrompt(schemaPrompt)
+                    .build());
+
+            log.info("跨数据源搜索命中: datasourceId={}, name={}, 匹配表数={}",
+                    dsId, datasource.getName(), tableList.size());
         }
 
         log.info("跨数据源搜索完成: query={}, 命中数据源数={}", query, results.size());

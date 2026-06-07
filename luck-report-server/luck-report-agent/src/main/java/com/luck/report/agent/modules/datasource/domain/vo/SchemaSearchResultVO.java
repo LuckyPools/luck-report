@@ -1,4 +1,4 @@
-package com.luck.report.agent.modules.datasource.domain.dto;
+package com.luck.report.agent.modules.datasource.domain.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 跨数据源Schema搜索结果项
+ * 跨数据源Schema搜索结果项（返回给前端）
  * 表示一次搜索命中的数据源及其相关表信息
  * 用于Agent根据自然语言查询快速定位到合适的数据源
  *
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SchemaSearchResultDTO {
+public class SchemaSearchResultVO {
 
     /** 数据源ID */
     private Integer datasourceId;

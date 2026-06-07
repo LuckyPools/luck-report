@@ -70,6 +70,17 @@
         FROM luck_datasource WHERE name = #{name}
     </select>
 
+    <!-- 根据ID列表批量查询数据源 -->
+    <select id="selectByIds" resultType="com.luck.report.agent.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY create_time DESC
+    </select>
+
     <!-- 更新已初始化的表名列表 -->
     <update id="updateInitializedTables">
         UPDATE luck_datasource SET initialized_tables = #{initializedTables} WHERE id = #{id}

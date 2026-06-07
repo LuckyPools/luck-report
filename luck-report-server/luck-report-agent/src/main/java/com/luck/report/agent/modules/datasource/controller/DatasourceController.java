@@ -7,11 +7,11 @@ import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceTypeDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.InitSchemaRequestDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
-import com.luck.report.agent.modules.datasource.domain.dto.SchemaSearchResultDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.UpdateLogicalRelationDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.enums.DatasourceTypeEnum;
 import com.luck.report.agent.modules.datasource.domain.vo.DatasourceVO;
+import com.luck.report.agent.modules.datasource.domain.vo.SchemaSearchResultVO;
 import com.luck.report.agent.modules.datasource.service.DatasourceService;
 import com.luck.report.core.definition.datasource.BuildinDatasource;
 import com.luck.report.core.Utils;
@@ -419,11 +419,11 @@ public class DatasourceController {
                 }
                 datasourceId = datasource.getId();
             }
-            
+
             if (datasourceId == null) {
                 return ResultVO.error("必须提供id或name参数");
             }
-            
+
             String prompt = datasourceService.getSchemaPrompt(datasourceId, query);
             return ResultVO.success("获取Schema提示词成功", prompt);
         } catch (Exception e) {
@@ -441,10 +441,10 @@ public class DatasourceController {
      * @return 搜索结果列表，每项包含数据源ID、名称、类型和Schema提示词
      */
     @PostMapping("/search-schema")
-    public ResultVO<List<SchemaSearchResultDTO>> searchSchema(
+    public ResultVO<List<SchemaSearchResultVO>> searchSchema(
             @RequestParam(value = "query") String query) {
         try {
-            List<SchemaSearchResultDTO> results = datasourceService.searchSchema(query);
+            List<SchemaSearchResultVO> results = datasourceService.searchSchema(query);
             return ResultVO.success("搜索Schema成功", results);
         } catch (Exception e) {
             log.error("搜索Schema失败", e);
@@ -464,14 +464,14 @@ public class DatasourceController {
         try {
             Collection<BuildinDatasource> datasources = Utils.getBuildinDatasources();
             List<Map<String, Object>> result = new ArrayList<>();
-            
+
             for (BuildinDatasource ds : datasources) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("name", ds.name());
                 item.put("id", ds.getId());
                 result.add(item);
             }
-            
+
             return ResultVO.success("获取内置数据源列表成功", result);
         } catch (Exception e) {
             log.error("获取内置数据源列表失败", e);

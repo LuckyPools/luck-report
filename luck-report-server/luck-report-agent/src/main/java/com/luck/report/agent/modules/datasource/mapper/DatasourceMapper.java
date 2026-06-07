@@ -107,6 +107,14 @@ public interface DatasourceMapper {
     int updateInitializedTables(@Param("id") Integer id, @Param("initializedTables") String initializedTables);
 
     /**
+     * 根据ID列表批量查询数据源
+     *
+     * @param ids 数据源ID列表，不可为空
+     * @return 数据源列表
+     */
+    List<Datasource> selectByIds(@Param("ids") List<Integer> ids);
+
+    /**
      * 分页条件查询数据源
      * 分页由拦截器自动改写，SQL 中无需手写 LIMIT
      *

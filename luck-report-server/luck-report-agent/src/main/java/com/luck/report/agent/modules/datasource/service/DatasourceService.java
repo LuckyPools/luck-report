@@ -3,10 +3,10 @@ package com.luck.report.agent.modules.datasource.service;
 import com.luck.report.agent.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
-import com.luck.report.agent.modules.datasource.domain.dto.SchemaSearchResultDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.vo.DatasourceVO;
+import com.luck.report.agent.modules.datasource.domain.vo.SchemaSearchResultVO;
 
 import java.util.List;
 
@@ -209,5 +209,5 @@ public interface DatasourceService {
      * @param query 用户自然语言查询
      * @return 搜索结果列表，按相关度排序
      */
-    List<SchemaSearchResultDTO> searchSchema(String query);
+    List<SchemaSearchResultVO> searchSchema(String query);
 }
