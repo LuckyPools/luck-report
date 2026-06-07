@@ -218,10 +218,13 @@ export class AgentEngine {
 
   /**
    * 检查并执行异步压缩
-   * 加载历史对话后调用，如果消息数已超过压缩阈值则立即触发压缩
-   * 异步执行，不阻塞后续操作
+   * 仅在 Agent 循环未运行时触发，用于加载历史对话后清理过长的上下文
+   * Agent 循环运行期间由循环内部同步处理压缩，避免并发压缩导致消息状态不一致
    */
   checkAndCompact(): void {
+    // Agent 循环运行中，由循环内部的同步压缩机制处理，跳过外部异步压缩
+    if (this._running) return
+
     if (this.memoryManager.needsCompact()) {
       this.captureReportSnapshot().then(snapshot => {
         if (snapshot) {

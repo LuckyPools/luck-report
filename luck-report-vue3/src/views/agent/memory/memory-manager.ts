@@ -163,19 +163,20 @@ export class MemoryManager {
     const windowSize = maxMessages ?? this.config.slidingWindowSize
     const result: MemoryMessage[] = []
 
-    // 注入中期摘要 + 关键操作记录
+    // 将摘要和快照注入为 user 角色
+    // GLM API 要求 system 后必须跟 user，压缩后保留的消息可能全是 assistant+tool 对
+    // 用 user 角色注入摘要，既提供上下文又满足协议要求
+    const contextParts: string[] = []
     if (this.summary) {
-      result.push({
-        role: 'system',
-        content: this.buildSummaryContext()
-      })
+      contextParts.push(this.buildSummaryContext())
     }
-
-    // 注入第4层：报表状态快照
     if (this.reportSnapshot) {
+      contextParts.push(this.buildSnapshotContext())
+    }
+    if (contextParts.length > 0) {
       result.push({
-        role: 'system',
-        content: this.buildSnapshotContext()
+        role: 'user',
+        content: contextParts.join('\n\n')
       })
     }
 
@@ -320,7 +321,15 @@ export class MemoryManager {
     this.summary = compactResult.summary
     this.keyOperations = compactResult.keyOperations
     // 保留最近消息，早期消息已被摘要替代
-    this.messages = this.messages.slice(-this.config.compactKeepRecent)
+    // 使用安全切割逻辑，防止截断 tool_calls 链（assistant+tool_result 必须成对出现）
+    let kept = this.slidingWindowSlice(this.messages, this.config.compactKeepRecent)
+    // 确保保留的消息以 user 角色开头
+    // OpenAI 协议要求 system 后必须跟 user，压缩后截断可能以 assistant/tool_result 开头导致 1214 错误
+    const firstUserIndex = kept.findIndex(m => m.role === 'user')
+    if (firstUserIndex > 0) {
+      kept = kept.slice(firstUserIndex)
+    }
+    this.messages = kept
   }
 
   /**

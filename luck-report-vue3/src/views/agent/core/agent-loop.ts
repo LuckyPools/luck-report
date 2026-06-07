@@ -92,9 +92,20 @@ export async function runAgentLoop(
 
     // 构建完整的消息列表：系统提示 + 上下文
     // 注意：不再重复追加用户消息，因为 contextMessages 已包含
+    // GLM API 不支持多条 system 消息，需将主系统提示与上下文中的 system 消息合并为一条
+    const apiMessages = buildApiMessages(contextMessages)
+    const systemParts: string[] = [systemPrompt]
+    const nonSystemMessages: ContextMessage[] = []
+    for (const msg of apiMessages) {
+      if (msg.role === 'system') {
+        systemParts.push(msg.content)
+      } else {
+        nonSystemMessages.push(msg)
+      }
+    }
     const fullMessages: ContextMessage[] = [
-      { role: 'system', content: systemPrompt },
-      ...buildApiMessages(contextMessages)
+      { role: 'system', content: systemParts.join('\n\n') },
+      ...nonSystemMessages
     ]
 
     // SSE 流式请求，携带工具定义
@@ -182,20 +193,24 @@ export async function runAgentLoop(
       })
     }
 
-    // 第3/4层：检查是否需要自动压缩（异步执行，不阻塞后续对话）
+    // 第3/4层：检查是否需要自动压缩（同步等待，确保压缩完成后再发下一轮请求）
     // 必须在判断 toolCalls 之前检查，否则纯文本对话（无工具调用）永远不会触发压缩
-    // 异步执行：压缩请求耗时较长（调用 LLM），不应阻塞当前对话的继续
+    // 同步等待：压缩期间不发送新请求，避免携带未压缩的全量历史浪费 token，
+    // 同时防止压缩完成后消息又快速膨胀触发二次压缩
     if (memoryManager.needsCompact() && config.onAutoCompact) {
       if (config.onCaptureSnapshot) {
-        config.onCaptureSnapshot().then(snapshot => {
+        try {
+          const snapshot = await config.onCaptureSnapshot()
           if (snapshot) {
             memoryManager.updateReportSnapshot(snapshot)
           }
-        }).catch(() => {})
+        } catch {}
       }
-      config.onAutoCompact(memoryManager).catch(e => {
-        console.warn('[agent-loop] 异步压缩失败:', e)
-      })
+      try {
+        await config.onAutoCompact(memoryManager)
+      } catch (e) {
+        console.warn('[agent-loop] 压缩失败:', e)
+      }
     }
 
     // 如果没有工具调用，循环结束

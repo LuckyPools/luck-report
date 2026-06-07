@@ -84,10 +84,10 @@ public class ChatServiceImpl implements ChatService {
                     public void onFailure(Call call, IOException e) {
                         log.error("大模型API调用失败: {}", e.getMessage(), e);
                         try {
-                            emitter.send(SseEmitter.event().name("error").data(e.getMessage()));
-                            emitter.completeWithError(e);
+                            emitter.send(SseEmitter.event().name("error").data("大模型API调用失败: " + e.getMessage()));
+                            emitter.complete();
                         } catch (Exception ex) {
-                            emitter.completeWithError(ex);
+                            emitter.complete();
                         }
                     }
 
@@ -97,17 +97,22 @@ public class ChatServiceImpl implements ChatService {
                             String errorMsg = response.body() != null ? response.body().string() : "未知错误";
                             log.error("大模型API返回错误: status={}, body={}", response.code(), errorMsg);
                             try {
-                                emitter.send(SseEmitter.event().name("error").data("API错误: " + response.code()));
-                                emitter.completeWithError(new RuntimeException(errorMsg));
+                                emitter.send(SseEmitter.event().name("error").data("API错误: " + response.code() + ", " + errorMsg));
+                                emitter.complete();
                             } catch (Exception ex) {
-                                emitter.completeWithError(ex);
+                                emitter.complete();
                             }
                             return;
                         }
 
                         ResponseBody body = response.body();
                         if (body == null) {
-                            emitter.completeWithError(new RuntimeException("响应体为空"));
+                            try {
+                                emitter.send(SseEmitter.event().name("error").data("响应体为空"));
+                                emitter.complete();
+                            } catch (Exception e) {
+                                emitter.complete();
+                            }
                             return;
                         }
 
@@ -117,7 +122,12 @@ public class ChatServiceImpl implements ChatService {
                             emitter.complete();
                         } catch (Exception e) {
                             log.error("SSE流处理异常: {}", e.getMessage(), e);
-                            emitter.completeWithError(e);
+                            try {
+                                emitter.send(SseEmitter.event().name("error").data("流处理异常: " + e.getMessage()));
+                                emitter.complete();
+                            } catch (Exception ex) {
+                                emitter.complete();
+                            }
                         } finally {
                             body.close();
                         }
@@ -125,7 +135,12 @@ public class ChatServiceImpl implements ChatService {
                 });
             } catch (Exception e) {
                 log.error("构建请求失败: {}", e.getMessage(), e);
-                emitter.completeWithError(e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("构建请求失败: " + e.getMessage()));
+                    emitter.complete();
+                } catch (Exception ex) {
+                    emitter.complete();
+                }
             }
         });
 
@@ -580,6 +595,10 @@ public class ChatServiceImpl implements ChatService {
 
             String content = (String) message.get("content");
             if (content == null || content.isEmpty()) return null;
+
+            // 替换中文引号为英文引号，防止 LLM 输出中文引号导致 JSON 解析失败
+            content = content.replace('\u201C', '"').replace('\u201D', '"')
+                             .replace('\u2018', '\'').replace('\u2019', '\'');
 
             // 尝试从 content 中提取 JSON（LLM 可能在 JSON 前后加 markdown 标记）
             String jsonStr = extractJson(content);
