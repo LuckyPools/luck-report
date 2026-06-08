@@ -9,19 +9,18 @@ import { compactConversation } from '@/api/chat/compact'
 import { contextConfig } from '@/config'
 import { executeCode } from '@/views/export/iframe-utils'
 import { useTaskList } from './useTaskList'
-import { createTaskTools } from '../tools/task-tools'
 
 /**
  * Agent 引擎配置
  * 创建 AgentEngine 实例时的配置项
  */
 export interface AgentEngineConfig {
-  /** 最大循环轮次，默认 10 */
-  maxIterations?: number
   /** 工具确认回调，返回 true 表示用户确认执行，False 表示拒绝 */
   onToolConfirm?: (toolCall: ToolCall) => Promise<boolean>
   /** 会话ID，与数据库 chat_session.id 一致，传递到后端用于关联会话 */
   sessionId?: string
+  /** 工作流模式下每个步骤内 LLM 的最大循环轮次，默认 5 */
+  maxIterationsPerStep?: number
 }
 
 /**
@@ -51,8 +50,6 @@ export class AgentEngine {
   /** 任务列表管理器 */
   private taskListManager = useTaskList()
 
-  /** 最大循环轮次 */
-  private maxIterations: number
   /** 工具确认回调 */
   private onToolConfirmFn?: (toolCall: ToolCall) => Promise<boolean>
   /** 会话ID */
@@ -67,19 +64,14 @@ export class AgentEngine {
   private _running = false
   /** 是否正在执行异步压缩，防止并发重复触发 */
   private _compacting = false
+  /** 工作流模式下每个步骤内 LLM 的最大循环轮次 */
+  private maxIterationsPerStep: number
 
   constructor(config: AgentEngineConfig = {}) {
-    this.maxIterations = config.maxIterations ?? 10
     this.onToolConfirmFn = config.onToolConfirm
     this.sessionId = config.sessionId
+    this.maxIterationsPerStep = config.maxIterationsPerStep ?? 5
     this.contextManager = new ContextManager(this.memoryManager, this.toolRegistry)
-
-    // 注册任务管理工具
-    const taskTools = createTaskTools(
-      this.taskListManager.updateTasks,
-      () => this.taskListManager.tasks.value
-    )
-    taskTools.forEach(tool => this.toolRegistry.register(tool))
   }
 
   /**
@@ -125,7 +117,6 @@ export class AgentEngine {
     const effectiveSignal = signal || this.abortController!.signal
 
     const config: AgentLoopConfig = {
-      maxIterations: this.maxIterations,
       toolRegistry: this.toolRegistry,
       memoryManager: this.memoryManager,
       contextManager: this.contextManager,
@@ -134,7 +125,10 @@ export class AgentEngine {
       sessionId: this.sessionId,
       onCaptureSnapshot: () => this.captureReportSnapshot(),
       onAutoCompact: (mm) => this.autoCompact(mm),
-      modelId
+      modelId,
+      maxIterationsPerStep: this.maxIterationsPerStep,
+      // 通过回调同步步骤记录到任务列表
+      onStepRecordsChange: (stepRecords, activeStepId) => this.taskListManager.syncFromWorkflow(stepRecords, activeStepId)
     }
 
     try {

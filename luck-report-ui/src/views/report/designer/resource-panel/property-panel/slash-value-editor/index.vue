@@ -141,7 +141,7 @@ export default {
       newCellDef.value.slashes[index] = deepCopy(this.slashes[index]);
 
       setCell(this.rowIndex, this.colIndex, newCellDef);
-
+      console.log(JSON.stringify(newCellDef))
       const context = getContext();
       if (context) {
         const crossTabWidget = new CrossTabWidget(context, this.rowIndex, this.colIndex, '');

@@ -1,4 +1,6 @@
 // report模块 - 管理报表设计器的状态
+import Vue from 'vue';
+
 const state = {
   context: null,
   // 报表名称
@@ -13,6 +15,8 @@ const state = {
   isPrintLineRefresh: false,
   // 单元格是否需要更新
   isCellUpdate: false,
+  // 数据源面板是否需要更新
+  isDatasourcePanelUpdate: false,
 };
 
 const mutations = {
@@ -125,6 +129,10 @@ const mutations = {
    */
   CONTEXT_ADD_DATASOURCE(state, { datasource }) {
     if (state.context && state.context.reportDef && state.context.reportDef.datasources) {
+      // 确保 datasets 属性在 push 前就存在，避免 Vue 2 无法检测后续新增属性
+      if (!datasource.datasets) {
+        datasource.datasets = [];
+      }
       state.context.reportDef.datasources.push(datasource);
     }
   },
@@ -174,7 +182,8 @@ const mutations = {
       const ds = state.context.reportDef.datasources.find(ds => ds.name === datasourceName);
       if (ds) {
         if (!ds.datasets) {
-          ds.datasets = [];
+          // 使用 Vue.set 确保 datasets 属性为响应式，避免 Vue 2 无法检测新增属性
+          Vue.set(ds, 'datasets', []);
         }
         ds.datasets.push(dataset);
       }
@@ -366,6 +375,15 @@ const mutations = {
    */
   SET_CELL_UPDATE(state, isCellUpdate) {
     state.isCellUpdate = isCellUpdate;
+  },
+
+  /**
+   * 设置数据源/数据集更新状态
+   * @param {Object} state - Vuex状态对象
+   * @param {boolean} isDatasourceUpdate - 是否需要更新数据源/数据集
+   */
+  SET_DATASOURCE_PANEL_UPDATE(state, isDatasourcePanelUpdate) {
+    state.isDatasourcePanelUpdate = isDatasourcePanelUpdate;
   }
 };
 
@@ -624,6 +642,14 @@ const actions = {
    */
   triggerCellUpdate({ commit }) {
     commit('SET_CELL_UPDATE', true);
+  },
+
+  /**
+   * 触发数据源面板更新（设置isDatasourcePanelUpdate为true，面板监听后会自动重置为false）
+   * @param {Object} param0 - Vuex上下文对象
+   */
+  triggerDatasourcePanelUpdate({ commit }) {
+    commit('SET_DATASOURCE_PANEL_UPDATE', true);
   }
 };
 
@@ -651,6 +677,9 @@ const getters = {
 
   // 获取单元格更新状态
   getIsCellUpdate: state => state.isCellUpdate,
+
+  // 获取数据源面板更新状态
+  getIsDatasourcePanelUpdate: state => state.isDatasourcePanelUpdate,
 
   // ============ Datasource Getters ============
 

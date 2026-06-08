@@ -670,7 +670,6 @@ export default {
         updatedCellDef.expand = expand;
         setCell( this.rowIndex,  this.colIndex,  updatedCellDef )
       }
-
       const hot = TableManager.get();
       if (hot) {
         hot.render();

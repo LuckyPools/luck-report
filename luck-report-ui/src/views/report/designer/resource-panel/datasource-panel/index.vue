@@ -133,9 +133,12 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsDatasourcePanelUpdate']),
     context() {
       return this.getContext || {};
+    },
+    isDatasourcePanelUpdate() {
+      return this.getIsDatasourcePanelUpdate;
     },
     // 分离不同类型的数据源以便渲染
     jdbcDatasources() {
@@ -157,6 +160,12 @@ export default {
         }
       },
       immediate: true
+    },
+    isDatasourcePanelUpdate(newVal) {
+      if (newVal) {
+        this.initializeDatasources();
+        this.$store.commit('report/SET_DATASOURCE_PANEL_UPDATE', false);
+      }
     }
   },
   methods: {

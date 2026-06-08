@@ -2,17 +2,53 @@ import type { ToolDefinition } from './types'
 import { vectorSearch } from '@/api/vector'
 import { executeCode } from '@/views/export/iframe-utils'
 import { getSchemaPrompt, getBuildinDatasources, searchSchema } from '@/api/datasource'
+import {
+  getCellTemplateByType,
+  getSqlDatasetTemplate,
+  getBuildinDatasourceTemplate,
+  CellSchema,
+  DatasetSchema,
+  DatasourceSchema,
+  SearchFormSchema,
+  PaperSchema,
+  RowDefinitionSchema,
+  ColumnDefinitionSchema,
+  validateCell,
+  validateDataset,
+  validateDatasource,
+  validateSearchForm,
+  validatePaper,
+  validateRowDefinition,
+  validateColumnDefinition
+} from './data-schemas'
 
 /**
- * 工具执行结果枚举
- * 规范写操作工具的返回值类型，与设计器端 utils.js 的 ToolResult 保持一致
+ * 工具执行结果结构
+ * 所有写操作工具统一返回此结构，包含成功状态和详细信息
+ *
+ * @property success - 是否执行成功，true 表示成功，false 表示失败
+ * @property message - 执行结果的详细信息，成功时为成功描述，失败时为具体错误原因
+ * @property data - 返回的数据（可选），如预览数据、字段列表等
  */
 export const ToolResult = {
   /** 执行成功 */
-  SUCCESS: 1,
+  SUCCESS: { success: true, message: '执行成功' },
   /** 执行失败 */
-  ERROR: 0
+  ERROR: { success: false, message: '执行失败' }
 } as const
+
+/**
+ * 创建工具执行结果
+ * 用于生成包含详细信息的返回值
+ *
+ * @param success - 是否执行成功
+ * @param message - 详细信息
+ * @param data - 返回数据（可选）
+ * @returns 工具执行结果对象
+ */
+export function createToolResult(success: boolean, message: string, data?: any): { success: boolean; message: string; data?: any } {
+  return { success, message, data }
+}
 
 /**
  * 搜索业务知识工具
@@ -127,13 +163,25 @@ export const writeCellTool: ToolDefinition<{
   cell: any;
 }> = {
   name: 'write_cell',
-  description: `写入指定坐标的单元格完整定义数据。行列索引从0开始。执行前自动备份当前单元格数据，执行后回读验证。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `写入指定坐标的单元格完整定义数据。行列索引从0开始。执行前自动备份当前单元格数据，执行后回读验证。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。
+
+【数据规范要点】：
+- cell 必须包含：rowNumber、columnNumber、value（含type字段）
+- value.type 可选值：simple、expression、dataset、image、chart、slash、zxing
+- expand 可选值：None、Down、Right
+- cellStyle.align 可选值：left、center、right
+- 颜色格式：RGB 格式 "R,G,B"，如 "255,0,0"
+
+【重要提示】：
+- cell 参数必须是JSON对象，禁止传JSON字符串
+- 必须基于 read_cell 返回的数据或 get_cell_template 返回的模板修改
+- 禁止凭空构造 cell 对象`,
   inputSchema: {
     type: 'object',
     properties: {
       rowIndex: { type: 'integer', description: '单元格行坐标，从0开始' },
       colIndex: { type: 'integer', description: '单元格列坐标，从0开始' },
-      cell: { type: 'object', description: '完整的单元格定义对象，需符合 CellDefinition 数据模型' }
+      cell: CellSchema
     },
     required: ['rowIndex', 'colIndex', 'cell']
   },
@@ -141,7 +189,8 @@ export const writeCellTool: ToolDefinition<{
     return executeCode(`writeCell({rowIndex:${rowIndex},colIndex:${colIndex},cell:${JSON.stringify(cell)}})`)
   },
   readOnly: false,
-  requireConfirm: false
+  requireConfirm: false,
+  validate: ({ cell }) => validateCell(cell)
 }
 
 // ============ 数据源操作工具 ============
@@ -183,15 +232,23 @@ export const setDatasourcesTool: ToolDefinition<{
   datasources: any[];
 }> = {
   name: 'set_datasources',
-  description: '整体替换全部数据源列表。此操作会覆盖现有数据源，请谨慎使用。',
+  description: `整体替换全部数据源列表。此操作会覆盖现有数据源，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- name: 数据源名称，报表内唯一\n- type: jdbc/spring/buildin\n- jdbc类型必填: driver、url、username、password\n- spring类型必填: beanId',
   inputSchema: {
     type: 'object',
     properties: {
-      datasources: { type: 'array', description: '数据源定义数组' }
+      datasources: { type: 'array', items: DatasourceSchema, description: '数据源定义数组' }
     },
     required: ['datasources']
   },
   execute: async ({ datasources }) => {
+    // 校验每个数据源
+    for (const datasource of datasources) {
+      const error = validateDatasource(datasource)
+      if (error) {
+        return { success: false, message: `数据校验失败: ${error}` }
+      }
+    }
     return executeCode(`setDatasources({datasources:${JSON.stringify(datasources)}})`)
   },
   readOnly: false,
@@ -207,15 +264,37 @@ export const addDatasourceTool: ToolDefinition<{
   datasource: any;
 }> = {
   name: 'add_datasource',
-  description: '添加一个新的数据源到报表中。',
+  description: `添加一个新的数据源到报表中。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- name: 数据源名称，报表内唯一\n- type: jdbc/spring/buildin\n- jdbc类型必填: driver、url、username、password\n- spring类型必填: beanId\n- **buildin类型约束：name必须来自load_buildin_datasources返回的列表，禁止凭空编造名称**\n- **禁止传入 datasets 数组**，数据集应通过 add_dataset 工具单独添加',
   inputSchema: {
     type: 'object',
     properties: {
-      datasource: { type: 'object', description: '数据源定义对象，包含name、type等属性' }
+      datasource: DatasourceSchema
     },
     required: ['datasource']
   },
   execute: async ({ datasource }) => {
+    // 校验数据源
+    const error = validateDatasource(datasource)
+    if (error) {
+      return { success: false, message: `数据校验失败: ${error}` }
+    }
+    // buildin 类型数据源必须使用 load_buildin_datasources 返回列表中的名称，禁止凭空编造
+    if (datasource.type === 'buildin') {
+      try {
+        const buildinResult = await executeCode(`loadBuildinDatasources()`)
+        const buildinNames: string[] = buildinResult?.datasources || []
+        if (!buildinNames.includes(datasource.name)) {
+          return {
+            success: false,
+            message: `数据源名称 "${datasource.name}" 不在内置数据源列表中。合法名称列表：${buildinNames.join('、')}。请从 load_buildin_datasources 返回的列表中选择名称`
+          }
+        }
+      } catch {
+        // 获取内置数据源列表失败时仅打印警告，不阻塞创建流程
+        console.warn('[add_datasource] 校验buildin数据源名称时获取列表失败，跳过校验')
+      }
+    }
     return executeCode(`addDatasource({datasource:${JSON.stringify(datasource)}})`)
   },
   readOnly: false,
@@ -232,16 +311,22 @@ export const updateDatasourceTool: ToolDefinition<{
   datasource: any;
 }> = {
   name: 'update_datasource',
-  description: '按名称匹配更新数据源定义。会完全替换该名称对应的数据源。',
+  description: `按名称匹配更新数据源定义。会完全替换该名称对应的数据源。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- name: 数据源名称，报表内唯一\n- type: jdbc/spring/buildin\n- jdbc类型必填: driver、url、username、password\n- spring类型必填: beanId',
   inputSchema: {
     type: 'object',
     properties: {
       name: { type: 'string', description: '目标数据源名称' },
-      datasource: { type: 'object', description: '新的数据源定义对象' }
+      datasource: DatasourceSchema
     },
     required: ['name', 'datasource']
   },
   execute: async ({ name, datasource }) => {
+    // 校验数据源
+    const error = validateDatasource(datasource)
+    if (error) {
+      return { success: false, message: `数据校验失败: ${error}` }
+    }
     return executeCode(`updateDatasource({name:'${name}',datasource:${JSON.stringify(datasource)}})`)
   },
   readOnly: false,
@@ -257,7 +342,7 @@ export const removeDatasourceTool: ToolDefinition<{
   name: string;
 }> = {
   name: 'remove_datasource',
-  description: '按名称删除数据源。此操作不可撤销，请谨慎使用。',
+  description: `按名称删除数据源。此操作不可撤销，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -365,7 +450,7 @@ export const searchSchemaTool: ToolDefinition<{
   query: string;
 }> = {
   name: 'search_schema',
-  description: '跨数据源搜索表结构信息。传入自然语言查询，返回所有匹配的数据源及其表结构信息。当不确定应该使用哪个数据源时，调用此工具快速定位包含相关表的数据源。',
+  description: '跨数据源搜索表结构信息。传入自然语言查询，返回所有匹配的数据源及其表结构信息。当不确定应该使用哪个内置数据源时，调用此工具快速定位包含相关表的数据源。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -433,12 +518,22 @@ export const addDatasetTool: ToolDefinition<{
   dataset: any;
 }> = {
   name: 'add_dataset',
-  description: '向指定数据源下添加一个新的数据集。',
+  description: `向指定数据源下添加一个新的数据集。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。
+
+【数据规范要点】：
+- dataset 必须包含：name（字符串）、sql（字符串）、fields（数组）
+- parameters 数组中每个参数必须包含：name、type（String/Integer/Float/Boolean/Date/List）
+- fields 必须通过 build_fields 工具生成，禁止自行编造
+
+【重要提示】：
+- dataset 参数必须是JSON对象，禁止传JSON字符串
+- 错误示例："dataset": "{\"name\":\"xxx\"}"
+- 正确示例："dataset": {"name":"orders","sql":"SELECT ...","parameters":[],"fields":[]}`,
   inputSchema: {
     type: 'object',
     properties: {
       datasourceName: { type: 'string', description: '目标数据源名称' },
-      dataset: { type: 'object', description: '数据集定义对象' }
+      dataset: DatasetSchema
     },
     required: ['datasourceName', 'dataset']
   },
@@ -446,7 +541,8 @@ export const addDatasetTool: ToolDefinition<{
     return executeCode(`addDataset({datasourceName:'${datasourceName}',dataset:${JSON.stringify(dataset)}})`)
   },
   readOnly: false,
-  requireConfirm: false
+  requireConfirm: false,
+  validate: ({ dataset }) => validateDataset(dataset)
 }
 
 /**
@@ -460,13 +556,23 @@ export const updateDatasetTool: ToolDefinition<{
   dataset: any;
 }> = {
   name: 'update_dataset',
-  description: '按数据源名称和数据集名称匹配更新数据集定义。会完全替换该数据集。',
+  description: `按数据源名称和数据集名称匹配更新数据集定义。会完全替换该数据集。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。
+
+【数据规范要点】：
+- dataset 必须包含：name（字符串）、sql（字符串）、fields（数组）
+- parameters 数组中每个参数必须包含：name、type（String/Integer/Float/Boolean/Date/List）
+- fields 必须通过 build_fields 工具生成，禁止自行编造
+
+【重要提示】：
+- dataset 参数必须是JSON对象，禁止传JSON字符串
+- 错误示例："dataset": "{\"name\":\"xxx\"}"
+- 正确示例："dataset": {"name":"orders","sql":"SELECT ...","parameters":[],"fields":[]}`,
   inputSchema: {
     type: 'object',
     properties: {
       datasourceName: { type: 'string', description: '目标数据源名称' },
       datasetName: { type: 'string', description: '目标数据集名称' },
-      dataset: { type: 'object', description: '新的数据集定义对象' }
+      dataset: DatasetSchema
     },
     required: ['datasourceName', 'datasetName', 'dataset']
   },
@@ -474,7 +580,8 @@ export const updateDatasetTool: ToolDefinition<{
     return executeCode(`updateDataset({datasourceName:'${datasourceName}',datasetName:'${datasetName}',dataset:${JSON.stringify(dataset)}})`)
   },
   readOnly: false,
-  requireConfirm: false
+  requireConfirm: false,
+  validate: ({ dataset }) => validateDataset(dataset)
 }
 
 /**
@@ -487,7 +594,7 @@ export const removeDatasetTool: ToolDefinition<{
   datasetName: string;
 }> = {
   name: 'remove_dataset',
-  description: '按数据源名称和数据集名称删除数据集。此操作不可撤销，请谨慎使用。',
+  description: `按数据源名称和数据集名称删除数据集。此操作不可撤销，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -534,15 +641,21 @@ export const setSearchFormTool: ToolDefinition<{
   searchForm: any;
 }> = {
   name: 'set_search_form',
-  description: '整体替换查询表单设计数据。此操作会覆盖现有表单配置，请谨慎使用。',
+  description: `整体替换查询表单设计数据。此操作会覆盖现有表单配置，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- searchForm.tag 必须是 "u-form"\n- searchForm.fields 必须是数组，每个元素为 RowComponent\n- RowComponent.tag 必须是 "u-row"，layout 必须是 "rowFormItem"\n- 输入组件必须有 vModel，且与数据集 Parameter.name 一致',
   inputSchema: {
     type: 'object',
     properties: {
-      searchForm: { type: 'object', description: '表单设计对象' }
+      searchForm: SearchFormSchema
     },
     required: ['searchForm']
   },
   execute: async ({ searchForm }) => {
+    // 校验数据
+    const error = validateSearchForm(searchForm)
+    if (error) {
+      return { success: false, message: `数据校验失败: ${error}` }
+    }
     return executeCode(`setSearchForm({searchForm:${JSON.stringify(searchForm)}})`)
   },
   readOnly: false,
@@ -580,15 +693,21 @@ export const updatePaperTool: ToolDefinition<{
   paper: any;
 }> = {
   name: 'update_paper',
-  description: '合并更新页面配置属性。只需传入要修改的属性，未传入的属性保持不变。',
+  description: `合并更新页面配置属性。只需传入要修改的属性，未传入的属性保持不变。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- paperType: A0-A10/B0-B10/CUSTOM\n- pagingMode: fitpage(按纸张分页)/fixrows(按固定行数分页)\n- orientation: portrait(纵向)/landscape(横向)\n- fixRows: pagingMode为fixrows时必须≥1',
   inputSchema: {
     type: 'object',
     properties: {
-      paper: { type: 'object', description: '要合并的页面配置属性，如 {paperSize:"A4",orientation:"landscape"}' }
+      paper: PaperSchema
     },
     required: ['paper']
   },
   execute: async ({ paper }) => {
+    // 校验数据
+    const error = validatePaper(paper)
+    if (error) {
+      return { success: false, message: `数据校验失败: ${error}` }
+    }
     return executeCode(`updatePaper({paper:${JSON.stringify(paper)}})`)
   },
   readOnly: false,
@@ -634,15 +753,23 @@ export const setRowsTool: ToolDefinition<{
   rows: any[];
 }> = {
   name: 'set_rows',
-  description: '整体替换全部行数据。此操作会覆盖现有行配置，请谨慎使用。',
+  description: `整体替换全部行数据。此操作会覆盖现有行配置，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- rowNumber: 从1开始的行号\n- height: 行高(pt)\n- band: null(普通行)/headerrepeat(重复表头)/footerrepeat(重复表尾)/title(标题行)/summary(总结行)',
   inputSchema: {
     type: 'object',
     properties: {
-      rows: { type: 'array', description: '行定义数组，每项包含 rowNumber、height、band 等属性' }
+      rows: { type: 'array', items: RowDefinitionSchema, description: '行定义数组' }
     },
     required: ['rows']
   },
   execute: async ({ rows }) => {
+    // 校验每行数据
+    for (const row of rows) {
+      const error = validateRowDefinition(row)
+      if (error) {
+        return { success: false, message: `数据校验失败: ${error}` }
+      }
+    }
     return executeCode(`setRows({rows:${JSON.stringify(rows)}})`)
   },
   readOnly: false,
@@ -659,16 +786,22 @@ export const updateRowTool: ToolDefinition<{
   row: any;
 }> = {
   name: 'update_row',
-  description: `按行号匹配更新行定义。会完全替换该行号的行配置。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `按行号匹配更新行定义。会完全替换该行号的行配置。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- rowNumber: 从1开始的行号\n- row.height: 行高(pt)\n- row.band: null/headerrepeat/footerrepeat/title/summary',
   inputSchema: {
     type: 'object',
     properties: {
-      rowNumber: { type: 'integer', description: '目标行号' },
-      row: { type: 'object', description: '新的行定义对象' }
+      rowNumber: { type: 'integer', description: '目标行号，从1开始' },
+      row: RowDefinitionSchema
     },
     required: ['rowNumber', 'row']
   },
   execute: async ({ rowNumber, row }) => {
+    // 校验数据
+    const error = validateRowDefinition(row)
+    if (error) {
+      return { success: false, message: `数据校验失败: ${error}` }
+    }
     return executeCode(`updateRow({rowNumber:${rowNumber},row:${JSON.stringify(row)}})`)
   },
   readOnly: false,
@@ -714,15 +847,23 @@ export const setColumnsTool: ToolDefinition<{
   columns: any[];
 }> = {
   name: 'set_columns',
-  description: `整体替换全部列数据。此操作会覆盖现有列配置，请谨慎使用。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `整体替换全部列数据。此操作会覆盖现有列配置，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- columnNumber: 从1开始的列号\n- width: 列宽(px)\n- hide: 是否隐藏列',
   inputSchema: {
     type: 'object',
     properties: {
-      columns: { type: 'array', description: '列定义数组，每项包含 columnNumber、width、hide 等属性' }
+      columns: { type: 'array', items: ColumnDefinitionSchema, description: '列定义数组' }
     },
     required: ['columns']
   },
   execute: async ({ columns }) => {
+    // 校验每列数据
+    for (const column of columns) {
+      const error = validateColumnDefinition(column)
+      if (error) {
+        return { success: false, message: `数据校验失败: ${error}` }
+      }
+    }
     return executeCode(`setColumns({columns:${JSON.stringify(columns)}})`)
   },
   readOnly: false,
@@ -739,16 +880,22 @@ export const updateColumnTool: ToolDefinition<{
   column: any;
 }> = {
   name: 'update_column',
-  description: `按列号匹配更新列定义。会完全替换该列号的列配置。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `按列号匹配更新列定义。会完全替换该列号的列配置。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
+    '\n\n数据约束：\n- columnNumber: 从1开始的列号\n- column.width: 列宽(px)\n- column.hide: 是否隐藏列',
   inputSchema: {
     type: 'object',
     properties: {
-      columnNumber: { type: 'integer', description: '目标列号' },
-      column: { type: 'object', description: '新的列定义对象' }
+      columnNumber: { type: 'integer', description: '目标列号，从1开始' },
+      column: ColumnDefinitionSchema
     },
     required: ['columnNumber', 'column']
   },
   execute: async ({ columnNumber, column }) => {
+    // 校验数据
+    const error = validateColumnDefinition(column)
+    if (error) {
+      return { success: false, message: `数据校验失败: ${error}` }
+    }
     return executeCode(`updateColumn({columnNumber:${columnNumber},column:${JSON.stringify(column)}})`)
   },
   readOnly: false,
@@ -765,7 +912,7 @@ export const insertRowTool: ToolDefinition<{
   number?: number;
 }> = {
   name: 'insert_row',
-  description: `在指定位置插入行。会同时处理单元格数据和行头信息，确保数据一致性。position为行索引从0开始，number为插入行数默认1。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `在指定位置插入行。会同时处理单元格数据和行头信息，确保数据一致性。position为行索引从0开始，number为插入行数默认1。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -791,7 +938,7 @@ export const deleteRowTool: ToolDefinition<{
   endRow: number;
 }> = {
   name: 'delete_row',
-  description: `删除指定范围的行。会同时处理单元格数据、合并单元格配置和行头信息。startRow和endRow为行索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `删除指定范围的行。会同时处理单元格数据、合并单元格配置和行头信息。startRow和endRow为行索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -817,7 +964,7 @@ export const insertColTool: ToolDefinition<{
   number?: number;
 }> = {
   name: 'insert_col',
-  description: `在指定位置插入列。会同时处理单元格数据，确保数据一致性。position为列索引从0开始，number为插入列数默认1。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `在指定位置插入列。会同时处理单元格数据，确保数据一致性。position为列索引从0开始，number为插入列数默认1。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -843,7 +990,7 @@ export const deleteColTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'delete_col',
-  description: `删除指定范围的列。会同时处理单元格数据、合并单元格配置。startCol和endCol为列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `删除指定范围的列。会同时处理单元格数据、合并单元格配置。startCol和endCol为列索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -871,7 +1018,7 @@ export const mergeCellsTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'merge_cells',
-  description: `合并或拆分单元格。如果选中区域已合并则拆分，未合并则合并。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `合并或拆分单元格。如果选中区域已合并则拆分，未合并则合并。行列索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -899,7 +1046,7 @@ export const backupDataTool: ToolDefinition<{
   type?: string;
 }> = {
   name: 'backup_data',
-  description: `备份当前报表数据快照。在执行修改操作前自动调用，也可手动调用。最多保留最近20步备份。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `备份当前报表数据快照。在执行修改操作前自动调用，也可手动调用。最多保留最近20步备份。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -981,7 +1128,7 @@ export const previewDataTool: ToolDefinition<{
   name?: string;
 }> = {
   name: 'preview_data',
-  description: `验证数据集SQL是否可正确执行。根据SQL和数据源类型执行预览查询，仅返回执行结果（${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败），不返回查询数据以节省token。type为jdbc时需提供username/password/driver/url，type为buildin时需提供name。`,
+  description: '验证数据集SQL是否可正确执行。修改或添加数据集前验证数据集是否合法，根据SQL和数据源类型执行预览查询，仅返回执行结果（1表示成功，0表示失败）。type为jdbc时需提供username/password/driver/url，type为buildin时需提供name。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1088,7 +1235,7 @@ export const saveReportTool: ToolDefinition<{
  */
 export const loadBuildinDatasourcesTool: ToolDefinition<{}> = {
   name: 'load_buildin_datasources',
-  description: '获取Spring内置数据源列表。返回所有可用的内置数据源信息，用于配置数据集时选择数据源。',
+  description: '获取Spring内置数据源名称列表。返回的名称是创建buildin类型数据源时唯一合法的名称来源，add_datasource的name必须从此列表中选择，禁止凭空编造名称。',
   inputSchema: {
     type: 'object',
     properties: {},
@@ -1197,7 +1344,7 @@ export const clearCellContentTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'clear_cell_content',
-  description: `清空指定区域单元格的内容，保留样式不变。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `清空指定区域单元格的内容，保留样式不变。行列索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -1227,7 +1374,7 @@ export const clearCellStyleTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'clear_cell_style',
-  description: `清空指定区域单元格的样式，重置为默认样式，保留内容不变。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `清空指定区域单元格的样式，重置为默认样式，保留内容不变。行列索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -1257,7 +1404,7 @@ export const clearCellAllTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'clear_cell_all',
-  description: `清空指定区域单元格的全部内容和样式，重置为默认空白单元格。行列索引从0开始。返回${ToolResult.SUCCESS}表示成功，${ToolResult.ERROR}表示失败。`,
+  description: `清空指定区域单元格的全部内容和样式，重置为默认空白单元格。行列索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -1272,5 +1419,211 @@ export const clearCellAllTool: ToolDefinition<{
     return executeCode(`clearCellAll({startRow:${startRow},endRow:${endRow},startCol:${startCol},endCol:${endCol}})`)
   },
   readOnly: false,
+  requireConfirm: false
+}
+
+// ============ 数据源操作路由工具 ============
+
+/**
+ * 数据源操作路由工具
+ * 在工作流路由步骤中，LLM调用此工具声明要执行的数据源/数据集操作类型
+ * 工具本身不执行任何操作，仅将操作类型信息存入步骤结果供后续子工作流选择使用
+ * 只读工具（无副作用）
+ */
+export const selectDatasourceOperationTool: ToolDefinition<{
+  operationType: 'create_datasource' | 'modify_datasource' | 'delete_datasource' | 'create_dataset' | 'modify_dataset' | 'delete_dataset';
+  datasourceName?: string;
+  datasetName?: string;
+  description: string;
+}> = {
+  name: 'select_datasource_operation',
+  description: '选择要执行的数据源/数据集操作类型。在分析用户需求后调用此工具，声明具体的操作类型（创建/修改/删除 数据源/数据集），系统将根据选择执行对应的子工作流。注意：create_datasource 会自动升级为 create_datasource_and_dataset（同时创建数据源和数据集）。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      operationType: {
+        type: 'string',
+        enum: ['create_datasource', 'modify_datasource', 'delete_datasource', 'create_dataset', 'modify_dataset', 'delete_dataset'],
+        description: '操作类型：create_datasource=创建数据源（自动升级为创建数据源+数据集）, modify_datasource=修改数据源, delete_datasource=删除数据源, create_dataset=创建数据集, modify_dataset=修改数据集, delete_dataset=删除数据集'
+      },
+      datasourceName: {
+        type: 'string',
+        description: '目标数据源名称，创建数据源时可不传'
+      },
+      datasetName: {
+        type: 'string',
+        description: '目标数据集名称，仅数据集操作时需要'
+      },
+      description: {
+        type: 'string',
+        description: '操作描述，简要说明要做什么'
+      }
+    },
+    required: ['operationType', 'description']
+  },
+  execute: async (input) => {
+    // 路由工具不执行实际操作，直接返回输入参数供步骤结果使用
+    return input
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+// ============ 数据模板工具 ============
+
+/**
+ * 获取单元格模板工具
+ * 返回符合规范的单元格模板，包含所有必填字段和默认值
+ * AI 修改单元格前应先调用此工具获取模板，再基于模板修改
+ * 只读工具，可并发执行
+ */
+export const getCellTemplateTool: ToolDefinition<{
+  type: 'simple' | 'dataset' | 'expression' | 'image' | 'qrcode' | 'barcode';
+  rowIndex: number;
+  colIndex: number;
+  options?: {
+    datasetName?: string;
+    property?: string;
+    aggregate?: string;
+    expression?: string;
+    imagePath?: string;
+    qrcodeText?: string;
+    barcodeText?: string;
+    barcodeFormat?: string;
+  };
+}> = {
+  name: 'get_cell_template',
+  description: `获取符合规范的单元格模板。返回完整的单元格定义模板，包含所有必填字段和默认值。
+
+【使用场景】：
+- 修改单元格前先调用此工具获取模板
+- 创建新单元格时获取初始结构
+- 了解单元格数据规范
+
+【参数说明】：
+- type: 值类型，决定模板结构
+- rowIndex/colIndex: 单元格坐标（从0开始）
+- options: 可选参数，dataset类型需传datasetName/property/aggregate
+
+【返回模板包含】：
+- 所有必填字段（rowNumber、columnNumber、value等）
+- 完整的cellStyle结构
+- 符合规范的默认值
+
+禁止凭空构造cell对象，必须基于此模板或read_cell返回的数据修改。`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      type: {
+        type: 'string',
+        enum: ['simple', 'dataset', 'expression', 'image', 'qrcode', 'barcode'],
+        description: '单元格值类型'
+      },
+      rowIndex: { type: 'integer', description: '行索引，从0开始' },
+      colIndex: { type: 'integer', description: '列索引，从0开始' },
+      options: {
+        type: 'object',
+        properties: {
+          datasetName: { type: 'string', description: '数据集名称（dataset类型必填）' },
+          property: { type: 'string', description: '字段名（dataset类型必填）' },
+          aggregate: { type: 'string', enum: ['group', 'select', 'sum', 'count', 'max', 'min', 'avg'], description: '聚合方式' },
+          expression: { type: 'string', description: '表达式内容（expression类型）' },
+          imagePath: { type: 'string', description: '图片路径（image类型）' },
+          qrcodeText: { type: 'string', description: '二维码内容（qrcode类型）' },
+          barcodeText: { type: 'string', description: '条码内容（barcode类型）' },
+          barcodeFormat: { type: 'string', description: '条码格式，如AZTEC' }
+        }
+      }
+    },
+    required: ['type', 'rowIndex', 'colIndex']
+  },
+  execute: async ({ type, rowIndex, colIndex, options }) => {
+    return getCellTemplateByType(type, rowIndex, colIndex, options)
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 获取数据集模板工具
+ * 返回符合规范的SQL数据集模板，包含所有必填字段
+ * AI 创建/修改数据集前应先调用此工具获取模板
+ * 只读工具，可并发执行
+ */
+export const getDatasetTemplateTool: ToolDefinition<{
+  name?: string;
+  sql?: string;
+}> = {
+  name: 'get_dataset_template',
+  description: `获取符合规范的SQL数据集模板。返回完整的数据集定义模板，包含所有必填字段。
+
+【使用场景】：
+- 创建数据集前获取初始结构
+- 修改数据集时参考完整字段
+- 了解数据集数据规范
+
+【参数说明】：
+- name: 数据集名称（可选，默认为dataset_name）
+- sql: SQL语句（可选，需后续补充）
+
+【返回模板包含】：
+- name: 数据集名称
+- sql: SQL语句（需补充）
+- parameters: 空数组（需根据SQL补充）
+- fields: 空数组（需通过build_fields工具生成）
+
+【重要提示】：
+- fields 必须通过 build_fields 工具生成，禁止自行编造
+- parameters 需根据SQL中的占位符补充
+- dataset 参数必须是JSON对象，禁止传JSON字符串`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', description: '数据集名称（可选）' },
+      sql: { type: 'string', description: 'SQL语句（可选）' }
+    },
+    required: []
+  },
+  execute: async ({ name, sql }) => {
+    return getSqlDatasetTemplate(name, sql)
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 获取数据源模板工具
+ * 返回符合规范的buildin数据源模板
+ * 只读工具，可并发执行
+ */
+export const getDatasourceTemplateTool: ToolDefinition<{
+  name?: string;
+}> = {
+  name: 'get_datasource_template',
+  description: `获取符合规范的buildin数据源模板。返回完整的数据源定义模板。
+
+【使用场景】：
+- 创建buildin数据源前获取初始结构
+- 了解数据源数据规范
+
+【限制】：
+- 只允许创建 buildin 类型数据源
+- jdbc/spring 类型数据源需用户手动配置
+
+【返回模板包含】：
+- name: 数据源名称
+- type: buildin
+- datasets: 空数组`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', description: '数据源名称（可选）' }
+    },
+    required: []
+  },
+  execute: async ({ name }) => {
+    return getBuildinDatasourceTemplate(name)
+  },
+  readOnly: true,
   requireConfirm: false
 }

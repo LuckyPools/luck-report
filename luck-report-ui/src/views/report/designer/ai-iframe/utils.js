@@ -46,14 +46,82 @@ import { tableToXml } from '@/utils/table.js';
 import store from '@/store';
 
 /**
- * 工具执行结果枚举
- * 规范 writeCell 等写操作工具的返回值类型，提高代码可读性
+ * 工具执行结果构造函数
+ * 规范 writeCell 等写操作工具的返回值类型，包含详细的成功/失败信息
+ *
+ * @param {boolean} success - 是否执行成功
+ * @param {string} message - 成功/失败的详细信息
+ * @param {any} data - 返回的数据（可选）
+ * @returns {Object} 包含 success、message、data 的结果对象
+ */
+function createToolResult(success, message, data = null) {
+    return { success, message, data };
+}
+
+/**
+ * 提取错误对象的详细信息
+ * 从各种可能的错误对象结构中提取实际的错误信息
+ *
+ * @param {any} error - 错误对象，可能来自 API 响应、JavaScript 异常等
+ * @returns {string} 错误信息字符串
+ */
+function extractErrorInfo(error) {
+    if (!error) {
+        return '未知错误';
+    }
+
+    // 1. 优先检查 msg 属性（后端 API 返回的错误格式）
+    if (error.msg) {
+        // 去除 HTML 标签，只保留纯文本
+        return error.msg.replace(/<[^>]*>/g, '').trim();
+    }
+
+    // 2. 检查 message 属性（JavaScript 异常的标准属性）
+    if (error.message) {
+        return error.message;
+    }
+
+    // 3. 检查 response.data 结构（axios 错误格式）
+    if (error.response && error.response.data) {
+        const data = error.response.data;
+        if (data.msg) {
+            return data.msg.replace(/<[^>]*>/g, '').trim();
+        }
+        if (data.message) {
+            return data.message;
+        }
+        if (data.error) {
+            return typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+        }
+    }
+
+    // 4. 检查 error 属性
+    if (error.error) {
+        return typeof error.error === 'string' ? error.error : JSON.stringify(error.error);
+    }
+
+    // 5. 兜底：尝试 JSON 序列化
+    try {
+        const str = JSON.stringify(error);
+        // 如果序列化结果太长，截取前200字符
+        if (str.length > 200) {
+            return str.substring(0, 200) + '...';
+        }
+        return str;
+    } catch (e) {
+        // 无法序列化，返回对象类型描述
+        return `错误对象类型: ${typeof error}`;
+    }
+}
+
+/**
+ * 工具执行结果常量（快捷构造方法）
  */
 const ToolResult = {
-    /** 执行成功 */
-    SUCCESS: 1,
-    /** 执行失败 */
-    ERROR: 0
+    /** 执行成功，返回成功结果对象 */
+    success: (message = '执行成功', data = null) => createToolResult(true, message, data),
+    /** 执行失败，返回失败结果对象 */
+    error: (message = '执行失败', data = null) => createToolResult(false, message, data)
 };
 
 /**
@@ -125,7 +193,7 @@ export const agentMethodRegistry = {
 function writeCell({ rowIndex, colIndex, cell }) {
     if (cell === null || cell === undefined) {
         console.error('[AiIframe] writeCell: cell 不能为空');
-        return ToolResult.ERROR;
+        return ToolResult.error('单元格定义对象不能为空');
     }
 
     // 备份当前单元格数据，用于异常还原
@@ -144,17 +212,20 @@ function writeCell({ rowIndex, colIndex, cell }) {
         doWriteCell({ rowIndex, colIndex, cell });
     } catch (error) {
         console.error('[AiIframe] writeCell 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] writeCell 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`写入单元格失败: ${extractErrorInfo(error)}`);
     }
 
     // 回读验证修改是否生效
     const newCell = getCell(rowIndex, colIndex);
     if (!newCell) {
         console.error('[AiIframe] writeCell: 回读验证失败，单元格不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('回读验证失败，单元格不存在');
     }
 
-    return ToolResult.SUCCESS;
+    return ToolResult.success('单元格写入成功');
 }
 
 /**
@@ -166,13 +237,13 @@ function writeCell({ rowIndex, colIndex, cell }) {
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endRow - 结束行索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function mergeCells({ startRow, startCol, endRow, endCol }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] mergeCells: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('表格实例不存在，无法执行合并操作');
     }
 
     const oldMergeCells = deepCopy(table.getSettings().mergeCells || []);
@@ -190,10 +261,13 @@ function mergeCells({ startRow, startCol, endRow, endCol }) {
 
     try {
         const result = doMergeCells(startRow, startCol, endRow, endCol, table);
-        return ToolResult.SUCCESS;
+        return ToolResult.success('单元格合并/拆分成功');
     } catch (error) {
         console.error('[AiIframe] mergeCells 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] mergeCells 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`合并单元格失败: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -204,17 +278,17 @@ function mergeCells({ startRow, startCol, endRow, endCol }) {
  * @param {Object} params - 参数对象
  * @param {number} params.position - 插入位置（行索引），从0开始
  * @param {number} [params.number=1] - 插入行数
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function insertRow({ position, number = 1 }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] insertRow: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('表格实例不存在，无法执行插入行操作');
     }
     if (position < 0 || position > table.countRows()) {
         console.error(`[AiIframe] insertRow: 插入位置无效: ${position}，有效范围 0-${table.countRows()}`);
-        return ToolResult.ERROR;
+        return ToolResult.error(`插入位置无效: ${position}，有效范围 0-${table.countRows()}`);
     }
 
     const oldRowHeights = deepCopy(table.getSettings().rowHeights);
@@ -235,10 +309,13 @@ function insertRow({ position, number = 1 }) {
     try {
         doInsertRow(table, position, number);
         console.log(`[AiIframe] insertRow: 已在位置 ${position} 插入 ${number} 行`);
-        return ToolResult.SUCCESS;
+        return ToolResult.success(`已在位置 ${position} 插入 ${number} 行`);
     } catch (error) {
         console.error('[AiIframe] insertRow 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] insertRow 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`插入行失败: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -249,18 +326,18 @@ function insertRow({ position, number = 1 }) {
  * @param {Object} params - 参数对象
  * @param {number} params.startRow - 起始行索引，从0开始
  * @param {number} params.endRow - 结束行索引，从0开始
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function deleteRow({ startRow, endRow }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] deleteRow: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('表格实例不存在，无法执行删除行操作');
     }
     const countRows = table.countRows();
     if (startRow < 0 || endRow >= countRows || startRow > endRow) {
         console.error(`[AiIframe] deleteRow: 行范围无效: ${startRow}-${endRow}，有效范围 0-${countRows - 1}`);
-        return ToolResult.ERROR;
+        return ToolResult.error(`行范围无效: ${startRow}-${endRow}，有效范围 0-${countRows - 1}`);
     }
 
     const oldRowHeights = deepCopy(table.getSettings().rowHeights);
@@ -283,10 +360,13 @@ function deleteRow({ startRow, endRow }) {
     try {
         doDeleteRow(table, startRow, endRow);
         console.log(`[AiIframe] deleteRow: 已删除行 ${startRow}-${endRow}`);
-        return ToolResult.SUCCESS;
+        return ToolResult.success(`已删除行 ${startRow}-${endRow}`);
     } catch (error) {
         console.error('[AiIframe] deleteRow 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] deleteRow 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`删除行失败: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -297,17 +377,17 @@ function deleteRow({ startRow, endRow }) {
  * @param {Object} params - 参数对象
  * @param {number} params.position - 插入位置（列索引），从0开始
  * @param {number} [params.number=1] - 插入列数
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function insertCol({ position, number = 1 }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] insertCol: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('表格实例不存在，无法执行插入列操作');
     }
     if (position < 0 || position > table.countCols()) {
         console.error(`[AiIframe] insertCol: 插入位置无效: ${position}，有效范围 0-${table.countCols()}`);
-        return ToolResult.ERROR;
+        return ToolResult.error(`插入位置无效: ${position}，有效范围 0-${table.countCols()}`);
     }
 
     const oldColWidths = deepCopy(table.getSettings().colWidths);
@@ -328,10 +408,13 @@ function insertCol({ position, number = 1 }) {
     try {
         doInsertCol(table, position, number);
         console.log(`[AiIframe] insertCol: 已在位置 ${position} 插入 ${number} 列`);
-        return ToolResult.SUCCESS;
+        return ToolResult.success(`已在位置 ${position} 插入 ${number} 列`);
     } catch (error) {
         console.error('[AiIframe] insertCol 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] insertCol 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`插入列失败: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -342,18 +425,18 @@ function insertCol({ position, number = 1 }) {
  * @param {Object} params - 参数对象
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function deleteCol({ startCol, endCol }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] deleteCol: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('表格实例不存在，无法执行删除列操作');
     }
     const countCols = table.countCols();
     if (startCol < 0 || endCol >= countCols || startCol > endCol) {
         console.error(`[AiIframe] deleteCol: 列范围无效: ${startCol}-${endCol}，有效范围 0-${countCols - 1}`);
-        return ToolResult.ERROR;
+        return ToolResult.error(`列范围无效: ${startCol}-${endCol}，有效范围 0-${countCols - 1}`);
     }
 
     const oldColWidths = deepCopy(table.getSettings().colWidths);
@@ -376,10 +459,13 @@ function deleteCol({ startCol, endCol }) {
     try {
         doDeleteCol(table, startCol, endCol);
         console.log(`[AiIframe] deleteCol: 已删除列 ${startCol}-${endCol}`);
-        return ToolResult.SUCCESS;
+        return ToolResult.success(`已删除列 ${startCol}-${endCol}`);
     } catch (error) {
         console.error('[AiIframe] deleteCol 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] deleteCol 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`删除列失败: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -390,13 +476,13 @@ function deleteCol({ startCol, endCol }) {
  * @param {Object} params - 参数对象
  * @param {number} params.rowNumber - 目标行号（从1开始）
  * @param {Object} params.row - 新的行定义对象，包含 height 等属性
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function updateRow({ rowNumber, row }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] updateRow: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     // 备份当前行数据
@@ -444,10 +530,13 @@ function updateRow({ rowNumber, row }) {
         }
 
         console.log(`[AiIframe] updateRow: 已更新行 ${rowNumber} 定义`);
-        return ToolResult.SUCCESS;
+        return ToolResult.success('操作成功');
     } catch (error) {
         console.error('[AiIframe] updateRow 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] updateRow 已自动还原备份:', restoreResult.message);
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 }
 
@@ -471,13 +560,13 @@ function getColumns({ columnNumber } = {}) {
  *
  * @param {Object} params - 参数对象
  * @param {Array} params.columns - 列定义数组
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function setColumns({ columns }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] setColumns: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     // 备份当前列数据
@@ -517,10 +606,13 @@ function setColumns({ columns }) {
         }
 
         console.log('[AiIframe] setColumns: 已整体替换列数据');
-        return ToolResult.SUCCESS;
+        return ToolResult.success('操作成功');
     } catch (error) {
         console.error('[AiIframe] setColumns 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] setColumns 已自动还原备份:', restoreResult.message);
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 }
 
@@ -531,13 +623,13 @@ function setColumns({ columns }) {
  * @param {Object} params - 参数对象
  * @param {number} params.columnNumber - 目标列号（从1开始）
  * @param {Object} params.column - 新的列定义对象，包含 width 等属性
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function updateColumn({ columnNumber, column }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] updateColumn: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     // 备份当前列数据
@@ -582,10 +674,13 @@ function updateColumn({ columnNumber, column }) {
         }
 
         console.log(`[AiIframe] updateColumn: 已更新列 ${columnNumber} 定义`);
-        return ToolResult.SUCCESS;
+        return ToolResult.success('操作成功');
     } catch (error) {
         console.error('[AiIframe] updateColumn 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] updateColumn 已自动还原备份:', restoreResult.message);
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 }
 
@@ -597,7 +692,7 @@ function updateColumn({ columnNumber, column }) {
  * @param {Object} params - 参数对象
  * @param {string} params.description - 备份描述，说明当前操作内容
  * @param {string} [params.type] - 备份数据类型标识
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function backupData({ description, type } = {}) {
     const desc = description || '手动备份';
@@ -606,7 +701,7 @@ function backupData({ description, type } = {}) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] backupData: 表格实例不存在，无法备份');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     const snapshot = {
@@ -627,7 +722,7 @@ function backupData({ description, type } = {}) {
     });
 
     console.log(`[AiIframe] backupData: 已备份 - ${desc}，当前备份数量: ${getBackupCount()}`);
-    return ToolResult.SUCCESS;
+    return ToolResult.success('操作成功');
 }
 
 /**
@@ -659,12 +754,12 @@ function getBackupInfo() {
  * 清空备份栈
  * 清除所有已保存的备份数据
  *
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function clearBackupData() {
     clearBackup();
     console.log('[AiIframe] clearBackupData: 已清空备份栈');
-    return ToolResult.SUCCESS;
+    return ToolResult.success('操作成功');
 }
 
 /**
@@ -705,11 +800,11 @@ async function validateExpression({ expression }) {
  * @param {string} [params.driver] - JDBC 驱动（type=jdbc 时必填）
  * @param {string} [params.url] - JDBC 连接 URL（type=jdbc 时必填）
  * @param {string} [params.name] - 内置数据源名称（type=buildin 时必填）
- * @return {Promise<number>} ToolResult.SUCCESS 表示执行成功，ToolResult.ERROR 表示执行失败
+ * @return {Promise<number>} ToolResult.success('操作成功') 表示执行成功，ToolResult.error('操作失败，请检查参数是否正确') 表示执行失败
  */
 async function previewData({ sql, type, parameters, username, password, driver, url, name }) {
     if (!sql) {
-        return ToolResult.ERROR;
+        return ToolResult.error('SQL语句不能为空');
     }
     const params = { sql, type, parameters: parameters || [] };
     if (type === 'jdbc') {
@@ -721,11 +816,11 @@ async function previewData({ sql, type, parameters, username, password, driver, 
         params.name = name;
     }
     try {
-        await apiPreviewData(params);
-        return ToolResult.SUCCESS;
+        const result = await apiPreviewData(params);
+        return ToolResult.success('数据预览成功', result);
     } catch (error) {
-        console.error('[AiIframe] previewData 执行失败:', error.msg || '预览数据失败');
-        return ToolResult.ERROR;
+        console.error('[AiIframe] previewData 执行失败:', error);
+        return ToolResult.error(`数据预览失败: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -975,21 +1070,21 @@ function getReportSchema() {
  * @param {number} params.endRow - 结束行索引，从0开始
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function clearCellContent({ startRow, endRow, startCol, endCol }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] clearCellContent: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
     if (startRow < 0 || endRow >= table.countRows() || startRow > endRow) {
         console.error('[AiIframe] clearCellContent: 行范围无效');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
     if (startCol < 0 || endCol >= table.countCols() || startCol > endCol) {
         console.error('[AiIframe] clearCellContent: 列范围无效');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     // 备份当前区域单元格数据
@@ -1017,10 +1112,13 @@ function clearCellContent({ startRow, endRow, startCol, endCol }) {
         doCleanCells(startRow, endRow, startCol, endCol, 'content');
     } catch (error) {
         console.error('[AiIframe] clearCellContent 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] clearCellContent 已自动还原备份:', restoreResult.message);
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
-    return ToolResult.SUCCESS;
+    return ToolResult.success('操作成功');
 }
 
 /**
@@ -1032,21 +1130,21 @@ function clearCellContent({ startRow, endRow, startCol, endCol }) {
  * @param {number} params.endRow - 结束行索引，从0开始
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function clearCellStyle({ startRow, endRow, startCol, endCol }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] clearCellStyle: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
     if (startRow < 0 || endRow >= table.countRows() || startRow > endRow) {
         console.error('[AiIframe] clearCellStyle: 行范围无效');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
     if (startCol < 0 || endCol >= table.countCols() || startCol > endCol) {
         console.error('[AiIframe] clearCellStyle: 列范围无效');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     // 备份当前区域单元格数据
@@ -1074,10 +1172,13 @@ function clearCellStyle({ startRow, endRow, startCol, endCol }) {
         doCleanCells(startRow, endRow, startCol, endCol, 'style');
     } catch (error) {
         console.error('[AiIframe] clearCellStyle 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] clearCellStyle 已自动还原备份:', restoreResult.message);
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
-    return ToolResult.SUCCESS;
+    return ToolResult.success('操作成功');
 }
 
 /**
@@ -1089,21 +1190,21 @@ function clearCellStyle({ startRow, endRow, startCol, endCol }) {
  * @param {number} params.endRow - 结束行索引，从0开始
  * @param {number} params.startCol - 起始列索引，从0开始
  * @param {number} params.endCol - 结束列索引，从0开始
- * @return {number} ToolResult.SUCCESS 表示成功，ToolResult.ERROR 表示失败
+ * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function clearCellAll({ startRow, endRow, startCol, endCol }) {
     const table = TableManager.get();
     if (!table) {
         console.error('[AiIframe] clearCellAll: 表格实例不存在');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
     if (startRow < 0 || endRow >= table.countRows() || startRow > endRow) {
         console.error('[AiIframe] clearCellAll: 行范围无效');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
     if (startCol < 0 || endCol >= table.countCols() || startCol > endCol) {
         console.error('[AiIframe] clearCellAll: 列范围无效');
-        return ToolResult.ERROR;
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
     // 备份当前区域单元格数据
@@ -1131,10 +1232,13 @@ function clearCellAll({ startRow, endRow, startCol, endCol }) {
         doCleanCells(startRow, endRow, startCol, endCol, 'all');
     } catch (error) {
         console.error('[AiIframe] clearCellAll 执行失败:', error);
-        return ToolResult.ERROR;
+        // 异常时自动还原备份数据
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] clearCellAll 已自动还原备份:', restoreResult.message);
+        return ToolResult.error('操作失败，请检查参数是否正确');
     }
 
-    return ToolResult.SUCCESS;
+    return ToolResult.success('操作成功');
 }
 
 export function getAgentMethodArgs() {

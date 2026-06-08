@@ -372,6 +372,7 @@ export default {
         const newCellDef = deepCopy(cellDef);
         newCellDef.value.height = this.height;
         setCell( this.rowIndex, this.colIndex, newCellDef );
+        console.log(JSON.stringify(newCellDef))
         const hot = TableManager.get();
         if (hot) {
           hot.render();

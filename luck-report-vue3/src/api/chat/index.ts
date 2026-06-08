@@ -209,6 +209,7 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
  * @param tools - 可选，工具定义列表（Agent Function Calling）
  * @param sessionId - 可选，会话ID，用于后端关联会话上下文
  * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
+ * @param toolChoice - 可选，工具调用策略，如 "auto" 或 { type: "function", function: { name: "xxx" } } 强制调用指定工具
  */
 export async function chatStream(
     message: string,
@@ -219,7 +220,8 @@ export async function chatStream(
     contextMessages?: ContextMessage[],
     tools?: ToolApiFormat[],
     sessionId?: string,
-    modelId?: number
+    modelId?: number,
+    toolChoice?: string | Record<string, any>
 ): Promise<void> {
   const requestBody: Record<string, unknown> = {
     message,
@@ -253,6 +255,10 @@ export async function chatStream(
         parameters: t.inputSchema
       }
     }))
+  }
+
+  if (toolChoice !== undefined) {
+    requestBody.toolChoice = toolChoice
   }
 
   const fetchOptions: RequestInit = {

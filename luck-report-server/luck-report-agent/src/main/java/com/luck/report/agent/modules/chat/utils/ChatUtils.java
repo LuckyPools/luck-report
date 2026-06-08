@@ -60,7 +60,7 @@ public class ChatUtils {
         try (Response response = SHARED_CLIENT.newCall(httpRequest).execute()) {
             String responseBody = response.body() != null ? response.body().string() : "";
             if (!response.isSuccessful()) {
-                log.error("大模型API调用失败: status={}, body={}", response.code(), responseBody);
+                // log.error("大模型API调用失败: status={}, body={}", response.code(), responseBody);
                 return new AskModelResponse(response.code(), responseBody, false);
             }
             return new AskModelResponse(response.code(), responseBody, true);
@@ -111,10 +111,14 @@ public class ChatUtils {
         }
 
         // 最大 token 数：优先使用请求指定的值，否则使用模型配置中的默认值
-        if (request.getMaxTokens() != null) {
-            body.put("max_tokens", request.getMaxTokens());
-        } else if (request.getChatConfig().getMaxTokens() != null) {
-            body.put("max_tokens", request.getChatConfig().getMaxTokens());
+        // 不同模型对 max_tokens 有不同上限（如 qwen-max 上限 8192），超出会报错，此处做上限保护
+        Integer maxTokens = request.getMaxTokens() != null ? request.getMaxTokens() : request.getChatConfig().getMaxTokens();
+        if (maxTokens != null) {
+            int capped = Math.min(maxTokens, 8192);
+            if (capped < maxTokens) {
+                log.warn("[ChatUtils] max_tokens={} 超过上限8192，已自动截断为{}", maxTokens, capped);
+            }
+            body.put("max_tokens", capped);
         }
 
         // 工具定义（Function Calling）
@@ -125,13 +129,19 @@ public class ChatUtils {
             }
         }
 
+        log.info("[ChatUtils] 请求体工具数量: {}, toolChoice: {}",
+                request.getTools() != null ? request.getTools().size() : 0,
+                request.getToolChoice());
+
         // 流式选项
         if (request.getStreamOptions() != null) {
             body.put("stream_options", request.getStreamOptions());
         }
 
         try {
-            return objectMapper.writeValueAsString(body);
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.info("[ChatUtils] 实际发送给LLM的请求体(前2000字): {}", jsonBody.length() > 2000 ? jsonBody.substring(0, 2000) + "..." : jsonBody);
+            return jsonBody;
         } catch (Exception e) {
             log.error("序列化请求体失败", e);
             throw new RuntimeException("序列化请求体失败", e);

@@ -78,9 +78,6 @@ public class ReportMyBatisConfig {
         configuration.setMapUnderscoreToCamelCase(true);
         bean.setConfiguration(configuration);
 
-        // 注册分页拦截器，自动根据数据库方言改写分页 SQL
-        bean.setPlugins(new PaginationInterceptor());
-
         return bean.getObject();
     }
 }

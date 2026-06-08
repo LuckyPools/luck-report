@@ -45,7 +45,7 @@
         FROM luck_agent_knowledge WHERE id = #{id} AND is_deleted = 0
     </select>
 
-    <!-- 分页条件查询智能体知识，LIKE用bind拼接，分页由拦截器自动改写 -->
+    <!-- 分页条件查询智能体知识，LIKE用bind拼接 -->
     <select id="selectByConditionsWithPage" resultType="com.luck.report.agent.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge">
         SELECT id, title, type, question, content, enabled, embedding_status,
                error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id,
@@ -63,6 +63,7 @@
             AND embedding_status = #{queryDTO.embeddingStatus}
         </if>
         ORDER BY created_time DESC
+        LIMIT #{offset}, #{pageSize}
     </select>
 
     <!-- 统计符合条件的智能体知识数量 -->

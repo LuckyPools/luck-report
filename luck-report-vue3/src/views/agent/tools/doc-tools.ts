@@ -8,7 +8,7 @@ import {type PromptDocName} from '@/prompt'
  */
 const INSTRUCTION_DOC_NAMES = Object.keys(PROMPT_DOC_PATH_MAP).filter(
   name => name !== 'SYSTEM'
-)
+) as PromptDocName[]
 
 /**
  * 加载报表提示词文档工具
@@ -20,16 +20,34 @@ export const loadReportIntroduceTool: ToolDefinition<{
   fileNames: PromptDocName[]
 }> = {
   name: 'load_report_introduce',
-  description: '加载报表相关的提示词文档，获取报表组件、表达式、数据源等详细说明。可传入多个文件名同时加载，文档内容将以分界线拼接返回。当需要了解报表某个方面的详细规范时调用此工具。',
+  description: `加载报表相关的提示词文档，获取报表组件、表达式、数据源等详细说明。可传入多个文件名同时加载，文档内容将以分界线拼接返回。当需要了解报表某个方面的详细规范时调用此工具。
+【参数格式要求】
+fileNames 必须是一个字符串数组，数组中的每个元素必须是以下枚举值之一（区分大小写）：
+${INSTRUCTION_DOC_NAMES.map(name => `- "${name}"`).join('\n')}
+【正确示例】
+加载单个文档：{ "fileNames": ["DATASOURCE_DATASET"] }
+加载多个文档：{ "fileNames": ["DATASOURCE_DATASET", "DATASET_CELL", "CELL_COMMON_ATTRIBUTE"] }
+【错误示例】
+❌ 缺少引号：{ "fileNames": [DATASOURCE_DATASET] }
+❌ 使用代码块标记：\`\`\`json"fileNames":[...]
+❌ 字段名缺少引号：{ fileNames: ["DATASOURCE_DATASET"] }`,
   inputSchema: {
     type: 'object',
     properties: {
       fileNames: {
         type: 'array',
-        description: '要加载的提示词文档列表。可选值：REPORT_DEFINITION-报表说明、CELL_RENDER_ORDER-单元格渲染顺序、PARENT_CELL_RELATION-父子格关系、BARCODE_CELL-条形码单元格、CELL_COMMON_ATTRIBUTE-单元格通用属性、CELL_CONDITIONAL_ATTRIBUTE-条件属性、CHART_CELL-图表单元格、DATASET_CELL-数据集单元格、DIAGONAL_HEADER_CELL-斜线表头单元格、EXPRESSION_CELL-表达式单元格、IMAGE_CELL-图片单元格、QRCODE_CELL-二维码单元格、SIMPLE_TEXT_CELL-普通文本单元格、DATASOURCE_DATASET-数据源与数据集、EXPRESSION-表达式说明、FUNCTION-函数说明、FORM_DESIGN-查询表单设计、PAGE_CONFIG-页面配置、TABLE_ROW-行列说明。示例：加载报表说明传 ["REPORT_DEFINITION"]，同时加载多个文档传 ["DATASOURCE_DATASET", "DATASET_CELL", "CELL_COMMON_ATTRIBUTE"]',
+        description: `要加载的提示词文档列表。必须是字符串数组，每个元素必须是以下枚举值之一（区分大小写）：
+${INSTRUCTION_DOC_NAMES.join('、')}
+
+正确格式示例：
+- 加载单个文档：["DATASOURCE_DATASET"]
+- 加载多个文档：["DATASOURCE_DATASET", "DATASET_CELL", "CELL_COMMON_ATTRIBUTE"]
+
+注意：数组元素必须用双引号包裹，如 "DATASOURCE_DATASET"，不能写成 DATASOURCE_DATASET`,
         items: {
           type: 'string',
-          enum: INSTRUCTION_DOC_NAMES
+          enum: INSTRUCTION_DOC_NAMES,
+          description: '文档名称枚举值，必须是以下值之一（区分大小写）：' + INSTRUCTION_DOC_NAMES.join('、')
         }
       }
     },
@@ -38,6 +56,12 @@ export const loadReportIntroduceTool: ToolDefinition<{
   execute: async ({ fileNames }) => {
     if (!fileNames || fileNames.length === 0) {
       return '未指定要加载的文档文件名'
+    }
+
+    // 验证每个文件名是否在枚举列表中
+    const invalidNames = fileNames.filter(name => !INSTRUCTION_DOC_NAMES.includes(name as PromptDocName))
+    if (invalidNames.length > 0) {
+      return `无效的文档名称: ${invalidNames.join(', ')}。有效的文档名称包括: ${INSTRUCTION_DOC_NAMES.join('、')}`
     }
 
     const SEPARATOR = '\n---- 分界线 ----\n'

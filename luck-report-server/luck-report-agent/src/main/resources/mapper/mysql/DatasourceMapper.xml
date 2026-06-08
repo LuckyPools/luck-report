@@ -86,7 +86,7 @@
         UPDATE luck_datasource SET initialized_tables = #{initializedTables} WHERE id = #{id}
     </update>
 
-    <!-- 分页条件查询数据源，LIKE用bind拼接，分页由拦截器自动改写 -->
+    <!-- 分页条件查询数据源，LIKE用bind拼接 -->
     <select id="selectByConditionsWithPage" resultType="com.luck.report.agent.modules.datasource.domain.entity.Datasource">
         SELECT id, name, type, host, port, database_name, username, password, connection_url,
                status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
@@ -103,6 +103,7 @@
             AND status = #{queryDTO.status}
         </if>
         ORDER BY create_time DESC
+        LIMIT #{offset}, #{pageSize}
     </select>
 
     <!-- 统计符合条件的数据源数量 -->

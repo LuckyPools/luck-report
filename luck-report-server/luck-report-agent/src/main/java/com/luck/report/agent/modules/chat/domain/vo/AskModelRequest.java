@@ -27,8 +27,8 @@ public class AskModelRequest {
     private Integer maxTokens;
     /** 工具定义列表（OpenAI Function Calling 格式），可为 null */
     private List<Map<String, Object>> tools;
-    /** 工具调用策略，如 "auto"，可为 null */
-    private String toolChoice;
+    /** 工具调用策略，如 "auto"、"none"，或 {"type":"function","function":{"name":"xxx"}} 强制调用，可为 null */
+    private Object toolChoice;
     /** 流式选项，如 {"include_usage": true}，可为 null */
     private Map<String, Object> streamOptions;
 
@@ -90,10 +90,10 @@ public class AskModelRequest {
     /**
      * 设置工具调用策略
      *
-     * @param toolChoice 工具调用策略，如 "auto"，类型：String，可为空
+     * @param toolChoice 工具调用策略，如 "auto"、"none"，或对象格式强制调用，类型：Object，可为空
      * @return 当前对象，支持链式调用
      */
-    public AskModelRequest toolChoice(String toolChoice) {
+    public AskModelRequest toolChoice(Object toolChoice) {
         this.toolChoice = toolChoice;
         return this;
     }
@@ -154,9 +154,9 @@ public class AskModelRequest {
     /**
      * 获取工具调用策略
      *
-     * @return 工具调用策略，类型：String，可为空
+     * @return 工具调用策略，类型：Object，可为空
      */
-    public String getToolChoice() { return toolChoice; }
+    public Object getToolChoice() { return toolChoice; }
 
     /**
      * 获取流式选项

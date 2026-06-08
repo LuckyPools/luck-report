@@ -61,7 +61,7 @@
         </foreach>
     </select>
 
-    <!-- 分页条件查询业务知识，LIKE用bind拼接，分页由拦截器自动改写 -->
+    <!-- 分页条件查询业务知识，LIKE用bind拼接 -->
     <select id="selectByConditionsWithPage" resultType="com.luck.report.agent.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
         SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,
                error_msg, is_deleted, created_time, updated_time
@@ -78,6 +78,7 @@
             AND embedding_status = #{queryDTO.embeddingStatus}
         </if>
         ORDER BY created_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
     <!-- 统计符合条件的业务知识数量 -->

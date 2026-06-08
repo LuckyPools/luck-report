@@ -46,7 +46,7 @@ public class ChatServiceImpl implements ChatService {
      */
     @Override
     public SseEmitter chatStream(ChatRequest request) {
-        SseEmitter emitter = new SseEmitter(120000L);
+        SseEmitter emitter = new SseEmitter(300000L);
 
         executorService.submit(() -> {
             try {
@@ -57,6 +57,16 @@ public class ChatServiceImpl implements ChatService {
                 // 构建工具定义列表（OpenAI Function Calling 格式）
                 List<Map<String, Object>> openaiTools = buildOpenAiTools(request.getTools());
 
+                // 确定工具调用策略：优先使用前端指定的 toolChoice，否则根据是否有工具自动决定
+                Object effectiveToolChoice = request.getToolChoice();
+                if (effectiveToolChoice == null && openaiTools != null) {
+                    effectiveToolChoice = "auto";
+                }
+
+                log.info("[ChatService] 意图分析请求: tools数量={}, toolChoice={}, effectiveToolChoice={}",
+                        request.getTools() != null ? request.getTools().size() : 0,
+                        request.getToolChoice(), effectiveToolChoice);
+
                 // 流式选项：请求 API 在最后一个 chunk 返回 token 用量
                 Map<String, Object> streamOptions = new LinkedHashMap<>(1);
                 streamOptions.put("include_usage", true);
@@ -64,7 +74,7 @@ public class ChatServiceImpl implements ChatService {
                 AskModelRequest askRequest = new AskModelRequest(chatConfig, messages)
                         .stream(true)
                         .tools(openaiTools)
-                        .toolChoice(openaiTools != null ? "auto" : null)
+                        .toolChoice(effectiveToolChoice)
                         .streamOptions(streamOptions);
 
                 // 计算输入消息的文本总长度，用于 token 估算
@@ -79,9 +89,14 @@ public class ChatServiceImpl implements ChatService {
 
                 Call call = ChatUtils.buildStreamCall(askRequest);
 
+                // 使用 AtomicBoolean 标记 emitter 是否已完成（超时/完成/错误），
+                // 避免向已关闭的 emitter 写入数据
+                java.util.concurrent.atomic.AtomicBoolean emitterCompleted = new java.util.concurrent.atomic.AtomicBoolean(false);
+
                 call.enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
+                        if (emitterCompleted.getAndSet(true)) return;
                         log.error("大模型API调用失败: {}", e.getMessage(), e);
                         try {
                             emitter.send(SseEmitter.event().name("error").data("大模型API调用失败: " + e.getMessage()));
@@ -93,7 +108,9 @@ public class ChatServiceImpl implements ChatService {
 
                     @Override
                     public void onResponse(Call call, Response response) throws IOException {
+                        log.info("[ChatService] API响应: status={}, hasBody={}", response.code(), response.body() != null);
                         if (!response.isSuccessful()) {
+                            if (emitterCompleted.getAndSet(true)) return;
                             String errorMsg = response.body() != null ? response.body().string() : "未知错误";
                             log.error("大模型API返回错误: status={}, body={}", response.code(), errorMsg);
                             try {
@@ -107,6 +124,7 @@ public class ChatServiceImpl implements ChatService {
 
                         ResponseBody body = response.body();
                         if (body == null) {
+                            if (emitterCompleted.getAndSet(true)) return;
                             try {
                                 emitter.send(SseEmitter.event().name("error").data("响应体为空"));
                                 emitter.complete();
@@ -118,9 +136,14 @@ public class ChatServiceImpl implements ChatService {
 
                         BufferedSource source = body.source();
                         try {
-                            processStreamResponse(source, emitter, finalInputTextLength);
-                            emitter.complete();
+                            log.info("[ChatService] 开始处理SSE流...");
+                            processStreamResponse(source, emitter, finalInputTextLength, emitterCompleted);
+                            log.info("[ChatService] SSE流处理完成");
+                            if (emitterCompleted.compareAndSet(false, true)) {
+                                emitter.complete();
+                            }
                         } catch (Exception e) {
+                            if (emitterCompleted.getAndSet(true)) return;
                             log.error("SSE流处理异常: {}", e.getMessage(), e);
                             try {
                                 emitter.send(SseEmitter.event().name("error").data("流处理异常: " + e.getMessage()));
@@ -133,6 +156,23 @@ public class ChatServiceImpl implements ChatService {
                         }
                     }
                 });
+
+                // emitter 超时或完成时，取消 OkHttp Call 以停止接收 LLM 数据
+                emitter.onCompletion(() -> {
+                    emitterCompleted.set(true);
+                    if (!call.isCanceled()) {
+                        call.cancel();
+                    }
+                });
+                emitter.onTimeout(() -> {
+                    log.warn("SseEmitter超时，取消LLM请求");
+                    emitterCompleted.set(true);
+                    if (!call.isCanceled()) {
+                        call.cancel();
+                    }
+                    emitter.complete();
+                });
+
             } catch (Exception e) {
                 log.error("构建请求失败: {}", e.getMessage(), e);
                 try {
@@ -143,9 +183,6 @@ public class ChatServiceImpl implements ChatService {
                 }
             }
         });
-
-        emitter.onCompletion(() -> {});
-        emitter.onTimeout(() -> emitter.complete());
 
         return emitter;
     }
@@ -217,7 +254,8 @@ public class ChatServiceImpl implements ChatService {
      * @throws IOException 读取异常
      */
     @SuppressWarnings("unchecked")
-    private void processStreamResponse(BufferedSource source, SseEmitter emitter, int inputTextLength) throws IOException {
+    private void processStreamResponse(BufferedSource source, SseEmitter emitter, int inputTextLength,
+                                           java.util.concurrent.atomic.AtomicBoolean emitterCompleted) throws IOException {
         Map<Integer, Map<String, Object>> accumulatedToolCalls = new LinkedHashMap<>();
         int outputTextLength = 0;
         boolean hasRealUsage = false;
@@ -226,10 +264,18 @@ public class ChatServiceImpl implements ChatService {
         int totalTokens = 0;
 
         while (!source.exhausted()) {
+            // 如果 emitter 已完成（超时/客户端断开），停止处理
+            if (emitterCompleted.get()) {
+                return;
+            }
+
             String line = source.readUtf8Line();
             if (line == null || line.isEmpty()) {
                 continue;
             }
+
+            // 临时排查：打印所有非空行，确认 API 返回的 SSE 格式
+            log.debug("[ChatService] SSE行: {}", line.length() > 300 ? line.substring(0, 300) + "..." : line);
 
             if (!line.startsWith("data: ")) {
                 continue;
@@ -238,6 +284,8 @@ public class ChatServiceImpl implements ChatService {
             String data = line.substring(6).trim();
 
             if ("[DONE]".equals(data)) {
+                log.info("[ChatService] SSE流结束, outputTextLength={}, toolCalls数量={}, hasRealUsage={}",
+                        outputTextLength, accumulatedToolCalls.size(), hasRealUsage);
                 flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
 
                 if (!hasRealUsage) {
@@ -262,6 +310,15 @@ public class ChatServiceImpl implements ChatService {
                 Map<String, Object> response = ChatUtils.getObjectMapper().readValue(data, Map.class);
                 if (response == null) {
                     continue;
+                }
+
+                // 检查 API 返回的错误响应（如 max_tokens 超限等参数错误）
+                Map<String, Object> errorInfo = (Map<String, Object>) response.get("error");
+                if (errorInfo != null) {
+                    String errorMsg = errorInfo.getOrDefault("message", "未知API错误").toString();
+                    log.error("[ChatService] LLM API返回错误: {}", errorMsg);
+                    emitter.send(SseEmitter.event().name("error").data("LLM API错误: " + errorMsg));
+                    return;
                 }
 
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
@@ -322,6 +379,10 @@ public class ChatServiceImpl implements ChatService {
 
                 // 检查 finish_reason
                 String finishReason = (String) choice.get("finish_reason");
+                if (finishReason != null || delta.containsKey("tool_calls")) {
+                    log.info("[ChatService] SSE chunk: finishReason={}, has_tool_calls={}",
+                            finishReason, delta.containsKey("tool_calls"));
+                }
                 if ("tool_calls".equals(finishReason)) {
                     flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
                     accumulatedToolCalls.clear();
@@ -343,7 +404,7 @@ public class ChatServiceImpl implements ChatService {
                     }
                 }
             } catch (Exception e) {
-                log.warn("解析SSE数据失败: data={}, error={}", data, e.getMessage());
+                log.warn("解析SSE数据失败: data={}, error={}", data.length() > 200 ? data.substring(0, 200) + "..." : data, e.getMessage());
             }
         }
 

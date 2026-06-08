@@ -16,6 +16,8 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
   readOnly: boolean
   /** 是否需要用户确认才执行（高风险操作如删除、清空） */
   requireConfirm: boolean
+  /** 参数校验函数，返回错误信息或 undefined（校验通过） */
+  validate?: (input: TInput) => string | undefined
 }
 
 /**
@@ -67,4 +69,6 @@ export interface Task {
   workflowNode?: string
   /** 任务执行时间戳 */
   timestamp?: number
+  /** 父步骤ID，用于标识层级关系（子工作流步骤） */
+  parentStepId?: string
 }

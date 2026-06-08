@@ -16,6 +16,7 @@ export type PromptDocName = keyof typeof PROMPT_DOC_PATH_MAP
  */
 export const PROMPT_DOC_PATH_MAP = {
   SYSTEM: 'plan/system',
+  INTENT_ANALYSIS: 'plan/intent-analysis',
   REPORT_DEFINITION: 'instruction/report-definition',
   CELL_RENDER_ORDER: 'instruction/cell-render-order',
   PARENT_CELL_RELATION: 'instruction/parent-cell-relation',

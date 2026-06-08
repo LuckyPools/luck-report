@@ -39,7 +39,11 @@ import {
   validateConditionTool,
   clearCellContentTool,
   clearCellStyleTool,
-  clearCellAllTool
+  clearCellAllTool,
+  selectDatasourceOperationTool,
+  getCellTemplateTool,
+  getDatasetTemplateTool,
+  getDatasourceTemplateTool
 } from './report-tools'
 import { loadReportIntroduceTool } from './doc-tools.ts'
 
@@ -189,18 +193,23 @@ export function createDefaultRegistry(): ToolRegistry {
     deleteColTool,
     mergeCellsTool,
     backupDataTool,
-    restoreDataTool,
+    // restoreDataTool,
     validateExpressionTool,
     previewDataTool,
     buildFieldsTool,
     saveReportTool,
-    // loadBuildinDatasourcesTool,
+    loadBuildinDatasourcesTool,
     // testConnectionTool,
     loadBeanMethodsTool,
     validateConditionTool,
     clearCellContentTool,
     clearCellStyleTool,
-    clearCellAllTool
+    clearCellAllTool,
+    selectDatasourceOperationTool,
+    // 数据模板工具
+    getCellTemplateTool,
+    getDatasetTemplateTool,
+    getDatasourceTemplateTool
   ])
   return registry
 }

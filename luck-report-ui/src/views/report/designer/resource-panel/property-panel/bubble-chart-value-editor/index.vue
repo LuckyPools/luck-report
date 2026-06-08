@@ -283,6 +283,7 @@ export default {
       Object.assign(this.datasetValues, config);
 
       setCell(this.rowIndex, this.colIndex, cell);
+      console.log(JSON.stringify(cell))
       setDirty();
     },
 

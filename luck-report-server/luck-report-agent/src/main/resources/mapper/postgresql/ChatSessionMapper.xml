@@ -19,12 +19,13 @@
         ORDER BY is_pinned DESC, update_time DESC
     </select>
 
-    <!-- 根据用户ID分页查询会话列表，分页由拦截器自动改写 -->
+    <!-- 根据用户ID分页查询会话列表 -->
     <select id="selectByUserIdWithPage" resultType="com.luck.report.agent.modules.chat.domain.entity.ChatSession">
         SELECT id, title, status, is_pinned, user_id, create_time, update_time
         FROM luck_chat_session
         WHERE user_id = #{userId} AND status != 'deleted'
         ORDER BY is_pinned DESC, update_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
     <!-- 统计指定用户下未删除的会话总数 -->

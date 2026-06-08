@@ -270,6 +270,7 @@ export default {
         cell.value.chart.dataset.datasetName = value;
         setCell(this.rowIndex, this.colIndex, cell);
       }
+      console.log(JSON.stringify(cell))
       setDirty();
     },
 

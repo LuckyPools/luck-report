@@ -3,6 +3,7 @@ package com.luck.report.agent.modules.chat.domain.vo;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 聊天请求 DTO
@@ -55,4 +56,14 @@ public class ChatRequest {
      * 每个工具包含 name、description、inputSchema
      */
     private List<ToolDefinition> tools;
+
+    /**
+     * 工具调用策略（Agent Function Calling）
+     * 控制大模型如何选择工具调用，格式遵循 OpenAI tool_choice 参数：
+     * - "auto"：模型自行决定是否调用工具
+     * - "none"：禁止调用工具
+     * - {"type": "function", "function": {"name": "xxx"}}：强制调用指定工具
+     * 不传时由后端根据 tools 是否为空自动决定
+     */
+    private Object toolChoice;
 }

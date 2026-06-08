@@ -10,25 +10,40 @@
         <CheckCircleOutlined v-else-if="allCompleted" />
       </template>
 
-      <!-- 任务步骤展示 -->
-      <a-steps
-        :current="currentStepIndex"
-        :status="stepsStatus"
-        direction="vertical"
-        size="small"
-      >
-        <a-step
-          v-for="task in visibleTasks"
-          :key="task.id"
-          :title="task.content"
-          :status="getStepStatus(task)"
-          :description="getStepDescription(task)"
-        />
-      </a-steps>
-
-      <!-- 隐藏任务摘要 -->
-      <div v-if="hiddenTasksCount > 0" class="hidden-summary">
-        <span>还有 {{ hiddenTasksCount }} 个任务...</span>
+      <!-- 任务步骤展示，超出最大高度时显示滚动条 -->
+      <div class="steps-scroll-wrapper">
+        <a-steps
+          :current="currentStepIndex"
+          :status="stepsStatus"
+          direction="vertical"
+          size="small"
+        >
+          <a-step
+            v-for="(task, index) in mainTasks"
+            :key="task.id"
+            :title="`${index + 1}. ${task.content}`"
+            :status="getStepStatus(task)"
+          >
+            <!-- 子任务层级展示 - 暂时隐藏 -->
+            <!-- <template #description v-if="getSubtasks(task.id).length > 0">
+              <div class="subtask-steps">
+                <a-steps
+                  :current="getSubtaskCurrentIndex(task.id)"
+                  direction="vertical"
+                  size="small"
+                  class="nested-steps"
+                >
+                  <a-step
+                    v-for="(subtask, subIndex) in getSubtasks(task.id)"
+                    :key="subtask.id"
+                    :title="`${getSubtaskLetter(subIndex)}. ${subtask.content}`"
+                    :status="getStepStatus(subtask)"
+                  />
+                </a-steps>
+              </div>
+            </template> -->
+          </a-step>
+        </a-steps>
       </div>
     </a-card>
   </div>
@@ -43,7 +58,7 @@ import type { Task } from '@/views/agent/tools/types'
 /**
  * TaskProgressDisplay 组件
  * 展示 Agent 的任务规划步骤和执行进度
- * 使用 a-steps 组件可视化任务流程
+ * 使用 a-steps 组件可视化任务流程，支持层级展示
  */
 
 interface Props {
@@ -51,13 +66,51 @@ interface Props {
   tasks: Task[]
   /** 当前工作流节点描述 */
   currentWorkflowNode?: string
-  /** 最大显示任务数量 */
-  maxDisplay?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  maxDisplay: 5
+const props = withDefaults(defineProps<Props>(), {})
+
+/**
+ * 主任务列表（没有父步骤的任务）
+ */
+const mainTasks = computed(() => {
+  return props.tasks.filter(t => !t.parentStepId)
 })
+
+/**
+ * 获取指定主任务的子任务列表
+ * @param parentStepId - 父步骤ID
+ * @returns 子任务列表
+ */
+const getSubtasks = (parentStepId: string) => {
+  return props.tasks.filter(t => t.parentStepId === parentStepId)
+}
+
+/**
+ * 获取子任务序号字母（a, b, c, ...）
+ * @param index - 子任务索引
+ * @returns 序号字母
+ */
+const getSubtaskLetter = (index: number) => {
+  const letters = 'abcdefghijklmnopqrstuvwxyz'
+  return letters[index] || letters[letters.length - 1]
+}
+
+/**
+ * 获取子任务列表的当前步骤索引
+ * @param parentStepId - 父步骤ID
+ * @returns 当前步骤索引
+ */
+const getSubtaskCurrentIndex = (parentStepId: string) => {
+  const subtasks = getSubtasks(parentStepId)
+  const inProgressIndex = subtasks.findIndex(t => t.status === 'in_progress')
+  if (inProgressIndex >= 0) return inProgressIndex
+
+  const pendingIndex = subtasks.findIndex(t => t.status === 'pending')
+  if (pendingIndex >= 0) return pendingIndex
+
+  return subtasks.length - 1
+}
 
 /**
  * 是否有正在执行的任务
@@ -74,16 +127,16 @@ const allCompleted = computed(() => {
 })
 
 /**
- * 当前步骤索引（第一个 in_progress 或 pending 的任务）
+ * 当前步骤索引（第一个 in_progress 或 pending 的主任务）
  */
 const currentStepIndex = computed(() => {
-  const inProgressIndex = props.tasks.findIndex(t => t.status === 'in_progress')
+  const inProgressIndex = mainTasks.value.findIndex(t => t.status === 'in_progress')
   if (inProgressIndex >= 0) return inProgressIndex
 
-  const pendingIndex = props.tasks.findIndex(t => t.status === 'pending')
+  const pendingIndex = mainTasks.value.findIndex(t => t.status === 'pending')
   if (pendingIndex >= 0) return pendingIndex
 
-  return props.tasks.length - 1
+  return mainTasks.value.length - 1
 })
 
 /**
@@ -93,20 +146,6 @@ const stepsStatus = computed(() => {
   if (allCompleted.value) return 'finish'
   if (hasInProgressTask.value) return 'process'
   return 'wait'
-})
-
-/**
- * 可见任务列表（限制显示数量）
- */
-const visibleTasks = computed(() => {
-  return props.tasks.slice(0, props.maxDisplay)
-})
-
-/**
- * 隐藏任务数量
- */
-const hiddenTasksCount = computed(() => {
-  return Math.max(0, props.tasks.length - props.maxDisplay)
 })
 
 /**
@@ -121,22 +160,10 @@ const getStepStatus = (task: Task) => {
     case 'in_progress':
       return 'process'
     case 'cancelled':
-      return 'error'
+      return 'wait'
     default:
       return 'wait'
   }
-}
-
-/**
- * 获取步骤描述（显示依赖关系）
- * @param task - 任务对象
- * @returns 步骤描述
- */
-const getStepDescription = (task: Task) => {
-  if (task.dependencies && task.dependencies.length > 0) {
-    return `依赖任务: ${task.dependencies.join(', ')}`
-  }
-  return undefined
 }
 </script>
 
@@ -171,7 +198,6 @@ const getStepDescription = (task: Task) => {
 }
 
 .task-progress-display :deep(.ant-card-head-title .anticon) {
-  /** color: #1677ff; **/
   font-size: 16px;
 }
 
@@ -194,9 +220,53 @@ const getStepDescription = (task: Task) => {
   font-size: 12px;
 }
 
-.hidden-summary {
+/* 任务列表滚动容器，限制最大高度，超出时显示滚动条 */
+.steps-scroll-wrapper {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* 滚动条样式 */
+.steps-scroll-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+
+.steps-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 2px;
+}
+
+.steps-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+/* 子任务层级展示样式 */
+.subtask-steps {
   margin-top: 8px;
-  color: #999;
-  font-size: 12px;
+  padding-left: 24px;
+}
+
+/* 嵌套的 a-steps 组件样式调整 */
+.nested-steps {
+  margin-top: 4px;
+}
+
+/* 子任务步骤图标样式 */
+.nested-steps :deep(.ant-steps-item-icon) {
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+
+/* 子任务步骤标题样式 */
+.nested-steps :deep(.ant-steps-item-title) {
+  font-size: 11px;
+  color: #595959;
+}
+
+/* 子任务步骤连接线样式 */
+.nested-steps :deep(.ant-steps-item-tail) {
+  top: 12px;
+  padding-left: 18px;
 }
 </style>

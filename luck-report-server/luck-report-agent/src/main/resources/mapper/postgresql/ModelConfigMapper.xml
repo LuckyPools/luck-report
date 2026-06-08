@@ -76,7 +76,7 @@
         UPDATE luck_model_config SET is_deleted = 1 WHERE id = #{id}
     </update>
 
-    <!-- 分页条件查询模型配置，LIKE用bind拼接，分页由拦截器自动改写 -->
+    <!-- 分页条件查询模型配置，LIKE用bind拼接 -->
     <select id="selectByConditionsWithPage" resultType="com.luck.report.agent.modules.modelConfig.domain.entity.ModelConfig">
         SELECT id, provider, base_url, api_key, model_name, config_name, sort, temperature, is_active, max_tokens,
                model_type, completions_path, embeddings_path, created_time, updated_time, is_deleted,
@@ -94,6 +94,7 @@
             AND is_active = CASE WHEN #{queryDTO.isActive} IS TRUE THEN 1 ELSE 0 END
         </if>
         ORDER BY sort ASC, created_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
     <!-- 统计符合条件的模型配置数量 -->

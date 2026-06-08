@@ -321,7 +321,7 @@ export default {
 
       // 同时更新本地数据集值，保持UI同步
       Object.assign(this.datasetValues, config);
-
+      console.log(JSON.stringify(cell))
       setCell(this.rowIndex, this.colIndex, cell);
       setDirty();
     },

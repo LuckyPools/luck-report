@@ -21,6 +21,17 @@ import { deepCopy } from '@/components/utils';
 import { setDirty } from '@/utils/table';
 
 /**
+ * 工具执行结果枚举
+ * 规范所有写操作工具的返回值类型
+ */
+const ToolResult = {
+  /** 执行成功 */
+  SUCCESS: 1,
+  /** 执行失败 */
+  ERROR: 0
+};
+
+/**
  * 获取 context
  */
 export function getContext() {
@@ -224,22 +235,28 @@ export function readCell({ rowIndex, colIndex }) {
  * @param {number} params.rowIndex - 单元格行坐标，从0开始
  * @param {number} params.colIndex - 单元格列坐标，从0开始
  * @param {string} params.cell - 要设置的单元格定义
- * @return {Object} 操作结果
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function writeCell({ rowIndex, colIndex, cell }) {
-  // 1. 更新 cellsMap 数据
-  setCell(rowIndex, colIndex, cell);
+  try {
+    // 1. 更新 cellsMap 数据
+    setCell(rowIndex, colIndex, cell);
 
-  // 2. 触发编辑器组件更新（通过 isCellUpdate 状态变化通知监听组件）
-  store.dispatch('report/triggerCellUpdate');
+    // 2. 触发编辑器组件更新（通过 isCellUpdate 状态变化通知监听组件）
+    store.dispatch('report/triggerCellUpdate');
 
-  // 3. 更新 Handsontable 表格显示
-  const hot = TableManager.get();
-  if (hot) {
-    // 获取单元格显示值：优先取 value.value，否则为空字符串
-    const displayValue = cell?.value?.value ?? '';
-    hot.setDataAtCell(rowIndex, colIndex, displayValue);
-    hot.render();
+    // 3. 更新 Handsontable 表格显示
+    const hot = TableManager.get();
+    if (hot) {
+      // 获取单元格显示值：优先取 value.value，否则为空字符串
+      const displayValue = cell?.value?.value ?? '';
+      hot.setDataAtCell(rowIndex, colIndex, displayValue);
+      hot.render();
+    }
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] writeCell 执行失败:', e);
+    return ToolResult.ERROR;
   }
 }
 
@@ -259,18 +276,34 @@ export function getDatasources({ name } = {}) {
  * 设置全部数据源
  * @param {Object} params - 参数对象
  * @param {Array} params.datasources - 数据源数组
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function setDatasources({ datasources }) {
-  store.dispatch('report/contextSetDatasources', datasources);
+  try {
+    store.dispatch('report/contextSetDatasources', datasources);
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] setDatasources 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
  * 添加数据源
  * @param {Object} params - 参数对象
  * @param {Object} params.datasource - 数据源定义对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function addDatasource({ datasource }) {
-  store.dispatch('report/contextAddDatasource', datasource);
+  try {
+    store.dispatch('report/contextAddDatasource', datasource);
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] addDatasource 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
@@ -278,18 +311,34 @@ export function addDatasource({ datasource }) {
  * @param {Object} params - 参数对象
  * @param {string} params.name - 目标数据源名称
  * @param {Object} params.datasource - 新的数据源定义对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function updateDatasource({ name, datasource }) {
-  store.dispatch('report/contextUpdateDatasource', { name, datasource });
+  try {
+    store.dispatch('report/contextUpdateDatasource', { name, datasource });
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updateDatasource 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
  * 删除数据源（按name匹配）
  * @param {Object} params - 参数对象
  * @param {string} params.name - 要删除的数据源名称
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function removeDatasource({ name }) {
-  store.dispatch('report/contextRemoveDatasource', name);
+  try {
+    store.dispatch('report/contextRemoveDatasource', name);
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] removeDatasource 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 // ============ Dataset 操作 ============
@@ -310,9 +359,17 @@ export function getDatasets({ datasourceName, datasetName } = {}) {
  * @param {Object} params - 参数对象
  * @param {string} params.datasourceName - 目标数据源名称
  * @param {Object} params.dataset - 数据集定义对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function addDataset({ datasourceName, dataset }) {
-  store.dispatch('report/contextAddDataset', { datasourceName, dataset });
+  try {
+    store.dispatch('report/contextAddDataset', { datasourceName, dataset });
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] addDataset 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
@@ -321,9 +378,17 @@ export function addDataset({ datasourceName, dataset }) {
  * @param {string} params.datasourceName - 目标数据源名称
  * @param {string} params.datasetName - 目标数据集名称
  * @param {Object} params.dataset - 新的数据集定义对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function updateDataset({ datasourceName, datasetName, dataset }) {
-  store.dispatch('report/contextUpdateDataset', { datasourceName, datasetName, dataset });
+  try {
+    store.dispatch('report/contextUpdateDataset', { datasourceName, datasetName, dataset });
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updateDataset 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
@@ -331,9 +396,17 @@ export function updateDataset({ datasourceName, datasetName, dataset }) {
  * @param {Object} params - 参数对象
  * @param {string} params.datasourceName - 目标数据源名称
  * @param {string} params.datasetName - 要删除的数据集名称
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function removeDataset({ datasourceName, datasetName }) {
-  store.dispatch('report/contextRemoveDataset', { datasourceName, datasetName });
+  try {
+    store.dispatch('report/contextRemoveDataset', { datasourceName, datasetName });
+    store.dispatch('report/triggerDatasourcePanelUpdate');
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] removeDataset 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 // ============ SearchForm 操作 ============
@@ -350,9 +423,16 @@ export function getSearchForm() {
  * 设置表单设计数据（整体替换）
  * @param {Object} params - 参数对象
  * @param {Object} params.searchForm - 表单设计对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function setSearchForm({ searchForm }) {
-  store.dispatch('report/contextSetSearchForm', searchForm);
+  try {
+    store.dispatch('report/contextSetSearchForm', searchForm);
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] setSearchForm 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 // ============ Paper 操作 ============
@@ -369,9 +449,16 @@ export function getPaperConfig() {
  * 更新页面配置（合并更新）
  * @param {Object} params - 参数对象
  * @param {Object} params.paper - 要合并的页面配置属性
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function updatePaper({ paper }) {
-  store.dispatch('report/contextUpdatePaper', paper);
+  try {
+    store.dispatch('report/contextUpdatePaper', paper);
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updatePaper 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 // ============ Row 操作 ============
@@ -390,9 +477,16 @@ export function getRows({ rowNumber } = {}) {
  * 设置全部行数据
  * @param {Object} params - 参数对象
  * @param {Array} params.rows - 行定义数组
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function setRows({ rows }) {
-  store.dispatch('report/contextSetRows', rows);
+  try {
+    store.dispatch('report/contextSetRows', rows);
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] setRows 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
@@ -400,9 +494,16 @@ export function setRows({ rows }) {
  * @param {Object} params - 参数对象
  * @param {number} params.rowNumber - 目标行号
  * @param {Object} params.row - 新的行定义对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function updateRow({ rowNumber, row }) {
-  store.dispatch('report/contextUpdateRow', { rowNumber, row });
+  try {
+    store.dispatch('report/contextUpdateRow', { rowNumber, row });
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updateRow 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 // ============ Column 操作 ============
@@ -421,9 +522,16 @@ export function getColumns({ columnNumber } = {}) {
  * 设置全部列数据
  * @param {Object} params - 参数对象
  * @param {Array} params.columns - 列定义数组
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function setColumns({ columns }) {
-  store.dispatch('report/contextSetColumns', columns);
+  try {
+    store.dispatch('report/contextSetColumns', columns);
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] setColumns 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 /**
@@ -431,9 +539,16 @@ export function setColumns({ columns }) {
  * @param {Object} params - 参数对象
  * @param {number} params.columnNumber - 目标列号
  * @param {Object} params.column - 新的列定义对象
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function updateColumn({ columnNumber, column }) {
-  store.dispatch('report/contextUpdateColumn', { columnNumber, column });
+  try {
+    store.dispatch('report/contextUpdateColumn', { columnNumber, column });
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updateColumn 执行失败:', e);
+    return ToolResult.ERROR;
+  }
 }
 
 // 默认导出所有方法
