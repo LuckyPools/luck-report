@@ -40,16 +40,14 @@ export function buildIntentAnalysisTools(): ToolApiFormat[] {
 }
 
 /**
- * 构建意图分析的强制工具调用策略
- * 设置 tool_choice 为强制调用 analyze_intent 工具，确保 LLM 必定以 Function Calling 格式输出
+ * 构建意图分析的工具调用策略
+ * 使用 "auto" 让模型自行决定是否调用工具，兼容思考模式（qwen3.7 plus 等模型）
+ * 提示词中已明确要求调用 analyze_intent 工具，LLM 通常会遵守
  *
- * @returns tool_choice 参数值，Object
+ * @returns tool_choice 参数值，string
  */
-export function buildIntentToolChoice(): Record<string, any> {
-  return {
-    type: 'function',
-    function: { name: INTENT_TOOL_NAME }
-  }
+export function buildIntentToolChoice(): string {
+  return 'auto'
 }
 
 /**

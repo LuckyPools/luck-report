@@ -9,12 +9,9 @@
 
 /**
  * 上下文窗口配置
- * 控制滑动窗口、自动压缩、token 估算等行为
+ * 控制自动压缩、token 估算等行为（已移除滑动窗口机制）
  */
 export const contextConfig = {
-  /** 滑动窗口保留的最大消息条数 */
-  slidingWindowSize: 40,
-
   /** 触发自动摘要压缩的消息条数阈值 */
   compactThreshold: 50,
 
@@ -29,9 +26,6 @@ export const contextConfig = {
 
   /** Agent 循环最大轮次，防止无限循环 */
   maxAgentIterations: 15,
-
-  /** 滑动窗口回溯最大条数，防止 findSafeCutPoint 无限循环 */
-  maxSlidingWindowLookback: 20,
 
   /** 会话持久化有效期（毫秒），默认 24 小时 */
   sessionPersistenceTTL: 24 * 60 * 60 * 1000,

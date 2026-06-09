@@ -357,24 +357,51 @@ public class ChatServiceImpl implements ChatService {
                         int index = indexObj != null ? ((Number) indexObj).intValue() : 0;
                         Map<String, Object> accumulated = accumulatedToolCalls.computeIfAbsent(index, k -> new LinkedHashMap<>());
 
+                        // 流式返回时，后续 chunk 可能包含空字符串的 id/type，只在非空时覆盖
                         if (tc.containsKey("id")) {
-                            accumulated.put("id", tc.get("id"));
+                            Object id = tc.get("id");
+                            if (id != null && !id.toString().isEmpty()) {
+                                accumulated.put("id", id);
+                            }
                         }
                         if (tc.containsKey("type")) {
-                            accumulated.put("type", tc.get("type"));
+                            Object type = tc.get("type");
+                            if (type != null && !type.toString().isEmpty()) {
+                                accumulated.put("type", type);
+                            }
                         }
                         Map<String, Object> function = (Map<String, Object>) tc.get("function");
                         if (function != null) {
                             Map<String, Object> accFunction = (Map<String, Object>) accumulated.computeIfAbsent("function", k -> new LinkedHashMap<>());
+                            // 流式返回时，后续 chunk 可能包含空字符串的 name，只在非空时覆盖
                             if (function.containsKey("name")) {
-                                accFunction.put("name", function.get("name"));
+                                Object name = function.get("name");
+                                if (name != null && !name.toString().isEmpty()) {
+                                    accFunction.put("name", name);
+                                }
                             }
                             if (function.containsKey("arguments")) {
-                                String prevArgs = (String) accFunction.getOrDefault("arguments", "");
-                                accFunction.put("arguments", prevArgs + function.get("arguments").toString());
+                                // 流式返回时，第一个 chunk 的 arguments 可能为 null，需判断
+                                Object argsObj = function.get("arguments");
+                                if (argsObj != null) {
+                                    String prevArgs = (String) accFunction.getOrDefault("arguments", "");
+                                    accFunction.put("arguments", prevArgs + argsObj.toString());
+                                }
                             }
                         }
                     }
+                    // 打印累积后的 tool_calls 状态
+                    log.info("[ChatService] 累积tool_calls后: 数量={}, 当前累积内容={}",
+                            accumulatedToolCalls.size(),
+                            accumulatedToolCalls.values().stream()
+                                    .map(tc -> {
+                                        Map<String, Object> func = (Map<String, Object>) tc.get("function");
+                                        String name = func != null ? (String) func.get("name") : "null";
+                                        String args = func != null ? (String) func.get("arguments") : "null";
+                                        return String.format("{id=%s, name=%s, argsLen=%d}",
+                                                tc.get("id"), name, args != null ? args.length() : 0);
+                                    })
+                                    .collect(java.util.stream.Collectors.joining(", ")));
                 }
 
                 // 检查 finish_reason
@@ -436,15 +463,20 @@ public class ChatServiceImpl implements ChatService {
      */
     @SuppressWarnings("unchecked")
     private void flushAccumulatedToolCalls(Map<Integer, Map<String, Object>> accumulatedToolCalls, SseEmitter emitter) throws IOException {
-        for (Map<String, Object> tc : accumulatedToolCalls.values()) {
+        log.info("[ChatService] flushAccumulatedToolCalls: 累积的tool_calls数量={}", accumulatedToolCalls.size());
+        for (Map.Entry<Integer, Map<String, Object>> entry : accumulatedToolCalls.entrySet()) {
+            Map<String, Object> tc = entry.getValue();
             String toolCallId = (String) tc.get("id");
             Map<String, Object> function = (Map<String, Object>) tc.get("function");
             if (function == null) {
+                log.warn("[ChatService] tool_call function为空, index={}", entry.getKey());
                 continue;
             }
 
             String toolName = (String) function.get("name");
             String argumentsStr = (String) function.getOrDefault("arguments", "{}");
+            log.info("[ChatService] 准备发送tool_use事件: toolCallId={}, toolName={}, arguments长度={}",
+                    toolCallId, toolName, argumentsStr != null ? argumentsStr.length() : 0);
 
             // 解析 arguments JSON 字符串为 Map
             Map<String, Object> input;
@@ -466,7 +498,7 @@ public class ChatServiceImpl implements ChatService {
             toolUseEvent.put("input", input);
 
             String eventJson = ChatUtils.getObjectMapper().writeValueAsString(toolUseEvent);
-            log.debug("推送tool_use事件: {}", eventJson);
+            log.info("[ChatService] 发送tool_use事件: {}", eventJson);
             emitter.send(SseEmitter.event().name("tool_use").data(eventJson));
         }
     }

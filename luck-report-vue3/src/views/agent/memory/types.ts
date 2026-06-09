@@ -154,12 +154,11 @@ export interface SessionPersistence {
  * 上下文窗口配置
  * 控制各层策略的触发阈值
  * 注意：contextWindowTokens 已移除，改为从当前选中模型的 maxTokens 动态获取
+ * 注意：已移除滑动窗口相关字段，改用纯压缩机制
  */
 export interface ContextWindowConfig {
   /** 工具结果截断阈值（字符数），默认 2000 */
   toolResultMaxChars: number
-  /** 滑动窗口保留的最大消息条数，默认 30 */
-  slidingWindowSize: number
   /** 触发自动摘要压缩的消息条数阈值，默认 40 */
   compactThreshold: number
   /** 压缩后保留的最近消息条数，默认 10 */

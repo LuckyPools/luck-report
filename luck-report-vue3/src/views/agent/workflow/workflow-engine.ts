@@ -185,6 +185,7 @@ export class WorkflowEngine {
       // 根据意图分析结果过滤掉条件不满足的步骤，只显示真正需要执行的任务
       // 递归预初始化子工作流步骤，确保任务列表完整
       this.initializeWorkflowSteps(workflow)
+      console.log(`[Steps Debug] 初始化完成，共 ${this.stepRecords.length} 个步骤`)
       this.notifyStepRecordsChange()
 
       // 第三步：按步骤执行工作流
@@ -232,6 +233,7 @@ export class WorkflowEngine {
     for (const step of workflow.steps) {
       // 条件检查：不满足则跳过，不添加到任务列表
       if (step.condition && !step.condition(this.context)) {
+        console.log(`[Steps Debug] 跳过步骤(条件不满足): ${step.id}(${step.name})`)
         continue
       }
 
@@ -251,12 +253,14 @@ export class WorkflowEngine {
 
         // 子工作流ID为空时跳过该步骤（无需执行，也不展示在任务列表中）
         if (!subworkflowId) {
+          console.log(`[Steps Debug] 跳过子工作流(未指定ID): ${stepId}(${step.name})`)
           continue
         }
 
         // 从注册表获取子工作流定义
         const subworkflow = getSubworkflowByType(subworkflowId)
         if (!subworkflow) {
+          console.warn(`[Steps Debug] 未找到子工作流定义: ${subworkflowId}`)
           continue
         }
 
@@ -268,6 +272,7 @@ export class WorkflowEngine {
           retryCount: 0,
           parentStepId
         })
+        console.log(`[Steps Debug] 添加子工作流步骤: ${stepId}(${step.name}), parent=${parentStepId || '无'}`)
 
         // 递归预初始化子工作流步骤，传入当前步骤ID作为父步骤ID
         this.initializeWorkflowSteps(subworkflow, stepId)
@@ -280,6 +285,7 @@ export class WorkflowEngine {
           retryCount: 0,
           parentStepId
         })
+        console.log(`[Steps Debug] 添加步骤: ${stepId}(${step.name}), parent=${parentStepId || '无'}`)
       }
     }
   }
@@ -471,6 +477,7 @@ export class WorkflowEngine {
     step: WorkflowStep,
     onEvent: (event: WorkflowEvent) => void
   ): Promise<void> {
+    console.log(`[Steps Debug] 开始执行步骤: ${step.id}(${step.name})`)
     onEvent({ type: 'step_start', stepId: step.id, stepName: step.name, silent: step.silent })
     // 步骤已在预初始化时创建，此处只需更新状态为 in_progress
     this.updateStepRecord(step.id, 'in_progress')
@@ -558,7 +565,7 @@ export class WorkflowEngine {
       throw new Error(`未找到子工作流: ${subworkflowId}`)
     }
 
-    console.log(`[WorkflowEngine] 执行子工作流: ${subworkflow.name} (${subworkflow.id})`)
+    console.log(`[Steps Debug] 执行子工作流: ${subworkflow.name}(${subworkflow.id}), 主步骤=${step.id}`)
     onEvent({ type: 'workflow_start', workflowId: subworkflow.id })
 
     // 子工作流步骤已在主工作流预初始化时添加到 stepRecords
@@ -609,6 +616,7 @@ export class WorkflowEngine {
     onEvent: (event: WorkflowEvent) => void
   ): Promise<void> {
     const prefixedStepId = `${parentStepId}__${subStep.id}`
+    console.log(`[Steps Debug] 开始执行子步骤: ${prefixedStepId}(${subStep.name}), parent=${parentStepId}`)
     onEvent({ type: 'step_start', stepId: prefixedStepId, stepName: subStep.name, silent: subStep.silent })
     // 子工作流步骤已在预初始化时创建，此处只需更新状态为 in_progress
     this.updateStepRecord(prefixedStepId, 'in_progress')
@@ -673,14 +681,7 @@ export class WorkflowEngine {
   ): Promise<void> {
     const { toolRegistry, memoryManager, contextManager, signal } = this.config
 
-    console.log('[WorkflowEngine] 开始执行步骤:', {
-      步骤ID: step.id,
-      步骤名称: step.name,
-      是否关键步骤: step.critical,
-      允许的工具: step.allowedTools,
-      必需的工具结果: step.requiredToolResults,
-      最大重试次数: step.maxRetries
-    })
+    console.log(`[Steps Debug] LLM决策步骤: ${step.id}(${step.name})`)
 
     // 构建步骤专属提示词
     const previousResultsSummary = this.buildPreviousResultsSummary()
@@ -1021,6 +1022,7 @@ export class WorkflowEngine {
     onEvent: (event: WorkflowEvent) => void
   ): Promise<void> {
     const { toolRegistry, memoryManager, signal } = this.config
+    console.log(`[Steps Debug] LLM参数步骤: ${step.id}(${step.name}), tool=${step.tool}`)
     const tool = toolRegistry.get(step.tool)
     if (!tool) {
       throw new Error(`未找到工具: ${step.tool}`)
@@ -1145,6 +1147,7 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
     onEvent: (event: WorkflowEvent) => void
   ): Promise<void> {
     const { toolRegistry } = this.config
+    console.log(`[Steps Debug] 固定参数步骤: ${step.id}(${step.name}), tool=${step.tool}`)
     const tool = toolRegistry.get(step.tool)
     if (!tool) {
       throw new Error(`未找到工具: ${step.tool}`)
@@ -1476,6 +1479,7 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
       status,
       retryCount: 0
     })
+    console.log(`[Steps Debug] 添加步骤: ${stepId}(${stepName}) -> ${status}`)
     this.notifyStepRecordsChange(stepId)
   }
 
@@ -1488,8 +1492,12 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
   private updateStepRecord(stepId: string, status: WorkflowStepStatus, error?: string): void {
     const record = this.stepRecords.find(r => r.stepId === stepId)
     if (record) {
+      const oldStatus = record.status
       record.status = status
       if (error) record.error = error
+      console.log(`[Steps Debug] 更新状态: ${stepId}(${record.stepName}) ${oldStatus} -> ${status}`)
+    } else {
+      console.warn(`[Steps Debug] 未找到步骤: ${stepId}`)
     }
     this.notifyStepRecordsChange(stepId)
   }
@@ -1502,7 +1510,9 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
   private removeStepRecord(stepId: string): void {
     const index = this.stepRecords.findIndex(r => r.stepId === stepId)
     if (index !== -1) {
+      const removed = this.stepRecords[index]
       this.stepRecords.splice(index, 1)
+      console.log(`[Steps Debug] 移除步骤: ${stepId}(${removed.stepName})`)
       this.notifyStepRecordsChange()
     }
   }
