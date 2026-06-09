@@ -1,12 +1,7 @@
 /**
  * 工作流模板定义
- * 根据当前 system.md 中的任务规划流程，将其转化为代码级的工作流模板
  * 每个工作流对应一类用户意图，步骤顺序由代码强制控制
- *
- * 子工作流机制：
- * 数据源/数据集操作从 _llm_decide 升级为子工作流，
- * 用代码强制控制步骤顺序（如 preview_data 必须在 add_dataset 之前），
- * LLM 只参与需要决策的环节（生成SQL、构造数据集对象等）
+ * 数据约束由 schema/index.ts 自动校验，此处不再重复定义
  */
 import type { WorkflowDefinition } from './types'
 
@@ -40,7 +35,7 @@ export const MODIFY_DATASOURCE_SUBWORKFLOW: WorkflowDefinition = {
       allowedTools: ['update_datasource', 'get_datasource_template'],
       requiredToolResults: ['update_datasource'],
       maxRetries: 1,
-      description: '基于读取到的数据源对象，按用户需求修改对应字段，然后调用 update_datasource 工具写入。可调用get_datasource_template获取符合规范的数据源模板作为参考'
+      description: '基于读取的数据源对象修改字段，调用 update_datasource 写入'
     }
   ]
 }
@@ -77,56 +72,41 @@ export const DELETE_DATASOURCE_SUBWORKFLOW: WorkflowDefinition = {
 
 /**
  * 创建数据集子工作流
- * 严格对应 datasource-dataset.md 中的"创建数据集流程"7步强制顺序
+ * 严格对应 datasource-dataset.md 中的"创建数据集流程"
  * 代码控制步骤顺序，禁止跳步
+ *
+ * 优化：将原6步合并为4步，减少 LLM 调用次数
+ * - confirm_datasource + prepare_sql → confirm_and_prepare（确认数据源 + 准备SQL合并）
+ * - preview_sql + build_fields → validate_and_build_fields（校验SQL + 解析字段合并）
  */
 export const CREATE_DATASET_SUBWORKFLOW: WorkflowDefinition = {
   id: 'create_dataset',
   name: '创建数据集',
-  description: '创建数据集的完整流程：确认数据源 → 准备SQL → 补充参数 → 校验SQL → 解析字段 → 写入 → 同步表单',
+  description: '创建数据集流程：确认数据源 → 校验SQL → 解析字段 → 写入 → 同步表单',
   steps: [
     {
-      id: 'confirm_datasource',
-      name: '确认数据源存在',
+      id: 'confirm_and_prepare',
+      name: '确认数据源并准备SQL',
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['get_datasources', 'search_schema', 'load_buildin_datasources', 'add_datasource'],
+      allowedTools: ['get_datasources', 'search_schema', 'load_buildin_datasources', 'add_datasource', 'get_table_relation', 'load_bean_methods', 'get_datasets', 'get_dataset_template'],
       requiredToolResults: ['get_datasources'],
       maxRetries: 1,
-      description: '先调用get_datasources确认数据源是否存在。若数据源已存在则直接进入下一步；若不存在则：1.调用search_schema搜索内置数据源中包含相关表的数据源；2.调用load_buildin_datasources确认search_schema返回的datasourceName在内置数据源列表中；3.调用add_datasource创建数据源（type设为buildin，name与search_schema返回的datasourceName一致）；4.若search_schema也无结果，告知用户手动添加数据源并终止任务'
+      maxIterations: 4,
+      description: '确认数据源存在（不存在则通过 search_schema 定位并创建），准备SQL或Bean方法，生成数据集对象'
     },
     {
-      id: 'prepare_sql_or_bean',
-      name: '准备SQL或Bean方法',
+      id: 'validate_and_build_fields',
+      name: '校验SQL并解析字段',
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['get_table_relation', 'load_bean_methods', 'get_datasets', 'get_dataset_template'],
+      allowedTools: ['preview_data', 'build_fields'],
+      requiredToolResults: ['preview_data', 'build_fields'],
       maxRetries: 1,
-      description: '根据数据源类型准备查询逻辑：jdbc需用户提供SQL；buildin可根据用户意图调用get_table_relation获取表结构生成SQL；spring需调用load_bean_methods选择方法。可调用get_dataset_template获取符合规范的数据集模板。生成完整的数据集对象（含name、sql、parameters等）'
-    },
-    {
-      id: 'preview_sql',
-      name: '校验SQL可执行性',
-      tool: '_llm_decide',
-      needsLLM: true,
-      critical: true,
-      allowedTools: ['preview_data'],
-      requiredToolResults: ['preview_data'],
-      maxRetries: 1,
-      description: 'SQL数据集必须调用preview_data验证SQL是否可执行。请从前序步骤"准备SQL或Bean方法"的结果中获取sql、type等参数，然后调用preview_data。不可执行则调整SQL后重试'
-    },
-    {
-      id: 'build_fields',
-      name: '解析字段列表',
-      tool: '_llm_decide',
-      needsLLM: true,
-      critical: true,
-      allowedTools: ['build_fields'],
-      requiredToolResults: ['build_fields'],
-      maxRetries: 1,
-      description: 'SQL数据集必须调用build_fields解析字段列表。请从前序步骤的结果中获取sql、type等参数，然后调用build_fields。禁止自行编造fields'
+      maxIterations: 3,
+      description: '调用 preview_data 验证SQL，调用 build_fields 解析字段'
     },
     {
       id: 'add_dataset',
@@ -137,7 +117,8 @@ export const CREATE_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       allowedTools: ['add_dataset', 'restore_data'],
       requiredToolResults: ['add_dataset'],
       maxRetries: 1,
-      description: '调用add_dataset工具写入数据集，dataset参数必须是JSON对象（禁止传JSON字符串），必须包含完整的name、sql、parameters、fields等必填字段。若调用异常则重试1次'
+      maxIterations: 3,
+      description: '调用 add_dataset 写入数据集'
     },
     {
       id: 'sync_search_form',
@@ -146,7 +127,8 @@ export const CREATE_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       needsLLM: true,
       allowedTools: ['get_search_form', 'set_search_form'],
       maxRetries: 1,
-      description: '若数据集包含parameters条件参数，检查报表查询表单是否已配置对应的筛选组件，缺失则调用get_search_form和set_search_form补充'
+      maxIterations: 3,
+      description: '检查查询表单是否已配置对应筛选组件，缺失则补充'
     }
   ]
 }
@@ -159,7 +141,7 @@ export const CREATE_DATASET_SUBWORKFLOW: WorkflowDefinition = {
 export const CREATE_DATASOURCE_SUBWORKFLOW: WorkflowDefinition = {
   id: 'create_datasource',
   name: '创建数据源',
-  description: '创建buildin类型数据源。先通过search_schema根据用户意图定位数据源，再从load_buildin_datasources列表中校验名称，禁止凭空编造',
+  description: '创建buildin类型数据源：search_schema定位 → load_buildin_datasources校验 → add_datasource创建',
   steps: [
     {
       id: 'search_and_create_datasource',
@@ -170,7 +152,7 @@ export const CREATE_DATASOURCE_SUBWORKFLOW: WorkflowDefinition = {
       allowedTools: ['search_schema', 'load_buildin_datasources', 'add_datasource'],
       requiredToolResults: ['search_schema', 'load_buildin_datasources', 'add_datasource'],
       maxRetries: 1,
-      description: '创建数据源（仅限buildin类型），按以下顺序执行：\n1. 调用search_schema搜索与用户需求匹配的数据源（传入用户意图相关的关键词），从返回结果中获取datasourceName作为数据源名称\n2. 调用load_buildin_datasources获取内置数据源名称列表，确认search_schema返回的datasourceName在该列表中\n3. 调用add_datasource创建数据源（type必须设为buildin，name必须与search_schema返回的datasourceName一致）\n禁止创建jdbc或spring类型数据源，禁止凭空编造名称'
+      description: '调用 search_schema 定位数据源，调用 load_buildin_datasources 校验名称，调用 add_datasource 创建（type=buildin）'
     },
     {
       id: 'confirm_datasource',
@@ -199,7 +181,7 @@ export const CREATE_DATASOURCE_SUBWORKFLOW: WorkflowDefinition = {
 export const MODIFY_DATASET_SUBWORKFLOW: WorkflowDefinition = {
   id: 'modify_dataset',
   name: '修改数据集',
-  description: '修改数据集的完整流程：确认数据集存在 → 修改内容 → 调整参数 → 校验SQL → 解析字段 → 写入 → 同步表单',
+  description: '修改数据集流程：确认存在 → 修改内容 → 校验SQL → 解析字段 → 写入 → 同步表单',
   steps: [
     {
       id: 'confirm_dataset_exists',
@@ -209,7 +191,7 @@ export const MODIFY_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       critical: true,
       silent: true,
       maxRetries: 1,
-      description: '获取现有数据集对象，确认数据集存在'
+      description: '获取现有数据集对象'
     },
     {
       id: 'modify_dataset_obj',
@@ -219,38 +201,31 @@ export const MODIFY_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       critical: true,
       allowedTools: ['get_table_relation', 'load_bean_methods', 'get_dataset_template'],
       maxRetries: 1,
-      description: '基于获取的数据集对象，按用户要求修改对应字段。jdbc数据源修改SQL需用户提供；buildin可根据用户意图调用get_table_relation辅助修改；spring需调用load_bean_methods选择方法。可调用get_dataset_template获取符合规范的数据集模板作为参考'
+      maxIterations: 3,
+      description: '基于获取的数据集对象修改字段，可调用 get_table_relation 或 load_bean_methods 辅助'
     },
     {
-      id: 'preview_modified_sql',
-      name: '校验修改后SQL',
+      id: 'validate_and_rebuild_fields',
+      name: '校验SQL并重建字段',
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['preview_data'],
-      requiredToolResults: ['preview_data'],
+      allowedTools: ['preview_data', 'build_fields'],
+      requiredToolResults: ['preview_data', 'build_fields'],
       maxRetries: 1,
-      /** 仅修改了SQL时才需要校验，由上一步在stepResults中标记 */
+      maxIterations: 3,
       condition: (ctx) => {
-        const modifyResult = ctx.stepResults['modify_dataset_obj']
-        return modifyResult?.sqlModified !== false
+        const beforeResult = ctx.stepResults['confirm_dataset_exists']
+        const afterResult = ctx.stepResults['modify_dataset_obj']
+        if (!beforeResult || !afterResult) return true
+        const beforeDatasets = beforeResult.get_datasets
+        const beforeSql = Array.isArray(beforeDatasets) ? beforeDatasets[0]?.sql : beforeDatasets?.sql
+        const afterUpdateResult = afterResult.update_dataset
+        const afterSql = afterUpdateResult?.sql ?? afterUpdateResult?.dataset?.sql
+        if (beforeSql && afterSql && beforeSql === afterSql) return false
+        return true
       },
-      description: '若修改了SQL，必须调用preview_data验证。请从前序步骤的结果中获取sql、type等参数，然后调用preview_data'
-    },
-    {
-      id: 'rebuild_fields',
-      name: '重新解析字段列表',
-      tool: '_llm_decide',
-      needsLLM: true,
-      critical: true,
-      allowedTools: ['build_fields'],
-      requiredToolResults: ['build_fields'],
-      maxRetries: 1,
-      condition: (ctx) => {
-        const modifyResult = ctx.stepResults['modify_dataset_obj']
-        return modifyResult?.sqlModified !== false
-      },
-      description: '若修改了SQL，必须调用build_fields重新解析字段。请从前序步骤的结果中获取sql、type等参数，然后调用build_fields。禁止自行编造fields'
+      description: '若修改了SQL，调用 preview_data 验证，调用 build_fields 重建字段'
     },
     {
       id: 'update_dataset',
@@ -261,7 +236,8 @@ export const MODIFY_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       allowedTools: ['update_dataset', 'restore_data'],
       requiredToolResults: ['update_dataset'],
       maxRetries: 1,
-      description: '调用update_dataset工具更新数据集，dataset对象必须包含完整必填字段。若调用异常则重试1次'
+      maxIterations: 3,
+      description: '调用 update_dataset 更新数据集'
     },
     {
       id: 'sync_modified_form',
@@ -270,7 +246,8 @@ export const MODIFY_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       needsLLM: true,
       allowedTools: ['get_search_form', 'set_search_form'],
       maxRetries: 1,
-      description: '若数据集parameters有新增或修改，检查查询表单是否已配置对应筛选组件，缺失则补充'
+      maxIterations: 3,
+      description: '检查查询表单是否已配置对应筛选组件，缺失则补充'
     }
   ]
 }
@@ -313,7 +290,7 @@ export const DELETE_DATASET_SUBWORKFLOW: WorkflowDefinition = {
 export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
   id: 'modify_cell',
   name: '修改单元格',
-  description: '修改单元格的完整流程：读取单元格 → 确保行列足够 → 修改并写入/清空',
+  description: '修改单元格流程：读取 → 确保行列足够 → 修改并写入/清空',
   steps: [
     {
       id: 'read_cells',
@@ -323,22 +300,19 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       critical: true,
       allowedTools: ['read_cells', 'read_cell'],
       maxRetries: 1,
-      description: '本步骤仅负责读取单元格数据，禁止调用任何写入工具。\n\n执行流程：\n1. **如果用户已提供单元格坐标**（如"修改B1单元格"），直接调用 read_cells 工具读取，不要询问确认\n2. **如果用户未提供单元格坐标**，调用 ask_user 工具询问："请提供要修改的单元格坐标（如B1、A2等）"\n3. 读取完成后立即结束本步骤，不要尝试调用 write_cell 或 write_cells\n\n【重要规则】：\n- 需求清晰时直接执行，禁止输出"请确认"、"对吗"等确认性文本\n- 只有缺少必要参数时才调用 ask_user 工具\n\n【工具参数】：\nread_cells 工具参数：\n- cellPositionArray: 单元格坐标数组，每个元素包含 row（行号，从1开始）和 col（列号，从1开始），如 [{row:1,col:1},{row:2,col:2}]\n\nread_cell 工具参数：\n- rowIndex: 行索引，从0开始\n- colIndex: 列索引，从0开始'
+      description: '调用 read_cells 或 read_cell 读取单元格数据。用户已提供坐标则直接读取，未提供则询问'
     },
     {
       id: 'ensure_row_col',
       name: '确保行列足够',
       tool: '_llm_decide',
       needsLLM: true,
-      /** 仅当读取的单元格数据不存在时才需要补齐行列 */
       condition: (ctx) => {
         const readResult = ctx.stepResults['read_cells']
         if (!readResult) return true
-        // 兼容 read_cells 和 read_cell 两种返回结果
         const cellsResult = readResult.read_cells
         const cellResult = readResult.read_cell
         if (cellsResult) {
-          // read_cells 返回的是对象，检查是否所有单元格都为空
           const values = Object.values(cellsResult)
           return values.length === 0 || values.every(v => !v || (typeof v === 'object' && Object.keys(v).length === 0))
         }
@@ -349,7 +323,7 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       },
       allowedTools: ['get_rows', 'get_columns', 'insert_row', 'insert_col', 'set_rows', 'set_columns'],
       maxRetries: 1,
-      description: '读取的单元格数据不存在，说明报表行列数不足，需要先补齐行或列。补齐后需重新读取单元格数据再修改'
+      description: '单元格不存在时补齐行列，补齐后需重新读取'
     },
     {
       id: 'modify_and_write_cells',
@@ -360,7 +334,7 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       allowedTools: ['write_cells', 'write_cell', 'validate_expression', 'validate_condition', 'restore_data', 'read_cells', 'read_cell', 'get_datasets', 'get_datasources', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
       requiredToolResults: ['write_cells', 'write_cell'],
       maxRetries: 1,
-      description: '执行流程：\n1. 从前序步骤 read_cells 的结果中获取单元格完整数据\n2. 根据用户需求修改单元格的对应字段（值、样式、表达式、条件属性等）\n3. **批量写入**：优先使用 write_cells 一次性写入多个单元格，比多次调用 write_cell 更高效；只有一个单元格时也可使用 write_cell\n4. **校验流程**：表达式要调用 validate_expression 校验，条件属性要调用 validate_condition 校验\n5. **写入流程**：调用 write_cells 或 write_cell 工具写入修改后的单元格数据\n6. **失败处理**：若写入返回失败，可重试\n7. **清空操作**：若用户需要清空单元格，根据需求选择：仅清空内容（保留样式）→ clear_cell_content；仅清空样式（保留内容）→ clear_cell_style；全部清空（内容+样式）→ clear_cell_all\n\nwrite_cells 工具参数：\n- cells: 批量单元格数据对象，key为 "row,col" 格式（从1开始），value为单元格定义对象，如 {"1,1": {单元格数据}, "2,2": {单元格数据}}\n\nwrite_cell 工具参数：\n- rowIndex: 行索引，从0开始\n- colIndex: 列索引，从0开始\n- cell: 完整的单元格定义对象（JSON对象，禁止传JSON字符串），必须基于读取返回的数据修改\n\n【禁止凭空构造】必须基于读取返回的完整数据修改，不要凭空构造 cell 对象'
+      description: '修改单元格字段，调用 write_cells 或 write_cell 写入。表达式调用 validate_expression 校验，条件属性调用 validate_condition 校验。清空操作根据需求选择 clear_cell_content/style/all'
     }
   ]
 }

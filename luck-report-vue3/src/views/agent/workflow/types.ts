@@ -43,6 +43,12 @@ export interface WorkflowStep {
   critical?: boolean
   /** 最大重试次数，默认 0 */
   maxRetries?: number
+  /**
+   * LLM 决策步骤内的最大循环轮次，仅 _llm_decide 步骤生效
+   * 未指定时使用引擎全局配置 maxIterationsPerStep（默认 5）
+   * 简单步骤建议设 2-3，复杂步骤保持默认
+   */
+  maxIterations?: number
   /** 步骤描述，供 LLM 理解该步骤的目的 */
   description?: string
   /** 是否为静默步骤，静默步骤不向用户输出步骤名称和跳过提示，默认 false */

@@ -509,6 +509,8 @@ export class WorkflowEngine {
       } catch (err: any) {
         lastError = err.message || '步骤执行失败'
         if (attempt < maxRetries) {
+          // 重试前清除该步骤的 stepResults，避免 checkMissingRequiredTools 误判工具已执行
+          delete this.context.stepResults[step.id]
           // 重试前将错误信息注入 LLM 记忆，让 LLM 知道上次失败原因并调整策略
           if (step.tool === '_llm_decide' || step.tool === '_subworkflow' || step.needsLLM) {
             this.config.memoryManager.addMessage({
@@ -640,11 +642,19 @@ export class WorkflowEngine {
         // 步骤执行成功
         this.updateStepRecord(prefixedStepId, 'completed')
         onEvent({ type: 'step_complete', stepId: prefixedStepId })
+
+        // 子步骤结果同时以 prefixedStepId 存入，确保 condition 函数能通过两种 key 引用
+        if (this.context.stepResults[subStep.id] && !this.context.stepResults[prefixedStepId]) {
+          this.context.stepResults[prefixedStepId] = this.context.stepResults[subStep.id]
+        }
         return
 
       } catch (err: any) {
         lastError = err.message || '步骤执行失败'
         if (attempt < maxRetries) {
+          // 重试前清除该子步骤的 stepResults，避免 checkMissingRequiredTools 误判工具已执行
+          delete this.context.stepResults[subStep.id]
+          delete this.context.stepResults[prefixedStepId]
           // 重试前将错误信息注入 LLM 记忆，让 LLM 知道上次失败原因并调整策略
           if (subStep.tool === '_llm_decide' || subStep.tool === '_subworkflow' || subStep.needsLLM) {
             this.config.memoryManager.addMessage({
@@ -702,15 +712,18 @@ export class WorkflowEngine {
       : allTools
 
     // Mini agent loop：限制轮次，只完成当前步骤
-    const maxIterations = this.config.maxIterationsPerStep
+    // 优先使用步骤级别的 maxIterations，未指定则使用引擎全局配置
+    const maxIterations = step.maxIterations ?? this.config.maxIterationsPerStep
+    // 步骤内缓存系统提示词，写操作导致缓存失效后重建
+    let cachedSystemPrompt = await contextManager.buildSystemPrompt()
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       if (signal?.aborted) {
         throw new Error('用户中断执行')
       }
 
-      // 构建系统提示词
-      const systemPrompt = await contextManager.buildSystemPrompt()
+      // 使用缓存的系统提示词，避免每轮重复构建（含 executeCode 调用）
+      const systemPrompt = cachedSystemPrompt
       const contextMessages = memoryManager.getContextMessages()
 
       // 合并 system 消息
@@ -955,9 +968,10 @@ export class WorkflowEngine {
             `调用 ${toolCall.toolName}(${JSON.stringify(toolCall.input)}) → ${resultError ? '失败: ' + resultError : '成功'}`
           )
 
-          // 写操作后使缓存失效
+          // 写操作后使缓存失效并重建系统提示词
           if (!tool.readOnly) {
             contextManager.invalidateCache()
+            cachedSystemPrompt = await contextManager.buildSystemPrompt()
           }
 
           // 将结果存入步骤上下文
@@ -1064,10 +1078,41 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
       this.config.modelId
     )
 
-    // 解析参数 JSON
-    const params = this.parseJsonFromResponse(responseText)
+    // 解析参数 JSON，失败时重试一次
+    let params = this.parseJsonFromResponse(responseText)
     if (!params) {
-      throw new Error(`无法解析工具参数: ${responseText}`)
+      // 将解析错误反馈给 LLM，让其修正输出格式
+      const retryPrompt = `你上次的输出无法解析为有效的 JSON 参数对象。请只输出纯 JSON，不要包含任何其他文字、注释或代码块标记。
+上次输出：${responseText.substring(0, 500)}
+请重新输出 ${step.tool} 工具的 JSON 参数：`
+
+      let retryResponseText = ''
+      await chatStream(
+        '',
+        {
+          onMessage: (data) => { retryResponseText += data },
+          onReasoning: () => {},
+          onDone: () => {},
+          onError: (error) => { throw new Error(`参数生成重试失败: ${error}`) }
+        },
+        signal,
+        undefined,
+        undefined,
+        [
+          { role: 'system', content: await this.config.contextManager.buildSystemPrompt() },
+          { role: 'user', content: prompt },
+          { role: 'assistant', content: responseText },
+          { role: 'user', content: retryPrompt }
+        ],
+        [],
+        this.config.sessionId,
+        this.config.modelId
+      )
+
+      params = this.parseJsonFromResponse(retryResponseText)
+      if (!params) {
+        throw new Error(`无法解析工具参数（重试后仍失败）: ${retryResponseText}`)
+      }
     }
 
     // 校验参数

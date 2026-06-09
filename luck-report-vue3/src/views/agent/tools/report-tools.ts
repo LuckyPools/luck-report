@@ -23,7 +23,7 @@ import {
   validatePaper,
   validateRowDefinition,
   validateColumnDefinition
-} from './data-schemas'
+} from './schema/index'
 
 /**
  * 工具执行结果结构
@@ -166,19 +166,7 @@ export const writeCellTool: ToolDefinition<{
   cell: any;
 }> = {
   name: 'write_cell',
-  description: `写入指定坐标的单元格完整定义数据。行列索引从0开始。执行前自动备份当前单元格数据，执行后回读验证。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。
-
-【数据规范要点】：
-- cell 必须包含：rowNumber、columnNumber、value（含type字段）
-- value.type 可选值：simple、expression、dataset、image、chart、slash、zxing
-- expand 可选值：None、Down、Right
-- cellStyle.align 可选值：left、center、right
-- 颜色格式：RGB 格式 "R,G,B"，如 "255,0,0"
-
-【重要提示】：
-- cell 参数必须是JSON对象，禁止传JSON字符串
-- 必须基于 read_cell 返回的数据或 get_cell_template 返回的模板修改
-- 禁止凭空构造 cell 对象`,
+  description: '写入指定坐标的单元格完整定义数据。行列索引从0开始。执行前自动备份，执行后回读验证。返回 { success, message } 结构。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -234,18 +222,7 @@ export const writeCellsTool: ToolDefinition<{
   cells: Record<string, any>;
 }> = {
   name: 'write_cells',
-  description: `批量写入多个单元格的完整定义数据。key为 "row,col" 格式（从1开始），value为单元格定义对象。执行前自动备份，执行后回读验证。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。适用于需要同时写入多个单元格的场景，比多次调用write_cell更高效。
-【数据规范要点】：
-- 每个单元格必须包含：rowNumber、columnNumber、value（含type字段）
-- value.type 可选值：simple、expression、dataset、image、chart、slash、zxing
-- expand 可选值：None、Down、Right
-- cellStyle.align 可选值：left、center、right
-- 颜色格式：RGB 格式 "R,G,B"，如 "255,0,0"
-
-【重要提示】：
-- cells 参数必须是JSON对象，禁止传JSON字符串
-- 必须基于 read_cells 返回的数据或 get_cell_template 返回的模板修改
-- 禁止凭空构造单元格对象`,
+  description: '批量写入多个单元格。key为 "row,col" 格式（从1开始）。执行前自动备份，执行后回读验证。返回 { success, message } 结构。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -300,8 +277,7 @@ export const setDatasourcesTool: ToolDefinition<{
   datasources: any[];
 }> = {
   name: 'set_datasources',
-  description: `整体替换全部数据源列表。此操作会覆盖现有数据源，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- name: 数据源名称，报表内唯一\n- type: jdbc/spring/buildin\n- jdbc类型必填: driver、url、username、password\n- spring类型必填: beanId',
+  description: '整体替换全部数据源列表。此操作会覆盖现有数据源，请谨慎使用。返回 { success, message } 结构。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -332,8 +308,7 @@ export const addDatasourceTool: ToolDefinition<{
   datasource: any;
 }> = {
   name: 'add_datasource',
-  description: `添加一个新的数据源到报表中。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- name: 数据源名称，报表内唯一\n- type: jdbc/spring/buildin\n- jdbc类型必填: driver、url、username、password\n- spring类型必填: beanId\n- **buildin类型约束：name必须来自load_buildin_datasources返回的列表，禁止凭空编造名称**\n- **禁止传入 datasets 数组**，数据集应通过 add_dataset 工具单独添加',
+  description: '添加数据源到报表。返回 { success, message } 结构。buildin类型数据源名称必须来自 load_buildin_datasources 返回列表。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -379,8 +354,7 @@ export const updateDatasourceTool: ToolDefinition<{
   datasource: any;
 }> = {
   name: 'update_datasource',
-  description: `按名称匹配更新数据源定义。会完全替换该名称对应的数据源。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- name: 数据源名称，报表内唯一\n- type: jdbc/spring/buildin\n- jdbc类型必填: driver、url、username、password\n- spring类型必填: beanId',
+  description: '按名称更新数据源定义。会完全替换该名称对应的数据源。返回 { success, message } 结构。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -410,7 +384,7 @@ export const removeDatasourceTool: ToolDefinition<{
   name: string;
 }> = {
   name: 'remove_datasource',
-  description: `按名称删除数据源。此操作不可撤销，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
+  description: '按名称删除数据源。此操作不可撤销。返回 { success, message } 结构。',
   inputSchema: {
     type: 'object',
     properties: {
