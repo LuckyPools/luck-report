@@ -321,26 +321,35 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['read_cell'],
+      allowedTools: ['read_cells', 'read_cell'],
       maxRetries: 1,
-      description: '执行流程：\n1. 如果用户未提供单元格坐标，先输出文本询问用户（例如："请提供要修改的单元格坐标（rowIndex、colIndex，从0开始）"）\n2. 用户回复后，立即调用 read_cell 工具读取单元格数据\n3. 必须先读取再修改，禁止跳过此步骤直接写入\n\n工具参数：\n- rowIndex: 行索引，从0开始\n- colIndex: 列索引，从0开始'
+      description: '本步骤仅负责读取单元格数据，禁止调用任何写入工具。\n\n执行流程：\n1. **如果用户已提供单元格坐标**（如"修改B1单元格"），直接调用 read_cells 工具读取，不要询问确认\n2. **如果用户未提供单元格坐标**，调用 ask_user 工具询问："请提供要修改的单元格坐标（如B1、A2等）"\n3. 读取完成后立即结束本步骤，不要尝试调用 write_cell 或 write_cells\n\n【重要规则】：\n- 需求清晰时直接执行，禁止输出"请确认"、"对吗"等确认性文本\n- 只有缺少必要参数时才调用 ask_user 工具\n\n【工具参数】：\nread_cells 工具参数：\n- cellPositionArray: 单元格坐标数组，每个元素包含 row（行号，从1开始）和 col（列号，从1开始），如 [{row:1,col:1},{row:2,col:2}]\n\nread_cell 工具参数：\n- rowIndex: 行索引，从0开始\n- colIndex: 列索引，从0开始'
     },
     {
       id: 'ensure_row_col',
       name: '确保行列足够',
       tool: '_llm_decide',
       needsLLM: true,
-      /** 仅当 read_cell 返回的单元格数据不存在时才需要补齐行列 */
+      /** 仅当读取的单元格数据不存在时才需要补齐行列 */
       condition: (ctx) => {
         const readResult = ctx.stepResults['read_cells']
-        if (!readResult || !readResult.read_cell) return true
-        // read_cell 返回空对象或 null 说明单元格不存在，需要补齐行列
-        const cellData = readResult.read_cell
-        return !cellData || (typeof cellData === 'object' && Object.keys(cellData).length === 0)
+        if (!readResult) return true
+        // 兼容 read_cells 和 read_cell 两种返回结果
+        const cellsResult = readResult.read_cells
+        const cellResult = readResult.read_cell
+        if (cellsResult) {
+          // read_cells 返回的是对象，检查是否所有单元格都为空
+          const values = Object.values(cellsResult)
+          return values.length === 0 || values.every(v => !v || (typeof v === 'object' && Object.keys(v).length === 0))
+        }
+        if (cellResult) {
+          return !cellResult || (typeof cellResult === 'object' && Object.keys(cellResult).length === 0)
+        }
+        return true
       },
       allowedTools: ['get_rows', 'get_columns', 'insert_row', 'insert_col', 'set_rows', 'set_columns'],
       maxRetries: 1,
-      description: 'read_cell 返回的单元格数据不存在，说明报表行列数不足，需要先补齐行或列。补齐后需重新读取单元格数据再修改'
+      description: '读取的单元格数据不存在，说明报表行列数不足，需要先补齐行或列。补齐后需重新读取单元格数据再修改'
     },
     {
       id: 'modify_and_write_cells',
@@ -348,10 +357,10 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['write_cell', 'validate_expression', 'validate_condition', 'restore_data', 'read_cell', 'get_datasets', 'get_datasources', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
-      requiredToolResults: ['write_cell'],
+      allowedTools: ['write_cells', 'write_cell', 'validate_expression', 'validate_condition', 'restore_data', 'read_cells', 'read_cell', 'get_datasets', 'get_datasources', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
+      requiredToolResults: ['write_cells', 'write_cell'],
       maxRetries: 1,
-      description: '执行流程：\n1. 从前序步骤 read_cells 的结果中获取单元格完整数据\n2. 根据用户需求修改单元格的对应字段（值、样式、表达式、条件属性等）\n3. **合并修改**：如果需要修改多个属性，必须一次性在同一个 write_cell 调用中完成，不要分多次调用\n4. **校验流程**：表达式要调用 validate_expression 校验，条件属性要调用 validate_condition 校验\n5. **写入流程**：调用 write_cell 工具写入修改后的单元格数据\n6. **失败处理**：若 write_cell 返回 0，可重试\n7. **清空操作**：若用户需要清空单元格，根据需求选择：仅清空内容（保留样式）→ clear_cell_content；仅清空样式（保留内容）→ clear_cell_style；全部清空（内容+样式）→ clear_cell_all\n\n工具参数：\n- rowIndex: 行索引，从0开始\n- colIndex: 列索引，从0开始\n- cell: 完整的单元格定义对象（JSON对象，禁止传JSON字符串），必须基于 read_cell 返回的数据修改\n\n【禁止凭空构造】必须基于 read_cell 返回的完整数据修改，不要凭空构造 cell 对象'
+      description: '执行流程：\n1. 从前序步骤 read_cells 的结果中获取单元格完整数据\n2. 根据用户需求修改单元格的对应字段（值、样式、表达式、条件属性等）\n3. **批量写入**：优先使用 write_cells 一次性写入多个单元格，比多次调用 write_cell 更高效；只有一个单元格时也可使用 write_cell\n4. **校验流程**：表达式要调用 validate_expression 校验，条件属性要调用 validate_condition 校验\n5. **写入流程**：调用 write_cells 或 write_cell 工具写入修改后的单元格数据\n6. **失败处理**：若写入返回失败，可重试\n7. **清空操作**：若用户需要清空单元格，根据需求选择：仅清空内容（保留样式）→ clear_cell_content；仅清空样式（保留内容）→ clear_cell_style；全部清空（内容+样式）→ clear_cell_all\n\nwrite_cells 工具参数：\n- cells: 批量单元格数据对象，key为 "row,col" 格式（从1开始），value为单元格定义对象，如 {"1,1": {单元格数据}, "2,2": {单元格数据}}\n\nwrite_cell 工具参数：\n- rowIndex: 行索引，从0开始\n- colIndex: 列索引，从0开始\n- cell: 完整的单元格定义对象（JSON对象，禁止传JSON字符串），必须基于读取返回的数据修改\n\n【禁止凭空构造】必须基于读取返回的完整数据修改，不要凭空构造 cell 对象'
     }
   ]
 }
@@ -440,7 +449,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       name: '分析数据源操作类型',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsDatasourceChange,
+      condition: (ctx) => ctx.intent.needsDatasourceOperation,
       allowedTools: ['get_datasources', 'get_datasets', 'select_datasource_operation'],
       requiredToolResults: ['select_datasource_operation'],
       maxRetries: 1,
@@ -452,7 +461,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       tool: '_subworkflow',
       needsLLM: true,
       critical: true,
-      condition: (ctx) => ctx.intent.needsDatasourceChange,
+      condition: (ctx) => ctx.intent.needsDatasourceOperation,
       /** 根据路由步骤的结果动态选择子工作流 */
       subworkflowSelector: (ctx) => {
         const routeResult = ctx.stepResults['route_datasource_op']
@@ -483,7 +492,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       tool: '_subworkflow',
       needsLLM: true,
       critical: true,
-      condition: (ctx) => ctx.intent.needsDatasourceChange,
+      condition: (ctx) => ctx.intent.needsDatasourceOperation,
       /** 数据集操作：创建/修改/删除数据集。数据源为空时先创建数据源后也需创建数据集 */
       subworkflowSelector: (ctx) => {
         const routeResult = ctx.stepResults['route_datasource_op']
@@ -513,7 +522,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       tool: '_subworkflow',
       needsLLM: true,
       critical: true,
-      condition: (ctx) => ctx.intent.needsCellChange,
+      condition: (ctx) => ctx.intent.needsCellOperation,
       subworkflowId: 'modify_cell',
       maxRetries: 1,
       description: '执行修改单元格子工作流：读取单元格 → 确保行列足够 → 修改并写入 → 清空（可选）'
@@ -523,7 +532,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       name: '修改行列结构',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsRowColChange,
+      condition: (ctx) => ctx.intent.needsRowColOperation,
       allowedTools: ['get_rows', 'set_rows', 'update_row', 'get_columns', 'set_columns', 'update_column', 'insert_row', 'delete_row', 'insert_col', 'delete_col', 'merge_cells'],
       maxRetries: 1,
       description: '根据需求修改行高、列宽、插入/删除行列等'
@@ -533,7 +542,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       name: '修改查询表单',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsFormChange,
+      condition: (ctx) => ctx.intent.needsFormOperation,
       allowedTools: ['get_search_form', 'set_search_form'],
       maxRetries: 1,
       description: '根据需求修改查询表单的配置'
@@ -543,7 +552,7 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       name: '修改页面配置',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsPageConfigChange,
+      condition: (ctx) => ctx.intent.needsPageConfigOperation,
       allowedTools: ['get_paper_config', 'update_paper'],
       maxRetries: 1,
       description: '根据需求修改页面配置（纸张大小、边距、方向等）'
@@ -577,27 +586,27 @@ export const ANALYZE_REPORT_WORKFLOW: WorkflowDefinition = {
       name: '读取数据源/数据集',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsDatasourceChange,
+      condition: (ctx) => ctx.intent.needsDatasourceOperation,
       allowedTools: ['get_datasources', 'get_datasets'],
       maxRetries: 1,
-      description: '读取报表的数据源和数据集配置'
+      description: '本步骤仅负责读取数据源和数据集配置，禁止调用任何写入工具。读取完成后立即结束本步骤'
     },
     {
       id: 'read_cells',
       name: '读取单元格',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsCellChange,
-      allowedTools: ['read_cell'],
+      condition: (ctx) => ctx.intent.needsCellOperation,
+      allowedTools: ['read_cells', 'read_cell'],
       maxRetries: 1,
-      description: '读取指定单元格的数据'
+      description: '本步骤仅负责读取单元格数据，禁止调用任何写入工具。优先使用 read_cells 批量读取多个单元格，只有一个单元格时也可使用 read_cell。读取完成后立即结束本步骤'
     },
     {
       id: 'read_search_form',
       name: '读取查询表单',
       tool: 'get_search_form',
       needsLLM: false,
-      condition: (ctx) => ctx.intent.needsFormChange,
+      condition: (ctx) => ctx.intent.needsFormOperation,
       maxRetries: 1,
       description: '读取查询表单的配置'
     },
@@ -606,7 +615,7 @@ export const ANALYZE_REPORT_WORKFLOW: WorkflowDefinition = {
       name: '读取页面配置',
       tool: 'get_paper_config',
       needsLLM: false,
-      condition: (ctx) => ctx.intent.needsPageConfigChange,
+      condition: (ctx) => ctx.intent.needsPageConfigOperation,
       maxRetries: 1,
       description: '读取页面配置'
     }

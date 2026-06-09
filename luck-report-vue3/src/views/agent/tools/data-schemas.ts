@@ -788,6 +788,33 @@ export const CellSchema = {
   description: '单元格完整定义，包含位置、值、样式、展开方式等属性'
 }
 
+/**
+ * CellPosition 单元格坐标 Schema
+ * 用于 readCells 工具的参数，row/col 从1开始
+ */
+export const CellPositionSchema = {
+  type: 'object',
+  properties: {
+    row: { type: 'integer', description: '行号，从1开始', minimum: 1 },
+    col: { type: 'integer', description: '列号，从1开始', minimum: 1 }
+  },
+  required: ['row', 'col'],
+  description: '单元格坐标，row/col从1开始'
+}
+
+/**
+ * CellsSchema 批量单元格数据 Schema
+ * 用于 writeCells 工具的参数，key为 "row,col" 格式（从1开始），value为单元格定义对象
+ */
+export const CellsSchema = {
+  type: 'object',
+  description: '批量单元格数据，key为 "row,col" 格式（从1开始），value为单元格定义对象',
+  additionalProperties: CellSchema,
+  patternProperties: {
+    '^[0-9]+,[0-9]+$': CellSchema
+  }
+}
+
 // ==================== 数据源/数据集相关 Schema ====================
 
 /**
@@ -1629,6 +1656,38 @@ export function validateCell(cell: any): string | undefined {
     const validAggregates = ['group', 'select', 'sum', 'count', 'max', 'min', 'avg', 'customgroup']
     if (!validAggregates.includes(cell.value.aggregate)) {
       return `value.aggregate 必须是 ${validAggregates.join('/')} 之一`
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * 校验批量单元格数据是否符合规范
+ * 遍历 cells 对象的每个 value，调用 validateCell 进行校验
+ *
+ * @param cells - 批量单元格数据对象，key为 "row,col" 格式，value为单元格定义对象
+ * @returns 错误信息，undefined 表示校验通过
+ */
+export function validateCells(cells: any): string | undefined {
+  if (!cells || typeof cells !== 'object') {
+    return 'cells 必须是对象类型'
+  }
+
+  const keys = Object.keys(cells)
+  if (keys.length === 0) {
+    return 'cells 不能为空对象'
+  }
+
+  for (const key of keys) {
+    // 校验 key 格式
+    if (!/^[0-9]+,[0-9]+$/.test(key)) {
+      return `cells 的 key 格式错误，应为 "row,col"（从1开始），当前为 "${key}"`
+    }
+    // 校验每个单元格
+    const cellError = validateCell(cells[key])
+    if (cellError) {
+      return `单元格 ${key} 校验失败: ${cellError}`
     }
   }
 

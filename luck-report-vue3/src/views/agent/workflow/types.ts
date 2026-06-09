@@ -104,16 +104,16 @@ export interface WorkflowDefinition {
 export interface IntentAnalysisResult {
   /** 用户意图类型 */
   intentType: 'modify_report' | 'analyze_report' | 'irrelevant' | 'create_report'
-  /** 是否需要修改数据源/数据集 */
-  needsDatasourceChange: boolean
-  /** 是否需要修改单元格 */
-  needsCellChange: boolean
-  /** 是否需要修改查询表单 */
-  needsFormChange: boolean
-  /** 是否需要修改页面配置 */
-  needsPageConfigChange: boolean
-  /** 是否需要修改行列结构 */
-  needsRowColChange: boolean
+  /** 是否涉及数据源/数据集的操作（读取或修改） */
+  needsDatasourceOperation: boolean
+  /** 是否涉及单元格的操作（读取或修改） */
+  needsCellOperation: boolean
+  /** 是否涉及查询表单的操作（读取或修改） */
+  needsFormOperation: boolean
+  /** 是否涉及页面配置的操作（读取或修改） */
+  needsPageConfigOperation: boolean
+  /** 是否涉及行列结构的操作（读取或修改） */
+  needsRowColOperation: boolean
   /** 是否涉及业务知识查询 */
   needsBusinessKnowledge: boolean
   /** 是否需要参考报表制作经验 */

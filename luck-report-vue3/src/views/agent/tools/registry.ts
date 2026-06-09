@@ -4,6 +4,8 @@ import {
   searchAgentKnowledgeTool,
   readCellTool,
   writeCellTool,
+  readCellsTool,
+  writeCellsTool,
   getDatasourcesTool,
   setDatasourcesTool,
   addDatasourceTool,
@@ -43,7 +45,7 @@ import {
   selectDatasourceOperationTool,
   getCellTemplateTool,
   getDatasetTemplateTool,
-  getDatasourceTemplateTool
+  getDatasourceTemplateTool,
 } from './report-tools'
 import { loadReportIntroduceTool } from './doc-tools.ts'
 
@@ -169,6 +171,8 @@ export function createDefaultRegistry(): ToolRegistry {
     loadReportIntroduceTool,
     readCellTool,
     writeCellTool,
+    readCellsTool,
+    writeCellsTool,
     getDatasourcesTool,
     // setDatasourcesTool,
     addDatasourceTool,
@@ -209,7 +213,7 @@ export function createDefaultRegistry(): ToolRegistry {
     // 数据模板工具
     getCellTemplateTool,
     getDatasetTemplateTool,
-    getDatasourceTemplateTool
+    getDatasourceTemplateTool,
   ])
   return registry
 }

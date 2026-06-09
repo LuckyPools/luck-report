@@ -140,7 +140,7 @@ public class ChatUtils {
 
         try {
             String jsonBody = objectMapper.writeValueAsString(body);
-            log.info("[ChatUtils] 实际发送给LLM的请求体(前2000字): {}", jsonBody.length() > 2000 ? jsonBody.substring(0, 2000) + "..." : jsonBody);
+            log.info("[ChatUtils] 实际发送给LLM的请求体: {}", jsonBody);
             return jsonBody;
         } catch (Exception e) {
             log.error("序列化请求体失败", e);

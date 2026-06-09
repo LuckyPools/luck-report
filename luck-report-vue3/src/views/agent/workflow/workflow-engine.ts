@@ -396,11 +396,11 @@ export class WorkflowEngine {
     console.log('[WorkflowEngine] parseIntentFromObject 输入:', obj)
     return {
       intentType: obj.intentType || 'irrelevant',
-      needsDatasourceChange: obj.needsDatasourceChange ?? false,
-      needsCellChange: obj.needsCellChange ?? false,
-      needsFormChange: obj.needsFormChange ?? false,
-      needsPageConfigChange: obj.needsPageConfigChange ?? false,
-      needsRowColChange: obj.needsRowColChange ?? false,
+      needsDatasourceOperation: obj.needsDatasourceOperation ?? false,
+      needsCellOperation: obj.needsCellOperation ?? false,
+      needsFormOperation: obj.needsFormOperation ?? false,
+      needsPageConfigOperation: obj.needsPageConfigOperation ?? false,
+      needsRowColOperation: obj.needsRowColOperation ?? false,
       needsBusinessKnowledge: obj.needsBusinessKnowledge ?? false,
       needsAgentKnowledge: obj.needsAgentKnowledge ?? false,
       needsSchemaSearch: obj.needsSchemaSearch ?? false,
@@ -427,11 +427,11 @@ export class WorkflowEngine {
       console.error('[WorkflowEngine] 意图分析 JSON 解析失败，使用默认值')
       return {
         intentType: 'irrelevant',
-        needsDatasourceChange: false,
-        needsCellChange: false,
-        needsFormChange: false,
-        needsPageConfigChange: false,
-        needsRowColChange: false,
+        needsDatasourceOperation: false,
+        needsCellOperation: false,
+        needsFormOperation: false,
+        needsPageConfigOperation: false,
+        needsRowColOperation: false,
         needsBusinessKnowledge: false,
         needsAgentKnowledge: false,
         needsSchemaSearch: false,
@@ -444,11 +444,11 @@ export class WorkflowEngine {
     // 设置默认值，防止 LLM 遗漏字段
     return {
       intentType: parsed.intentType || 'irrelevant',
-      needsDatasourceChange: parsed.needsDatasourceChange ?? false,
-      needsCellChange: parsed.needsCellChange ?? false,
-      needsFormChange: parsed.needsFormChange ?? false,
-      needsPageConfigChange: parsed.needsPageConfigChange ?? false,
-      needsRowColChange: parsed.needsRowColChange ?? false,
+      needsDatasourceOperation: parsed.needsDatasourceOperation ?? false,
+      needsCellOperation: parsed.needsCellOperation ?? false,
+      needsFormOperation: parsed.needsFormOperation ?? false,
+      needsPageConfigOperation: parsed.needsPageConfigOperation ?? false,
+      needsRowColOperation: parsed.needsRowColOperation ?? false,
       needsBusinessKnowledge: parsed.needsBusinessKnowledge ?? false,
       needsAgentKnowledge: parsed.needsAgentKnowledge ?? false,
       needsSchemaSearch: parsed.needsSchemaSearch ?? false,
@@ -1541,11 +1541,11 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
     if (intent.intentType === 'modify_report') {
       parts.push(`好的，我已了解您的需求：${desc}`)
       const actions: string[] = []
-      if (intent.needsDatasourceChange) actions.push('配置数据源')
-      if (intent.needsCellChange) actions.push('修改单元格')
-      if (intent.needsFormChange) actions.push('配置查询表单')
-      if (intent.needsRowColChange) actions.push('调整行列结构')
-      if (intent.needsPageConfigChange) actions.push('调整页面配置')
+      if (intent.needsDatasourceOperation) actions.push('配置数据源')
+      if (intent.needsCellOperation) actions.push('修改单元格')
+      if (intent.needsFormOperation) actions.push('配置查询表单')
+      if (intent.needsRowColOperation) actions.push('调整行列结构')
+      if (intent.needsPageConfigOperation) actions.push('调整页面配置')
       if (actions.length > 0) {
         parts.push(`接下来我将为您${actions.join('、')}，请稍候。`)
       }

@@ -7,6 +7,8 @@ import {
   getSqlDatasetTemplate,
   getBuildinDatasourceTemplate,
   CellSchema,
+  CellPositionSchema,
+  CellsSchema,
   DatasetSchema,
   DatasourceSchema,
   SearchFormSchema,
@@ -14,6 +16,7 @@ import {
   RowDefinitionSchema,
   ColumnDefinitionSchema,
   validateCell,
+  validateCells,
   validateDataset,
   validateDatasource,
   validateSearchForm,
@@ -191,6 +194,71 @@ export const writeCellTool: ToolDefinition<{
   readOnly: false,
   requireConfirm: false,
   validate: ({ cell }) => validateCell(cell)
+}
+
+/**
+ * 批量读取单元格数据工具
+ * 根据坐标数组一次性读取多个单元格的定义数据
+ * 只读工具，可并发执行
+ */
+export const readCellsTool: ToolDefinition<{
+  cellPositionArray: Array<{ row: number; col: number }>;
+}> = {
+  name: 'read_cells',
+  description: '批量读取多个单元格数据，返回以 "row,col" 为key的单元格定义对象。行列号从1开始。适用于需要同时读取多个单元格的场景，比多次调用read_cell更高效。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      cellPositionArray: {
+        type: 'array',
+        items: CellPositionSchema,
+        description: '单元格坐标数组，每个元素包含 row（行号，从1开始）和 col（列号，从1开始）'
+      }
+    },
+    required: ['cellPositionArray']
+  },
+  execute: async ({ cellPositionArray }) => {
+    return executeCode(`readCells({cellPositionArray:${JSON.stringify(cellPositionArray)}})`)
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 批量写入单元格定义工具
+ * 以 "row,col" 为key的单元格数据对象，一次性写入多个单元格
+ * 执行前自动备份所有目标单元格数据，执行后回读验证
+ * 写操作工具，需串行执行
+ */
+export const writeCellsTool: ToolDefinition<{
+  cells: Record<string, any>;
+}> = {
+  name: 'write_cells',
+  description: `批量写入多个单元格的完整定义数据。key为 "row,col" 格式（从1开始），value为单元格定义对象。执行前自动备份，执行后回读验证。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。适用于需要同时写入多个单元格的场景，比多次调用write_cell更高效。
+【数据规范要点】：
+- 每个单元格必须包含：rowNumber、columnNumber、value（含type字段）
+- value.type 可选值：simple、expression、dataset、image、chart、slash、zxing
+- expand 可选值：None、Down、Right
+- cellStyle.align 可选值：left、center、right
+- 颜色格式：RGB 格式 "R,G,B"，如 "255,0,0"
+
+【重要提示】：
+- cells 参数必须是JSON对象，禁止传JSON字符串
+- 必须基于 read_cells 返回的数据或 get_cell_template 返回的模板修改
+- 禁止凭空构造单元格对象`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      cells: CellsSchema
+    },
+    required: ['cells']
+  },
+  execute: async ({ cells }) => {
+    return executeCode(`writeCells({cells:${JSON.stringify(cells)}})`)
+  },
+  readOnly: false,
+  requireConfirm: false,
+  validate: ({ cells }) => validateCells(cells)
 }
 
 // ============ 数据源操作工具 ============

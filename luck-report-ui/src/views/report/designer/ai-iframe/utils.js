@@ -177,7 +177,9 @@ export const agentMethodRegistry = {
     getReportSchema,
     clearCellContent,
     clearCellStyle,
-    clearCellAll
+    clearCellAll,
+    readCells,
+    writeCells
 };
 
 /**
@@ -226,6 +228,124 @@ function writeCell({ rowIndex, colIndex, cell }) {
     }
 
     return ToolResult.success('单元格写入成功');
+}
+
+/**
+ * 批量读取单元格数据（AI Agent 版本）
+ * 根据坐标数组一次性读取多个单元格的定义数据
+ *
+ * @param {Object} params - 参数对象
+ * @param {Array<{row: number, col: number}>} params.cellPositionArray - 单元格坐标数组，row和col从1开始
+ * @return {Object} 以 "row,col" 为key、单元格数据为value的对象，如 { "1,1": { 单元格数据 }, "2,2": { 单元格数据 } }
+ */
+function readCells({ cellPositionArray }) {
+    if (!Array.isArray(cellPositionArray) || cellPositionArray.length === 0) {
+        console.error('[AiIframe] readCells: cellPositionArray 不能为空数组');
+        return ToolResult.error('cellPositionArray 不能为空数组');
+    }
+
+    const result = {};
+    for (const pos of cellPositionArray) {
+        if (pos.row === undefined || pos.col === undefined) {
+            console.error('[AiIframe] readCells: 坐标缺少 row 或 col 属性', pos);
+            return ToolResult.error(`坐标缺少 row 或 col 属性: ${JSON.stringify(pos)}`);
+        }
+        // cellPositionArray 中 row/col 从1开始，getCell 需要 rowIndex/colIndex 从0开始
+        const cellData = getCell(pos.row - 1, pos.col - 1);
+        const key = `${pos.row},${pos.col}`;
+        result[key] = cellData;
+    }
+
+    return result;
+}
+
+/**
+ * 批量写入单元格定义数据（AI Agent 版本）
+ * 以 "row,col" 为key的单元格数据对象，一次性写入多个单元格
+ * 执行前自动备份所有目标单元格数据，执行后回读验证
+ * 参照 writeCell 实现，支持备份、异常还原和回读验证
+ *
+ * @param {Object} params - 参数对象
+ * @param {Object} params.cells - 单元格数据对象，key为 "row,col" 格式（从1开始），value为单元格定义对象
+ * @return {Object} ToolResult.success 表示全部写入成功，ToolResult.error 表示写入失败及异常信息
+ */
+function writeCells({ cells }) {
+    if (!cells || typeof cells !== 'object' || Object.keys(cells).length === 0) {
+        console.error('[AiIframe] writeCells: cells 不能为空对象');
+        return ToolResult.error('cells 不能为空对象');
+    }
+
+    // 备份所有目标单元格的当前数据
+    const oldCells = {};
+    for (const key of Object.keys(cells)) {
+        const parts = key.split(',');
+        const row = parseInt(parts[0], 10);
+        const col = parseInt(parts[1], 10);
+        if (isNaN(row) || isNaN(col)) {
+            console.error('[AiIframe] writeCells: key 格式无效，应为 "row,col"', key);
+            return ToolResult.error(`key 格式无效，应为 "row,col": ${key}`);
+        }
+        // row/col 从1开始，getCell 需要 rowIndex/colIndex 从0开始
+        oldCells[key] = getCell(row - 1, col - 1);
+    }
+
+    pushBackup({
+        description: `批量修改单元格 [${Object.keys(cells).join(', ')}]`,
+        type: 'writeCells',
+        restore: function () {
+            for (const key of Object.keys(oldCells)) {
+                const parts = key.split(',');
+                const row = parseInt(parts[0], 10);
+                const col = parseInt(parts[1], 10);
+                const oldCell = oldCells[key];
+                if (oldCell) {
+                    doWriteCell({ rowIndex: row - 1, colIndex: col - 1, cell: deepCopy(oldCell) });
+                }
+            }
+        }
+    });
+
+    // 逐个写入单元格
+    const failedKeys = [];
+    for (const [key, cell] of Object.entries(cells)) {
+        if (cell === null || cell === undefined) {
+            console.error('[AiIframe] writeCells: 单元格定义对象不能为空', key);
+            failedKeys.push(key);
+            continue;
+        }
+        const parts = key.split(',');
+        const row = parseInt(parts[0], 10);
+        const col = parseInt(parts[1], 10);
+        try {
+            doWriteCell({ rowIndex: row - 1, colIndex: col - 1, cell });
+        } catch (error) {
+            console.error('[AiIframe] writeCells: 写入单元格失败', key, error);
+            failedKeys.push(key);
+        }
+    }
+
+    // 有失败的单元格时，自动还原备份
+    if (failedKeys.length > 0) {
+        const restoreResult = popAndRestore();
+        console.log('[AiIframe] writeCells 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`批量写入单元格失败，失败坐标: ${failedKeys.join(', ')}`);
+    }
+
+    // 回读验证所有单元格是否写入成功
+    for (const key of Object.keys(cells)) {
+        const parts = key.split(',');
+        const row = parseInt(parts[0], 10);
+        const col = parseInt(parts[1], 10);
+        const newCell = getCell(row - 1, col - 1);
+        if (!newCell) {
+            console.error('[AiIframe] writeCells: 回读验证失败，单元格不存在', key);
+            const restoreResult = popAndRestore();
+            console.log('[AiIframe] writeCells 已自动还原备份:', restoreResult.message);
+            return ToolResult.error(`回读验证失败，单元格不存在: ${key}`);
+        }
+    }
+
+    return ToolResult.success(`批量写入 ${Object.keys(cells).length} 个单元格成功`);
 }
 
 /**

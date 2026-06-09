@@ -64,25 +64,25 @@ export const INTENT_ANALYSIS_SCHEMA = {
       enum: ['modify_report', 'analyze_report', 'create_report', 'irrelevant'],
       description: '用户意图类型'
     },
-    needsDatasourceChange: {
+    needsDatasourceOperation: {
       type: 'boolean',
-      description: '是否涉及数据源/数据集的修改或读取'
+      description: '是否涉及数据源/数据集的操作（读取或修改）'
     },
-    needsCellChange: {
+    needsCellOperation: {
       type: 'boolean',
-      description: '是否涉及单元格的修改或读取'
+      description: '是否涉及单元格的操作（读取或修改）'
     },
-    needsFormChange: {
+    needsFormOperation: {
       type: 'boolean',
-      description: '是否涉及查询表单的修改或读取'
+      description: '是否涉及查询表单的操作（读取或修改）'
     },
-    needsPageConfigChange: {
+    needsPageConfigOperation: {
       type: 'boolean',
-      description: '是否涉及页面配置的修改或读取'
+      description: '是否涉及页面配置的操作（读取或修改）'
     },
-    needsRowColChange: {
+    needsRowColOperation: {
       type: 'boolean',
-      description: '是否涉及行列结构的修改'
+      description: '是否涉及行列结构的操作（读取或修改）'
     },
     needsBusinessKnowledge: {
       type: 'boolean',
@@ -117,8 +117,8 @@ export const INTENT_ANALYSIS_SCHEMA = {
     }
   },
   required: [
-    'intentType', 'needsDatasourceChange', 'needsCellChange', 'needsFormChange',
-    'needsPageConfigChange', 'needsRowColChange', 'needsBusinessKnowledge',
+    'intentType', 'needsDatasourceOperation', 'needsCellOperation', 'needsFormOperation',
+    'needsPageConfigOperation', 'needsRowColOperation', 'needsBusinessKnowledge',
     'needsAgentKnowledge', 'needsSchemaSearch', 'requiredDocs', 'taskDescription'
   ]
 }
