@@ -417,3 +417,88 @@ function validateChartPlugin(plugin: any, index: number): string | undefined {
 
   return undefined
 }
+
+// ==================== 数据模板生成函数 ====================
+
+/**
+ * 生成图表单元格模板
+ * 参考 doc/template/chart1.json 的结构
+ * 默认生成一个 pie（饼图）模板，LLM 调用时可改 chart.dataset.type 切换图表类型
+ *
+ * @param rowIndex - 行索引，从0开始
+ * @param colIndex - 列索引，从0开始
+ * @param datasetName - 数据集名称，默认空字符串（LLM 必须传入真实数据集名）
+ * @param categoryProperty - 分类属性（X轴字段）
+ * @param valueProperty - 值属性（Y轴字段）
+ * @param chartType - 图表类型，默认 pie
+ * @returns 符合规范的图表单元格模板对象
+ */
+export function getChartCellTemplate(
+  rowIndex: number,
+  colIndex: number,
+  datasetName: string = '',
+  categoryProperty: string = '',
+  valueProperty: string = '',
+  chartType: 'bar' | 'horizontalBar' | 'line' | 'pie' | 'doughnut' | 'radar' | 'polarArea' | 'scatter' | 'bubble' = 'pie'
+): object {
+  const rowNumber = rowIndex + 1
+  const colNumber = colIndex + 1
+  const colLetter = String.fromCharCode(65 + colIndex)
+
+  return {
+    rowNumber,
+    columnNumber: colNumber,
+    rowSpan: 0,
+    colSpan: 0,
+    name: `${colLetter}${rowNumber}`,
+    value: {
+      chart: {
+        dataset: {
+          collectType: 'sum',
+          datasetName,
+          categoryProperty,
+          seriesProperty: null,
+          valueProperty,
+          seriesText: null,
+          seriesType: 'property',
+          labels: null,
+          format: null,
+          type: chartType
+        },
+        xaxes: null,
+        yaxes: null,
+        options: null,
+        plugins: null
+      },
+      value: null,
+      type: 'chart'
+    },
+    cellStyle: {
+      bgcolor: null,
+      forecolor: '0,0,0',
+      fontSize: 10,
+      fontFamily: '宋体',
+      format: null,
+      lineHeight: 0,
+      align: 'center',
+      valign: 'middle',
+      bold: null,
+      italic: null,
+      underline: null,
+      wrapCompute: null,
+      leftBorder: null,
+      rightBorder: null,
+      topBorder: null,
+      bottomBorder: null
+    },
+    linkUrl: null,
+    linkTargetWindow: null,
+    linkParameters: null,
+    fillBlankRows: false,
+    multiple: 0,
+    expand: 'None',
+    leftParentCellName: null,
+    topParentCellName: null,
+    conditionPropertyItems: null
+  }
+}

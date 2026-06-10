@@ -22,7 +22,9 @@ import {
   validateSearchForm,
   validatePaper,
   validateRowDefinition,
-  validateColumnDefinition
+  validateColumnDefinition,
+  normalizeCell,
+  normalizeCells
 } from './schema/index'
 
 /**
@@ -177,7 +179,10 @@ export const writeCellTool: ToolDefinition<{
     required: ['rowIndex', 'colIndex', 'cell']
   },
   execute: async ({ rowIndex, colIndex, cell }) => {
-    return executeCode(`writeCell({rowIndex:${rowIndex},colIndex:${colIndex},cell:${JSON.stringify(cell)}})`)
+    // 入口规范化：用模板补齐 LLM 可能漏掉的字段（cellStyle/rowSpan/expand 等）
+    // 与 validate 职责分离：normalize 只补字段，validate 已在上游检查结构性错误
+    const normalized = normalizeCell(cell, rowIndex, colIndex)
+    return executeCode(`writeCell({rowIndex:${rowIndex},colIndex:${colIndex},cell:${JSON.stringify(normalized)}})`)
   },
   readOnly: false,
   requireConfirm: false,
@@ -231,7 +236,10 @@ export const writeCellsTool: ToolDefinition<{
     required: ['cells']
   },
   execute: async ({ cells }) => {
-    return executeCode(`writeCells({cells:${JSON.stringify(cells)}})`)
+    // 入口规范化：按 "row,col" key 用模板逐个补齐 LLM 漏掉的字段
+    // 与 validate 职责分离：normalize 只补字段，validate 已在上游检查结构性错误
+    const normalized = normalizeCells(cells)
+    return executeCode(`writeCells({cells:${JSON.stringify(normalized)}})`)
   },
   readOnly: false,
   requireConfirm: false,
@@ -1461,7 +1469,8 @@ export const clearCellAllTool: ToolDefinition<{
     return executeCode(`clearCellAll({startRow:${startRow},endRow:${endRow},startCol:${startCol},endCol:${endCol}})`)
   },
   readOnly: false,
-  requireConfirm: false
+  // 高危操作：清空全部（含样式）不可逆，弹窗让用户确认
+  requireConfirm: true
 }
 
 // ============ 数据源操作路由工具 ============

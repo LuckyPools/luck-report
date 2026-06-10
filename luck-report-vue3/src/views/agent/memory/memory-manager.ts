@@ -88,6 +88,30 @@ export class MemoryManager {
   // ==================== 第1层：工具结果截断 ====================
 
   /**
+   * 创建记忆快照
+   * P0-4：用于节点重试前保存当前记忆状态
+   * 重试失败时可通过 clearAfter() 回滚到快照位置，避免 LLM 看到上次失败的工具结果
+   *
+   * @returns 快照索引（messages 数组长度），number
+   */
+  snapshot(): number {
+    return this.messages.length
+  }
+
+  /**
+   * 回滚记忆到指定快照位置
+   * P0-4：截断 messages 到 snapshot 位置，丢弃快照之后的所有消息
+   * 用于节点重试时清除上次失败产生的 tool_result 等消息
+   *
+   * @param snapshot - snapshot() 返回的快照索引，number，不可为空
+   */
+  clearAfter(snapshot: number): void {
+    if (snapshot >= 0 && snapshot < this.messages.length) {
+      this.messages = this.messages.slice(0, snapshot)
+    }
+  }
+
+  /**
    * 追加消息到短期记忆
    * 第1层：对 tool_result 类型的消息自动截断过长内容
    * 工具返回的报表数据（如 getReportSchema）通常包含大量 JSON，

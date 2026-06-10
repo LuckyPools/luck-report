@@ -331,10 +331,18 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['write_cells', 'write_cell', 'validate_expression', 'validate_condition', 'restore_data', 'read_cells', 'read_cell', 'get_datasets', 'get_datasources', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
+      // [修复] 移除 read_cells：上游 read_cells 节点已把数据写入 state.cellsData，本节点不允许再读
+      // [修复] 新增 get_cell_template：创建/类型变更场景必须先取模板
+      allowedTools: ['write_cells', 'write_cell', 'get_cell_template', 'validate_expression', 'validate_condition', 'restore_data', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
       requiredToolResults: ['write_cells', 'write_cell'],
-      maxRetries: 1,
-      description: '修改单元格字段，调用 write_cells 或 write_cell 写入。表达式调用 validate_expression 校验，条件属性调用 validate_condition 校验。清空操作根据需求选择 clear_cell_content/style/all'
+      maxRetries: 3,
+      description: '**cellsData 已在 context 中，禁止调用 read_cells / read_cell 重读**。' +
+        '按"决策流程"处理每个目标：① 读取 context.cellsData 中的 cell 结构；' +
+        '② 场景判断：cell 为空 → 调 get_cell_template 取初始模板；' +
+        'cell.value.type 与需求类型不一致 → 调 get_cell_template({type:新类型}) 取新模板；' +
+        '类型一致 → 直接复用 cellsData 中的 cell，仅改 value 字段；' +
+        '③ 一次 write_cells 写完所有目标，禁止分批。' +
+        '表达式用 validate_expression 校验，条件属性用 validate_condition 校验，清空选 clear_cell_*。'
     }
   ]
 }

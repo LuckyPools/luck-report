@@ -157,6 +157,54 @@ export class ToolRegistry {
 
     return { valid: errors.length === 0, errors }
   }
+
+  /**
+   * 按名称查找并执行工具
+   * 封装"查找 → 校验 → 执行"三步流程，行为对齐老版 workflow-engine.ts 中的手写逻辑
+   * 供新版工作流节点（workflow-graphs / llm-decide-node / legacy-adapter）统一调用
+   *
+   * @param name - 工具名称，string，不可为空
+   * @param input - 工具输入参数，Record<string, any>，不可为空
+   * @returns 工具执行结果，Promise<TOutput>
+   * @throws 工具不存在 / 参数校验失败时抛 Error（错误信息含具体原因）
+   */
+  async executeTool<TInput = any, TOutput = any>(
+    name: string,
+    input: TInput
+  ): Promise<TOutput> {
+    // 第一步：查找工具
+    const tool = this.tools.get(name)
+    if (!tool) {
+      throw new Error(`工具 "${name}" 不存在`)
+    }
+    // 第二步：参数校验
+    // 优先使用工具自定义的 validate 闭包（业务级校验更精准）
+    // 兜底用 Schema 校验（检查必填字段、未知字段）
+    if (tool.validate) {
+      const err = tool.validate(input)
+      if (err) {
+        throw new Error(`工具 "${name}" 参数校验失败: ${err}`)
+      }
+    } else {
+      const v = this.validateInput(name, input)
+      if (!v.valid) {
+        throw new Error(`工具 "${name}" 参数校验失败: ${v.errors.join('; ')}`)
+      }
+    }
+    // 第三步：执行（execute 内部错误原样上抛，由调用方决定如何转为错误事件）
+    return tool.execute(input) as Promise<TOutput>
+  }
+
+  /**
+   * 获取所有已注册工具定义
+   * getAll 的语义化别名，专供 LLM 决策节点使用
+   * 命名差异原因：llm-decide-node 的语义是"取工具定义供 LLM 看"，getAll 偏底层
+   *
+   * @returns 工具定义数组，ToolDefinition[]
+   */
+  getToolDefinitions(): ToolDefinition[] {
+    return this.getAll()
+  }
 }
 
 /**

@@ -31,7 +31,9 @@ export {
   getExpressionCellTemplate,
   getCellTemplateByType,
   validateCell,
-  validateCells
+  validateCells,
+  normalizeCell,
+  normalizeCells
 } from './cell-schema'
 
 // 图片相关 Schema
@@ -50,6 +52,7 @@ export {
   ChartOptionSchema,
   ChartPluginSchema,
   ChartValueSchema,
+  getChartCellTemplate,
   validateChartValue
 } from './chart-schema'
 
@@ -79,6 +82,7 @@ export {
 export {
   SlashSchema,
   SlashValueSchema,
+  getSlashCellTemplate,
   validateSlashValue
 } from './slash-schema'
 

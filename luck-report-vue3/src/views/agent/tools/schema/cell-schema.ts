@@ -6,10 +6,10 @@
  */
 
 // 导入其他值类型的 Schema（用于 CellValueSchema 的 oneOf 组合）
-import { ImageValueSchema } from './image-schema'
-import { ZxingValueSchema } from './zxing-schema'
-import { ChartValueSchema } from './chart-schema'
-import { SlashValueSchema } from './slash-schema'
+import { ImageValueSchema, getImageCellTemplate, validateImageValue } from './image-schema'
+import { ZxingValueSchema, getQrcodeCellTemplate, getBarcodeCellTemplate, validateZxingValue } from './zxing-schema'
+import { ChartValueSchema, getChartCellTemplate, validateChartValue } from './chart-schema'
+import { SlashValueSchema, getSlashCellTemplate, validateSlashValue } from './slash-schema'
 // 导入表达式对象 Schema（避免循环依赖，从独立文件导入）
 import { ExpressionObjectSchema } from './expression-schema'
 
@@ -389,10 +389,13 @@ export function getExpressionCellTemplate(rowIndex: number, colIndex: number, ex
 
 /**
  * 根据值类型获取单元格模板
+ * 覆盖全部 7 种单元格类型：simple/expression/dataset/image/chart/slash/zxing
+ * 其中 zxing 进一步按 category 区分 qrcode（默认）/barcode
+ *
  * @param type - 值类型
  * @param rowIndex - 行索引
  * @param colIndex - 列索引
- * @param options - 可选参数（如datasetName、property等）
+ * @param options - 可选参数（按 type 含义不同）
  * @returns 单元格模板对象
  */
 export function getCellTemplateByType(
@@ -408,6 +411,9 @@ export function getCellTemplateByType(
     qrcodeText?: string;
     barcodeText?: string;
     barcodeFormat?: string;
+    chartType?: 'bar' | 'horizontalBar' | 'line' | 'pie' | 'doughnut' | 'radar' | 'polarArea' | 'scatter' | 'bubble';
+    chartCategoryProperty?: string;
+    chartValueProperty?: string;
   }
 ): object {
   switch (type) {
@@ -423,6 +429,26 @@ export function getCellTemplateByType(
       )
     case 'expression':
       return getExpressionCellTemplate(rowIndex, colIndex, options?.expression || '')
+    case 'image':
+      return getImageCellTemplate(rowIndex, colIndex, options?.imagePath || '')
+    case 'chart':
+      return getChartCellTemplate(
+        rowIndex,
+        colIndex,
+        options?.datasetName || '',
+        options?.chartCategoryProperty || '',
+        options?.chartValueProperty || '',
+        options?.chartType || 'pie'
+      )
+    case 'slash':
+      return getSlashCellTemplate(rowIndex, colIndex)
+    case 'zxing':
+      // zxing 内部按 category 区分二维码/条码，options.zxingCategory 决定走哪个模板
+      // 默认按二维码生成；LLM 显式传 options.zxingCategory === 'barcode' 时走条码模板
+      if ((options as any)?.zxingCategory === 'barcode') {
+        return getBarcodeCellTemplate(rowIndex, colIndex, options?.barcodeText || '', options?.barcodeFormat || 'AZTEC')
+      }
+      return getQrcodeCellTemplate(rowIndex, colIndex, options?.qrcodeText || '')
     default:
       return getSimpleCellTemplate(rowIndex, colIndex)
   }
@@ -497,6 +523,26 @@ export function validateCell(cell: any): string | undefined {
     }
   }
 
+  // image 类型值校验
+  if (cell.value.type === 'image') {
+    return validateImageValue(cell.value)
+  }
+
+  // chart 类型值校验
+  if (cell.value.type === 'chart') {
+    return validateChartValue(cell.value)
+  }
+
+  // slash 类型值校验
+  if (cell.value.type === 'slash') {
+    return validateSlashValue(cell.value)
+  }
+
+  // zxing 类型值校验
+  if (cell.value.type === 'zxing') {
+    return validateZxingValue(cell.value)
+  }
+
   return undefined
 }
 
@@ -530,6 +576,70 @@ export function validateCells(cells: any): string | undefined {
   }
 
   return undefined
+}
+
+// ==================== 单元格数据规范化函数 ====================
+
+/**
+ * 规范化单个单元格：按 cell.value.type 选对应类型模板补齐缺失字段
+ * 与 validate 职责分离：本函数只补字段、不校验；validate 只校验、不修改数据
+ * merge 策略：以类型模板为基，LLM 传入的字段覆盖默认值；value 字段整体替换避免内部结构畸形合并
+ * 不抛错：缺字段时静默补齐，调用方无需 try/catch
+ *
+ * @param cell - LLM 传入的单元格对象，可为 null/undefined/部分字段缺失
+ * @param rowIndex - 行索引，从0开始
+ * @param colIndex - 列索引，从0开始
+ * @returns 符合 CellSchema 规范的完整单元格对象
+ */
+export function normalizeCell(cell: any, rowIndex: number, colIndex: number): Record<string, any> {
+  // 防御：cell 不是对象时无法推断类型，按 simple 兜底
+  const cellType = (cell && typeof cell === 'object' && !Array.isArray(cell) && cell.value && typeof cell.value === 'object')
+    ? (cell.value.type || 'simple')
+    : 'simple'
+  // 按 cell.value.type 选对应类型的完整模板作 base，保证顶层 cellStyle/rowSpan 等 + value 内部必填字段都补齐
+  const base = JSON.parse(JSON.stringify(getCellTemplateByType(cellType, rowIndex, colIndex))) as Record<string, any>
+  // 防御：cell 不是对象（LLM 传 null/字符串/数字等）时直接返回基线
+  if (!cell || typeof cell !== 'object' || Array.isArray(cell)) {
+    return base
+  }
+  // 分离 value：value 必须整体替换，避免 LLM 传 {"type":"simple"} 时把 value.value 漏掉
+  const { value: cellValue, ...rest } = cell
+  // 浅合并其余字段（LLM 传入覆盖模板默认值）
+  Object.assign(base, rest)
+  // value 字段：LLM 传了则整体替换，未传则保留模板默认（按类型的空值）
+  if (cellValue && typeof cellValue === 'object' && !Array.isArray(cellValue)) {
+    base.value = cellValue
+  }
+  return base
+}
+
+/**
+ * 规范化批量单元格：遍历 cells 的 "row,col" key，调用 normalizeCell 逐个补齐
+ * 与 validate 职责分离：本函数只补字段、不校验
+ * 跳过 key 格式不合法的项（这些交给 validateCells 报错，不在 normalize 阶段处理）
+ *
+ * @param cells - LLM 传入的批量单元格对象，key 为 "row,col" 格式（从1开始）
+ * @returns 规范化后的批量单元格对象，key 仍保持 "row,col" 格式
+ */
+export function normalizeCells(cells: any): Record<string, any> {
+  const result: Record<string, any> = {}
+  // 防御：cells 不是对象时返回空对象
+  if (!cells || typeof cells !== 'object' || Array.isArray(cells)) {
+    return result
+  }
+  for (const key of Object.keys(cells)) {
+    // 仅处理 "row,col" 格式的 key；其它 key 原样透传（validate 会报错）
+    const match = /^([0-9]+),([0-9]+)$/.exec(key)
+    if (!match) {
+      result[key] = cells[key]
+      continue
+    }
+    // key 是 1-based 坐标，转 0-based 传给 normalizeCell
+    const rowIndex = parseInt(match[1], 10) - 1
+    const colIndex = parseInt(match[2], 10) - 1
+    result[key] = normalizeCell(cells[key], rowIndex, colIndex)
+  }
+  return result
 }
 
 // ==================== 单元格完整定义 Schema ====================

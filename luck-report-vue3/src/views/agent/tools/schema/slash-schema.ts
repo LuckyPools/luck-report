@@ -109,3 +109,62 @@ function validateSlash(slash: any, index: number): string | undefined {
 
   return undefined
 }
+
+// ==================== 数据模板生成函数 ====================
+
+/**
+ * 生成斜线表头单元格模板
+ * 参考 doc/template/slash.json 的结构
+ * 默认生成空 slashes 列表，LLM 调用时需补充斜线项
+ *
+ * @param rowIndex - 行索引，从0开始
+ * @param colIndex - 列索引，从0开始
+ * @returns 符合规范的斜线表头单元格模板对象
+ */
+export function getSlashCellTemplate(rowIndex: number, colIndex: number): object {
+  const rowNumber = rowIndex + 1
+  const colNumber = colIndex + 1
+  const colLetter = String.fromCharCode(65 + colIndex)
+
+  return {
+    rowNumber,
+    columnNumber: colNumber,
+    rowSpan: 0,
+    colSpan: 0,
+    name: `${colLetter}${rowNumber}`,
+    value: {
+      svg: null,
+      slashes: [],
+      base64Data: null,
+      value: null,
+      type: 'slash'
+    },
+    cellStyle: {
+      bgcolor: null,
+      forecolor: '0,0,0',
+      fontSize: 10,
+      fontFamily: '宋体',
+      format: null,
+      lineHeight: 0,
+      align: 'center',
+      valign: 'middle',
+      bold: null,
+      italic: null,
+      underline: null,
+      wrapCompute: null,
+      leftBorder: null,
+      rightBorder: null,
+      topBorder: null,
+      bottomBorder: null
+    },
+    linkUrl: null,
+    linkTargetWindow: null,
+    linkParameters: null,
+    fillBlankRows: false,
+    multiple: 0,
+    expand: 'None',
+    leftParentCellName: null,
+    topParentCellName: null,
+    conditionPropertyItems: null
+  }
+}
