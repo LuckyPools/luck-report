@@ -367,7 +367,54 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
     const stepContext = this.options.description
       ? `\n\n当前步骤: ${this.options.description}`
       : ''
-    const userMessage = state.userMessage + stepContext
+    // [增强] 知识库内容注入：基于会话级缓存 + docRefs 判断
+    // 策略：
+    //   1) 拿 state.searchResults.docRefs（load_docs 节点写入的文档名列表）
+    //   2) 对每个 docName 检查 messages 是否已有 tool_result 注入
+    //      - 已有 → 不再重复拼，knowledgeBlock 提示"已加载"
+    //      - 未有 → 从 cache 读全文注入（首次或 cache 命中但 messages 被压缩掉的情况）
+    // 收益：避免 messages 里 tool_result 全文 + knowledgeBlock 全文 的双重塞入
+    const searchResults = state.searchResults
+    let knowledgeBlock = ''
+    if (searchResults && typeof searchResults === 'object') {
+      const docRefs: string[] = Array.isArray(searchResults.docRefs) ? searchResults.docRefs : []
+      if (docRefs.length > 0) {
+        const loadedInMessages = memoryManager.getLoadedDocNames()
+        const missingInMessages: string[] = []
+        const alreadyLoaded: string[] = []
+        for (const doc of docRefs) {
+          if (loadedInMessages.has(doc)) {
+            alreadyLoaded.push(doc)
+          } else {
+            missingInMessages.push(doc)
+          }
+        }
+        // 关键：只有在 messages 没存该 doc 的 tool_result 时，才从 cache 注入全文
+        // 避免 messages 和 knowledgeBlock 双重塞入
+        const cache = memoryManager.getKnowledgeCache()
+        const contentParts: string[] = []
+        if (missingInMessages.length > 0) {
+          for (const doc of missingInMessages) {
+            const content = cache.get(doc)
+            if (content) {
+              contentParts.push(`[${doc}]\n${content}`)
+            } else {
+              // cache 也没命中（说明 load_docs 没走过、或被清了）→ 提示 LLM 知识缺失
+              contentParts.push(`[${doc}]\n（文档未在缓存中）`)
+            }
+          }
+        }
+        if (contentParts.length > 0) {
+          knowledgeBlock = `\n\n[参考知识]\n以下是已加载的文档/知识库内容，请基于这些内容进行决策，不要凭直觉猜测 API/字段：\n${contentParts.join('\n\n---- 分界线 ----\n')}`
+        }
+        if (alreadyLoaded.length > 0) {
+          // messages 已有 tool_result 注入，knowledgeBlock 拼"已加载"提示，避免重复塞全文
+          const alreadyHint = `\n\n[已加载知识]\n以下文档已通过工具调用注入到对话历史中，请基于工具返回的内容进行决策：${alreadyLoaded.join('、')}`
+          knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}${alreadyHint}` : alreadyHint
+        }
+      }
+    }
+    const userMessage = state.userMessage + knowledgeBlock + stepContext
 
     return [
       ...history,

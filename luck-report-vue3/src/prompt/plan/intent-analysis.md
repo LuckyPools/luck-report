@@ -26,28 +26,31 @@
    - needsAgentKnowledge：复杂报表制作场景，需要参考案例和经验
    - needsSchemaSearch：不确定使用哪个数据源，需要跨数据源搜索表结构
 
-4. 判断需要加载的文档：
-   根据用户需求，从以下文档中选择需要加载的：
-   - REPORT_DEFINITION：报表结构说明
-   - DATASOURCE_DATASET：数据源/数据集操作
-   - CELL_COMMON_ATTRIBUTE：单元格通用属性（修改单元格时必须）
-   - SIMPLE_TEXT_CELL：文本单元格
-   - EXPRESSION_CELL：表达式单元格
-   - DATASET_CELL：数据集单元格
-   - CHART_CELL：图表单元格
-   - IMAGE_CELL：图片单元格
-   - BARCODE_CELL：条码单元格
-   - QRCODE_CELL：二维码单元格
-   - DIAGONAL_HEADER_CELL：斜表头单元格
-   - CELL_CONDITIONAL_ATTRIBUTE：条件显示样式
-   - FORM_DESIGN：查询表单设计
-   - PAGE_CONFIG：页面配置
-   - TABLE_ROW：行操作
-   - TABLE_COL：列操作
-   - CELL_RENDER_ORDER：单元格渲染顺序
-   - PARENT_CELL_RELATION：父子格关系
-   - EXPRESSION：表达式说明
-   - FUNCTION：函数说明
+4. 判断需要加载的文档（**强制映射规则，必须遵守，覆盖默认偏好**）：
+   根据用户需求中的关键动词/对象，按下表**至少**选择对应文档，多条规则命中取并集：
+
+   | 触发关键词或场景 | 必须加载的文档 |
+   |----------------|---------------|
+   | 涉及任何单元格修改（值/样式/类型/属性/父格/子格/合并/条件等） | `CELL_COMMON_ATTRIBUTE` |
+   | 出现"父格/子格/父单元格/子单元格/父子格/左父格/上父格"或"主格" | `PARENT_CELL_RELATION` |
+   | 出现"统计/汇总/求和/求平均/计数/聚合/合计/累计"或"展开数据/遍历" | `EXPRESSION_CELL` + `EXPRESSION` + `FUNCTION` |
+   | 出现"公式/表达式/计算/运算" | `EXPRESSION` + `FUNCTION` |
+   | 出现"数据集单元格/绑定字段/拖字段" | `DATASET_CELL` |
+   | 出现"图表/柱图/折线/饼图/柱状图" | `CHART_CELL` |
+   | 出现"图片/LOGO/二维码/条码" | 按类型 `IMAGE_CELL` / `BARCODE_CELL` / `QRCODE_CELL` |
+   | 出现"斜线表头/斜线单元格" | `DIAGONAL_HEADER_CELL` |
+   | 出现"条件属性/条件样式/条件显示" | `CELL_CONDITIONAL_ATTRIBUTE` |
+   | 涉及"查询表单/筛选/搜索条件/参数" | `FORM_DESIGN` |
+   | 涉及"页面/纸张/边距/方向/页眉页脚" | `PAGE_CONFIG` |
+   | 涉及"行高/列宽/插入行/删除行/插入列/删除列" | `TABLE_ROW` + `TABLE_COL` |
+   | 涉及"渲染顺序/单元格顺序" | `CELL_RENDER_ORDER` |
+   | 用户对报表结构陌生、不熟悉数据模型 | `REPORT_DEFINITION` |
+
+   **关键提示**：
+   - 复合需求（如"修改父格+统计展开数据"）必须把所有命中规则的文档都加载，**不要自行判断"可能不需要"**
+   - 涉及单元格修改时，`CELL_COMMON_ATTRIBUTE` **必须**出现
+   - 涉及父格时，`PARENT_CELL_RELATION` **必须**出现
+   - 涉及表达式/统计时，`EXPRESSION_CELL` + `EXPRESSION` + `FUNCTION` **必须**全部出现
 
 ## 输出Schema定义（仅供参考格式，不要输出Schema本身）
 {{INTENT_ANALYSIS_SCHEMA}}

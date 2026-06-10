@@ -13,14 +13,14 @@ const INSTRUCTION_DOC_NAMES = Object.keys(PROMPT_DOC_PATH_MAP).filter(
 /**
  * 加载报表提示词文档工具
  * 根据传入的文件名枚举列表，加载对应的提示词文档内容
- * 多个文件内容之间用 "---- 分界线 ----" 加换行符拼接
+ * 返回结构体 { docs: Record<fileName, content> }，便于调用方按 docName 一一对应写入缓存
  * 只读工具，可并发执行
  */
 export const loadReportIntroduceTool: ToolDefinition<{
   fileNames: PromptDocName[]
 }> = {
   name: 'load_report_introduce',
-  description: `加载报表相关的提示词文档，获取报表组件、表达式、数据源等详细说明。可传入多个文件名同时加载，文档内容将以分界线拼接返回。当需要了解报表某个方面的详细规范时调用此工具。
+  description: `加载报表相关的提示词文档，获取报表组件、表达式、数据源等详细说明。可传入多个文件名同时加载，返回结构体 { docs: { [fileName]: content } }。当需要了解报表某个方面的详细规范时调用此工具。
 【参数格式要求】
 fileNames 必须是一个字符串数组，数组中的每个元素必须是以下枚举值之一（区分大小写）：
 ${INSTRUCTION_DOC_NAMES.map(name => `- "${name}"`).join('\n')}
@@ -55,20 +55,27 @@ ${INSTRUCTION_DOC_NAMES.join('、')}
   },
   execute: async ({ fileNames }) => {
     if (!fileNames || fileNames.length === 0) {
-      return '未指定要加载的文档文件名'
+      // 空入参：返回空结构体，避免调用方按 string 分支兜底
+      return { docs: {} as Record<string, string> }
     }
 
     // 验证每个文件名是否在枚举列表中
     const invalidNames = fileNames.filter(name => !INSTRUCTION_DOC_NAMES.includes(name as PromptDocName))
     if (invalidNames.length > 0) {
-      return `无效的文档名称: ${invalidNames.join(', ')}。有效的文档名称包括: ${INSTRUCTION_DOC_NAMES.join('、')}`
+      // 错误也走结构体，附带 error 字段；调用方可识别并跳过写入缓存
+      return {
+        docs: {} as Record<string, string>,
+        error: `无效的文档名称: ${invalidNames.join(', ')}。有效的文档名称包括: ${INSTRUCTION_DOC_NAMES.join('、')}`
+      }
     }
 
-    const SEPARATOR = '\n---- 分界线 ----\n'
-    const contents = await Promise.all(
-      fileNames.map(fileName => loadPromptDocByEnum(fileName))
+    // 并发加载每篇文档，按 fileName 一一对应
+    const entries = await Promise.all(
+      fileNames.map(async (name) => [name, await loadPromptDocByEnum(name)] as const)
     )
-    return contents.join(SEPARATOR)
+    // 结构体返回：{ docs: { [fileName]: content } }
+    // 调用方（load_docs 节点）直接 cache.putBatch(result.docs) 即可，无需再按分隔符切分
+    return { docs: Object.fromEntries(entries) }
   },
   readOnly: true,
   requireConfirm: false

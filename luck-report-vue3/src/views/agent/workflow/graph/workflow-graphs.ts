@@ -18,6 +18,67 @@ import {
 import type { CompiledReportGraph } from './index'
 import { reportStateSchema } from './state'
 
+// ==================== 工具结果标准化（load_report_introduce） ====================
+
+/**
+ * 文档分隔符：与旧工具实现保持一致（兼容旧版 result 是字符串的兜底分支）
+ * 仅在工具返回字符串时使用，新版工具已返回结构体，正常不会触发
+ */
+const DOC_SEPARATOR = /\n*---- 分界线 ----\n*/
+
+/**
+ * 从 load_report_introduce 工具返回结果中提取 { docName: content } 映射
+ *
+ * @param result - 工具返回值，新版为 { docs: { ... } }，旧版可能为字符串，可为空
+ * @param fallbackNames - 当 result 是字符串时按此顺序一一对应分配 docName，可为空
+ * @returns 文档名到内容的映射，Record<string, string>，可为空对象
+ */
+function extractDocsMap(result: any, fallbackNames?: string[]): Record<string, string> {
+  if (!result) return {}
+  // 主路径：新版工具返回结构体 { docs: { [fileName]: content } }
+  if (typeof result === 'object' && result.docs && typeof result.docs === 'object') {
+    // 过滤掉空字符串/非字符串值，避免把 error 字段塞进 cache
+    const out: Record<string, string> = {}
+    for (const [k, v] of Object.entries(result.docs)) {
+      if (typeof v === 'string' && v.length > 0) out[k] = v
+    }
+    return out
+  }
+  // 兜底：旧版 result 是字符串，按分隔符切分后按 fallbackNames 顺序映射
+  // 分片数与请求数不一致时，缺失部分用整段兜底，保证 cache 至少把 docName 登记上
+  if (typeof result === 'string' && fallbackNames && fallbackNames.length > 0) {
+    const parts = result.split(DOC_SEPARATOR)
+    const out: Record<string, string> = {}
+    fallbackNames.forEach((name, i) => {
+      out[name] = parts[i] ?? result
+    })
+    return out
+  }
+  return {}
+}
+
+/**
+ * 把工具返回值规范化为 LLM/UI 友好的纯文本
+ * 格式：[docName]\ncontent（多篇用 "\n\n---- 分界线 ----\n" 拼接）
+ * 与 buildMessages.knowledgeBlock 的拼接格式保持一致
+ *
+ * @param result - 工具返回值，可为空
+ * @returns 规范化后的纯文本，string
+ */
+function formatDocsAsText(result: any): string {
+  if (!result) return ''
+  // 主路径：结构体 → 按 key 顺序拼纯文本
+  if (typeof result === 'object' && result.docs && typeof result.docs === 'object') {
+    return Object.entries(result.docs)
+      .filter(([, v]) => typeof v === 'string' && v.length > 0)
+      .map(([name, content]) => `[${name}]\n${content}`)
+      .join('\n\n---- 分界线 ----\n')
+  }
+  // 兜底：旧版字符串原样返回
+  if (typeof result === 'string') return result
+  return ''
+}
+
 // ==================== 创建数据集子工作流 ====================
 
 /**
@@ -166,7 +227,7 @@ export function createDatasourceGraph(): CompiledReportGraph {
  */
 export function modifyDatasetGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
-    input: { userMessage: true, intent: true, datasets: true },
+    input: { userMessage: true, intent: true, datasets: true, searchResults: true },
     output: { datasets: true, searchForm: true }
   })
 
@@ -390,8 +451,10 @@ export function deleteDatasetGraph(): CompiledReportGraph {
  * 修改单元格工作流
  */
 export function modifyCellGraph(): CompiledReportGraph {
+  // [修复] input 增加 searchResults：接收主图 load_docs 加载的文档内容，
+  // 配合 LLMDecideNode.buildMessages 注入，单元格子图内的 LLM 节点能看到知识
   const graph = new ReportStateGraph(reportStateSchema, {
-    input: { userMessage: true, intent: true, datasets: true },
+    input: { userMessage: true, intent: true, datasets: true, searchResults: true },
     output: { cellsData: true }
   })
 
@@ -452,7 +515,9 @@ export function modifyCellGraph(): CompiledReportGraph {
   graph.addChannel('modify_and_write_cells_out', writeOut)
   graph.addNode('modify_and_write_cells', new LLMDecideNode({
     nodeId: 'modify_and_write_cells',
-    allowedTools: ['write_cells', 'write_cell', 'get_cell_template', 'backup_data', 'restore_data'],
+    // [修复] 加入 load_report_introduce 作为兜底：主图 load_docs 可能没加载到关键文档，
+    // 子图内 LLM 在发现自己缺知识时（如"父格+表达式"复合需求）可主动补查
+    allowedTools: ['write_cells', 'write_cell', 'get_cell_template', 'backup_data', 'restore_data', 'load_report_introduce'],
     requiredToolResultsAny: ['write_cells', 'write_cell'],
     maxIterations: 4,
     description: '**cellsData 已在 context 中**（上游 read_cells 节点已读完全部目标单元格），**禁止**调用 read_cells / read_cell 重新读取。' +
@@ -498,13 +563,139 @@ export function modifyReportGraph(): CompiledReportGraph {
 
   // 阶段1：知识准备（4 个并行节点）
   graph.addNode('load_docs', async (state, runtime) => {
-    const docs = state.intent?.requiredDocs ?? []
-    const result = await runtime?.toolRegistry.executeTool('load_report_introduce', { fileNames: docs })
-    return { searchResults: { docs: result } }
+    // [修复] 防御性兜底：意图分析可能漏掉 requiredDocs 或填成空数组，
+    // 此时根据 intent + 用户消息关键字自动补齐最小必加载档，避免后续 LLM 零知识可用
+    const intent = state.intent ?? {}
+    const originalDocs: string[] = Array.isArray(intent.requiredDocs) ? intent.requiredDocs : []
+    const docs: string[] = [...originalDocs]
+    const userMsg = String(state.userMessage ?? '')
+
+    // 单元格修改场景：强制追加 CELL_COMMON_ATTRIBUTE（修改单元格必备）
+    if (intent.needsCellOperation && !docs.includes('CELL_COMMON_ATTRIBUTE')) {
+      docs.push('CELL_COMMON_ATTRIBUTE')
+    }
+    // 涉及"父格/子格"等关键字时补齐 PARENT_CELL_RELATION
+    if (/父格|子格|主格|左父格|上父格|父子格/.test(userMsg) && !docs.includes('PARENT_CELL_RELATION')) {
+      docs.push('PARENT_CELL_RELATION')
+    }
+    // 涉及"统计/汇总/求和/表达式/计算/展开数据"等关键字时补齐知识档
+    if (/统计|汇总|求和|求平均|计数|聚合|合计|累计|展开数据|公式|表达式|计算/.test(userMsg)) {
+      if (!docs.includes('EXPRESSION_CELL')) docs.push('EXPRESSION_CELL')
+      if (!docs.includes('EXPRESSION')) docs.push('EXPRESSION')
+      if (!docs.includes('FUNCTION')) docs.push('FUNCTION')
+    }
+
+    const stepId = 'load_docs'
+    const toolCallId = `wf_load_docs_${Date.now()}`
+
+    // [增强] 会话级缓存去重：同文档不重复加载、不重复写 tool_result 到 messages
+    // 解决"会话内多次重载同一文档"导致的 token 浪费问题
+    const memoryManager = runtime?.memoryManager
+    const cache = memoryManager?.getKnowledgeCache()
+    const missingDocs = cache ? cache.filterMissing(docs) : docs
+    const hitDocs = docs.filter(d => !missingDocs.includes(d))
+
+    // [决策点日志] 状态变化处打日志：实际加载的文档列表，便于排查漏加载
+    console.log(`[DEBUG][load_docs] requiredDocs=${JSON.stringify(originalDocs)} → 期望=${JSON.stringify(docs)} → 缓存命中=${JSON.stringify(hitDocs)} → 待加载=${JSON.stringify(missingDocs)}`)
+
+    // 缓存全部命中：直接走"无需加载"分支，零工具调用、零 token 消耗
+    if (cache && missingDocs.length === 0) {
+      runtime?.emitEvent({
+        mode: 'updates',
+        event: {
+          nodeId: stepId,
+          output: { type: 'step_progress', message: `📚 知识库已就绪：${docs.join('、')}（全部命中会话缓存，未重复加载）` },
+          status: 'success'
+        },
+        timestamp: Date.now()
+      })
+      // 注意：state.searchResults 只存 docRefs（几十字节），不存全文
+      // 文档全文从 cache 走，避免 binop 累积膨胀
+      return { searchResults: { docRefs: docs } }
+    }
+
+    // 有缺失文档：发射工具调用事件
+    runtime?.emitEvent({
+      mode: 'updates',
+      event: {
+        nodeId: stepId,
+        output: {
+          type: 'step_progress',
+          message: hitDocs.length > 0
+            ? `📚 加载知识库：${docs.join('、')}（命中 ${hitDocs.length} 个、新加载 ${missingDocs.length} 个）`
+            : `📚 加载知识库：${docs.length > 0 ? docs.join('、') : '（无需文档）'}`
+        },
+        status: 'running'
+      },
+      timestamp: Date.now()
+    })
+    runtime?.emitEvent({
+      mode: 'updates',
+      event: {
+        nodeId: stepId,
+        output: {
+          type: 'tool_call',
+          toolCallId,
+          toolName: 'load_report_introduce',
+          input: { fileNames: missingDocs }
+        },
+        status: 'running'
+      },
+      timestamp: Date.now()
+    })
+
+    // 调工具：只请求缺失文档（注意：传 missingDocs 而非 docs）
+    const result = await runtime?.toolRegistry.executeTool('load_report_introduce', { fileNames: missingDocs })
+
+    // [增强] 写缓存：把工具返回内容存到 cache，跨 turn 复用
+    // 工具返回结构体 { docs: Record<fileName, content> }：每篇文档按 fileName 一一对应
+    // 直接 putBatch 即可，无需再按分隔符切分，根除"只缓存首篇"导致的重复加载 bug
+    // 兜底：若 result 是字符串（旧调用方/异常），按分隔符切分后按 missingDocs 顺序映射
+    if (cache && result) {
+      const docsMap = extractDocsMap(result, missingDocs)
+      if (docsMap && Object.keys(docsMap).length > 0) {
+        cache.putBatch(docsMap)
+      }
+    }
+
+    // [增强] 写 1 条 tool_result 到 messages（仅缺失部分，且只在首次加载时）
+    // 关键：load_docs 是普通函数节点，不会自动写 messages，必须手动 addMessage
+    // 标记 docRefs=missingDocs，让 buildMessages.getLoadedDocNames() 能检测到
+    // 注意：load_docs 第 2 次跑时如果全部命中缓存（missingDocs=[]），不写 messages（避免累加）
+    // 内容用纯文本格式（[docName]\ncontent）而不是 JSON，LLM 和聊天 UI 都友好
+    if (memoryManager && missingDocs.length > 0) {
+      memoryManager.addMessage({
+        role: 'tool_result',
+        toolCallId,
+        toolName: 'load_report_introduce',
+        content: formatDocsAsText(result),
+        docRefs: [...missingDocs]  // 关键标记：记录本次 tool_result 加载的文档名
+      })
+    }
+
+    runtime?.emitEvent({
+      mode: 'updates',
+      event: {
+        nodeId: stepId,
+        output: {
+          type: 'tool_result',
+          toolCallId,
+          toolName: 'load_report_introduce',
+          result: formatDocsAsText(result)
+        },
+        status: result ? 'success' : 'failed'
+      },
+      timestamp: Date.now()
+    })
+
+    // [修复] state.searchResults 只存 docRefs（不存全文）
+    // 全文走 cache，binop 累加只增 docRefs 数组（不会膨胀）
+    return { searchResults: { docRefs: docs } }
   }, {
     triggers: ['__start__'],
     triggerMode: 'all',
-    metadata: { silent: true, description: '加载本地知识库' }
+    // [修复] 不再设为 silent：用户需要看到知识库加载步骤，工具调用必须显式呈现
+    metadata: { description: '加载本地知识库' }
   })
 
   const searchBusinessOut = new LastValueAfterFinishChannel<any>()
@@ -630,7 +821,9 @@ export function modifyReportGraph(): CompiledReportGraph {
     triggers: ['plan_tasks_out', 'select_datasource_op_out'],
     triggerMode: 'any',
     skipWhen: (state) => state.intent?.datasourceOperationType !== 'create_datasource',
-    input: { datasources: true, intent: true, userMessage: true },
+    // [修复] input 增加 searchResults：把主图 load_docs 加载的文档带进子图，
+    // 子图内的 LLM 节点能通过 buildMessages 看到文档内容
+    input: { datasources: true, intent: true, userMessage: true, searchResults: true },
     output: { datasources: true },
     metadata: { description: '创建数据源子流程' }
   })
@@ -645,7 +838,8 @@ export function modifyReportGraph(): CompiledReportGraph {
     triggers: ['plan_tasks_out', 'select_datasource_op_out'],
     triggerMode: 'any',
     skipWhen: (state) => state.intent?.datasourceOperationType !== 'create_dataset',
-    input: { datasources: true, intent: true, userMessage: true },
+    // [修复] input 增加 searchResults
+    input: { datasources: true, intent: true, userMessage: true, searchResults: true },
     output: { datasets: true, searchForm: true },
     metadata: { description: '创建数据集子流程' }
   })
@@ -660,7 +854,8 @@ export function modifyReportGraph(): CompiledReportGraph {
     triggers: ['plan_tasks_out', 'select_datasource_op_out'],
     triggerMode: 'any',
     skipWhen: (state) => state.intent?.datasourceOperationType !== 'modify_dataset',
-    input: { datasets: true, intent: true, userMessage: true },
+    // [修复] input 增加 searchResults
+    input: { datasets: true, intent: true, userMessage: true, searchResults: true },
     output: { datasets: true, searchForm: true },
     metadata: { description: '修改数据集子流程' }
   })
@@ -677,7 +872,9 @@ export function modifyReportGraph(): CompiledReportGraph {
     triggers: ['plan_tasks_out', 'select_datasource_op_out'],
     triggerMode: 'any',
     skipWhen: (state) => !state.intent?.needsCellOperation,
-    input: { datasets: true, cellsData: true, intent: true },
+    // [修复] input 增加 searchResults：让单元格子图的 LLM 节点能拿到文档知识，
+    // 解决"修改父格+统计展开数据"这种复合需求 LLM 不知道如何设置表达式类型的问题
+    input: { datasets: true, cellsData: true, intent: true, searchResults: true },
     output: { cellsData: true },
     metadata: { description: '修改单元格子流程' }
   })
@@ -780,8 +977,10 @@ export function analyzeReportGraph(): CompiledReportGraph {
 
   graph.addNode('load_docs', async (state, runtime) => {
     const docs = state.intent?.requiredDocs ?? []
+    // [修复] 工具返回结构体 { docs: { [fileName]: content } }，统一用 extractDocsMap 提取
+    // 与主图 load_docs 节点行为一致，避免 analyze 图里 searchResults.docs 出现双层嵌套
     const result = await runtime?.toolRegistry.executeTool('load_report_introduce', { fileNames: docs })
-    return { searchResults: { docs: result } }
+    return { searchResults: { docs: extractDocsMap(result, docs) } }
   }, {
     triggers: ['__start__'],
     triggerMode: 'all',

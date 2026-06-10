@@ -7,6 +7,7 @@ import type {
   SessionPersistence,
   ContextWindowConfig
 } from './types'
+import { KnowledgeCache } from './knowledge-cache'
 import { contextConfig } from '@/config'
 
 /**
@@ -39,6 +40,21 @@ export class MemoryManager {
 
   /** 第4层：报表状态快照 */
   private reportSnapshot: ReportSnapshot | null = null
+
+  /**
+   * 第5层（增强）：会话级知识文档缓存
+   * 解决"同一文档不重复加载" vs "压缩后不丢文档内容" 的矛盾
+   * load_docs 节点按 docName 增量加载；compact() 把已加载清单注入 summary
+   */
+  private knowledgeCache: KnowledgeCache = new KnowledgeCache()
+
+  /**
+   * 暴露知识文档缓存，供 load_docs 节点和 LLMDecideNode 使用
+   * @returns KnowledgeCache 实例
+   */
+  getKnowledgeCache(): KnowledgeCache {
+    return this.knowledgeCache
+  }
 
   /** 第5层：会话ID，用于持久化 key */
   private sessionId: string = ''
@@ -120,11 +136,33 @@ export class MemoryManager {
    * @param message - 记忆消息
    */
   addMessage(message: MemoryMessage): void {
+    // [增强] load_report_introduce 工具结果只存 1 份到 messages（不存全文，由 cache 维护）
+    // 根因：messages 是追加数组，每 turn 都调工具会导致同一文档累加 N 份 3000 字 tool_result
+    // 解决：第 2 次起不再 addMessage（cache 已存全文，buildMessages 会从 cache 取）
+    // 注意：这里只能"判断是否应该 addMessage"，真正的去重决策在调用方（load_docs 节点）
     // 第1层截断已注释：当前截取策略影响工具结果读取体验，待后续优化截断策略后再启用
     // if (message.role === 'tool_result') {
     //   message = this.truncateToolResult(message)
     // }
     this.messages.push(message)
+  }
+
+  /**
+   * 获取 messages 里所有 load_report_introduce 已加载的文档名集合
+   * 用于 LLMDecideNode.buildMessages 检测"该文档是否已通过 tool_result 注入到上下文"
+   * 如果已注入 → knowledgeBlock 拼"已加载"提示即可，无需重复注入全文
+   *
+   * @returns 已加载的文档名集合，Set<string>
+   */
+  getLoadedDocNames(): Set<string> {
+    const result = new Set<string>()
+    for (const msg of this.messages) {
+      // 兼容两种角色命名：tool_result（自定义）和 tool（OpenAI 协议）
+      if ((msg.role === 'tool_result' || msg.role === 'tool') && msg.docRefs) {
+        for (const doc of msg.docRefs) result.add(doc)
+      }
+    }
+    return result
   }
 
   /**
@@ -217,6 +255,15 @@ export class MemoryManager {
   compact(compactResult: CompactResult): void {
     this.summary = compactResult.summary
     this.keyOperations = compactResult.keyOperations
+    // [增强] 压缩时把知识文档清单追加到 summary，
+    // 避免 LLM 在压缩后忘了"已经加载过哪些文档"而误判为"需要重新加载"
+    // 注意：只追加清单（几十字节），不追加文档全文（避免 LLM 压缩时塞爆）
+    const knowledgeInventory = this.knowledgeCache.exportInventory()
+    if (knowledgeInventory) {
+      this.summary = this.summary
+        ? `${this.summary}\n\n${knowledgeInventory}`
+        : knowledgeInventory
+    }
     // 保留最近消息，早期消息已被摘要替代
     // 确保保留的消息以 user 角色开头，满足 OpenAI 协议要求
     let kept = this.messages.slice(-this.config.compactKeepRecent)
