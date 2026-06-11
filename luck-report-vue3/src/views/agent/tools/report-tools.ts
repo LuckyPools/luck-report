@@ -6,7 +6,6 @@ import {
   getCellTemplateByType,
   getSqlDatasetTemplate,
   getBuildinDatasourceTemplate,
-  CellSchema,
   CellPositionSchema,
   CellsSchema,
   DatasetSchema,
@@ -15,7 +14,6 @@ import {
   PaperSchema,
   RowDefinitionSchema,
   ColumnDefinitionSchema,
-  validateCell,
   validateCells,
   validateDataset,
   validateDatasource,
@@ -23,8 +21,9 @@ import {
   validatePaper,
   validateRowDefinition,
   validateColumnDefinition,
-  normalizeCell,
-  normalizeCells
+  normalizeCells,
+  normalizeRowDefinitions,
+  normalizeColumnDefinitions
 } from './schema/index'
 
 /**
@@ -132,64 +131,6 @@ export const searchAgentKnowledgeTool: ToolDefinition<{
 // ============ 单元格操作工具 ============
 
 /**
- * 读取单元格数据工具
- * 读取指定行列坐标的单元格定义，包含值、样式、表达式等信息
- * 只读工具，可并发执行
- */
-export const readCellTool: ToolDefinition<{
-  rowIndex: number;
-  colIndex: number;
-}> = {
-  name: 'read_cell',
-  description: '读取指定坐标的单元格数据，返回单元格的完整定义（值、样式、表达式等）。行列索引从0开始。',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      rowIndex: { type: 'integer', description: '单元格行坐标，从0开始' },
-      colIndex: { type: 'integer', description: '单元格列坐标，从0开始' }
-    },
-    required: ['rowIndex', 'colIndex']
-  },
-  execute: async ({ rowIndex, colIndex }) => {
-    return executeCode(`readCell({rowIndex:${rowIndex},colIndex:${colIndex}})`)
-  },
-  readOnly: true,
-  requireConfirm: false
-}
-
-/**
- * 写入单元格定义工具
- * 写入指定坐标的单元格完整定义数据，执行前自动备份，执行后回读验证
- * 写操作工具，需串行执行
- */
-export const writeCellTool: ToolDefinition<{
-  rowIndex: number;
-  colIndex: number;
-  cell: any;
-}> = {
-  name: 'write_cell',
-  description: '写入指定坐标的单元格完整定义数据。行列索引从0开始。执行前自动备份，执行后回读验证。返回 { success, message } 结构。',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      rowIndex: { type: 'integer', description: '单元格行坐标，从0开始' },
-      colIndex: { type: 'integer', description: '单元格列坐标，从0开始' },
-      cell: CellSchema
-    },
-    required: ['rowIndex', 'colIndex', 'cell']
-  },
-  execute: async ({ rowIndex, colIndex, cell }) => {
-    // 入口规范化：用模板补齐 LLM 可能漏掉的字段（cellStyle/rowSpan/expand 等）
-    // 与 validate 职责分离：normalize 只补字段，validate 已在上游检查结构性错误
-    const normalized = normalizeCell(cell, rowIndex, colIndex)
-    return executeCode(`writeCell({rowIndex:${rowIndex},colIndex:${colIndex},cell:${JSON.stringify(normalized)}})`)
-  },
-  readOnly: false,
-  requireConfirm: false,
-  validate: ({ cell }) => validateCell(cell)
-}
-
-/**
  * 批量读取单元格数据工具
  * 根据坐标数组一次性读取多个单元格的定义数据
  * 只读工具，可并发执行
@@ -198,7 +139,7 @@ export const readCellsTool: ToolDefinition<{
   cellPositionArray: Array<{ row: number; col: number }>;
 }> = {
   name: 'read_cells',
-  description: '批量读取多个单元格数据，返回以 "row,col" 为key的单元格定义对象。行列号从1开始。适用于需要同时读取多个单元格的场景，比多次调用read_cell更高效。',
+  description: '批量读取多个单元格数据，返回以 "row,col" 为key的单元格定义对象。行列号从1开始。适用于需要同时读取多个单元格的场景，一次调用即可获取全部目标单元格。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -304,7 +245,7 @@ export const setDatasourcesTool: ToolDefinition<{
     return executeCode(`setDatasources({datasources:${JSON.stringify(datasources)}})`)
   },
   readOnly: false,
-  requireConfirm: true
+  requireConfirm: false
 }
 
 /**
@@ -709,7 +650,7 @@ export const setSearchFormTool: ToolDefinition<{
     return executeCode(`setSearchForm({searchForm:${JSON.stringify(searchForm)}})`)
   },
   readOnly: false,
-  requireConfirm: true
+  requireConfirm: false
 }
 
 // ============ 页面配置操作工具 ============
@@ -768,25 +709,29 @@ export const updatePaperTool: ToolDefinition<{
 
 /**
  * 获取行数据工具
- * 可获取全部行或按行号查询单行数据
+ * 接收行号数组，按需返回 { 行号: 行定义 } 格式的对象
  * 只读工具，可并发执行
  */
 export const getRowsTool: ToolDefinition<{
-  rowNumber?: number;
+  rowNumbers?: number[];
 }> = {
   name: 'get_rows',
-  description: '获取表格行数据。不传rowNumber返回全部行，传入rowNumber返回指定行的数据。',
+  description: '获取表格行数据。rowNumbers 为行号数组（从1开始），按需返回 { 行号: 行定义 } 格式的对象；不传 rowNumbers 则返回全部行。',
   inputSchema: {
     type: 'object',
     properties: {
-      rowNumber: { type: 'integer', description: '行号，不传则返回全部行' }
+      rowNumbers: {
+        type: 'array',
+        items: { type: 'integer', minimum: 1 },
+        description: '行号数组（从1开始），按需返回指定行；不传则返回全部行'
+      }
     },
     required: []
   },
-  execute: async ({ rowNumber }) => {
+  execute: async ({ rowNumbers }) => {
     const args: string[] = []
-    if (rowNumber !== undefined) {
-      args.push(`rowNumber:${rowNumber}`)
+    if (Array.isArray(rowNumbers)) {
+      args.push(`rowNumbers:${JSON.stringify(rowNumbers)}`)
     }
     return executeCode(`getRows({${args.join(',')}})`)
   },
@@ -795,64 +740,44 @@ export const getRowsTool: ToolDefinition<{
 }
 
 /**
- * 设置全部行数据工具
- * 整体替换行数据列表
+ * 批量设置行数据工具
+ * 接收 { 行号: 行定义 } 格式的对象，整体合并更新行配置
+ * 执行前自动备份行高数据，异常时自动回滚
  * 写操作工具，需串行执行，需用户确认
  */
 export const setRowsTool: ToolDefinition<{
-  rows: any[];
+  rows: Record<string, any>;
 }> = {
   name: 'set_rows',
-  description: `整体替换全部行数据。此操作会覆盖现有行配置，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- rowNumber: 从1开始的行号\n- height: 行高(pt)\n- band: null(普通行)/headerrepeat(重复表头)/footerrepeat(重复表尾)/title(标题行)/summary(总结行)',
+  description: `批量更新行数据。rows 为 { 行号: 行定义 } 格式的对象，行号作为 key（从1开始），例如 { "1": {"height":30,"band":"title"}, "2": {"height":25} }。执行前自动备份，异常时自动回滚。返回 { success: true/false, message: '...' } 结构。` +
+    '\n\n数据约束：\n- key 为行号（从1开始的字符串或数字）\n- value.height: 行高(pt)，必填\n- value.band: null(普通行)/headerrepeat(重复表头)/footerrepeat(重复表尾)/title(标题行)/summary(总结行)',
   inputSchema: {
     type: 'object',
     properties: {
-      rows: { type: 'array', items: RowDefinitionSchema, description: '行定义数组' }
+      rows: {
+        type: 'object',
+        additionalProperties: RowDefinitionSchema,
+        description: '行定义对象，key 为行号（从1开始），value 为行定义（包含 height 必填、band 可选）'
+      }
     },
     required: ['rows']
   },
   execute: async ({ rows }) => {
     // 校验每行数据
-    for (const row of rows) {
+    for (const [key, row] of Object.entries(rows)) {
+      const rowNumber = parseInt(key, 10)
+      if (isNaN(rowNumber) || rowNumber < 1) {
+        return { success: false, message: `数据校验失败: 无效的行号 "${key}"` }
+      }
       const error = validateRowDefinition(row)
       if (error) {
-        return { success: false, message: `数据校验失败: ${error}` }
+        return { success: false, message: `行 ${rowNumber} 数据校验失败: ${error}` }
       }
     }
-    return executeCode(`setRows({rows:${JSON.stringify(rows)}})`)
-  },
-  readOnly: false,
-  requireConfirm: true
-}
-
-/**
- * 更新行工具
- * 按行号匹配替换行定义
- * 写操作工具，需串行执行
- */
-export const updateRowTool: ToolDefinition<{
-  rowNumber: number;
-  row: any;
-}> = {
-  name: 'update_row',
-  description: `按行号匹配更新行定义。会完全替换该行号的行配置。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- rowNumber: 从1开始的行号\n- row.height: 行高(pt)\n- row.band: null/headerrepeat/footerrepeat/title/summary',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      rowNumber: { type: 'integer', description: '目标行号，从1开始' },
-      row: RowDefinitionSchema
-    },
-    required: ['rowNumber', 'row']
-  },
-  execute: async ({ rowNumber, row }) => {
-    // 校验数据
-    const error = validateRowDefinition(row)
-    if (error) {
-      return { success: false, message: `数据校验失败: ${error}` }
-    }
-    return executeCode(`updateRow({rowNumber:${rowNumber},row:${JSON.stringify(row)}})`)
+    // 入口规范化：按行号 key 逐个补齐 LLM 漏掉的可选字段（如 band）
+    // 与 validate 职责分离：normalize 只补字段，validate 已在上游检查结构性错误
+    const normalized = normalizeRowDefinitions(rows)
+    return executeCode(`setRows({rows:${JSON.stringify(normalized)}})`)
   },
   readOnly: false,
   requireConfirm: false
@@ -862,25 +787,29 @@ export const updateRowTool: ToolDefinition<{
 
 /**
  * 获取列数据工具
- * 可获取全部列或按列号查询单列数据
+ * 接收列号数组，按需返回 { 列号: 列定义 } 格式的对象
  * 只读工具，可并发执行
  */
 export const getColumnsTool: ToolDefinition<{
-  columnNumber?: number;
+  columnNumbers?: number[];
 }> = {
   name: 'get_columns',
-  description: '获取表格列数据。不传columnNumber返回全部列，传入columnNumber返回指定列的数据。',
+  description: '获取表格列数据。columnNumbers 为列号数组（从1开始），按需返回 { 列号: 列定义 } 格式的对象；不传 columnNumbers 则返回全部列。',
   inputSchema: {
     type: 'object',
     properties: {
-      columnNumber: { type: 'integer', description: '列号，不传则返回全部列' }
+      columnNumbers: {
+        type: 'array',
+        items: { type: 'integer', minimum: 1 },
+        description: '列号数组（从1开始），按需返回指定列；不传则返回全部列'
+      }
     },
     required: []
   },
-  execute: async ({ columnNumber }) => {
+  execute: async ({ columnNumbers }) => {
     const args: string[] = []
-    if (columnNumber !== undefined) {
-      args.push(`columnNumber:${columnNumber}`)
+    if (Array.isArray(columnNumbers)) {
+      args.push(`columnNumbers:${JSON.stringify(columnNumbers)}`)
     }
     return executeCode(`getColumns({${args.join(',')}})`)
   },
@@ -889,64 +818,44 @@ export const getColumnsTool: ToolDefinition<{
 }
 
 /**
- * 设置全部列数据工具
- * 整体替换列数据列表
+ * 批量设置列数据工具
+ * 接收 { 列号: 列定义 } 格式的对象，整体合并更新列配置
+ * 执行前自动备份列宽数据，异常时自动回滚
  * 写操作工具，需串行执行，需用户确认
  */
 export const setColumnsTool: ToolDefinition<{
-  columns: any[];
+  columns: Record<string, any>;
 }> = {
   name: 'set_columns',
-  description: `整体替换全部列数据。此操作会覆盖现有列配置，请谨慎使用。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- columnNumber: 从1开始的列号\n- width: 列宽(px)\n- hide: 是否隐藏列',
+  description: `批量更新列数据。columns 为 { 列号: 列定义 } 格式的对象，列号作为 key（从1开始），例如 { "1": {"width":120}, "2": {"width":80,"hide":true} }。执行前自动备份，异常时自动回滚。返回 { success: true/false, message: '...' } 结构。` +
+    '\n\n数据约束：\n- key 为列号（从1开始的字符串或数字）\n- value.width: 列宽(px)，必填\n- value.hide: 是否隐藏列，可选',
   inputSchema: {
     type: 'object',
     properties: {
-      columns: { type: 'array', items: ColumnDefinitionSchema, description: '列定义数组' }
+      columns: {
+        type: 'object',
+        additionalProperties: ColumnDefinitionSchema,
+        description: '列定义对象，key 为列号（从1开始），value 为列定义（包含 width 必填、hide 可选）'
+      }
     },
     required: ['columns']
   },
   execute: async ({ columns }) => {
     // 校验每列数据
-    for (const column of columns) {
+    for (const [key, column] of Object.entries(columns)) {
+      const columnNumber = parseInt(key, 10)
+      if (isNaN(columnNumber) || columnNumber < 1) {
+        return { success: false, message: `数据校验失败: 无效的列号 "${key}"` }
+      }
       const error = validateColumnDefinition(column)
       if (error) {
-        return { success: false, message: `数据校验失败: ${error}` }
+        return { success: false, message: `列 ${columnNumber} 数据校验失败: ${error}` }
       }
     }
-    return executeCode(`setColumns({columns:${JSON.stringify(columns)}})`)
-  },
-  readOnly: false,
-  requireConfirm: true
-}
-
-/**
- * 更新列工具
- * 按列号匹配替换列定义
- * 写操作工具，需串行执行
- */
-export const updateColumnTool: ToolDefinition<{
-  columnNumber: number;
-  column: any;
-}> = {
-  name: 'update_column',
-  description: `按列号匹配更新列定义。会完全替换该列号的列配置。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。` +
-    '\n\n数据约束：\n- columnNumber: 从1开始的列号\n- column.width: 列宽(px)\n- column.hide: 是否隐藏列',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      columnNumber: { type: 'integer', description: '目标列号，从1开始' },
-      column: ColumnDefinitionSchema
-    },
-    required: ['columnNumber', 'column']
-  },
-  execute: async ({ columnNumber, column }) => {
-    // 校验数据
-    const error = validateColumnDefinition(column)
-    if (error) {
-      return { success: false, message: `数据校验失败: ${error}` }
-    }
-    return executeCode(`updateColumn({columnNumber:${columnNumber},column:${JSON.stringify(column)}})`)
+    // 入口规范化：按列号 key 逐个补齐 LLM 漏掉的可选字段（如 hide）
+    // 与 validate 职责分离：normalize 只补字段，validate 已在上游检查结构性错误
+    const normalized = normalizeColumnDefinitions(columns)
+    return executeCode(`setColumns({columns:${JSON.stringify(normalized)}})`)
   },
   readOnly: false,
   requireConfirm: false
@@ -1275,7 +1184,7 @@ export const saveReportTool: ToolDefinition<{
     return executeCode(`saveReport({${args.join(',')}})`)
   },
   readOnly: false,
-  requireConfirm: true
+  requireConfirm: false
 }
 
 /**
@@ -1469,8 +1378,7 @@ export const clearCellAllTool: ToolDefinition<{
     return executeCode(`clearCellAll({startRow:${startRow},endRow:${endRow},startCol:${startCol},endCol:${endCol}})`)
   },
   readOnly: false,
-  // 高危操作：清空全部（含样式）不可逆，弹窗让用户确认
-  requireConfirm: true
+  requireConfirm: false
 }
 
 // ============ 数据源操作路由工具 ============

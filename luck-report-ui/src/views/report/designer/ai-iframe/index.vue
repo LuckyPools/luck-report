@@ -190,10 +190,10 @@ export default {
      * agent 代码中可直接调用注册表中的任何方法名
      *
      * 支持的代码格式：
-     * 1. 单条表达式：readCell({rowIndex:0,colIndex:0})
-     * 2. 多语句代码块：writeCell({...}); readCell({...})
-     * 3. 带 return 的代码：const r = readCell({...}); return r
-     * 4. 用大括号包裹的代码块：{ writeCell({...}); return readCell({...}) }
+     * 1. 单条表达式：readCells({cellPositionArray:[{row:1,col:1}]})
+     * 2. 多语句代码块：writeCells({cells:{"1,1":{...}}}); readCells({...})
+     * 3. 带 return 的代码：const r = readCells({...}); return r
+     * 4. 用大括号包裹的代码块：{ writeCells({...}); return readCells({...}) }
      *
      * @param {string} codeString - 代码字符串
      * @param {string} requestId - 请求 ID，用于返回结果

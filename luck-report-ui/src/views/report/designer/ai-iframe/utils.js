@@ -1,5 +1,4 @@
 import {
-  readCell,
   writeCell as doWriteCell,
   getCell,
   getDatasources,
@@ -15,12 +14,10 @@ import {
   setSearchForm,
   getPaperConfig,
   updatePaper,
-  getRows,
-  setRows,
-  updateRow as doUpdateRow,
+  getRows as doGetRows,
+  setRows as doSetRows,
   getColumns as doGetColumns,
   setColumns as doSetColumns,
-  updateColumn as doUpdateColumn,
   getContext
 } from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
@@ -47,7 +44,7 @@ import store from '@/store';
 
 /**
  * 工具执行结果构造函数
- * 规范 writeCell 等写操作工具的返回值类型，包含详细的成功/失败信息
+ * 规范 writeCells 等写操作工具的返回值类型，包含详细的成功/失败信息
  *
  * @param {boolean} success - 是否执行成功
  * @param {string} message - 成功/失败的详细信息
@@ -136,8 +133,6 @@ const ToolResult = {
  * - 所有方法统一使用 ({ ... }) 解构对象参数格式，便于 iframe postMessage 传递
  */
 export const agentMethodRegistry = {
-    readCell,
-    writeCell,
     getDatasources,
     setDatasources,
     addDatasource,
@@ -153,10 +148,8 @@ export const agentMethodRegistry = {
     updatePaper,
     getRows,
     setRows,
-    updateRow,
     getColumns,
     setColumns,
-    updateColumn,
     mergeCells,
     insertRow,
     deleteRow,
@@ -183,54 +176,6 @@ export const agentMethodRegistry = {
 };
 
 /**
- * 写入单元格定义数据（AI Agent 版本）
- * 执行前自动备份当前单元格数据，执行后回读验证修改是否生效
- *
- * @param {Object} params - 参数对象
- * @param {number} params.rowIndex - 单元格行坐标，从0开始
- * @param {number} params.colIndex - 单元格列坐标，从0开始
- * @param {Object} params.cell - 完整的单元格定义对象，需符合 CellDefinition 数据模型
- * @return {number} 1 表示修改成功，0 表示修改失败
- */
-function writeCell({ rowIndex, colIndex, cell }) {
-    if (cell === null || cell === undefined) {
-        console.error('[AiIframe] writeCell: cell 不能为空');
-        return ToolResult.error('单元格定义对象不能为空');
-    }
-
-    // 备份当前单元格数据，用于异常还原
-    const oldCell = getCell(rowIndex, colIndex);
-    pushBackup({
-        description: `修改单元格 (${rowIndex},${colIndex})`,
-        type: 'writeCell',
-        restore: function () {
-            if (oldCell) {
-                doWriteCell({ rowIndex, colIndex, cell: deepCopy(oldCell) });
-            }
-        }
-    });
-
-    try {
-        doWriteCell({ rowIndex, colIndex, cell });
-    } catch (error) {
-        console.error('[AiIframe] writeCell 执行失败:', error);
-        // 异常时自动还原备份数据
-        const restoreResult = popAndRestore();
-        console.log('[AiIframe] writeCell 已自动还原备份:', restoreResult.message);
-        return ToolResult.error(`写入单元格失败: ${extractErrorInfo(error)}`);
-    }
-
-    // 回读验证修改是否生效
-    const newCell = getCell(rowIndex, colIndex);
-    if (!newCell) {
-        console.error('[AiIframe] writeCell: 回读验证失败，单元格不存在');
-        return ToolResult.error('回读验证失败，单元格不存在');
-    }
-
-    return ToolResult.success('单元格写入成功');
-}
-
-/**
  * 批量读取单元格数据（AI Agent 版本）
  * 根据坐标数组一次性读取多个单元格的定义数据
  *
@@ -251,7 +196,14 @@ function readCells({ cellPositionArray }) {
             return ToolResult.error(`坐标缺少 row 或 col 属性: ${JSON.stringify(pos)}`);
         }
         // cellPositionArray 中 row/col 从1开始，getCell 需要 rowIndex/colIndex 从0开始
-        const cellData = getCell(pos.row - 1, pos.col - 1);
+        let cellData;
+        try {
+            cellData = getCell(pos.row - 1, pos.col - 1);
+        } catch (error) {
+            // [关键决策点] 状态变化：读取单元格失败 → 关键日志，便于排查真实原因
+            console.error('[AiIframe] readCells: getCell 抛异常', pos, error);
+            return ToolResult.error(`readCells 失败，坐标 ${pos.row},${pos.col}，原因: ${extractErrorInfo(error)}`);
+        }
         const key = `${pos.row},${pos.col}`;
         result[key] = cellData;
     }
@@ -263,7 +215,7 @@ function readCells({ cellPositionArray }) {
  * 批量写入单元格定义数据（AI Agent 版本）
  * 以 "row,col" 为key的单元格数据对象，一次性写入多个单元格
  * 执行前自动备份所有目标单元格数据，执行后回读验证
- * 参照 writeCell 实现，支持备份、异常还原和回读验证
+ * 参照单格写入工具的实现，支持备份、异常还原和回读验证
  *
  * @param {Object} params - 参数对象
  * @param {Object} params.cells - 单元格数据对象，key为 "row,col" 格式（从1开始），value为单元格定义对象
@@ -306,11 +258,13 @@ function writeCells({ cells }) {
     });
 
     // 逐个写入单元格
-    const failedKeys = [];
+    // 失败原因用对象记录，key=坐标，value=具体异常原因（来自 extractErrorInfo 解析），
+    // 避免之前只 push(key) 导致 message 只能给 LLM 看坐标、看不到为啥失败
+    const failedReasons = {};
     for (const [key, cell] of Object.entries(cells)) {
         if (cell === null || cell === undefined) {
             console.error('[AiIframe] writeCells: 单元格定义对象不能为空', key);
-            failedKeys.push(key);
+            failedReasons[key] = '单元格定义对象不能为空（LLM 传了 null/undefined）';
             continue;
         }
         const parts = key.split(',');
@@ -319,16 +273,24 @@ function writeCells({ cells }) {
         try {
             doWriteCell({ rowIndex: row - 1, colIndex: col - 1, cell });
         } catch (error) {
-            console.error('[AiIframe] writeCells: 写入单元格失败', key, error);
-            failedKeys.push(key);
+            // [关键决策点] 状态变化：写入失败 → 关键日志，便于排查真实原因
+            // extractErrorInfo 能从 JavaScript 异常 / axios 错误 / 后端 API 错误里抽出 msg/message
+            const reason = extractErrorInfo(error);
+            console.error('[AiIframe] writeCells: 写入单元格失败', key, reason, error);
+            failedReasons[key] = reason;
         }
     }
 
+    const failedKeys = Object.keys(failedReasons);
     // 有失败的单元格时，自动还原备份
     if (failedKeys.length > 0) {
         const restoreResult = popAndRestore();
         console.log('[AiIframe] writeCells 已自动还原备份:', restoreResult.message);
-        return ToolResult.error(`批量写入单元格失败，失败坐标: ${failedKeys.join(', ')}`);
+        // 拼接每个失败坐标 + 真实原因；让 LLM 能直接定位是 schema 错 / 类型不匹配 / 表格未挂载 还是别的
+        const detail = failedKeys
+            .map(k => `${k}: ${failedReasons[k]}`)
+            .join('；');
+        return ToolResult.error(`批量写入单元格失败，失败详情: ${detail}`);
     }
 
     // 回读验证所有单元格是否写入成功
@@ -338,10 +300,11 @@ function writeCells({ cells }) {
         const col = parseInt(parts[1], 10);
         const newCell = getCell(row - 1, col - 1);
         if (!newCell) {
-            console.error('[AiIframe] writeCells: 回读验证失败，单元格不存在', key);
+            const reason = `回读验证失败，单元格不存在（context.cellsMap 中查不到 ${row},${col}）`;
+            console.error('[AiIframe] writeCells: 回读验证失败', key, reason);
             const restoreResult = popAndRestore();
             console.log('[AiIframe] writeCells 已自动还原备份:', restoreResult.message);
-            return ToolResult.error(`回读验证失败，单元格不存在: ${key}`);
+            return ToolResult.error(`${reason}（已自动还原备份）`);
         }
     }
 
@@ -589,74 +552,97 @@ function deleteCol({ startCol, endCol }) {
     }
 }
 
+// ============ 行操作方法 ============
+
 /**
- * 更新行定义（AI Agent 版本）
- * 更新指定行的定义数据（如高度等），执行前自动备份，执行后同步更新表格显示
+ * 获取行数据（AI Agent 版本）
+ * 接收行号数组，按需返回 { 行号: 行定义 } 格式的对象
+ * 类似 readCellsTool 的批量读取语义
  *
  * @param {Object} params - 参数对象
- * @param {number} params.rowNumber - 目标行号（从1开始）
- * @param {Object} params.row - 新的行定义对象，包含 height 等属性
- * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
+ * @param {number[]} [params.rowNumbers] - 行号数组（从1开始），不传则返回全部行
+ * @return {Object} 以行号（字符串）为 key、行定义为 value 的对象
  */
-function updateRow({ rowNumber, row }) {
+function getRows({ rowNumbers } = {}) {
+    if (rowNumbers !== undefined && !Array.isArray(rowNumbers)) {
+        console.error('[AiIframe] getRows: rowNumbers 必须是数组');
+        return ToolResult.error('rowNumbers 必须是数组');
+    }
+    return doGetRows({ rowNumbers });
+}
+
+/**
+ * 批量设置行数据（AI Agent 版本）
+ * 接收 { 行号: 行定义 } 格式的对象，整体合并更新行配置
+ * 执行前自动备份行高数据，执行后同步更新表格显示
+ * 异常时自动回滚备份，参考 updateRow 的备份/还原实现
+ *
+ * @param {Object} params - 参数对象
+ * @param {Object} params.rows - 以行号（字符串或数字）为 key 的行定义对象集合
+ * @return {Object} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
+ */
+function setRows({ rows }) {
     const table = TableManager.get();
     if (!table) {
-        console.error('[AiIframe] updateRow: 表格实例不存在');
+        console.error('[AiIframe] setRows: 表格实例不存在');
         return ToolResult.error('操作失败，请检查参数是否正确');
     }
+    if (!rows || typeof rows !== 'object' || Array.isArray(rows) || Object.keys(rows).length === 0) {
+        console.error('[AiIframe] setRows: rows 必须是行号到行定义的对象');
+        return ToolResult.error('rows 必须是行号到行定义的对象');
+    }
 
-    // 备份当前行数据
+    // 备份当前行高数据
     const oldRowHeights = deepCopy(table.getSettings().rowHeights);
-    const rowIndex = rowNumber - 1;
 
     pushBackup({
-        description: `更新行 ${rowNumber} 定义`,
-        type: 'updateRow',
+        description: '批量更新行数据',
+        type: 'setRows',
         restore: function () {
             const t = TableManager.get();
             if (t) {
                 t.updateSettings({ rowHeights: oldRowHeights, manualRowResize: oldRowHeights });
             }
-            // 还原 Vuex 数据
-            const oldHeight = oldRowHeights[rowIndex] ? Math.round(oldRowHeights[rowIndex] / 1.33) : undefined;
-            if (oldHeight !== undefined) {
-                doUpdateRow({ rowNumber, row: { rowNumber, height: oldHeight } });
-            }
         }
     });
 
     try {
-        // 1. 更新 Vuex store 数据
-        doUpdateRow({ rowNumber, row });
+        // 1. 更新 Vuex store 数据（contextActions 内部已做 keyed 对象 → 数组的转换）
+        doSetRows({ rows });
 
         // 2. 同步更新 Handsontable 表格行高
-        if (row && row.height !== undefined) {
-            // reportDef 中 height 是 point 单位，Handsontable 使用 pixel 单位
-            // 转换公式：pixel = point * 1.33
-            const heightInPixel = Math.round(row.height * 1.33);
-
-            const rowHeights = table.getSettings().rowHeights || [];
-            // 确保 rowHeights 数组长度足够
-            while (rowHeights.length <= rowIndex) {
-                rowHeights.push(table.getSettings().defaultRowHeight || 23);
+        const rowHeights = table.getSettings().rowHeights || [];
+        const defaultHeight = table.getSettings().defaultRowHeight || 23;
+        for (const key of Object.keys(rows)) {
+            const row = rows[key];
+            if (row && row.height !== undefined) {
+                const rowIndex = parseInt(key, 10) - 1;
+                if (rowIndex < 0) continue;
+                // reportDef 中 height 是 point 单位，Handsontable 使用 pixel 单位
+                // 转换公式：pixel = point * 1.33
+                const heightInPixel = Math.round(row.height * 1.33);
+                // 确保 rowHeights 数组长度足够
+                while (rowHeights.length <= rowIndex) {
+                    rowHeights.push(defaultHeight);
+                }
+                rowHeights[rowIndex] = heightInPixel;
             }
-            rowHeights[rowIndex] = heightInPixel;
-
-            table.updateSettings({
-                rowHeights: rowHeights,
-                manualRowResize: rowHeights
-            });
-            table.render();
         }
+        table.updateSettings({
+            rowHeights: rowHeights,
+            manualRowResize: rowHeights
+        });
+        table.render();
 
-        console.log(`[AiIframe] updateRow: 已更新行 ${rowNumber} 定义`);
-        return ToolResult.success('操作成功');
+        console.log(`[AiIframe] setRows: 已批量更新 ${Object.keys(rows).length} 行定义`);
+        return ToolResult.success(`已批量更新 ${Object.keys(rows).length} 行定义`);
     } catch (error) {
-        console.error('[AiIframe] updateRow 执行失败:', error);
+        // [关键决策点] 状态变化：setRows 失败 → 关键日志，便于排查真实原因
+        console.error('[AiIframe] setRows 执行失败:', error);
         // 异常时自动还原备份数据
         const restoreResult = popAndRestore();
-        console.log('[AiIframe] updateRow 已自动还原备份:', restoreResult.message);
-        return ToolResult.error('操作失败，请检查参数是否正确');
+        console.log('[AiIframe] setRows 已自动还原备份:', restoreResult.message);
+        return ToolResult.error(`setRows 失败（已自动还原备份），原因: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -664,23 +650,29 @@ function updateRow({ rowNumber, row }) {
 
 /**
  * 获取列数据（AI Agent 版本）
- * 直接调用 contextActions 的 getColumns 方法
+ * 接收列号数组，按需返回 { 列号: 列定义 } 格式的对象
  *
  * @param {Object} params - 参数对象
- * @param {number} [params.columnNumber] - 列号，不传则返回全部列
- * @return {Object|Array|null} 列数据
+ * @param {number[]} [params.columnNumbers] - 列号数组（从1开始），不传则返回全部列
+ * @return {Object} 以列号（字符串）为 key、列定义为 value 的对象
  */
-function getColumns({ columnNumber } = {}) {
-    return doGetColumns({ columnNumber });
+function getColumns({ columnNumbers } = {}) {
+    if (columnNumbers !== undefined && !Array.isArray(columnNumbers)) {
+        console.error('[AiIframe] getColumns: columnNumbers 必须是数组');
+        return ToolResult.error('columnNumbers 必须是数组');
+    }
+    return doGetColumns({ columnNumbers });
 }
 
 /**
- * 设置全部列数据（AI Agent 版本）
- * 整体替换列数据列表，执行前自动备份
+ * 批量设置列数据（AI Agent 版本）
+ * 接收 { 列号: 列定义 } 格式的对象，整体合并更新列配置
+ * 执行前自动备份列宽数据，执行后同步更新表格显示
+ * 异常时自动回滚备份
  *
  * @param {Object} params - 参数对象
- * @param {Array} params.columns - 列定义数组
- * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
+ * @param {Object} params.columns - 以列号（字符串或数字）为 key 的列定义对象集合
+ * @return {Object} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
  */
 function setColumns({ columns }) {
     const table = TableManager.get();
@@ -688,119 +680,59 @@ function setColumns({ columns }) {
         console.error('[AiIframe] setColumns: 表格实例不存在');
         return ToolResult.error('操作失败，请检查参数是否正确');
     }
+    if (!columns || typeof columns !== 'object' || Array.isArray(columns) || Object.keys(columns).length === 0) {
+        console.error('[AiIframe] setColumns: columns 必须是列号到列定义的对象');
+        return ToolResult.error('columns 必须是列号到列定义的对象');
+    }
 
-    // 备份当前列数据
+    // 备份当前列宽数据
     const oldColWidths = deepCopy(table.getSettings().colWidths);
 
     pushBackup({
-        description: '整体替换列数据',
+        description: '批量更新列数据',
         type: 'setColumns',
         restore: function () {
             const t = TableManager.get();
             if (t) {
                 t.updateSettings({ colWidths: oldColWidths });
             }
-            // 还原 Vuex 数据需要重新获取原始列数据
         }
     });
 
     try {
-        // 1. 更新 Vuex store 数据
+        // 1. 更新 Vuex store 数据（contextActions 内部已做 keyed 对象 → 数组的转换）
         doSetColumns({ columns });
 
         // 2. 同步更新 Handsontable 表格列宽
-        if (columns && columns.length > 0) {
-            const colWidths = [];
-            columns.forEach(col => {
-                if (col.width !== undefined) {
-                    // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
-                    // 转换公式：pixel = point * 1.33
-                    colWidths.push(Math.round(col.width * 1.33));
-                } else {
-                    colWidths.push(table.getSettings().defaultColWidth || 100);
+        const colWidths = table.getSettings().colWidths || [];
+        const defaultWidth = table.getSettings().defaultColWidth || 100;
+        for (const key of Object.keys(columns)) {
+            const column = columns[key];
+            if (column && column.width !== undefined) {
+                const colIndex = parseInt(key, 10) - 1;
+                if (colIndex < 0) continue;
+                // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
+                // 转换公式：pixel = point * 1.33
+                const widthInPixel = Math.round(column.width * 1.33);
+                // 确保 colWidths 数组长度足够
+                while (colWidths.length <= colIndex) {
+                    colWidths.push(defaultWidth);
                 }
-            });
-
-            table.updateSettings({ colWidths: colWidths });
-            table.render();
+                colWidths[colIndex] = widthInPixel;
+            }
         }
+        table.updateSettings({ colWidths: colWidths });
+        table.render();
 
-        console.log('[AiIframe] setColumns: 已整体替换列数据');
-        return ToolResult.success('操作成功');
+        console.log(`[AiIframe] setColumns: 已批量更新 ${Object.keys(columns).length} 列定义`);
+        return ToolResult.success(`已批量更新 ${Object.keys(columns).length} 列定义`);
     } catch (error) {
+        // [关键决策点] 状态变化：setColumns 失败 → 关键日志，便于排查真实原因
         console.error('[AiIframe] setColumns 执行失败:', error);
         // 异常时自动还原备份数据
         const restoreResult = popAndRestore();
         console.log('[AiIframe] setColumns 已自动还原备份:', restoreResult.message);
-        return ToolResult.error('操作失败，请检查参数是否正确');
-    }
-}
-
-/**
- * 更新列定义（AI Agent 版本）
- * 更新指定列的定义数据（如宽度等），执行前自动备份，执行后同步更新表格显示
- *
- * @param {Object} params - 参数对象
- * @param {number} params.columnNumber - 目标列号（从1开始）
- * @param {Object} params.column - 新的列定义对象，包含 width 等属性
- * @return {number} ToolResult.success('操作成功') 表示成功，ToolResult.error('操作失败，请检查参数是否正确') 表示失败
- */
-function updateColumn({ columnNumber, column }) {
-    const table = TableManager.get();
-    if (!table) {
-        console.error('[AiIframe] updateColumn: 表格实例不存在');
-        return ToolResult.error('操作失败，请检查参数是否正确');
-    }
-
-    // 备份当前列数据
-    const oldColWidths = deepCopy(table.getSettings().colWidths);
-    const colIndex = columnNumber - 1;
-
-    pushBackup({
-        description: `更新列 ${columnNumber} 定义`,
-        type: 'updateColumn',
-        restore: function () {
-            const t = TableManager.get();
-            if (t) {
-                t.updateSettings({ colWidths: oldColWidths });
-            }
-            // 还原 Vuex 数据
-            const oldWidth = oldColWidths[colIndex] ? Math.round(oldColWidths[colIndex] / 1.33) : undefined;
-            if (oldWidth !== undefined) {
-                doUpdateColumn({ columnNumber, column: { columnNumber, width: oldWidth } });
-            }
-        }
-    });
-
-    try {
-        // 1. 更新 Vuex store 数据
-        doUpdateColumn({ columnNumber, column });
-
-        // 2. 同步更新 Handsontable 表格列宽
-        if (column && column.width !== undefined) {
-            // reportDef 中 width 是 point 单位，Handsontable 使用 pixel 单位
-            // 转换公式：pixel = point * 1.33
-            const widthInPixel = Math.round(column.width * 1.33);
-
-            const colWidths = table.getSettings().colWidths || [];
-            // 确保 colWidths 数组长度足够
-            while (colWidths.length <= colIndex) {
-                colWidths.push(table.getSettings().defaultColWidth || 100);
-            }
-            colWidths[colIndex] = widthInPixel;
-
-            table.updateSettings({ colWidths: colWidths });
-            table.render();
-        }
-
-        console.log(`[AiIframe] updateColumn: 已更新列 ${columnNumber} 定义`);
-        return ToolResult.success('操作成功');
-    } catch (error) {
-        console.error('[AiIframe] updateColumn 执行失败:', error);
-        // 异常时自动还原备份数据
-        const restoreResult = popAndRestore();
-        console.log('[AiIframe] updateColumn 已自动还原备份:', restoreResult.message);
-        return ToolResult.error('操作失败，请检查参数是否正确');
+        return ToolResult.error(`setColumns 失败（已自动还原备份），原因: ${extractErrorInfo(error)}`);
     }
 }
 
@@ -1223,7 +1155,10 @@ function clearCellContent({ startRow, endRow, startCol, endCol }) {
         type: 'clearCellContent',
         restore: function () {
             for (const item of oldCells) {
-                doWriteCell({ rowIndex: item.row, colIndex: item.col, cell: deepCopy(item.cell) });
+                // 最小写入：setCell 走 Vuex，triggerCellUpdate 通知监听器；
+                // 异常穿透由 popAndRestore 内部处理
+                setCell(item.row, item.col, deepCopy(item.cell));
+                store.dispatch('report/triggerCellUpdate');
             }
         }
     });
@@ -1231,11 +1166,12 @@ function clearCellContent({ startRow, endRow, startCol, endCol }) {
     try {
         doCleanCells(startRow, endRow, startCol, endCol, 'content');
     } catch (error) {
+        // [关键决策点] 状态变化：clearCellContent 失败 → 关键日志，便于排查真实原因
         console.error('[AiIframe] clearCellContent 执行失败:', error);
         // 异常时自动还原备份数据
         const restoreResult = popAndRestore();
         console.log('[AiIframe] clearCellContent 已自动还原备份:', restoreResult.message);
-        return ToolResult.error('操作失败，请检查参数是否正确');
+        return ToolResult.error(`clearCellContent 失败（已自动还原备份），原因: ${extractErrorInfo(error)}`);
     }
 
     return ToolResult.success('操作成功');
@@ -1283,7 +1219,10 @@ function clearCellStyle({ startRow, endRow, startCol, endCol }) {
         type: 'clearCellStyle',
         restore: function () {
             for (const item of oldCells) {
-                doWriteCell({ rowIndex: item.row, colIndex: item.col, cell: deepCopy(item.cell) });
+                // 最小写入：setCell 走 Vuex，triggerCellUpdate 通知监听器；
+                // 异常穿透由 popAndRestore 内部处理
+                setCell(item.row, item.col, deepCopy(item.cell));
+                store.dispatch('report/triggerCellUpdate');
             }
         }
     });
@@ -1291,11 +1230,12 @@ function clearCellStyle({ startRow, endRow, startCol, endCol }) {
     try {
         doCleanCells(startRow, endRow, startCol, endCol, 'style');
     } catch (error) {
+        // [关键决策点] 状态变化：clearCellStyle 失败 → 关键日志，便于排查真实原因
         console.error('[AiIframe] clearCellStyle 执行失败:', error);
         // 异常时自动还原备份数据
         const restoreResult = popAndRestore();
         console.log('[AiIframe] clearCellStyle 已自动还原备份:', restoreResult.message);
-        return ToolResult.error('操作失败，请检查参数是否正确');
+        return ToolResult.error(`clearCellStyle 失败（已自动还原备份），原因: ${extractErrorInfo(error)}`);
     }
 
     return ToolResult.success('操作成功');
@@ -1343,7 +1283,10 @@ function clearCellAll({ startRow, endRow, startCol, endCol }) {
         type: 'clearCellAll',
         restore: function () {
             for (const item of oldCells) {
-                doWriteCell({ rowIndex: item.row, colIndex: item.col, cell: deepCopy(item.cell) });
+                // 最小写入：setCell 走 Vuex，triggerCellUpdate 通知监听器；
+                // 异常穿透由 popAndRestore 内部处理
+                setCell(item.row, item.col, deepCopy(item.cell));
+                store.dispatch('report/triggerCellUpdate');
             }
         }
     });
@@ -1351,11 +1294,12 @@ function clearCellAll({ startRow, endRow, startCol, endCol }) {
     try {
         doCleanCells(startRow, endRow, startCol, endCol, 'all');
     } catch (error) {
+        // [关键决策点] 状态变化：clearCellAll 失败 → 关键日志，便于排查真实原因
         console.error('[AiIframe] clearCellAll 执行失败:', error);
         // 异常时自动还原备份数据
         const restoreResult = popAndRestore();
         console.log('[AiIframe] clearCellAll 已自动还原备份:', restoreResult.message);
-        return ToolResult.error('操作失败，请检查参数是否正确');
+        return ToolResult.error(`clearCellAll 失败（已自动还原备份），原因: ${extractErrorInfo(error)}`);
     }
 
     return ToolResult.success('操作成功');

@@ -29,7 +29,8 @@ export interface LLMDecideNodeOptions {
   requiredToolResults?: string[]
   /**
    * 至少要执行其中一个的工具列表（OR 语义：任一执行成功即可），string[]，可选
-   * 典型场景：write_cells 和 write_cell 二选一，强制"必须写入"但不限制方式
+   * 典型场景：单写工具场景下用 requiredToolResults 强制调用；当允许"只读"或"只规划"分支时，
+   * 可用本字段放宽为"任一工具调用过即视为节点完成"
    */
   requiredToolResultsAny?: string[]
   /** 步骤内 LLM 最大循环轮次，默认 5 */
@@ -236,28 +237,51 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
             this.emitToolCall(runtime, nodeId, mappedToolCallId, event.toolName, event.input)
             try {
               const result = await runtime.toolRegistry.executeTool(event.toolName, event.input)
-              toolResults[event.toolName] = result
-              this.emitToolResult(runtime, nodeId, mappedToolCallId, event.toolName, result)
+
+              // [Plan A 修复] 业务失败归一：工具返回 {success:false, message, data} 时，
+              // 必须把 toolResults 中的值改写成 {error:message} 形态，
+              // 让 checkRequiredTools 的 `!result || result.error` 判定能正确识别为失败，
+              // 避免"工具业务失败但被节点误判为成功、整步直接 finish、不再重试"的 BUG
+              // 根因：原逻辑只把 throw 路径的失败用 {error} 形态存，业务失败被原样保留 success:false，
+              //       checkRequiredTools 看到的是非 falsy 且无 error 属性 → 误判为成功
+              let normalizedResult = result
+              if (result && typeof result === 'object' && result.success === false) {
+                const errMsg = result.message || '工具业务执行失败'
+                // [关键决策点] 业务失败 → 关键日志，便于排查"为什么任务没重试"
+                console.warn(
+                  `[WARN][llm-decide] [${nodeId}] 工具 ${event.toolName} 业务失败: ${errMsg}`
+                )
+                normalizedResult = { error: errMsg, success: false, message: errMsg }
+                // 同步发射到事件流，让 UI 也能看到失败态（之前用 null result 会被误以为成功）
+                this.emitToolResult(runtime, nodeId, mappedToolCallId, event.toolName, normalizedResult, errMsg)
+              } else {
+                this.emitToolResult(runtime, nodeId, mappedToolCallId, event.toolName, result)
+              }
+              toolResults[event.toolName] = normalizedResult
 
               // 暂存中间结果到 outChannel（不入版本号）
               // [修复] 设置 resultKey 时，把每次工具结果合并暂存，
               // 避免多工具调用相互覆盖；finish 时再统一 stage 给同名 state Channel
               if (this.options.resultKey) {
                 if (!accumulatedResult) accumulatedResult = {}
-                if (result && typeof result === 'object' && !Array.isArray(result)) {
+                if (normalizedResult && typeof normalizedResult === 'object' && !Array.isArray(normalizedResult)) {
                   // 把工具返回的对象按 key 合并（如 {"1,1": def, "2,2": def}）
-                  Object.assign(accumulatedResult, result)
+                  // 业务失败时 resultKey 模式下不合并到 accumulatedResult，避免污染下游
+                  if (normalizedResult.success !== false) {
+                    Object.assign(accumulatedResult, normalizedResult)
+                  }
                 } else {
                   // 标量/数组型结果，按 toolName 放二级键
-                  accumulatedResult[event.toolName] = result
+                  accumulatedResult[event.toolName] = normalizedResult
                 }
               } else {
-                outChannel.stage({ [event.toolName]: result })
+                outChannel.stage({ [event.toolName]: normalizedResult })
               }
 
-              // [修复] 工具执行成功后，立即检查必需工具是否已全部满足
+              // [修复] 工具执行后（无论成功或业务失败），立即检查必需工具是否已全部满足
               // 满足则标记提前退出，避免 LLM 在后续轮次重复调用已成功的工具
-              // 典型症状：read_cells 已返回结果却再调一次、write_cells 成功后仍循环重试
+              // [Plan A 修复] 业务失败时 checkRequiredTools 现在会识别为缺失，requiredToolsSatisfied 不会置 true，
+              //               LLM 就有机会在同一节点的下一次 iteration 重试该工具
               const missingNow = this.checkRequiredTools(toolResults)
               const missingAnyNow = this.checkRequiredToolsAny(toolResults)
               if (missingNow.length === 0 && missingAnyNow.length === 0) {
@@ -283,7 +307,12 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
               messages.push({
                 role: 'tool',
                 tool_call_id: mappedToolCallId,
-                content: JSON.stringify(result)
+                // [Plan A 修复] 业务失败时把 {error, message} 都塞给 LLM，让 LLM 看到具体失败原因用于重试决策
+                content: JSON.stringify(
+                  normalizedResult.success === false
+                    ? { error: normalizedResult.error, success: false, message: normalizedResult.message }
+                    : normalizedResult
+                )
               })
             } catch (err: any) {
               this.emitToolResult(runtime, nodeId, mappedToolCallId, event.toolName, null, err.message)
@@ -311,6 +340,41 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
                 `必需=${JSON.stringify(this.options.requiredToolResults)}/缺任一=${JSON.stringify(this.options.requiredToolResultsAny)} ` +
                 `LLM回复="${preview}"`
               )
+            }
+            // [加固 C] retry 兜底：LLM 一轮拒调必需工具 → 追加强制 user 消息 → 进入下一轮 while
+            // 根因：LLM 在 modify_and_write_* 等节点可能用 ReAct 文本格式输出 tool call，
+            //       本节点 adapter 只识别 native function calling，导致 LLM 实际有调用意图但被丢弃
+            //       retry 时通过 user 消息明确告诉 LLM 必须用 native 格式 + 必须调哪些工具
+            // 边界：仅在 hasRequiredTools && !hasToolCall && 还有重试余量时追加
+            //       iteration 已被顶部自增，此时 iteration === maxIterations 表示已用尽所有重试
+            if (
+              !hasToolCall
+              && hasRequiredTools
+              && iteration < maxIterations
+            ) {
+              // [关键决策点] 状态变化：进入 retry 阶段
+              console.warn(
+                `[WARN][llm-decide] [${nodeId}] 第${iteration}轮未调必需工具，追加系统强制消息进入第${iteration + 1}轮重试`
+              )
+              // 构造强制 user 消息：明确列必需工具 + 强调 native function calling 格式
+              // 用 user 角色而非 system 角色，避免 LLM 把 system 当默认值而忽略
+              const requiredAny = this.options.requiredToolResultsAny ?? []
+              const requiredAll = this.options.requiredToolResults ?? []
+              const requiredHint = [
+                ...requiredAll.map(t => `必须调: ${t}`),
+                ...(requiredAny.length > 0 ? [`必须调任一: ${requiredAny.join(' / ')}`] : [])
+              ].join('；')
+              messages.push({
+                role: 'user',
+                content:
+                  `【系统强制提示】你刚才没有调用必需工具，本步骤会失败。\n` +
+                  `你必须：${requiredHint}。\n` +
+                  `请使用 OpenAI 原生 function calling 格式输出 tool_calls，**不要**把工具调用写到文本 content 里（不要用 \`\`\`json {"tool": ...} \`\`\` 这种格式）。\n` +
+                  `立即重新调用必需工具。`
+              })
+              // [关键] 不设置 iteration = maxIterations，让 while 自然进入下一轮
+              // while 顶部 iteration++ 继续推进，maxIterations 兜底防无限循环
+              break
             }
             // [修复] 三重退出条件（满足任一即退出）：
             // 1. 必需工具已全部完成 → 不再给 LLM 机会重复调用已成功的工具

@@ -54,3 +54,7 @@ export type { LLMCaller, LLMEvent, LLMCallOptions, WorkflowRuntimeOptions } from
 // LLMDecideNode
 export { LLMDecideNode } from './llm-decide-node'
 export type { LLMDecideNodeOptions } from './llm-decide-node'
+
+// ToolCallNode
+export { ToolCallNode } from './tool-call-node'
+export type { ToolCallNodeOptions, ToolCallArgs } from './tool-call-node'

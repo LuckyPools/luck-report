@@ -271,22 +271,6 @@ const mutations = {
     }
   },
 
-  /**
-   * 更新行（按rowNumber匹配替换）
-   * @param {Object} state - Vuex状态对象
-   * @param {Object} payload - 载荷
-   * @param {number} payload.rowNumber - 目标行号
-   * @param {Object} payload.row - 新的行定义对象
-   */
-  CONTEXT_UPDATE_ROW(state, { rowNumber, row }) {
-    if (state.context && state.context.reportDef && state.context.reportDef.rows) {
-      const index = state.context.reportDef.rows.findIndex(r => r.rowNumber === rowNumber);
-      if (index > -1) {
-        state.context.reportDef.rows.splice(index, 1, row);
-      }
-    }
-  },
-
   // ============ Column 操作 ============
 
   /**
@@ -298,22 +282,6 @@ const mutations = {
   CONTEXT_SET_COLUMNS(state, { columns }) {
     if (state.context && state.context.reportDef) {
       state.context.reportDef.columns = columns;
-    }
-  },
-
-  /**
-   * 更新列（按columnNumber匹配替换）
-   * @param {Object} state - Vuex状态对象
-   * @param {Object} payload - 载荷
-   * @param {number} payload.columnNumber - 目标列号
-   * @param {Object} payload.column - 新的列定义对象
-   */
-  CONTEXT_UPDATE_COLUMN(state, { columnNumber, column }) {
-    if (state.context && state.context.reportDef && state.context.reportDef.columns) {
-      const index = state.context.reportDef.columns.findIndex(c => c.columnNumber === columnNumber);
-      if (index > -1) {
-        state.context.reportDef.columns.splice(index, 1, column);
-      }
     }
   },
 
@@ -541,17 +509,6 @@ const actions = {
     commit('CONTEXT_SET_ROWS', { rows });
   },
 
-  /**
-   * 更新行（按rowNumber匹配替换）
-   * @param {Object} param0 - Vuex上下文对象
-   * @param {Object} payload - 载荷
-   * @param {number} payload.rowNumber - 目标行号
-   * @param {Object} payload.row - 新的行定义对象
-   */
-  contextUpdateRow({ commit }, { rowNumber, row }) {
-    commit('CONTEXT_UPDATE_ROW', { rowNumber, row });
-  },
-
   // ============ Column 操作 ============
 
   /**
@@ -561,17 +518,6 @@ const actions = {
    */
   contextSetColumns({ commit }, columns) {
     commit('CONTEXT_SET_COLUMNS', { columns });
-  },
-
-  /**
-   * 更新列（按columnNumber匹配替换）
-   * @param {Object} param0 - Vuex上下文对象
-   * @param {Object} payload - 载荷
-   * @param {number} payload.columnNumber - 目标列号
-   * @param {Object} payload.column - 新的列定义对象
-   */
-  contextUpdateColumn({ commit }, { columnNumber, column }) {
-    commit('CONTEXT_UPDATE_COLUMN', { columnNumber, column });
   },
 
   // ============ 批量操作 ============

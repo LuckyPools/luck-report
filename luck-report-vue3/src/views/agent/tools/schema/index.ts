@@ -118,11 +118,15 @@ export {
   RowDefinitionSchema,
   RowHeaderSchema,
   validateRowDefinition,
-  validateRowHeader
+  validateRowHeader,
+  normalizeRowDefinition,
+  normalizeRowDefinitions
 } from './row-schema'
 
 // 列定义相关 Schema
 export {
   ColumnDefinitionSchema,
-  validateColumnDefinition
+  validateColumnDefinition,
+  normalizeColumnDefinition,
+  normalizeColumnDefinitions
 } from './col-schema'

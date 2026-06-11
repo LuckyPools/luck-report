@@ -217,17 +217,6 @@ export function updateProperty(property, value) {
 // ============ Agent 单元格操作 ============
 
 /**
- * 读取指定坐标的单元格数据
- * @param {Object} params - 参数对象
- * @param {number} params.rowIndex - 单元格行坐标，从0开始
- * @param {number} params.colIndex - 单元格列坐标，从0开始
- * @return {Object|null} 单元格定义对象，不存在时返回 null
- */
-export function readCell({ rowIndex, colIndex }) {
-  return getCell(rowIndex, colIndex);
-}
-
-/**
  * 设置指定坐标的单元格值
  * 执行后会自动触发编辑器组件更新和表格显示刷新
  *
@@ -253,10 +242,8 @@ export function writeCell({ rowIndex, colIndex, cell }) {
       hot.setDataAtCell(rowIndex, colIndex, displayValue);
       hot.render();
     }
-    return ToolResult.SUCCESS;
   } catch (e) {
-    console.error('[contextActions] writeCell 执行失败:', e);
-    return ToolResult.ERROR;
+    throw e;
   }
 }
 
@@ -464,24 +451,67 @@ export function updatePaper({ paper }) {
 // ============ Row 操作 ============
 
 /**
- * 获取表格行数据
+ * 获取表格指定行数据
+ * 接收行号数组，按需返回 { 行号: 行定义 } 格式的对象
+ * 内部存储为数组，此处做格式转换
+ *
  * @param {Object} params - 参数对象
- * @param {number} [params.rowNumber] - 行号，不提供则返回全部行
- * @returns {Object|Array|null} 提供rowNumber返回单行对象，不提供返回行数组
+ * @param {number[]} [params.rowNumbers] - 行号数组（从1开始），不传则返回全部行的键值对
+ * @returns {Object} 以行号（字符串）为 key、行定义为 value 的对象
  */
-export function getRows({ rowNumber } = {}) {
-  return store.getters['report/getRows'](rowNumber);
+export function getRows({ rowNumbers } = {}) {
+  const allRows = store.getters['report/getRows']();
+  const result = {};
+  if (Array.isArray(rowNumbers) && rowNumbers.length > 0) {
+    for (const rowNumber of rowNumbers) {
+      const row = allRows.find(r => r.rowNumber === rowNumber);
+      if (row) {
+        result[String(rowNumber)] = row;
+      }
+    }
+    return result;
+  }
+  // 不传 rowNumbers 时返回全部行（以行号为 key）
+  for (const row of allRows) {
+    result[String(row.rowNumber)] = row;
+  }
+  return result;
 }
 
 /**
- * 设置全部行数据
+ * 批量设置行数据
+ * 接收 { 行号: 行定义 } 格式的对象，整体合并更新到行数据列表
+ * 内部存储仍为数组，此处将对象转换为数组格式后分发
+ *
  * @param {Object} params - 参数对象
- * @param {Array} params.rows - 行定义数组
+ * @param {Object} params.rows - 以行号（字符串或数字）为 key 的行定义对象集合
  * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function setRows({ rows }) {
   try {
-    store.dispatch('report/contextSetRows', rows);
+    // 1. 获取当前所有行（数组形式）
+    const currentRows = store.getters['report/getRows']();
+    // 2. 将 keyed 对象转换为数组
+    const incomingRows = [];
+    for (const key of Object.keys(rows || {})) {
+      const rowNumber = parseInt(key, 10);
+      if (isNaN(rowNumber) || rowNumber < 1) {
+        console.error(`[contextActions] setRows: 无效的行号 "${key}"`);
+        return ToolResult.ERROR;
+      }
+      incomingRows.push({ ...rows[key], rowNumber });
+    }
+    // 3. 合并：按行号去重，incomingRows 中的行覆盖 currentRows 中的行
+    const mergedMap = new Map();
+    for (const r of currentRows) {
+      mergedMap.set(r.rowNumber, r);
+    }
+    for (const r of incomingRows) {
+      mergedMap.set(r.rowNumber, r);
+    }
+    // 4. 按行号升序排序后下发
+    const mergedRows = Array.from(mergedMap.values()).sort((a, b) => a.rowNumber - b.rowNumber);
+    store.dispatch('report/contextSetRows', mergedRows);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] setRows 执行失败:', e);
@@ -489,64 +519,70 @@ export function setRows({ rows }) {
   }
 }
 
-/**
- * 更新行（按rowNumber匹配替换）
- * @param {Object} params - 参数对象
- * @param {number} params.rowNumber - 目标行号
- * @param {Object} params.row - 新的行定义对象
- * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
- */
-export function updateRow({ rowNumber, row }) {
-  try {
-    store.dispatch('report/contextUpdateRow', { rowNumber, row });
-    return ToolResult.SUCCESS;
-  } catch (e) {
-    console.error('[contextActions] updateRow 执行失败:', e);
-    return ToolResult.ERROR;
-  }
-}
-
 // ============ Column 操作 ============
 
 /**
- * 获取表格列数据
+ * 获取表格指定列数据
+ * 接收列号数组，按需返回 { 列号: 列定义 } 格式的对象
+ *
  * @param {Object} params - 参数对象
- * @param {number} [params.columnNumber] - 列号，不提供则返回全部列
- * @returns {Object|Array|null} 提供columnNumber返回单列对象，不提供返回列数组
+ * @param {number[]} [params.columnNumbers] - 列号数组（从1开始），不传则返回全部列的键值对
+ * @returns {Object} 以列号（字符串）为 key、列定义为 value 的对象
  */
-export function getColumns({ columnNumber } = {}) {
-  return store.getters['report/getColumns'](columnNumber);
+export function getColumns({ columnNumbers } = {}) {
+  const allColumns = store.getters['report/getColumns']();
+  const result = {};
+  if (Array.isArray(columnNumbers) && columnNumbers.length > 0) {
+    for (const columnNumber of columnNumbers) {
+      const column = allColumns.find(c => c.columnNumber === columnNumber);
+      if (column) {
+        result[String(columnNumber)] = column;
+      }
+    }
+    return result;
+  }
+  for (const column of allColumns) {
+    result[String(column.columnNumber)] = column;
+  }
+  return result;
 }
 
 /**
- * 设置全部列数据
+ * 批量设置列数据
+ * 接收 { 列号: 列定义 } 格式的对象，整体合并更新到列数据列表
+ *
  * @param {Object} params - 参数对象
- * @param {Array} params.columns - 列定义数组
+ * @param {Object} params.columns - 以列号（字符串或数字）为 key 的列定义对象集合
  * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
  */
 export function setColumns({ columns }) {
   try {
-    store.dispatch('report/contextSetColumns', columns);
+    // 1. 获取当前所有列（数组形式）
+    const currentColumns = store.getters['report/getColumns']();
+    // 2. 将 keyed 对象转换为数组
+    const incomingColumns = [];
+    for (const key of Object.keys(columns || {})) {
+      const columnNumber = parseInt(key, 10);
+      if (isNaN(columnNumber) || columnNumber < 1) {
+        console.error(`[contextActions] setColumns: 无效的列号 "${key}"`);
+        return ToolResult.ERROR;
+      }
+      incomingColumns.push({ ...columns[key], columnNumber });
+    }
+    // 3. 合并：按列号去重，incomingColumns 中的列覆盖 currentColumns 中的列
+    const mergedMap = new Map();
+    for (const c of currentColumns) {
+      mergedMap.set(c.columnNumber, c);
+    }
+    for (const c of incomingColumns) {
+      mergedMap.set(c.columnNumber, c);
+    }
+    // 4. 按列号升序排序后下发
+    const mergedColumns = Array.from(mergedMap.values()).sort((a, b) => a.columnNumber - b.columnNumber);
+    store.dispatch('report/contextSetColumns', mergedColumns);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] setColumns 执行失败:', e);
-    return ToolResult.ERROR;
-  }
-}
-
-/**
- * 更新列（按columnNumber匹配替换）
- * @param {Object} params - 参数对象
- * @param {number} params.columnNumber - 目标列号
- * @param {Object} params.column - 新的列定义对象
- * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
- */
-export function updateColumn({ columnNumber, column }) {
-  try {
-    store.dispatch('report/contextUpdateColumn', { columnNumber, column });
-    return ToolResult.SUCCESS;
-  } catch (e) {
-    console.error('[contextActions] updateColumn 执行失败:', e);
     return ToolResult.ERROR;
   }
 }
@@ -569,8 +605,6 @@ export default {
   setContext,
   updateReportDef,
   updateProperty,
-  readCell,
-  writeCell,
   getDatasources,
   setDatasources,
   addDatasource,
@@ -586,8 +620,6 @@ export default {
   updatePaper,
   getRows,
   setRows,
-  updateRow,
   getColumns,
-  setColumns,
-  updateColumn
+  setColumns
 };

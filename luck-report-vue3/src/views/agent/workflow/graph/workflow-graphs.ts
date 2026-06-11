@@ -12,6 +12,7 @@
 import {
   ReportStateGraph,
   LLMDecideNode,
+  ToolCallNode,
   LastValueAfterFinishChannel,
   defaultRetryOn
 } from './index'
@@ -135,7 +136,7 @@ export function createDatasetGraph(): CompiledReportGraph {
   graph.addChannel('add_dataset_out', addDatasetOut)
   graph.addNode('add_dataset', new LLMDecideNode({
     nodeId: 'add_dataset',
-    allowedTools: ['add_dataset', 'restore_data'],
+    allowedTools: ['add_dataset'],
     requiredToolResults: ['add_dataset'],
     maxIterations: 3,
     description: '调用 add_dataset 写入数据集',
@@ -285,7 +286,7 @@ export function modifyDatasetGraph(): CompiledReportGraph {
   graph.addChannel('update_dataset_out', updateOut)
   graph.addNode('update_dataset', new LLMDecideNode({
     nodeId: 'update_dataset',
-    allowedTools: ['update_dataset', 'restore_data'],
+    allowedTools: ['update_dataset'],
     requiredToolResults: ['update_dataset'],
     maxIterations: 3,
     description: '调用 update_dataset 写入修改',
@@ -459,13 +460,6 @@ export function modifyCellGraph(): CompiledReportGraph {
   })
 
   // 节点1：读取单元格数据
-  // [修复] description 显式声明"本步骤只读，写入在后续步骤"，
-  // 避免 LLM 在本步读到没有写工具后误判整个任务无法完成而拒绝执行
-  // [修复] resultKey='cellsData'：把读到的单元格数据直接写入 state.cellsData，
-  // 否则返回 {read_cells: ...} 永远无法触发下游 ensure_row_col / modify_and_write_cells
-  // [修复] requiredToolResults=['read_cells']：强制 LLM 必须先调 read_cells 拿到数据再结束本步，
-  // 防止 LLM "本步没法写"就输出文本求助导致图引擎死等
-  // [修复] 移除 read_cell（坐标体系 0-based 和 read_cells 的 1-based 冲突），并限制只能调 read_cells 一次
   const readOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_cells_out', readOut)
   graph.addNode('read_cells', new LLMDecideNode({
@@ -474,7 +468,7 @@ export function modifyCellGraph(): CompiledReportGraph {
     requiredToolResults: ['read_cells'],
     maxIterations: 2,
     resultKey: 'cellsData',
-    description: '本步骤仅负责一次性读取用户指定的所有目标单元格（必须把用户提到的全部坐标一次传入 read_cells.cellPositionArray，例如 A1+B2 应传 [{row:1,col:1},{row:2,col:2}]）。**禁止**重复读取、禁止调用 read_cell、禁止输出任何文字向用户提问、禁止在本步骤尝试写入。读到结果后立即结束本步骤，写入操作由后续的 modify_and_write_cells 完成。**读到的 cellsData 会自动进入 modify_and_write_cells 的 context，无需也不允许重读**。',
+    description: '本步骤仅负责一次性读取用户指定的所有目标单元格（必须把用户提到的全部坐标一次传入 read_cells.cellPositionArray，例如 A1+B2 应传 [{row:1,col:1},{row:2,col:2}]）。**禁止**重复读取、禁止输出任何文字向用户提问、禁止在本步骤尝试写入。读到结果后立即结束本步骤，写入操作由后续的 modify_and_write_cells 完成。**读到的 cellsData 会自动进入 modify_and_write_cells 的 context，无需也不允许重读**。',
     outChannelName: 'read_cells_out'
   }), {
     triggers: ['__start__'],
@@ -483,52 +477,69 @@ export function modifyCellGraph(): CompiledReportGraph {
     metadata: { description: '读取单元格数据' }
   })
 
-  // 节点2：确保行列足够
-  const ensureOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('ensure_row_col_out', ensureOut)
-  graph.addNode('ensure_row_col', new LLMDecideNode({
-    nodeId: 'ensure_row_col',
-    allowedTools: ['get_rows', 'get_columns', 'insert_row', 'insert_col', 'set_rows', 'set_columns'],
-    description: '单元格不存在时补齐行列',
-    outChannelName: 'ensure_row_col_out'
-  }), {
+  // 节点2：补齐行列（纯函数，零 LLM）
+  // 解析 cellsData 目标坐标 → 调 get_rows/get_columns 拿当前 rows/cols → 差值时调 insert_row/insert_col
+  // 彻底消除"LLM 漏调 insert_row/insert_col"的概率
+  graph.addNode('check_and_apply_row_col', async (state, runtime) => {
+    const cellsData = state.cellsData
+    if (!cellsData || !runtime) return {}
+
+    // 1. 从 cellsData 的 key 解析目标 maxRow/maxCol（key 为 "row,col"，从1开始）
+    let targetRow = 0
+    let targetCol = 0
+    for (const key of Object.keys(cellsData)) {
+      const [r, c] = key.split(',').map(n => parseInt(n, 10))
+      if (Number.isFinite(r) && r > targetRow) targetRow = r
+      if (Number.isFinite(c) && c > targetCol) targetCol = c
+    }
+    if (targetRow === 0 && targetCol === 0) return {}
+
+    // 2. 调 get_rows / get_columns 拿当前 rows / cols
+    // 工具返回 { "1": def, "2": def } 形式，键数即为行/列数
+    const rowsResult = await runtime.toolRegistry.executeTool('get_rows', {})
+    const colsResult = await runtime.toolRegistry.executeTool('get_columns', {})
+    const currentRows = rowsResult && typeof rowsResult === 'object' ? Object.keys(rowsResult).length : 0
+    const currentCols = colsResult && typeof colsResult === 'object' ? Object.keys(colsResult).length : 0
+
+    // 3. 行不足则补齐（position 是 0-based 索引，追加在末尾）
+    if (currentRows < targetRow) {
+      const args = { position: currentRows, number: targetRow - currentRows }
+      const toolCallId = `check_row_col#${runtime.runId}#insert_row`
+      runtime.emitEvent({ mode: 'updates', event: { nodeId: 'check_and_apply_row_col', output: { type: 'tool_call', toolCallId, toolName: 'insert_row', input: args }, status: 'running' }, timestamp: Date.now() })
+      const result = await runtime.toolRegistry.executeTool('insert_row', args)
+      runtime.emitEvent({ mode: 'updates', event: { nodeId: 'check_and_apply_row_col', output: { type: 'tool_result', toolCallId, toolName: 'insert_row', result }, status: 'success' }, timestamp: Date.now() })
+    }
+
+    // 4. 列不足则补齐
+    if (currentCols < targetCol) {
+      const args = { position: currentCols, number: targetCol - currentCols }
+      const toolCallId = `check_row_col#${runtime.runId}#insert_col`
+      runtime.emitEvent({ mode: 'updates', event: { nodeId: 'check_and_apply_row_col', output: { type: 'tool_call', toolCallId, toolName: 'insert_col', input: args }, status: 'running' }, timestamp: Date.now() })
+      const result = await runtime.toolRegistry.executeTool('insert_col', args)
+      runtime.emitEvent({ mode: 'updates', event: { nodeId: 'check_and_apply_row_col', output: { type: 'tool_result', toolCallId, toolName: 'insert_col', result }, status: 'success' }, timestamp: Date.now() })
+    }
+
+    // 回写 cellsData 触发下游 modify_and_write_cells（同值覆盖，channel version 递增）
+    return { cellsData }
+  }, {
     triggers: ['cellsData'],
     triggerMode: 'any',
-    skipWhen: (state) => {
-      // 单元格已存在时跳过
-      const cellsData = state.cellsData
-      if (!cellsData) return false
-      const values = Object.values(cellsData)
-      return values.length > 0 && values.some(v => v && Object.keys(v).length > 0)
-    },
-    metadata: { description: '确保行列足够' }
+    metadata: { description: '补齐行列' }
   })
 
   // 节点3：修改并写入单元格
-  // [修复] 收紧 allowedTools：除了写工具外，只保留 backup_data（写前自动备份）和 get_cell_template（创建/类型变更场景）
-  // [修复] **移除 read_cells**：上游 read_cells 节点已把数据写入 state.cellsData，本节点不允许再读，
-  // 否则 LLM 会拿到"读一次 + 重读一次"的两份数据，徒增 token 且容易把"新建 vs 修改"场景判断错
-  // [修复] 用 requiredToolResultsAny（OR 语义）替代 requiredToolResults：write_cells 和 write_cell 二选一即可
-  // [修复] maxIterations=4：决策流程最坏需要 get_cell_template + write_cells = 2 步，加 LLM 出错重试 1-2 次的安全垫
-  // [修复] description 强约束：cellsData 已在 context 中，禁止任何形式的"先读"操作
   const writeOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('modify_and_write_cells_out', writeOut)
   graph.addNode('modify_and_write_cells', new LLMDecideNode({
     nodeId: 'modify_and_write_cells',
     // [修复] 加入 load_report_introduce 作为兜底：主图 load_docs 可能没加载到关键文档，
     // 子图内 LLM 在发现自己缺知识时（如"父格+表达式"复合需求）可主动补查
-    allowedTools: ['write_cells', 'write_cell', 'get_cell_template', 'backup_data', 'restore_data', 'load_report_introduce'],
-    requiredToolResultsAny: ['write_cells', 'write_cell'],
-    maxIterations: 4,
-    description: '**cellsData 已在 context 中**（上游 read_cells 节点已读完全部目标单元格），**禁止**调用 read_cells / read_cell 重新读取。' +
-      '按"决策流程"处理每个目标单元格：' +
-      '① 读取 context.cellsData 中的 cell 结构；' +
-      '② 场景判断：' +
-      '- cell 为空/不存在（创建场景）→ 调 get_cell_template({type,rowIndex,colIndex}) 取初始模板，仅改 value；' +
-      '- cell.value.type != 需求类型（类型变更场景）→ 调 get_cell_template({type:新类型}) 取新模板，整体替换 cell；' +
-      '- cell.value.type == 需求类型（同类型修改场景）→ 直接复用 cellsData 中的 cell，仅改 value 字段；' +
-      '③ **一次**调 write_cells({cells:{"row,col":完整cell}}) 写完所有目标，**禁止分多轮写入**。' +
-      '写入完成后立即结束本步骤。',
+    allowedTools: ['write_cells', 'get_cell_template', 'load_report_introduce'],
+    requiredToolResults: ['write_cells'],
+    maxIterations: 6,
+    description: 'cellsData 已在 context 中，禁止重读。按"读 cellsData → 场景判断（空/类型变更/同类型修改）→ 一次 write_cells"流程处理。' +
+      '**索引基准**：get_cell_template 的 rowIndex/colIndex 是 0-based；write_cells 的 key "row,col" 是 1-based，如 C4 → rowIndex=3, colIndex=2, key="4,3"。' +
+      '失败必须按 message 修正后重试 write_cells，禁止换工具。',
     outChannelName: 'modify_and_write_cells_out'
   }), {
     triggers: ['cellsData'],
@@ -538,8 +549,8 @@ export function modifyCellGraph(): CompiledReportGraph {
   })
 
   graph.addEdge('__start__', 'read_cells')
-  graph.addEdge('read_cells', 'ensure_row_col')
-  graph.addEdge('ensure_row_col', 'modify_and_write_cells')
+  graph.addEdge('read_cells', 'check_and_apply_row_col')
+  graph.addEdge('check_and_apply_row_col', 'modify_and_write_cells')
   graph.addEdge('modify_and_write_cells', '__end__')
 
   return graph.compile()
@@ -561,15 +572,14 @@ export function modifyRowGraph(): CompiledReportGraph {
   // 节点1：读取行
   const readOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_rows_out', readOut)
-  graph.addNode('read_rows', new LLMDecideNode({
+  graph.addNode('read_rows', new ToolCallNode({
     nodeId: 'read_rows',
-    allowedTools: ['get_rows'],
-    requiredToolResultsAny: ['get_rows'],
-    maxIterations: 2,
-    resultKey: 'rowData',
-    description: '本步骤仅一次性读取所有行数据，调 get_rows() 一次。' +
-      '**禁止**重读、禁止调用写工具、禁止向用户提问。读完立即结束。',
-    outChannelName: 'read_rows_out'
+    toolName: 'get_rows',
+    // [派生参数] 不传参 = 读所有行；后续若需要"按范围读"可改成函数从 state 取
+    args: {},
+    outChannelName: 'read_rows_out',
+    // [对齐 LLMDecideNode] 保持 resultKey='rowData'，下游 modify_and_write_row 的 triggers=rowData 不变
+    resultKey: 'rowData'
   }), {
     triggers: ['__start__'],
     triggerMode: 'all',
@@ -584,7 +594,7 @@ export function modifyRowGraph(): CompiledReportGraph {
     nodeId: 'ensure_row',
     allowedTools: ['insert_row'],
     description: '检查目标行号是否已存在。已存在直接结束；不存在则调 insert_row 补齐。' +
-      '**禁止**调用 update_row / set_rows / 列相关工具 / write_cells 等。',
+      '**禁止**调用 set_rows / 列相关工具 / write_cells 等。',
     outChannelName: 'ensure_row_out'
   }), {
     triggers: ['rowData'],
@@ -597,11 +607,15 @@ export function modifyRowGraph(): CompiledReportGraph {
   graph.addChannel('modify_and_write_row_out', writeOut)
   graph.addNode('modify_and_write_row', new LLMDecideNode({
     nodeId: 'modify_and_write_row',
-    allowedTools: ['set_rows', 'update_row', 'insert_row', 'backup_data', 'restore_data', 'load_report_introduce'],
-    requiredToolResultsAny: ['set_rows', 'update_row', 'insert_row'],
+    allowedTools: ['set_rows', 'insert_row', 'load_report_introduce'],
+    requiredToolResultsAny: ['set_rows', 'insert_row'],
     maxIterations: 4,
-    description: '**rowData 已在 context 中**，禁止再调 get_rows。' +
-      '单行改 → update_row({rowNumber, row: 完整row对象})；' +
+    description:
+      '【必须调工具】你必须调用 set_rows / insert_row 之一完成写入，' +
+      '否则任务失败。\n' +
+      '【必须用 native 格式】请使用 OpenAI 原生 function calling（tool_calls 字段）输出工具调用，' +
+      '不要把工具调用写到文本 content 里（不要用 ```json {"tool": ...} ``` 这种格式）。\n' +
+      'rowData 已在 context 中，不需要再调 get_rows。\n' +
       '批量改或新建 → set_rows({rows: 全量数组}) 一次性传入。' +
       '禁止分多轮写入。',
     outChannelName: 'modify_and_write_row_out'
@@ -636,15 +650,14 @@ export function modifyColGraph(): CompiledReportGraph {
   // 节点1：读取列
   const readOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_cols_out', readOut)
-  graph.addNode('read_cols', new LLMDecideNode({
+  graph.addNode('read_cols', new ToolCallNode({
     nodeId: 'read_cols',
-    allowedTools: ['get_columns'],
-    requiredToolResultsAny: ['get_columns'],
-    maxIterations: 2,
-    resultKey: 'colData',
-    description: '本步骤仅一次性读取所有列数据，调 get_columns() 一次。' +
-      '**禁止**重读、禁止调用写工具、禁止向用户提问。读完立即结束。',
-    outChannelName: 'read_cols_out'
+    toolName: 'get_columns',
+    // [派生参数] 不传参 = 读所有列；后续若需要"按范围读"可改成函数从 state 取
+    args: {},
+    outChannelName: 'read_cols_out',
+    // [对齐 LLMDecideNode] 保持 resultKey='colData'，下游 modify_and_write_col 的 triggers=colData 不变
+    resultKey: 'colData'
   }), {
     triggers: ['__start__'],
     triggerMode: 'all',
@@ -659,7 +672,7 @@ export function modifyColGraph(): CompiledReportGraph {
     nodeId: 'ensure_col',
     allowedTools: ['insert_col'],
     description: '检查目标列号是否已存在。已存在直接结束；不存在则调 insert_col 补齐。' +
-      '**禁止**调用 update_column / set_columns / 行相关工具 / write_cells 等。',
+      '**禁止**调用 set_columns / 行相关工具 / write_cells 等。',
     outChannelName: 'ensure_col_out'
   }), {
     triggers: ['colData'],
@@ -672,11 +685,15 @@ export function modifyColGraph(): CompiledReportGraph {
   graph.addChannel('modify_and_write_col_out', writeOut)
   graph.addNode('modify_and_write_col', new LLMDecideNode({
     nodeId: 'modify_and_write_col',
-    allowedTools: ['set_columns', 'update_column', 'insert_col', 'backup_data', 'restore_data', 'load_report_introduce'],
-    requiredToolResultsAny: ['set_columns', 'update_column', 'insert_col'],
+    allowedTools: ['set_columns', 'insert_col', 'load_report_introduce'],
+    requiredToolResultsAny: ['set_columns', 'insert_col'],
     maxIterations: 4,
-    description: '**colData 已在 context 中**，禁止再调 get_columns。' +
-      '单列改 → update_column({columnNumber, column: 完整column对象})；' +
+    description:
+      '【必须调工具】你必须调用 set_columns / insert_col 之一完成写入，' +
+      '否则任务失败。\n' +
+      '【必须用 native 格式】请使用 OpenAI 原生 function calling（tool_calls 字段）输出工具调用，' +
+      '不要把工具调用写到文本 content 里（不要用 ```json {"tool": ...} ``` 这种格式）。\n' +
+      'colData 已在 context 中，不需要再调 get_columns。\n' +
       '批量改或新建 → set_columns({columns: 全量数组}) 一次性传入。' +
       '禁止分多轮写入。',
     outChannelName: 'modify_and_write_col_out'
@@ -800,9 +817,6 @@ export function modifyReportGraph(): CompiledReportGraph {
     const result = await runtime?.toolRegistry.executeTool('load_report_introduce', { fileNames: missingDocs })
 
     // [增强] 写缓存：把工具返回内容存到 cache，跨 turn 复用
-    // 工具返回结构体 { docs: Record<fileName, content> }：每篇文档按 fileName 一一对应
-    // 直接 putBatch 即可，无需再按分隔符切分，根除"只缓存首篇"导致的重复加载 bug
-    // 兜底：若 result 是字符串（旧调用方/异常），按分隔符切分后按 missingDocs 顺序映射
     if (cache && result) {
       const docsMap = extractDocsMap(result, missingDocs)
       if (docsMap && Object.keys(docsMap).length > 0) {
@@ -811,10 +825,6 @@ export function modifyReportGraph(): CompiledReportGraph {
     }
 
     // [增强] 写 1 条 tool_result 到 messages（仅缺失部分，且只在首次加载时）
-    // 关键：load_docs 是普通函数节点，不会自动写 messages，必须手动 addMessage
-    // 标记 docRefs=missingDocs，让 buildMessages.getLoadedDocNames() 能检测到
-    // 注意：load_docs 第 2 次跑时如果全部命中缓存（missingDocs=[]），不写 messages（避免累加）
-    // 内容用纯文本格式（[docName]\ncontent）而不是 JSON，LLM 和聊天 UI 都友好
     if (memoryManager && missingDocs.length > 0) {
       memoryManager.addMessage({
         role: 'tool_result',
@@ -892,17 +902,6 @@ export function modifyReportGraph(): CompiledReportGraph {
     metadata: { silent: true, description: '搜索数据源表结构' }
   })
 
-  // 阶段2：意图路由（拆分为两个语义清晰的节点）
-  // 关键改进：原 route_datasource_op 把"任务规划"和"数据源操作路由"混在一起，
-  // 且强制 requiredToolResults=['select_datasource_operation']，导致纯单元格/表单/页面场景
-  // LLM 正确判断后不调用该工具，节点返回 errors，下游 Channel 不提交 → 图提前结束。
-  // 拆为 plan_tasks（通用任务规划器，总跑）+ select_datasource_op（数据源操作路由，仅 needsDatasourceOperation 时跑）
-
-  // 节点2.1：通用任务规划器（任何操作都要跑）
-  // [修复] 收紧 allowedTools：去掉 get_paper_config / get_rows / get_columns / read_cell
-  // 这些与单元格修改场景无关，LLM 之前看到就乱调，典型症状：纯改单元格却调用 get_paper_config / get_rows
-  // 数据源操作由独立的 select_datasource_op 节点处理，plan_tasks 只需保留只读探查工具供 LLM 校验上下文
-  // [修复] maxIterations=1 + requiredToolResults 不设但 LLM 必须在本步不输出任何修改动作（仅探查）
   const planOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('plan_tasks_out', planOut)
   graph.addNode('plan_tasks', new LLMDecideNode({
@@ -912,13 +911,9 @@ export function modifyReportGraph(): CompiledReportGraph {
       'get_search_form'
     ],
     maxIterations: 1,
-    // 关键：不设 requiredToolResults。plan_tasks 是"任务规划器"而非业务执行器，
-    // 缺工具调用 ≠ 规划失败，LLM 应基于 intent 自主决定调用哪些工具
-    // [修复] 移除 read_cells：单元格场景的"读取现有 cell"职责由 modify_cell_subgraph.read_cells 节点承担，
-    // plan_tasks 跑 read_cells 会导致子图重复读一次，且 LLM 拿到 cellsData 后也无法直接用于 modify_and_write_cells
     description: '**只读探查节点**。根据用户需求和 intent，仅调用与本步意图直接相关的只读工具来确认上下文：' +
       '数据源场景：get_datasources/get_datasets；表单场景：get_search_form。' +
-      '**禁止**调用 get_paper_config / get_rows / get_columns / read_cell / read_cells / write_* 等工具；' +
+      '**禁止**调用 get_paper_config / get_rows / get_columns / read_cells / write_* 等工具；' +
       '**禁止**在本节点执行任何修改动作；**禁止**分多轮重复调用同一个工具。' +
       '单元格/行列场景无需本步探查，子图内的 read_cells / read_rows_cols 节点会自动读取。' +
       '一次探查完成后立即结束。',
@@ -927,9 +922,6 @@ export function modifyReportGraph(): CompiledReportGraph {
     // triggers 改用实际 Channel 名（load_docs/search_* 是节点名，不是 Channel）
     triggers: ['searchResults'],
     triggerMode: 'any',
-    // 任意 6 种操作任一需要时都要跑（用于分发到正确的子图）
-    // [修复] 加入 needsRowOperation / needsColOperation：行列调整场景（如"第一行高度设成90"）也要让 plan_tasks 跑
-    // 否则 plan_tasks 会被 skipWhen 跳过，row/col_subgraph 永远不被路由
     skipWhen: (state) => {
       const i = state.intent
       return !i?.needsDatasourceOperation
@@ -962,11 +954,6 @@ export function modifyReportGraph(): CompiledReportGraph {
   })
 
   // 阶段3：子图嵌入
-  // [修复] 子图节点触发条件改为 ['plan_tasks_out', 'select_datasource_op_out'] 任一到位即触发
-  // 原因：
-  //   - plan_tasks_out：纯单元格/表单/页面场景只产出这个 Channel
-  //   - select_datasource_op_out：数据源/数据集场景额外产出这个 Channel
-  // 配合 skipWhen 实现"只跑对应意图的那个子图"
   graph.addNode('create_datasource_subgraph', async (state, runtime) => {
     const subGraph = createDatasourceGraph()
     // [修复] 用 fork() 派生独立 runtime，避免子图 setChannelMap 覆盖主图 channelMap
@@ -1108,8 +1095,6 @@ export function modifyReportGraph(): CompiledReportGraph {
   graph.addEdge(['load_docs', 'search_business', 'search_agent', 'search_schema'], 'plan_tasks')
 
   // 条件路由：阶段2 → 阶段3 子图，按意图路由
-  // 行列已拆为 needsRowOperation / needsColOperation：行+列场景两个子图都需要
-  // 但单条件边只能返回单目标，因此优先派发 row/col，剩余目标由子图之间的条件边接力
   graph.addConditionalEdges('plan_tasks', (state) => {
     const opType = state.intent?.datasourceOperationType
     if (opType === 'create_datasource') return 'create_datasource_subgraph'
@@ -1171,13 +1156,16 @@ export function modifyReportGraph(): CompiledReportGraph {
 /**
  * 分析报表工作流
  * 读取报表的各类配置数据，分析报表结构并返回分析结果
+ * @returns 编译后的可执行图，CompiledReportGraph
  */
 export function analyzeReportGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
     input: { userMessage: true, intent: true },
-    output: { cellsData: true, pageConfig: true, searchForm: true }
+    // [改造] 补齐行/列数据输出，便于 LLM 拿 rowData / colData 回答"行高" / "列宽"类问题
+    output: { cellsData: true, rowData: true, colData: true, pageConfig: true, searchForm: true }
   })
 
+  // ==================== 节点1：加载文档（无条件必跑） ====================
   graph.addNode('load_docs', async (state, runtime) => {
     const docs = state.intent?.requiredDocs ?? []
     // [修复] 工具返回结构体 { docs: { [fileName]: content } }，统一用 extractDocsMap 提取
@@ -1190,6 +1178,7 @@ export function analyzeReportGraph(): CompiledReportGraph {
     metadata: { silent: true, description: '加载报表文档' }
   })
 
+  // ==================== 节点2：读取数据源/数据集 ====================
   const readDatasourcesOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_datasources_out', readDatasourcesOut)
   graph.addNode('read_datasources', new LLMDecideNode({
@@ -1198,26 +1187,73 @@ export function analyzeReportGraph(): CompiledReportGraph {
     description: '读取数据源和数据集信息',
     outChannelName: 'read_datasources_out'
   }), {
-    // [修复] 原 triggers: ['load_docs']（节点名非 Channel），改为 ['searchResults']（load_docs 写 searchResults）
+    // [改造] 改为从 searchResults 触发，与其他 read 节点解耦，支持并行调度
     triggers: ['searchResults'],
     triggerMode: 'any',
+    // [新增] 仅当意图标记需要数据源/数据集时执行；否则不进 stepRecords、不占 LLM 上下文
+    skipWhen: (state) => !state.intent?.needsDatasourceOperation,
     metadata: { description: '读取数据源信息' }
   })
 
+  // ==================== 节点3：读取单元格 ====================
   const readCellsOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_cells_out', readCellsOut)
   graph.addNode('read_cells', new LLMDecideNode({
     nodeId: 'read_cells',
-    allowedTools: ['read_cells', 'read_cell'],
+    allowedTools: ['read_cells'],
     description: '读取单元格数据',
     outChannelName: 'read_cells_out'
   }), {
-    // [修复] 原 triggers: ['read_datasources']（节点名），改为上游 outChannel 'read_datasources_out'
-    triggers: ['read_datasources_out'],
+    // [改造] 改为从 searchResults 触发，与其他 read 节点解耦，支持并行调度
+    triggers: ['searchResults'],
     triggerMode: 'any',
+    // [新增] 仅当意图标记需要读单元格时执行
+    skipWhen: (state) => !state.intent?.needsCellOperation,
     metadata: { description: '读取单元格数据' }
   })
 
+  // ==================== 节点4：读取行数据（新增） ====================
+  const readRowsOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_rows_out', readRowsOut)
+  graph.addNode('read_rows', new ToolCallNode({
+    nodeId: 'read_rows',
+    toolName: 'get_rows',
+    // [派生参数] 不传参 = 读所有行；后续若需要"按行号读"可改成函数从 state 取
+    args: {},
+    outChannelName: 'read_rows_out',
+    // [对齐 LLMDecideNode.resultKey 模式] 下游用 resultKey 作 state 字段
+    resultKey: 'rowData'
+  }), {
+    triggers: ['searchResults'],
+    triggerMode: 'any',
+    // [新增] 仅当意图标记需要行信息时执行
+    skipWhen: (state) => !state.intent?.needsRowOperation,
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取行数据' }
+  })
+
+  // ==================== 节点5：读取列数据（新增） ====================
+  // [改造] 与 read_rows 同样模式，对应 needsColOperation 意图
+  const readColsOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_cols_out', readColsOut)
+  graph.addNode('read_cols', new ToolCallNode({
+    nodeId: 'read_cols',
+    toolName: 'get_columns',
+    // [派生参数] 不传参 = 读所有列
+    args: {},
+    outChannelName: 'read_cols_out',
+    // [对齐 LLMDecideNode.resultKey 模式] 下游用 resultKey 作 state 字段
+    resultKey: 'colData'
+  }), {
+    triggers: ['searchResults'],
+    triggerMode: 'any',
+    // [新增] 仅当意图标记需要列信息时执行
+    skipWhen: (state) => !state.intent?.needsColOperation,
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取列数据' }
+  })
+
+  // ==================== 节点6：读取查询表单 ====================
   const readFormOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_form_out', readFormOut)
   graph.addNode('read_form', new LLMDecideNode({
@@ -1226,12 +1262,15 @@ export function analyzeReportGraph(): CompiledReportGraph {
     description: '读取查询表单配置',
     outChannelName: 'read_form_out'
   }), {
-    // [修复] 原 triggers: ['read_cells']（节点名），改为 'read_cells_out'
-    triggers: ['read_cells_out'],
+    // [改造] 改为从 searchResults 触发，与其他 read 节点解耦，支持并行调度
+    triggers: ['searchResults'],
     triggerMode: 'any',
+    // [新增] 仅当意图标记需要查询表单时执行
+    skipWhen: (state) => !state.intent?.needsFormOperation,
     metadata: { description: '读取查询表单' }
   })
 
+  // ==================== 节点7：读取页面配置 ====================
   const readPageOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('read_page_out', readPageOut)
   graph.addNode('read_page_config', new LLMDecideNode({
@@ -1240,17 +1279,21 @@ export function analyzeReportGraph(): CompiledReportGraph {
     description: '读取页面配置',
     outChannelName: 'read_page_out'
   }), {
-    // [修复] 原 triggers: ['read_form']（节点名），改为 'read_form_out'
-    triggers: ['read_form_out'],
+    // [改造] 改为从 searchResults 触发，与其他 read 节点解耦，支持并行调度
+    triggers: ['searchResults'],
     triggerMode: 'any',
+    // [新增] 仅当意图标记需要页面配置时执行
+    skipWhen: (state) => !state.intent?.needsPageConfigOperation,
     metadata: { description: '读取页面配置' }
   })
 
+  // ==================== 边：load_docs 是入口，6 个 read 节点并行从 searchResults 触发 ====================
   graph.addEdge('__start__', 'load_docs')
-  graph.addEdge('load_docs', 'read_datasources')
-  graph.addEdge('read_datasources', 'read_cells')
-  graph.addEdge('read_cells', 'read_form')
-  graph.addEdge('read_form', 'read_page_config')
+  graph.addEdge('read_datasources', '__end__')
+  graph.addEdge('read_cells', '__end__')
+  graph.addEdge('read_rows', '__end__')
+  graph.addEdge('read_cols', '__end__')
+  graph.addEdge('read_form', '__end__')
   graph.addEdge('read_page_config', '__end__')
 
   return graph.compile()

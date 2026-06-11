@@ -114,7 +114,7 @@ export const CREATE_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['add_dataset', 'restore_data'],
+      allowedTools: ['add_dataset'],
       requiredToolResults: ['add_dataset'],
       maxRetries: 1,
       maxIterations: 3,
@@ -233,7 +233,7 @@ export const MODIFY_DATASET_SUBWORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['update_dataset', 'restore_data'],
+      allowedTools: ['update_dataset'],
       requiredToolResults: ['update_dataset'],
       maxRetries: 1,
       maxIterations: 3,
@@ -298,9 +298,9 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       critical: true,
-      allowedTools: ['read_cells', 'read_cell'],
+      allowedTools: ['read_cells'],
       maxRetries: 1,
-      description: '调用 read_cells 或 read_cell 读取单元格数据。用户已提供坐标则直接读取，未提供则询问'
+      description: '调用 read_cells 读取单元格数据。用户已提供坐标则直接读取，未提供则询问'
     },
     {
       id: 'ensure_row_col',
@@ -311,13 +311,9 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
         const readResult = ctx.stepResults['read_cells']
         if (!readResult) return true
         const cellsResult = readResult.read_cells
-        const cellResult = readResult.read_cell
         if (cellsResult) {
           const values = Object.values(cellsResult)
           return values.length === 0 || values.every(v => !v || (typeof v === 'object' && Object.keys(v).length === 0))
-        }
-        if (cellResult) {
-          return !cellResult || (typeof cellResult === 'object' && Object.keys(cellResult).length === 0)
         }
         return true
       },
@@ -333,10 +329,10 @@ export const MODIFY_CELL_SUBWORKFLOW: WorkflowDefinition = {
       critical: true,
       // [修复] 移除 read_cells：上游 read_cells 节点已把数据写入 state.cellsData，本节点不允许再读
       // [修复] 新增 get_cell_template：创建/类型变更场景必须先取模板
-      allowedTools: ['write_cells', 'write_cell', 'get_cell_template', 'validate_expression', 'validate_condition', 'restore_data', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
-      requiredToolResults: ['write_cells', 'write_cell'],
+      allowedTools: ['write_cells', 'get_cell_template', 'validate_expression', 'validate_condition', 'clear_cell_content', 'clear_cell_style', 'clear_cell_all'],
+      requiredToolResults: ['write_cells'],
       maxRetries: 3,
-      description: '**cellsData 已在 context 中，禁止调用 read_cells / read_cell 重读**。' +
+      description: '**cellsData 已在 context 中，禁止调用 read_cells 重读**。' +
         '按"决策流程"处理每个目标：① 读取 context.cellsData 中的 cell 结构；' +
         '② 场景判断：cell 为空 → 调 get_cell_template 取初始模板；' +
         'cell.value.type 与需求类型不一致 → 调 get_cell_template({type:新类型}) 取新模板；' +
@@ -589,9 +585,9 @@ export const ANALYZE_REPORT_WORKFLOW: WorkflowDefinition = {
       tool: '_llm_decide',
       needsLLM: true,
       condition: (ctx) => ctx.intent.needsCellOperation,
-      allowedTools: ['read_cells', 'read_cell'],
+      allowedTools: ['read_cells'],
       maxRetries: 1,
-      description: '本步骤仅负责读取单元格数据，禁止调用任何写入工具。优先使用 read_cells 批量读取多个单元格，只有一个单元格时也可使用 read_cell。读取完成后立即结束本步骤'
+      description: '本步骤仅负责读取单元格数据，禁止调用任何写入工具。使用 read_cells 一次性传入全部目标坐标进行批量读取。读取完成后立即结束本步骤'
     },
     {
       id: 'read_search_form',
