@@ -1,10 +1,6 @@
 /**
  * 行定义数据模型 JSON Schema 定义
- *
- * 本文件定义了报表行定义的核心数据模型、约束规则和校验函数。
- * 行定义用于管理报表中每一行的高度和类型配置。
- *
- * 在 set_rows 工具中，键为行号（从1开始），值为本 Schema 描述的行定义对象。
+ * 定义报表行定义的核心数据模型，键为行号（从1开始），值为行定义对象
  */
 
 // ==================== 行定义 Schema ====================
@@ -53,63 +49,68 @@ export const RowHeaderSchema = {
 
 /**
  * 校验行定义数据是否符合规范
+ * 收集 height/band 字段的错误，一次性返回
  * 行号由调用方在外层对象的 key 中传入，不在 value 中校验
  *
  * @param row - 行定义对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateRowDefinition(row: any): string | undefined {
   if (!row || typeof row !== 'object') {
     return 'row 必须是对象类型'
   }
+  const errors: string[] = []
 
   // height 校验
   if (typeof row.height !== 'number') {
-    return 'row.height 必须是数字类型'
+    errors.push('row.height 必须是数字类型')
   }
 
   // band 校验
   const validBands = ['headerrepeat', 'footerrepeat', 'title', 'summary']
   if (row.band !== undefined && row.band !== null && !validBands.includes(row.band)) {
-    return `row.band 必须是 ${validBands.join('/')} 之一或为 null`
+    errors.push(`row.band 必须是 ${validBands.join('/')} 之一或为 null，当前为 ${row.band}`)
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验行头对象是否符合规范
+ *
  * @param rowHeader - 行头对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateRowHeader(rowHeader: any): string | undefined {
   if (!rowHeader || typeof rowHeader !== 'object') {
     return 'rowHeader 必须是对象类型'
   }
+  const errors: string[] = []
 
   // rowNumber 校验（从0开始）
   if (typeof rowHeader.rowNumber !== 'number' || rowHeader.rowNumber < 0) {
-    return 'rowHeader.rowNumber 必须是非负整数'
+    errors.push('rowHeader.rowNumber 必须是非负整数')
   }
 
   // height 校验
   if (rowHeader.height !== undefined && typeof rowHeader.height !== 'number') {
-    return 'rowHeader.height 必须是数字类型'
+    errors.push('rowHeader.height 必须是数字类型')
   }
 
   // band 校验
   const validBands = ['headerrepeat', 'footerrepeat', 'title', 'summary']
   if (rowHeader.band && !validBands.includes(rowHeader.band)) {
-    return `rowHeader.band 必须是 ${validBands.join('/')} 之一或为 null`
+    errors.push(`rowHeader.band 必须是 ${validBands.join('/')} 之一或为 null，当前为 ${rowHeader.band}`)
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 // ==================== 数据规范化函数 ====================
 
 /**
  * 规范化单个行定义：补齐缺失的 band 等可选字段
+ *
  * @param row - LLM 传入的行定义对象，可为 null/undefined/部分字段缺失
  * @returns 符合 RowDefinitionSchema 规范的完整行定义对象
  */
@@ -148,4 +149,27 @@ export function normalizeRowDefinitions(rows: any): Record<string, any> {
     result[key] = normalizeRowDefinition(rows[key])
   }
   return result
+}
+
+// ==================== 模板生成函数 ====================
+
+/**
+ * 生成行定义模板，用于 set_rows 工具的输入示例
+ *
+ * @returns 行定义模板对象
+ */
+export function getRowDefinitionsTemplate(): Record<string, any> {
+  return {
+    "1": {
+      height: 30,
+      band: "title"
+    },
+    "2": {
+      height: 25,
+      band: null
+    },
+    "3": {
+      height: 20
+    }
+  }
 }

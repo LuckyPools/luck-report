@@ -1,13 +1,5 @@
 /**
- * 图执行器
- * 参照 LangGraph Pregel 超步模型
- *
- * 核心机制：
- * 1. tick()：单步执行循环（准备任务 → 执行任务 → 应用写入 → 检查是否需要下一步）
- * 2. prepareNextTasks()：只有当上游 Channel 有新版本数据时，下游节点才会被调度
- * 3. applyWrites()：节点输出必须成功写入 Channel，下游才能读取
- * 4. versionsSeen：跟踪每个节点对每个 Channel 看到的版本号，防止重入
- * 5. 失败不写业务 Channel：节点失败时 return {}，下游不触发
+ * 图执行器，参照 LangGraph Pregel 超步模型
  */
 
 import type { CompiledReportGraph, GraphExecutionResult } from './state-graph'
@@ -53,8 +45,7 @@ interface TaskResult {
 type VersionsSeen = Map<string, Map<string, number>>
 
 /**
- * 图执行器
- * 参照 LangGraph PregelLoop，实现超步执行模型
+ * 图执行器，参照 LangGraph PregelLoop，实现超步执行模型
  */
 export class GraphExecutor {
   private compiled: CompiledReportGraph
@@ -65,31 +56,12 @@ export class GraphExecutor {
   }
   private runtime: WorkflowRuntime | undefined
 
-  /** 全局状态 */
   private state: Record<string, any> = {}
-  /** Channel 实例（编译时创建，运行时读写） */
   private channels: Map<string, StateChannel<any>> = new Map()
-  /** 版本追踪：每个节点对每个 Channel 看到的版本号 */
   private versionsSeen: VersionsSeen = new Map()
-  /** 步骤执行记录 */
   private stepRecords: any[] = []
-  /**
-   * 上一超步的"节点→写入 channel 集合"映射
-   * 仅记录真实写入（通过 applyWrites 收集），不含 stepRecords / errors 等系统/追踪 channel
-   * 用于 isTriggeredByEdges 判定边触发：
-   *   边 (A -> B) 触发 ⇔ ∃ channel C ∈ currentStepWrites[A] 且 C.version > B.seen[C]
-   * 关键：与 LangGraph pregel._prepare_next_tasks 的"task.writes"语义对齐
-   */
   private currentStepWrites: Map<string, Set<string>> = new Map()
-  /** 超步计数 */
   private superstepCount: number = 0
-  /**
-   * 条件边路由目标集合
-   * 上一轮 applyWrites 阶段 processConditionalEdges 把命中的目标节点加入此集合，
-   * 下一轮 prepareNextTasks 通过 isNodeTriggered 把这些节点作为触发条件之一调度
-   * 解决：原实现把"目标节点名"当 channel 名去 this.channels.get(target)，
-   *       找不到就静默不更新，导致条件边路由断开
-   */
   private pendingConditionalTargets: Set<string> = new Set()
 
   /**
@@ -269,47 +241,28 @@ export class GraphExecutor {
    * @param input - 初始状态，Record<string, any>，不可为空
    */
   private initialize(input: Record<string, any>): void {
-    // 重置中断计数器
     resetInterruptCounter()
 
-    // 克隆 Channel 实例（每次执行独立）
     for (const [name, channel] of this.compiled.params.channels) {
       this.channels.set(name, this.cloneChannel(channel))
     }
 
-    // P0-6：把当前执行的 Channel 映射注入到 runtime
-    // 解决 LLMDecideNode 持有构建期引用 → cloneChannel 后引用断裂的问题
-    // 必须放在 cloneChannel 之后，确保节点通过 runtime.getChannel() 拿到的是执行期实例
     if (this.runtime?.setChannelMap) {
       this.runtime.setChannelMap(this.channels)
-      // [诊断] 状态变化：channelMap 被覆写，立即打印 channel 数 + plan_tasks_out 是否存在
-      // 单次 execute 最多打 2-3 次（主图 1 次 + 子图 N 次），不构成高频日志
       console.log(`[DEBUG][graph-executor] initialize channels=${this.channels.size}`)
     }
 
-    // 写入初始状态到 Channel
     for (const [key, value] of Object.entries(input)) {
       const channel = this.channels.get(key)
       if (channel) {
         channel.update([value])
       } else {
-        // 没有 Channel 的字段直接存到 state
         this.state[key] = value
       }
     }
 
-    // P1-5：取 __start__ Channel 引用
-    // 注意：必须在版本追踪初始化之前取引用，但 update() 调用放在版本初始化之后
-    // 原因：__start__ 节点的 seenVersion 应为 0（即 update 之前的版本），
-    //      然后 update() 把它升到 1，触发判断 `1 > 0 = true` 才会真正触发这些节点
     const startChannel = this.channels.get('__start__')
 
-    // 初始化版本追踪（必须在 startChannel.update 之前）
-    // [修复] 旧实现用 new Map() 初始化，seenVersion 默认 -1，
-    //       但 binop/append 等带 initial 值的 Channel 启动时 version=0，
-    //       触发判断 `0 > -1 = true` 会让节点在第一次写之前就误触发。
-    //       修复：把每个节点对其 trigger Channel 的 seenVersion
-    //       预置为 Channel 当前版本号（即"已见过"），后续真正写入时 version++ 才会触发。
     for (const [nodeName, nodeDef] of this.compiled.params.nodes) {
       const seenMap = new Map<string, number>()
       for (const triggerName of nodeDef.triggers ?? []) {
@@ -317,11 +270,9 @@ export class GraphExecutor {
         if (ch) {
           seenMap.set(triggerName, ch.getVersion())
         } else {
-          // Channel 不存在时退回到 -1 行为（保留旧逻辑的容错）
           seenMap.set(triggerName, -1)
         }
       }
-      // 边触发（__start__ + 上游 Channel）也需要预置版本
       const incomingEdges = this.compiled.params.edges.filter(e => e.to === nodeName)
       for (const edge of incomingEdges) {
         if (edge.from === '__start__' && startChannel) {
@@ -338,9 +289,6 @@ export class GraphExecutor {
       this.versionsSeen.set(nodeName, seenMap)
     }
 
-    // P1-5：触发 __start__ Channel，写入初始 state 而非 true
-    // __start__ 是 EphemeralValueChannel，写入后下游节点可通过版本号检测到触发
-    // 必须在版本追踪初始化之后调用，否则 __start__ trigger 节点的 seenVersion 会读到更新后的 version（1）而非 0
     if (startChannel) {
       startChannel.update([input])
     }
@@ -348,8 +296,6 @@ export class GraphExecutor {
 
   /**
    * 执行一个超步
-   * P0-1 修正：critical 节点失败时终止整个图
-   * superstepCount 仅在 execute() 的 while 循环里自增一次，避免与历史实现双增导致日志 superstep 跳号
    * @returns 是否还有更多任务需要执行，boolean
    * @throws NodeExecutionError critical 节点失败时抛出
    */
@@ -357,10 +303,6 @@ export class GraphExecutor {
     const { tasks, skipped } = this.prepareNextTasks()
     if (tasks.length === 0) return false
 
-    // P2-2：记录跳过节点的步骤记录
-    // [修复] skipWhen 跳过的节点 = 当前意图下根本不会执行（如 modify_report 场景下的 search_business）。
-    // 把它们以 'cancelled' 状态写入 stepRecords 会让 UI 渲染出"灰色未跑"的步骤，干扰用户对真实执行计划的判断。
-    // 这里不再写入，让 UI 只展示真正执行过的节点。
     if (skipped.length > 0) {
       console.log(`[DEBUG][graph-executor] skipWhen 命中:`, skipped.map(s => s.nodeId))
     }
@@ -368,7 +310,6 @@ export class GraphExecutor {
     const results = await this.executeTasks(tasks)
     this.applyWrites(results)
 
-    // P0-1：检查是否有 critical 节点失败
     for (const result of results) {
       if (result.error) {
         const nodeDef = this.compiled.params.nodes.get(result.nodeId)
@@ -385,8 +326,6 @@ export class GraphExecutor {
 
   /**
    * 准备下一批待执行的任务
-   * 参照 LangGraph _prepareNextTasks：只有当上游 Channel 有新版本数据时，下游节点才会被调度
-   * P2-2：同时返回被 skipWhen 跳过的节点列表
    * @returns 待执行任务列表和跳过节点列表
    */
   private prepareNextTasks(): { tasks: Task[]; skipped: SkippedNode[] } {
@@ -395,17 +334,14 @@ export class GraphExecutor {
     const { nodes, edges, conditionalEdges, adjacency } = this.compiled.params
 
     for (const [nodeId, nodeDef] of nodes) {
-      // 1. 检查 skipWhen
       if (nodeDef.skipWhen) {
         const currentState = this.readState()
         if (nodeDef.skipWhen(currentState)) {
-          // P2-2：记录跳过事件
           skipped.push({ nodeId, reason: 'skipWhen' })
           continue
         }
       }
 
-      // 2. 检查是否被触发（P1-2：已内含版本判断，不再需要 hasSeenCurrentVersions）
       const wasRouted = this.pendingConditionalTargets.has(nodeId)
       const triggeredByTriggersOrEdges = this.isNodeTriggered(nodeId, nodeDef)
 
@@ -418,8 +354,6 @@ export class GraphExecutor {
       tasks.push({ nodeId, nodeDef, startedAt: Date.now() })
     }
 
-    // [修复] 条件边路由集合在本轮消费后清空，避免污染下一超步
-    // 清空后 isNodeTriggered 中此集合检查自动失效，节点回归正常 channel 触发判断
     this.pendingConditionalTargets.clear()
 
     return { tasks, skipped }

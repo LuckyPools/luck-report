@@ -1,12 +1,5 @@
 /**
- * Agent 核心循环
- * 工作流模式：意图分析 → 选择工作流图 → 图引擎执行 → 事件适配
- *
- * 重构改进：
- * 1. 用 StateGraph + Channel 门控替换旧 WorkflowEngine
- * 2. 节点失败不写业务 Channel → 下游不触发（解决步骤跳过问题）
- * 3. LLMDecideNode 两阶段提交（解决 LLM 循环内多次工具调用的原子性问题）
- * 4. 意图分析逻辑保留旧实现（chatStream + Function Calling）
+ * Agent 核心循环，工作流模式：意图分析 → 选择工作流图 → 图引擎执行 → 事件适配
  */
 
 import type { ToolRegistry } from '../tools/registry'
@@ -174,7 +167,6 @@ async function runWorkflowMode(
       sessionId: config.sessionId,
       modelId: config.modelId,
       onEvent: (streamEvent: StreamEvent) => {
-        // 新架构事件 → 旧版 AgentEvent 适配
         const agentEvents = convertStreamEventToAgentEvent(streamEvent, stepToolCallIdMap)
         for (const evt of agentEvents) {
           onEvent(evt)
@@ -182,7 +174,6 @@ async function runWorkflowMode(
       }
     })
 
-    // 构建图输入
     const graphInput = {
       userMessage,
       intent,
@@ -190,10 +181,6 @@ async function runWorkflowMode(
     }
     console.log(`[DEBUG][agent-loop] 阶段3 流式执行 graphInput=${Object.keys(graphInput).join(',')}`)
 
-    // 预初始化步骤记录（从图中提取节点列表）
-    // [修复] 评估每个节点的 skipWhen，命中的节点不放入 stepRecords。
-    // 这些节点（如 modify_report 场景下的 search_business）在本意图下根本不会执行，
-    // 不应在 UI 上显示为"灰色未跑"的步骤，干扰用户对真实执行计划的判断。
     const nodeNames = compiledGraph!.getNodeNames()
     for (const nodeName of nodeNames) {
       if (nodeName.startsWith('__')) continue
@@ -219,7 +206,6 @@ async function runWorkflowMode(
       signal,
       recursionLimit: 25
     })) {
-      // 更新步骤记录状态
       if (streamEvent.mode === 'updates') {
         const data = streamEvent.event as any
         const record = stepRecords.find(r => r.stepId === data.nodeId)
@@ -240,14 +226,12 @@ async function runWorkflowMode(
         config.onStepRecordsChange?.([...stepRecords], data.nodeId)
       }
 
-      // 事件适配
       const agentEvents = convertStreamEventToAgentEvent(streamEvent, stepToolCallIdMap)
       for (const evt of agentEvents) {
         onEvent(evt)
       }
     }
 
-    // 执行完成
     onEvent({ type: 'done', reason: hasError ? 'error' : 'completed', error: hasError ? errorMessage : undefined })
 
   } catch (err: any) {
@@ -258,13 +242,12 @@ async function runWorkflowMode(
       onEvent({ type: 'done', reason: 'error', error: err.message })
     }
   } finally {
-    // 工作流执行完毕后，检查是否需要压缩
     if (memoryManager.needsCompact() && config.onAutoCompact) {
       if (config.onCaptureSnapshot) {
         try {
           const snapshot = await config.onCaptureSnapshot()
           if (snapshot) memoryManager.updateReportSnapshot(snapshot)
-        } catch { /* 忽略快照采集失败 */ }
+        } catch { }
       }
       try {
         await config.onAutoCompact(memoryManager)
@@ -383,7 +366,6 @@ function parseIntentJson(text: string): IntentAnalysisResult {
     const parsed = JSON.parse(jsonStr)
     return parseIntentFromObject(parsed)
   } catch {
-    // 提取 JSON 片段
     const firstBrace = jsonStr.indexOf('{')
     const lastBrace = jsonStr.lastIndexOf('}')
     if (firstBrace !== -1 && lastBrace > firstBrace) {

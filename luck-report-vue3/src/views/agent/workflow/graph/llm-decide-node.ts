@@ -1,14 +1,5 @@
 /**
- * LLM 决策节点
- * 参照 LangGraph 的 ReAct Agent 模式，替换旧引擎的 _llm_decide 步骤
- *
- * 核心改进：
- * 1. 实现 IRunnable 接口，可被 StateGraph 编排
- * 2. 使用 LastValueAfterFinishChannel 两阶段提交，保证原子性
- * 3. 内部循环调用 LLM + 工具，成功时 finish() 提交，失败时不提交
- * 4. 支持 allowedTools 工具白名单
- * 5. 支持 requiredToolResults 必需工具校验
- * 6. 完整透传 step_progress / step_reasoning / tool_call / tool_result 事件
+ * LLM 决策节点，参照 LangGraph 的 ReAct Agent 模式替换旧引擎的 _llm_decide 步骤
  */
 
 import type { IRunnable, RunnableConfig } from './runnable'
@@ -238,14 +229,15 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
             try {
               const result = await runtime.toolRegistry.executeTool(event.toolName, event.input)
 
-              // [Plan A 修复] 业务失败归一：工具返回 {success:false, message, data} 时，
-              // 必须把 toolResults 中的值改写成 {error:message} 形态，
-              // 让 checkRequiredTools 的 `!result || result.error` 判定能正确识别为失败，
-              // 避免"工具业务失败但被节点误判为成功、整步直接 finish、不再重试"的 BUG
-              // 根因：原逻辑只把 throw 路径的失败用 {error} 形态存，业务失败被原样保留 success:false，
-              //       checkRequiredTools 看到的是非 falsy 且无 error 属性 → 误判为成功
               let normalizedResult = result
-              if (result && typeof result === 'object' && result.success === false) {
+              if (result == null) {
+                const errMsg = `工具 ${event.toolName} 未返回结果（result 为 null/undefined，可能是 iframe 通信丢失或工具实现遗漏 return）`
+                // [关键决策点] 状态变化：工具返回空 → 关键日志，便于排查"为什么工具没返值"
+                console.warn(`[WARN][llm-decide] [${nodeId}] ${errMsg}`)
+                normalizedResult = { error: errMsg, success: false, message: errMsg }
+                // 同步发射到事件流，让 UI 也能看到失败态
+                this.emitToolResult(runtime, nodeId, mappedToolCallId, event.toolName, normalizedResult, errMsg)
+              } else if (typeof result === 'object' && result.success === false) {
                 const errMsg = result.message || '工具业务执行失败'
                 // [关键决策点] 业务失败 → 关键日志，便于排查"为什么任务没重试"
                 console.warn(
@@ -267,7 +259,9 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
                 if (normalizedResult && typeof normalizedResult === 'object' && !Array.isArray(normalizedResult)) {
                   // 把工具返回的对象按 key 合并（如 {"1,1": def, "2,2": def}）
                   // 业务失败时 resultKey 模式下不合并到 accumulatedResult，避免污染下游
-                  if (normalizedResult.success !== false) {
+                  // [Plan A 修复] 用 isFailure 布尔变量做判定，避免直接访问 .success 在 result 不是对象时 NPE
+                  const isFailure = normalizedResult.success === false
+                  if (!isFailure) {
                     Object.assign(accumulatedResult, normalizedResult)
                   }
                 } else {
@@ -308,8 +302,11 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
                 role: 'tool',
                 tool_call_id: mappedToolCallId,
                 // [Plan A 修复] 业务失败时把 {error, message} 都塞给 LLM，让 LLM 看到具体失败原因用于重试决策
+                // [Plan A 二次修复] 用 isFailure 变量做判定而非直接访问 normalizedResult.success，
+                // 防止 normalizedResult 为 null/undefined/原始值时 .success 抛 NPE，
+                // 错误信息变成 "Cannot read properties of undefined (reading 'success')" 让 LLM 无法定位原因
                 content: JSON.stringify(
-                  normalizedResult.success === false
+                  (normalizedResult && typeof normalizedResult === 'object' && normalizedResult.success === false)
                     ? { error: normalizedResult.error, success: false, message: normalizedResult.message }
                     : normalizedResult
                 )

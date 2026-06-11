@@ -257,6 +257,34 @@ const mutations = {
     }
   },
 
+  // ============ Header 操作 ============
+
+  /**
+   * 更新页眉配置（合并更新）
+   * @param {Object} state - Vuex状态对象
+   * @param {Object} payload - 载荷
+   * @param {Object} payload.header - 要合并的页眉配置属性
+   */
+  CONTEXT_UPDATE_HEADER(state, { header }) {
+    if (state.context && state.context.reportDef && state.context.reportDef.header) {
+      Object.assign(state.context.reportDef.header, header);
+    }
+  },
+
+  // ============ Footer 操作 ============
+
+  /**
+   * 更新页脚配置（合并更新）
+   * @param {Object} state - Vuex状态对象
+   * @param {Object} payload - 载荷
+   * @param {Object} payload.footer - 要合并的页脚配置属性
+   */
+  CONTEXT_UPDATE_FOOTER(state, { footer }) {
+    if (state.context && state.context.reportDef && state.context.reportDef.footer) {
+      Object.assign(state.context.reportDef.footer, footer);
+    }
+  },
+
   // ============ Row 操作 ============
 
   /**
@@ -498,6 +526,28 @@ const actions = {
     commit('CONTEXT_UPDATE_PAPER', { paper });
   },
 
+  // ============ Header 操作的 Actions ============
+
+  /**
+   * 更新页眉配置（合并更新）
+   * @param {Object} param0 - Vuex上下文对象
+   * @param {Object} header - 要合并的页眉配置属性
+   */
+  contextUpdateHeader({ commit }, header) {
+    commit('CONTEXT_UPDATE_HEADER', { header });
+  },
+
+  // ============ Footer 操作的 Actions ============
+
+  /**
+   * 更新页脚配置（合并更新）
+   * @param {Object} param0 - Vuex上下文对象
+   * @param {Object} footer - 要合并的页脚配置属性
+   */
+  contextUpdateFooter({ commit }, footer) {
+    commit('CONTEXT_UPDATE_FOOTER', { footer });
+  },
+
   // ============ Row 操作的 Actions ============
 
   /**
@@ -708,6 +758,28 @@ const getters = {
       return null;
     }
     return state.context.reportDef.paper || null;
+  },
+
+  /**
+   * 获取页眉配置
+   * @returns {Object|null} 页眉配置对象，context不存在时返回null
+   */
+  getHeaderConfig: state => {
+    if (!state.context || !state.context.reportDef) {
+      return null;
+    }
+    return state.context.reportDef.header || null;
+  },
+
+  /**
+   * 获取页脚配置
+   * @returns {Object|null} 页脚配置对象，context不存在时返回null
+   */
+  getFooterConfig: state => {
+    if (!state.context || !state.context.reportDef) {
+      return null;
+    }
+    return state.context.reportDef.footer || null;
   },
 
   // ============ Row Getters ============

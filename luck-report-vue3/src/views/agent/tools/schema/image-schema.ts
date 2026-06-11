@@ -1,26 +1,10 @@
 /**
  * 图片单元格数据模型 JSON Schema 定义
- *
- * 本文件定义了图片单元格的核心数据模型、数据模板和校验函数。
- * 图片单元格支持静态路径和表达式动态计算两种来源模式。
  */
 import {ExpressionObjectSchema} from "@/views/agent/tools/schema/expression-schema.ts";
 
 /**
  * ImageValue 图片值 Schema
- * 文档参考: image-cell.md
- *
- * 字段语义说明（text/expression 两种 source 模式下 path 与 value 的对应关系）：
- * - source=text（静态路径）：
- *     · path  = 图片 URL（必填）
- *     · value = 图片 URL（必填且必须与 path 完全一致）
- *     · 原因：前端 ImageValueEditor 的"路径"输入框只读 value.value（不读 path），
- *       漏填或与 path 不一致会导致编辑器回显空白。
- * - source=expression（表达式动态计算）：
- *     · value = 表达式源码（必填，如 "return https://..."）
- *     · path  = 与 value 相同或为 value 解析后的预期 URL（必填非空）
- *     · 原因：运行时/canvas 渲染时优先读 path 作为展示 URL；编辑器代码框读 value 作为待编辑源码。
- *     · 两者语义等价可填相同字符串；为求一致，强制要求 value === path。
  */
 export const ImageValueSchema = {
   type: 'object',
@@ -102,58 +86,60 @@ export function getImageCellTemplate(rowIndex: number, colIndex: number, imagePa
 
 /**
  * 校验图片值数据是否符合规范
+ *
  * @param imageValue - 图片值对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateImageValue(imageValue: any): string | undefined {
   if (!imageValue || typeof imageValue !== 'object') {
     return 'imageValue 必须是对象类型'
   }
+  const errors: string[] = []
 
   // type 必须是 image
   if (imageValue.type !== 'image') {
-    return 'imageValue.type 必须是 "image"'
+    errors.push('imageValue.type 必须是 "image"')
   }
 
   // source 校验
   const validSources = ['text', 'expression']
   if (!imageValue.source || !validSources.includes(imageValue.source)) {
-    return `imageValue.source 必须是 ${validSources.join('/')} 之一`
+    errors.push(`imageValue.source 必须是 ${validSources.join('/')} 之一，当前为 ${imageValue.source}`)
   }
 
   // width 校验
   if (typeof imageValue.width !== 'number' || imageValue.width < 1) {
-    return 'imageValue.width 必须是大于0的整数'
+    errors.push('imageValue.width 必须是大于0的整数')
   }
 
   // height 校验
   if (typeof imageValue.height !== 'number' || imageValue.height < 1) {
-    return 'imageValue.height 必须是大于0的整数'
+    errors.push('imageValue.height 必须是大于0的整数')
   }
 
   // source 为 text 时必须有 path，且 value 必须与 path 一致（前端编辑器只读 value.value）
   if (imageValue.source === 'text') {
     if (!imageValue.path || typeof imageValue.path !== 'string') {
-      return 'imageValue.path 必须是非空字符串（当 source 为 text 时）'
+      errors.push('imageValue.path 必须是非空字符串（当 source 为 text 时）')
     }
     // 强制 value === path：前端 ImageValueEditor 在 text 模式下从 value.value 取路径写入，
     // 若 value 漏填或与 path 不一致，编辑器回显会空白（典型 bug：LLM 只填 path 不填 value）
     if (typeof imageValue.value !== 'string' || imageValue.value !== imageValue.path) {
-      return 'source=text 时，imageValue.value 必须是非空字符串且与 path 完全一致（前端编辑器只读 value.value）'
+      errors.push('source=text 时，imageValue.value 必须是非空字符串且与 path 完全一致（前端编辑器只读 value.value）')
     }
   }
 
   // source 为 expression 时必须有 value（表达式源码），且 path 必须与 value 一致或为预期 URL
   if (imageValue.source === 'expression') {
     if (!imageValue.value || typeof imageValue.value !== 'string') {
-      return 'imageValue.value 必须是非空字符串（当 source 为 expression 时）'
+      errors.push('imageValue.value 必须是非空字符串（当 source 为 expression 时）')
     }
     // 强制 path 非空且与 value 一致：运行时渲染/canvas 读 path 作为展示 URL；
     // 编辑器代码框虽然只读 value.value，但 path 漏填会导致运行时图片无法渲染
     if (typeof imageValue.path !== 'string' || !imageValue.path || imageValue.path !== imageValue.value) {
-      return 'source=expression 时，imageValue.path 必须是非空字符串且与 value 完全一致（运行时渲染读 path）'
+      errors.push('source=expression 时，imageValue.path 必须是非空字符串且与 value 完全一致（运行时渲染读 path）')
     }
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }

@@ -5,14 +5,7 @@ import { loadPromptDocs, type PromptDocName } from '@/prompt'
 import { contextConfig } from '@/config'
 
 /**
- * 上下文管理器
- * 参考 Claude Code 的上下文注入机制（getSystemPrompt + getUserContext + getSystemContext）
- * 在每次 LLM 调用前，自动注入报表状态、工具说明、记忆等上下文
- *
- * 上下文组装流程：
- * 1. 默认系统提示词（角色定义 + 工具使用说明）
- * 2. 报表当前状态（行列数、合并区域、数据源等）
- * 3. 长期记忆（用户偏好、项目规范）
+ * 上下文管理器，参考 Claude Code 的上下文注入机制在每次 LLM 调用前自动注入报表状态、工具说明、记忆等上下文
  */
 export class ContextManager {
   private memoryManager: MemoryManager

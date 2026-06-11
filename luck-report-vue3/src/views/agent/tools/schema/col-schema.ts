@@ -1,10 +1,5 @@
 /**
  * 列定义数据模型 JSON Schema 定义
- *
- * 本文件定义了报表列定义的核心数据模型、约束规则和校验函数。
- * 列定义用于管理报表中每一列的宽度和显示状态。
- *
- * 在 set_columns 工具中，键为列号（从1开始），值为本 Schema 描述的列定义对象。
  */
 
 // ==================== 列定义 Schema ====================
@@ -29,27 +24,27 @@ export const ColumnDefinitionSchema = {
 
 /**
  * 校验列定义数据是否符合规范
- * 列号由调用方在外层对象的 key 中传入，不在 value 中校验
  *
  * @param column - 列定义对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateColumnDefinition(column: any): string | undefined {
   if (!column || typeof column !== 'object') {
     return 'column 必须是对象类型'
   }
+  const errors: string[] = []
 
   // width 校验
   if (typeof column.width !== 'number') {
-    return 'column.width 必须是数字类型'
+    errors.push('column.width 必须是数字类型')
   }
 
   // hide 校验
   if (column.hide !== undefined && typeof column.hide !== 'boolean') {
-    return 'column.hide 必须是布尔类型'
+    errors.push('column.hide 必须是布尔类型')
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 // ==================== 数据规范化函数 ====================
@@ -94,4 +89,27 @@ export function normalizeColumnDefinitions(columns: any): Record<string, any> {
     result[key] = normalizeColumnDefinition(columns[key])
   }
   return result
+}
+
+// ==================== 模板生成函数 ====================
+
+/**
+ * 生成列定义模板，用于 set_columns 工具的输入示例
+ *
+ * @returns 列定义模板对象
+ */
+export function getColumnDefinitionsTemplate(): Record<string, any> {
+  return {
+    "1": {
+      width: 120,
+      hide: false
+    },
+    "2": {
+      width: 80,
+      hide: false
+    },
+    "3": {
+      width: 100
+    }
+  }
 }

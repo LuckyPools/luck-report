@@ -29,6 +29,7 @@ export {
   getSimpleCellTemplate,
   getDatasetCellTemplate,
   getExpressionCellTemplate,
+  getExpressionCellWithConditionTemplate,
   getCellTemplateByType,
   validateCell,
   validateCells,
@@ -102,14 +103,19 @@ export {
   FormComponentSchema,
   RowComponentSchema,
   SearchFormSchema,
-  validateSearchForm
+  validateSearchForm,
+  getSearchFormTemplate,
+  normalizeSearchForm
 } from './search-schema'
 
 // 页面配置相关 Schema
 export {
   PaperSchema,
   HeaderFooterSchema,
-  validatePaper
+  validatePaper,
+  getPaperConfigTemplate,
+  getHeaderFooterTemplate,
+  normalizePaper
 } from './page-schema'
 
 // 行定义相关 Schema
@@ -120,7 +126,8 @@ export {
   validateRowDefinition,
   validateRowHeader,
   normalizeRowDefinition,
-  normalizeRowDefinitions
+  normalizeRowDefinitions,
+  getRowDefinitionsTemplate
 } from './row-schema'
 
 // 列定义相关 Schema
@@ -128,5 +135,6 @@ export {
   ColumnDefinitionSchema,
   validateColumnDefinition,
   normalizeColumnDefinition,
-  normalizeColumnDefinitions
+  normalizeColumnDefinitions,
+  getColumnDefinitionsTemplate
 } from './col-schema'

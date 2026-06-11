@@ -1,11 +1,9 @@
 /**
- * 图计算层错误类型定义
- * 参照 LangGraph 错误体系，覆盖工作流执行过程中的各类异常场景
+ * 图计算层错误类型定义，参照 LangGraph 错误体系，覆盖工作流执行过程中的各类异常场景
  */
 
 /**
- * 图递归超限错误
- * 当超步执行次数超过 recursionLimit 时抛出
+ * 图递归超限错误，当超步执行次数超过 recursionLimit 时抛出
  */
 export class GraphRecursionError extends Error {
   constructor(message: string) {
@@ -15,9 +13,7 @@ export class GraphRecursionError extends Error {
 }
 
 /**
- * 图中断错误
- * 当节点调用 interrupt() 时抛出，等待外部恢复
- * 不是真正的错误，是一种控制流机制
+ * 图中断错误，当节点调用 interrupt() 时抛出，等待外部恢复，不是真正的错误，是一种控制流机制
  */
 export class GraphInterrupt extends Error {
   /** 中断时传递的值，恢复时可供节点读取 */
@@ -31,8 +27,7 @@ export class GraphInterrupt extends Error {
 }
 
 /**
- * 图结构无效错误
- * 编译时发现图结构问题（孤立节点、断边等）时抛出
+ * 图结构无效错误，编译时发现图结构问题（孤立节点、断边等）时抛出
  */
 export class GraphValidationError extends Error {
   constructor(message: string) {
@@ -42,8 +37,7 @@ export class GraphValidationError extends Error {
 }
 
 /**
- * 节点执行错误
- * 节点函数执行过程中抛出的异常包装
+ * 节点执行错误，节点函数执行过程中抛出的异常包装
  */
 export class NodeExecutionError extends Error {
   /** 出错的节点ID */
@@ -73,8 +67,7 @@ export class ConcurrentUpdateError extends Error {
 }
 
 /**
- * 检查点恢复错误
- * 从检查点恢复时状态不一致或版本不匹配
+ * 检查点恢复错误，从检查点恢复时状态不一致或版本不匹配
  */
 export class CheckpointRestoreError extends Error {
   constructor(message: string) {
@@ -84,8 +77,7 @@ export class CheckpointRestoreError extends Error {
 }
 
 /**
- * 无效的状态更新错误
- * 节点返回了不符合 state schema 的数据
+ * 无效的状态更新错误，节点返回了不符合 state schema 的数据
  */
 export class InvalidStateUpdateError extends Error {
   readonly nodeId: string
@@ -98,8 +90,7 @@ export class InvalidStateUpdateError extends Error {
 }
 
 /**
- * 子图执行错误
- * 子图作为节点嵌入时，子图内部执行失败的包装
+ * 子图执行错误，子图作为节点嵌入时，子图内部执行失败的包装
  */
 export class SubgraphExecutionError extends Error {
   readonly parentNodeId: string
@@ -114,8 +105,7 @@ export class SubgraphExecutionError extends Error {
 }
 
 /**
- * 中断恢复值缺失错误
- * 恢复中断的图执行时，未提供所需的恢复值
+ * 中断恢复值缺失错误，恢复中断的图执行时，未提供所需的恢复值
  */
 export class MissingResumeValueError extends Error {
   readonly nodeId: string

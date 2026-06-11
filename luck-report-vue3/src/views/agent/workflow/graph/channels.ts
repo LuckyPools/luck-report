@@ -1,20 +1,12 @@
 /**
- * 状态通道实现
- * 参照 LangGraph Channel 机制，控制节点间数据传递
+ * 状态通道实现，参照 LangGraph Channel 机制，控制节点间数据传递
  * 只有 Channel 有新值时，下游节点才会被触发
- *
- * 设计规约：
- * - 节点执行失败时不写任何业务 Channel（return {}）
- * - 失败信息统一写入 errors 累加 Channel
- * - stepRecords Channel 无论成败都写入（保证完整执行轨迹）
  */
 
 // ==================== 基类 ====================
 
 /**
- * 状态通道基类
- * 参照 LangGraph BaseChannel 协议，控制节点间数据传递
- * 只有 Channel 有新值时，下游节点才会被触发
+ * 状态通道基类，参照 LangGraph BaseChannel 协议
  */
 export abstract class StateChannel<T> {
   abstract update(values: T[]): boolean
@@ -31,12 +23,7 @@ export abstract class StateChannel<T> {
 // ==================== LastValueChannel ====================
 
 /**
- * 单值覆盖通道
- * 参照 LangGraph LastValue（last_value.d.ts:8-19）
- *
- * 严格语义：update() 必须 values.length === 1，否则抛 InvalidUpdateError
- * 防止多节点同一步写同一 Channel 产生数据竞争
- * 适用于：datasources、datasets、sqlValidationResult 等单值字段
+ * 单值覆盖通道，参照 LangGraph LastValue，严格语义：update() 必须 values.length === 1
  */
 export class LastValueChannel<T> extends StateChannel<T> {
   private _value: T | null = null
@@ -63,11 +50,7 @@ export class LastValueChannel<T> extends StateChannel<T> {
 // ==================== AnyValueChannel ====================
 
 /**
- * 取最后一个值的通道
- * 参照 LangGraph AnyValue（any_value.d.ts）
- *
- * 与 LastValue 的区别：多写时取最后一个，不抛错
- * 适用于"多源数据任一即可"场景
+ * 取最后一个值的通道，参照 LangGraph AnyValue，与 LastValue 的区别：多写时取最后一个，不抛错
  */
 export class AnyValueChannel<T> extends StateChannel<T> {
   private _value: T | null = null
@@ -89,20 +72,13 @@ export class AnyValueChannel<T> extends StateChannel<T> {
 // ==================== BinaryOperatorAggregateChannel ====================
 
 /**
- * reducer 合并通道
- * 参照 LangGraph BinaryOperatorAggregate（binop.d.ts）
- *
- * 每次 update 都用 operator(current, new) 合并
- * 是 LangGraph Annotation 字段 reducer 的底层实现
- * 适用于：searchResults 多源合并、retryCount 累加计数
+ * reducer 合并通道，参照 LangGraph BinaryOperatorAggregate，每次 update 都用 operator(current, new) 合并
  */
 export class BinaryOperatorAggregateChannel<T> extends StateChannel<T> {
   private _value: T
   private _version: number = 0
 
-  /** P0-5：暴露 operator 供 cloneChannel 使用 */
   readonly _operator: (current: T, update: T) => T
-  /** P0-5：暴露 initial 供 cloneChannel 使用 */
   readonly _initialValue: T
 
   constructor(
@@ -138,12 +114,7 @@ export class BinaryOperatorAggregateChannel<T> extends StateChannel<T> {
 // ==================== AppendChannel ====================
 
 /**
- * 数组累加通道
- * 参照 LangGraph Topic（topic.d.ts:11-18）
- *
- * 配置项：
- * - unique: true 时去重（Set 语义）
- * - accumulate: false 时跨步不累积（消费后清空）
+ * 数组累加通道，参照 LangGraph Topic，支持 unique 去重和 accumulate 跨步累积配置
  */
 export class AppendChannel<T> extends StateChannel<T[]> {
   private _values: T[] = []
@@ -161,7 +132,8 @@ export class AppendChannel<T> extends StateChannel<T[]> {
 
   /**
    * update 签名统一为 Array<Value | Value[]>
-   * 参照 LangGraph Topic.update，支持单值或数组混合
+   * @param values - 值数组，Array<T | T[]>，不可为空
+   * @returns 是否更新成功，boolean
    */
   update(values: Array<T | T[]>): boolean {
     const newItems = values.flat()
@@ -183,7 +155,10 @@ export class AppendChannel<T> extends StateChannel<T[]> {
   get(): T[] { return this._values }
   isAvailable(): boolean { return true }
 
-  /** accumulate=false 时消费后清空 */
+  /**
+   * 消费后清空（accumulate=false 时）
+   * @returns 是否消费成功，boolean
+   */
   consume(): boolean {
     if (this.options.accumulate) return this._version > 0
     this._values = []
@@ -198,11 +173,7 @@ export class AppendChannel<T> extends StateChannel<T[]> {
 // ==================== EphemeralValueChannel ====================
 
 /**
- * 步末清空通道
- * 参照 LangGraph EphemeralValue（ephemeral_value.d.ts:7-9）
- *
- * 核心语义：在节点读取后立即清空（guards against re-read）
- * 适用于：__start__ 触发信号（写入一次，下游消费后清空，避免循环触发）
+ * 步末清空通道，参照 LangGraph EphemeralValue，在节点读取后立即清空，适用于触发信号场景
  */
 export class EphemeralValueChannel<T> extends StateChannel<T> {
   private _value: T | null = null
@@ -224,7 +195,10 @@ export class EphemeralValueChannel<T> extends StateChannel<T> {
   get(): T | null { return this._value }
   isAvailable(): boolean { return this._value !== null }
 
-  /** 消费后立即清空（防重读） */
+  /**
+   * 消费后立即清空（防重读）
+   * @returns 是否消费成功，boolean
+   */
   consume(): boolean {
     if (!this._guard) return this._version > 0
     const had = this._value !== null
@@ -238,27 +212,25 @@ export class EphemeralValueChannel<T> extends StateChannel<T> {
 // ==================== LastValueAfterFinishChannel ====================
 
 /**
- * 两阶段提交通道
- * 参照 LangGraph LastValueAfterFinish（last_value.d.ts:28-35）
- *
- * 核心语义：
- * - 节点执行期间调用 stage() 保存中间快照（不入版本号）
- * - 节点成功完成时调用 finish()，将 staged value 提交为正式值
- * - 节点失败时不调用 finish()，下游 Channel 仍为旧值/null，自动阻断
- *
- * 适用于 LLM 决策节点内部多次工具调用的原子提交场景
+ * 两阶段提交通道，参照 LangGraph LastValueAfterFinish，stage() 保存中间快照，finish() 提交为正式值
  */
 export class LastValueAfterFinishChannel<T> extends StateChannel<T> {
   private _value: T | null = null
   private _stagedValue: T | null = null
   private _version: number = 0
 
-  /** 暂存中间结果（不入版本号，不广播给下游） */
+  /**
+   * 暂存中间结果（不入版本号，不广播给下游）
+   * @param value - 暂存值，T，不可为空
+   */
   stage(value: T): void {
     this._stagedValue = value
   }
 
-  /** 节点显式声明完成，将 stagedValue 提交为正式值 */
+  /**
+   * 节点显式声明完成，将 stagedValue 提交为正式值
+   * @returns 是否提交成功，boolean
+   */
   finish(): boolean {
     if (this._stagedValue === null) return false
     this._value = this._stagedValue
@@ -283,11 +255,7 @@ export class LastValueAfterFinishChannel<T> extends StateChannel<T> {
 // ==================== NamedBarrierValue ====================
 
 /**
- * 多 Channel 协同触发通道
- * 参照 LangGraph NamedBarrierValue（named_barrier_value.d.ts:18-30）
- *
- * 核心语义：下游节点必须等待所有命名 Channel 都有新值才能触发
- * 适用于：4 个并行搜索节点全部完成后才触发路由节点
+ * 多 Channel 协同触发通道，参照 LangGraph NamedBarrierValue，下游节点必须等待所有命名 Channel 都有新值才能触发
  */
 export class NamedBarrierValue extends StateChannel<Record<string, any>> {
   private names: Set<string>
@@ -300,12 +268,19 @@ export class NamedBarrierValue extends StateChannel<Record<string, any>> {
     this.names = new Set(names)
   }
 
-  /** 暴露被观察节点名称只读访问 */
+  /**
+   * 暴露被观察节点名称只读访问
+   * @returns 被观察节点名称列表，string[]
+   */
   getWatchedNodes(): string[] {
     return Array.from(this.names)
   }
 
-  /** _applyWrites 调用此方法，传入已完成的节点名 */
+  /**
+   * _applyWrites 调用此方法，传入已完成的节点名
+   * @param completedNodeIds - 已完成的节点ID列表，string[]，不可为空
+   * @returns 是否更新成功，boolean
+   */
   update(completedNodeIds: string[]): boolean {
     let changed = false
     for (const id of completedNodeIds) {
@@ -319,7 +294,10 @@ export class NamedBarrierValue extends StateChannel<Record<string, any>> {
     return changed
   }
 
-  /** 消费后清空 seen，准备下一轮 */
+  /**
+   * 消费后清空 seen，准备下一轮
+   * @returns 是否消费成功，boolean
+   */
   consume(): boolean {
     const wasAvailable = this.isAvailable()
     this.seen.clear()
@@ -327,7 +305,10 @@ export class NamedBarrierValue extends StateChannel<Record<string, any>> {
     return wasAvailable
   }
 
-  /** 所有被观察节点是否都已完成 */
+  /**
+   * 所有被观察节点是否都已完成
+   * @returns 是否可用，boolean
+   */
   isAvailable(): boolean {
     return this.names.size > 0 && this.seen.size === this.names.size
   }
@@ -346,8 +327,7 @@ export class NamedBarrierValue extends StateChannel<Record<string, any>> {
 // ==================== 错误类型（内联，与 Channel 紧耦合） ====================
 
 /**
- * 无效更新错误
- * 当 Channel 写入违反语义约束时抛出（如 LastValueChannel 收到多个值）
+ * 无效更新错误，当 Channel 写入违反语义约束时抛出
  */
 export class InvalidUpdateError extends Error {
   readonly lc_error_code = 'INVALID_CONCURRENT_GRAPH_UPDATE'

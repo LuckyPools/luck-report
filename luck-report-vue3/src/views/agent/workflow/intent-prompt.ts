@@ -1,10 +1,5 @@
 /**
- * 意图分析提示词
- * 用于工作流引擎第一步：让 LLM 分析用户意图，输出结构化 JSON
- *
- * 提示词文本统一存放在 src/prompt/plan/intent-analysis.md，
- * 通过 loadPromptDocByEnum('INTENT_ANALYSIS') 加载
- * 角色定义、报表说明、强制规则等由 system.md 统一提供
+ * 意图分析提示词，用于工作流引擎第一步让 LLM 分析用户意图输出结构化 JSON
  */
 
 import { loadPromptDocByEnum } from '@/prompt'
@@ -76,7 +71,7 @@ export const INTENT_ANALYSIS_SCHEMA = {
     },
     needsPageConfigOperation: {
       type: 'boolean',
-      description: '是否涉及页面配置的操作（读取或修改）'
+      description: '是否涉及页面配置的操作（纸张设置、页眉、页脚等）'
     },
     needsRowOperation: {
       type: 'boolean',

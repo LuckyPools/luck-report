@@ -1,6 +1,5 @@
 /**
- * 图计算工具集：Send、Command、interrupt、RetryPolicy
- * 参照 LangGraph 的 Send/Command/interrupt/RetryPolicy 机制
+ * 图计算工具集：Send、Command、interrupt、RetryPolicy，参照 LangGraph 的 Send/Command/interrupt/RetryPolicy 机制
  */
 
 import { GraphInterrupt } from './errors'
@@ -8,13 +7,7 @@ import { GraphInterrupt } from './errors'
 // ==================== Send ====================
 
 /**
- * 动态 fan-out 指令
- * 参照 LangGraph Send 类
- *
- * 节点可以返回 Send[] 来动态生成并行任务，
- * 而不必在编译时确定所有边
- *
- * 使用场景：根据搜索结果数量动态创建 N 个并行处理节点
+ * 动态 fan-out 指令，参照 LangGraph Send 类，节点可以返回 Send[] 来动态生成并行任务
  */
 export class Send {
   /** 目标节点名称 */
@@ -36,13 +29,7 @@ export class Send {
 // ==================== Command ====================
 
 /**
- * 原子操作指令
- * 参照 LangGraph Command 类
- *
- * 节点可以返回 Command 来同时执行状态更新 + 路由跳转，
- * 保证两者原子性（不会出现更新了状态但没跳转的情况）
- *
- * 使用场景：条件边回退（如 SQL 校验失败回到 prepare_sql）
+ * 原子操作指令，参照 LangGraph Command 类，节点可以返回 Command 来同时执行状态更新 + 路由跳转
  */
 export class Command {
   /** 路由目标节点 */
@@ -68,16 +55,13 @@ export type ConditionalEdgeReturn = string | Command | Send | null
 // ==================== interrupt ====================
 
 /**
- * 请求作用域隔离存储，供 interrupt() 安全获取当前请求 config。因浏览器无 AsyncLocalStorage 且为单线程，用模块级栈模拟。
- * 采用栈结构而非单变量，以支持 retry/条件边回退等嵌套场景下外层 config 的正确恢复。
+ * 请求作用域隔离存储，供 interrupt() 安全获取当前请求 config
  */
 const configStack: interruptConfig[] = []
 
 /** interrupt 依赖的配置 */
 interface interruptConfig {
-  /** 当前节点配置 */
   configurable?: Record<string, any>
-  /** P0-3：恢复时传入的值，由 GraphExecutor 在恢复执行时设置 */
   __pregel_resume?: any[]
 }
 
@@ -85,24 +69,13 @@ interface interruptConfig {
 let interruptCounter = 0
 
 /**
- * 人机中断函数
- * 参照 LangGraph interrupt()
- *
- * 节点调用此函数暂停执行，等待外部确认后恢复
- * 不是错误，是一种控制流机制
- *
- * P0-3 修正：从当前作用域读取 __pregel_resume
- * - 首次执行时 __pregel_resume 不存在 → 抛出 GraphInterrupt
- * - 恢复执行时 __pregel_resume 存在 → 返回对应的恢复值
- *
- * @param value - 中断时传递给外部的值（如确认提示信息），any，可选
+ * 人机中断函数，参照 LangGraph interrupt()，节点调用此函数暂停执行，等待外部确认后恢复
+ * @param value - 中断时传递给外部的值，any，可选
  * @returns 恢复时外部传入的值
  * @throws GraphInterrupt 首次执行时始终抛出，由 GraphExecutor 捕获处理
  */
 export function interrupt(value?: any): any {
-  // 从浏览器端模拟的栈中读取当前作用域 config
   const store = getCurrentConfig()
-  // 恢复场景：已有 resume 值，直接返回
   if (store?.__pregel_resume && store.__pregel_resume.length > 0) {
     const idx = interruptCounter
     interruptCounter++
@@ -110,7 +83,6 @@ export function interrupt(value?: any): any {
       return store.__pregel_resume[idx]
     }
   }
-  // 首次执行：抛出中断
   throw new GraphInterrupt(value)
 }
 
@@ -134,22 +106,13 @@ export function resetInterruptCounter(): void {
 }
 
 /**
- * 在指定作用域内运行函数
- * 将 config 压入模块级栈顶 → 执行 fn → 无论成功或抛错都从栈顶弹出
- *
- * 为什么用 Promise.resolve().then(fn).finally(pop)：
- * - 保证 pop 一定发生在 fn 返回的 Promise 链尾
- * - 即便 fn 同步抛错，finally 也会执行，不会污染栈
- * - 与 Node AsyncLocalStorage.run 的"作用域结束自动还原"语义对齐
- *
- * @internal 仅供 GraphExecutor 内部使用
+ * 在指定作用域内运行函数，将 config 压入模块级栈顶 → 执行 fn → 无论成功或抛错都从栈顶弹出
  * @param config - 请求配置，interruptConfig，不可为空
  * @param fn - 要运行的函数，() => Promise<T>，不可为空
  * @returns 函数执行结果，Promise<T>
  */
 export function runWithConfig<T>(config: interruptConfig, fn: () => Promise<T>): Promise<T> {
   configStack.push(config)
-  // 使用链式调用，确保 pop 始终执行
   return Promise.resolve()
     .then(() => fn())
     .finally(() => {
@@ -160,13 +123,7 @@ export function runWithConfig<T>(config: interruptConfig, fn: () => Promise<T>):
 // ==================== RetryPolicy ====================
 
 /**
- * 节点级重试策略
- * 参照 LangGraph RetryPolicy
- *
- * 与旧引擎 maxRetries 的区别：
- * - 支持 retryOn 过滤（只有特定异常才重试）
- * - 支持指数退避（避免频繁重试）
- * - 支持 clearMemoryOnRetry（重试时清空 LLM 记忆）
+ * 节点级重试策略，参照 LangGraph RetryPolicy
  */
 export interface RetryPolicy {
   /** 最大尝试次数（含首次执行），默认 3 */

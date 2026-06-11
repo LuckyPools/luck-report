@@ -1,20 +1,9 @@
 /**
- * 统一执行接口与 RunnableLambda
- * 参照 LangChain LCEL（LangChain Expression Language）设计
- *
- * IRunnable 是图计算层的基础协议，所有可执行单元（节点、子图、工具包装）都实现此接口
- * RunnableLambda 是纯函数包装器，解决节点间数据结构不匹配问题
- *
- * 注意：RunnableSequence / RunnableParallel / RunnableWithFallbacks 暂不实现
- * - RunnableSequence 用 StateGraph 的边替代
- * - RunnableParallel 用 GraphExecutor 的并行执行替代
- * - RunnableWithFallbacks 用条件边 + try-catch 替代
+ * 统一执行接口与 RunnableLambda，参照 LangChain LCEL（LangChain Expression Language）设计
  */
 
 /**
- * 统一执行接口
- * 所有可编排的执行单元都实现此接口
- *
+ * 统一执行接口，所有可编排的执行单元都实现此接口
  * @template Input - 输入类型
  * @template Output - 输出类型
  */
@@ -44,13 +33,7 @@ export interface RunnableConfig {
 }
 
 /**
- * 纯函数包装器
- * 将普通函数包装为 IRunnable，解决节点间数据结构不匹配问题
- *
- * 使用场景：
- * - 节点函数签名与 IRunnable 接口对齐
- * - 数据转换/映射（如从 state 中提取子集传给工具）
- * - 简单线性流程的链式调用（不引入 StateGraph 的复杂度）
+ * 纯函数包装器，将普通函数包装为 IRunnable，解决节点间数据结构不匹配问题
  */
 export class RunnableLambda<Input, Output> implements IRunnable<Input, Output> {
   private fn: (input: Input, config?: RunnableConfig) => Promise<Output>

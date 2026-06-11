@@ -3,12 +3,7 @@ import type { Task } from '../tools/types'
 import type { WorkflowStepRecord } from '../workflow/types'
 
 /**
- * 任务列表管理 Hook
- * 负责 Task 对象的创建、更新、查询
- * 使用 Vue 的响应式系统实现任务状态的实时更新
- * 支持两种模式：
- * - 自由模式：LLM 通过 todos 工具动态创建/更新任务
- * - 工作流模式：代码驱动，从工作流步骤记录同步任务状态
+ * 任务列表管理 Hook，负责 Task 对象的创建、更新、查询
  */
 export function useTaskList() {
   /** 任务列表 */

@@ -11,22 +11,7 @@ import { KnowledgeCache } from './knowledge-cache'
 import { contextConfig } from '@/config'
 
 /**
- * 记忆管理器
- * 四层记忆架构，逐层压缩上下文，防止超出大模型上下文窗口：
- *
- * 第1层：工具结果截断 — 立竿见影，减少 50%+ token
- *   addMessage() 时自动截断 tool_result 中过长的内容
- *
- * 第2层：自动摘要压缩 — 根本性解决长对话问题
- *   消息过多时用 LLM 生成摘要替代早期消息
- *
- * 第3层：状态快照 — 压缩后保持报表上下文
- *   压缩时捕获报表状态快照，注入到上下文中
- *
- * 第4层：会话记忆持久化 — 跨会话记忆
- *   会话数据持久化到 localStorage，页面刷新后可恢复
- *
- * 调用者：AgentEngine → runAgentLoop → memoryManager.addMessage() / getContextMessages()
+ * 记忆管理器，四层记忆架构，逐层压缩上下文防止超出大模型上下文窗口
  */
 export class MemoryManager {
   /** 短期记忆：完整消息历史 */
@@ -43,14 +28,11 @@ export class MemoryManager {
 
   /**
    * 第5层（增强）：会话级知识文档缓存
-   * 解决"同一文档不重复加载" vs "压缩后不丢文档内容" 的矛盾
-   * load_docs 节点按 docName 增量加载；compact() 把已加载清单注入 summary
    */
   private knowledgeCache: KnowledgeCache = new KnowledgeCache()
 
   /**
    * 暴露知识文档缓存，供 load_docs 节点和 LLMDecideNode 使用
-   * @returns KnowledgeCache 实例
    */
   getKnowledgeCache(): KnowledgeCache {
     return this.knowledgeCache
@@ -84,10 +66,7 @@ export class MemoryManager {
   }
 
   /**
-   * 设置上下文窗口 token 上限
-   * 由 AgentEngine 在切换模型时调用，根据当前选中模型的 maxTokens 动态更新
-   *
-   * @param tokens - 模型的上下文窗口 token 上限
+   * 设置上下文窗口 token 上限，由 AgentEngine 在切换模型时调用
    */
   setContextWindowTokens(tokens: number): void {
     this._contextWindowTokens = tokens
@@ -95,7 +74,6 @@ export class MemoryManager {
 
   /**
    * 获取当前上下文窗口 token 上限
-   * @returns token 上限值
    */
   getContextWindowTokens(): number {
     return this._contextWindowTokens
@@ -104,22 +82,14 @@ export class MemoryManager {
   // ==================== 第1层：工具结果截断 ====================
 
   /**
-   * 创建记忆快照
-   * P0-4：用于节点重试前保存当前记忆状态
-   * 重试失败时可通过 clearAfter() 回滚到快照位置，避免 LLM 看到上次失败的工具结果
-   *
-   * @returns 快照索引（messages 数组长度），number
+   * 创建记忆快照，用于节点重试前保存当前记忆状态
    */
   snapshot(): number {
     return this.messages.length
   }
 
   /**
-   * 回滚记忆到指定快照位置
-   * P0-4：截断 messages 到 snapshot 位置，丢弃快照之后的所有消息
-   * 用于节点重试时清除上次失败产生的 tool_result 等消息
-   *
-   * @param snapshot - snapshot() 返回的快照索引，number，不可为空
+   * 回滚记忆到指定快照位置，用于节点重试时清除上次失败产生的消息
    */
   clearAfter(snapshot: number): void {
     if (snapshot >= 0 && snapshot < this.messages.length) {
@@ -128,31 +98,14 @@ export class MemoryManager {
   }
 
   /**
-   * 追加消息到短期记忆
-   * 第1层：对 tool_result 类型的消息自动截断过长内容
-   * 工具返回的报表数据（如 getReportSchema）通常包含大量 JSON，
-   * 截断后可减少 50%+ 的 token 消耗
-   *
-   * @param message - 记忆消息
+   * 追加消息到短期记忆，对 tool_result 类型的消息自动截断过长内容
    */
   addMessage(message: MemoryMessage): void {
-    // [增强] load_report_introduce 工具结果只存 1 份到 messages（不存全文，由 cache 维护）
-    // 根因：messages 是追加数组，每 turn 都调工具会导致同一文档累加 N 份 3000 字 tool_result
-    // 解决：第 2 次起不再 addMessage（cache 已存全文，buildMessages 会从 cache 取）
-    // 注意：这里只能"判断是否应该 addMessage"，真正的去重决策在调用方（load_docs 节点）
-    // 第1层截断已注释：当前截取策略影响工具结果读取体验，待后续优化截断策略后再启用
-    // if (message.role === 'tool_result') {
-    //   message = this.truncateToolResult(message)
-    // }
     this.messages.push(message)
   }
 
   /**
    * 获取 messages 里所有 load_report_introduce 已加载的文档名集合
-   * 用于 LLMDecideNode.buildMessages 检测"该文档是否已通过 tool_result 注入到上下文"
-   * 如果已注入 → knowledgeBlock 拼"已加载"提示即可，无需重复注入全文
-   *
-   * @returns 已加载的文档名集合，Set<string>
    */
   getLoadedDocNames(): Set<string> {
     const result = new Set<string>()
@@ -167,20 +120,13 @@ export class MemoryManager {
 
   /**
    * 批量追加消息到短期记忆
-   * @param messages - 记忆消息数组
    */
   addMessages(messages: MemoryMessage[]): void {
-    // 第1层截断已注释，与 addMessage 保持一致
     this.messages.push(...messages)
   }
 
   /**
-   * 截断过长的工具返回结果
-   * 保留 JSON 结构的首尾部分，中间用省略标记替代
-   * 同时标记 truncated=true，提示 LLM 该结果不完整
-   *
-   * @param message - 工具结果消息
-   * @returns 截断后的消息
+   * 截断过长的工具返回结果，保留 JSON 结构的首尾部分
    */
   private truncateToolResult(message: MemoryMessage): MemoryMessage {
     const maxChars = this.config.toolResultMaxChars
@@ -204,12 +150,7 @@ export class MemoryManager {
   // ==================== 第2层：自动摘要压缩 ====================
 
   /**
-   * 获取用于发送给 LLM 的上下文消息
-   * 直接返回全部消息 + 摘要注入，不再做滑动窗口裁剪
-   * 消息过多时由 needsCompact() + compact() 负责压缩
-   *
-   * @param maxMessages - 已废弃，保留参数兼容性，不再使用
-   * @returns 上下文消息列表
+   * 获取用于发送给 LLM 的上下文消息，直接返回全部消息 + 摘要注入
    */
   getContextMessages(_maxMessages?: number): MemoryMessage[] {
     const result: MemoryMessage[] = []
@@ -239,33 +180,25 @@ export class MemoryManager {
 
   /**
    * 记录关键操作（用于中期记忆）
-   * @param operation - 操作描述，如 "设置 A1 单元格值为 '销售报表'"
    */
   recordOperation(operation: string): void {
     this.keyOperations.push(operation)
   }
 
   /**
-   * 压缩对话历史
-   * 当消息过多时，将早期消息压缩为摘要
-   * 实际压缩由后台 LLM 完成，前端只负责触发和存储
-   *
-   * @param compactResult - LLM 生成的压缩结果
+   * 压缩对话历史，将早期消息压缩为摘要
    */
   compact(compactResult: CompactResult): void {
     this.summary = compactResult.summary
     this.keyOperations = compactResult.keyOperations
-    // [增强] 压缩时把知识文档清单追加到 summary，
-    // 避免 LLM 在压缩后忘了"已经加载过哪些文档"而误判为"需要重新加载"
-    // 注意：只追加清单（几十字节），不追加文档全文（避免 LLM 压缩时塞爆）
+
     const knowledgeInventory = this.knowledgeCache.exportInventory()
     if (knowledgeInventory) {
       this.summary = this.summary
         ? `${this.summary}\n\n${knowledgeInventory}`
         : knowledgeInventory
     }
-    // 保留最近消息，早期消息已被摘要替代
-    // 确保保留的消息以 user 角色开头，满足 OpenAI 协议要求
+
     let kept = this.messages.slice(-this.config.compactKeepRecent)
     const firstUserIndex = kept.findIndex(m => m.role === 'user')
     if (firstUserIndex > 0) {
@@ -275,10 +208,7 @@ export class MemoryManager {
   }
 
   /**
-   * 判断是否需要压缩
-   * 双重判断：消息条数阈值 + 估算 token 占比
-   *
-   * @returns 是否需要压缩
+   * 判断是否需要压缩，双重判断：消息条数阈值 + 估算 token 占比
    */
   needsCompact(): boolean {
     if (this.messages.length > this.config.compactThreshold) {
@@ -290,10 +220,7 @@ export class MemoryManager {
   }
 
   /**
-   * 估算当前上下文的 token 数
-   * 粗略估算：中文约 1.5 字符/token，英文约 4 字符/token，混合取 2 字符/token
-   *
-   * @returns 估算的 token 数
+   * 估算当前上下文的 token 数，粗略估算：中文约 1.5 字符/token，英文约 4 字符/token
    */
   private estimateContextTokens(): number {
     let totalChars = 0
@@ -314,22 +241,14 @@ export class MemoryManager {
   // ==================== 第3层：状态快照 ====================
 
   /**
-   * 更新报表状态快照
-   * 压缩前调用，保存当前报表的关键状态信息
-   * 压缩后早期消息被摘要替代，但报表结构信息通过快照保留
-   *
-   * @param snapshot - 报表状态快照
+   * 更新报表状态快照，压缩前调用保存当前报表的关键状态信息
    */
   updateReportSnapshot(snapshot: ReportSnapshot): void {
     this.reportSnapshot = snapshot
   }
 
   /**
-   * 构建快照上下文文本
-   * 将报表状态快照格式化为可注入 system prompt 的文本
-   * public 访问级别：供 AgentEngine 在压缩时获取快照文本传给后端
-   *
-   * @returns 格式化的快照描述
+   * 构建快照上下文文本，将报表状态快照格式化为可注入 system prompt 的文本
    */
   buildSnapshotContext(): string {
     if (!this.reportSnapshot) return ''
@@ -357,11 +276,7 @@ export class MemoryManager {
   }
 
   /**
-   * 构建摘要上下文文本
-   * 将中期摘要和关键操作格式化为可注入 system prompt 的文本
-   * public 访问级别：供外部模块获取摘要文本
-   *
-   * @returns 格式化的摘要描述
+   * 构建摘要上下文文本，将中期摘要和关键操作格式化为可注入 system prompt 的文本
    */
   buildSummaryContext(): string {
     const parts: string[] = ['[之前的对话摘要]']
@@ -378,9 +293,7 @@ export class MemoryManager {
   // ==================== 第4层：会话记忆持久化 ====================
 
   /**
-   * 保存会话数据到 localStorage
-   * 页面刷新后可通过 restoreSession() 恢复
-   * 只在 Agent 循环结束时调用，避免频繁写入
+   * 保存会话数据到 localStorage，页面刷新后可通过 restoreSession() 恢复
    */
   persistSession(): void {
     if (!this.sessionId) return
@@ -402,11 +315,7 @@ export class MemoryManager {
   }
 
   /**
-   * 从 localStorage 恢复会话数据
-   * 页面刷新后调用，恢复之前的对话上下文
-   *
-   * @param sessionId - 会话ID
-   * @returns 是否成功恢复
+   * 从 localStorage 恢复会话数据，页面刷新后调用恢复之前的对话上下文
    */
   restoreSession(sessionId: string): boolean {
     try {
@@ -435,7 +344,6 @@ export class MemoryManager {
 
   /**
    * 删除会话持久化数据
-   * @param sessionId - 会话ID
    */
   removeSession(sessionId: string): void {
     try {
@@ -448,7 +356,6 @@ export class MemoryManager {
 
   /**
    * 设置会话ID
-   * @param sessionId - 会话ID
    */
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId
@@ -457,10 +364,7 @@ export class MemoryManager {
   // ==================== 长期记忆 ====================
 
   /**
-   * 加载长期记忆
-   * 从 localStorage 读取用户偏好和项目规范
-   *
-   * @returns 长期记忆内容字符串，用于注入 system prompt
+   * 加载长期记忆，从 localStorage 读取用户偏好和项目规范
    */
   loadLongTermMemory(): string {
     try {
@@ -489,10 +393,7 @@ export class MemoryManager {
   }
 
   /**
-   * 保存长期记忆
-   * 将用户偏好和项目规范持久化到 localStorage
-   *
-   * @param data - 长期记忆数据
+   * 保存长期记忆，将用户偏好和项目规范持久化到 localStorage
    */
   saveLongTermMemory(data: LongTermMemory): void {
     try {

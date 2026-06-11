@@ -448,6 +448,58 @@ export function updatePaper({ paper }) {
   }
 }
 
+// ============ Header 操作 ============
+
+/**
+ * 获取页眉配置数据
+ * @returns {Object|null} 页眉配置对象
+ */
+export function getHeaderConfig() {
+  return store.getters['report/getHeaderConfig'];
+}
+
+/**
+ * 更新页眉配置（合并更新）
+ * @param {Object} params - 参数对象
+ * @param {Object} params.header - 要合并的页眉配置属性
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
+ */
+export function updateHeader({ header }) {
+  try {
+    store.dispatch('report/contextUpdateHeader', header);
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updateHeader 执行失败:', e);
+    return ToolResult.ERROR;
+  }
+}
+
+// ============ Footer 操作 ============
+
+/**
+ * 获取页脚配置数据
+ * @returns {Object|null} 页脚配置对象
+ */
+export function getFooterConfig() {
+  return store.getters['report/getFooterConfig'];
+}
+
+/**
+ * 更新页脚配置（合并更新）
+ * @param {Object} params - 参数对象
+ * @param {Object} params.footer - 要合并的页脚配置属性
+ * @return {number} ToolResult.SUCCESS(1) 表示成功，ToolResult.ERROR(0) 表示失败
+ */
+export function updateFooter({ footer }) {
+  try {
+    store.dispatch('report/contextUpdateFooter', footer);
+    return ToolResult.SUCCESS;
+  } catch (e) {
+    console.error('[contextActions] updateFooter 执行失败:', e);
+    return ToolResult.ERROR;
+  }
+}
+
 // ============ Row 操作 ============
 
 /**
@@ -618,6 +670,10 @@ export default {
   setSearchForm,
   getPaperConfig,
   updatePaper,
+  getHeaderConfig,
+  updateHeader,
+  getFooterConfig,
+  updateFooter,
   getRows,
   setRows,
   getColumns,

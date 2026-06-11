@@ -607,7 +607,7 @@ export function modifyRowGraph(): CompiledReportGraph {
   graph.addChannel('modify_and_write_row_out', writeOut)
   graph.addNode('modify_and_write_row', new LLMDecideNode({
     nodeId: 'modify_and_write_row',
-    allowedTools: ['set_rows', 'insert_row', 'load_report_introduce'],
+    allowedTools: ['set_rows', 'insert_row', 'get_row_definitions_template', 'load_report_introduce'],
     requiredToolResultsAny: ['set_rows', 'insert_row'],
     maxIterations: 4,
     description:
@@ -617,6 +617,7 @@ export function modifyRowGraph(): CompiledReportGraph {
       '不要把工具调用写到文本 content 里（不要用 ```json {"tool": ...} ``` 这种格式）。\n' +
       'rowData 已在 context 中，不需要再调 get_rows。\n' +
       '批量改或新建 → set_rows({rows: 全量数组}) 一次性传入。' +
+      '不确定行定义格式时，可先调 get_row_definitions_template 获取模板。' +
       '禁止分多轮写入。',
     outChannelName: 'modify_and_write_row_out'
   }), {
@@ -685,7 +686,7 @@ export function modifyColGraph(): CompiledReportGraph {
   graph.addChannel('modify_and_write_col_out', writeOut)
   graph.addNode('modify_and_write_col', new LLMDecideNode({
     nodeId: 'modify_and_write_col',
-    allowedTools: ['set_columns', 'insert_col', 'load_report_introduce'],
+    allowedTools: ['set_columns', 'insert_col', 'get_column_definitions_template', 'load_report_introduce'],
     requiredToolResultsAny: ['set_columns', 'insert_col'],
     maxIterations: 4,
     description:
@@ -695,6 +696,7 @@ export function modifyColGraph(): CompiledReportGraph {
       '不要把工具调用写到文本 content 里（不要用 ```json {"tool": ...} ``` 这种格式）。\n' +
       'colData 已在 context 中，不需要再调 get_columns。\n' +
       '批量改或新建 → set_columns({columns: 全量数组}) 一次性传入。' +
+      '不确定列定义格式时，可先调 get_column_definitions_template 获取模板。' +
       '禁止分多轮写入。',
     outChannelName: 'modify_and_write_col_out'
   }), {
@@ -708,6 +710,151 @@ export function modifyColGraph(): CompiledReportGraph {
   graph.addEdge('read_cols', 'ensure_col')
   graph.addEdge('ensure_col', 'modify_and_write_col')
   graph.addEdge('modify_and_write_col', '__end__')
+
+  return graph.compile()
+}
+
+// ==================== 修改表单子工作流 ====================
+
+/**
+ * 修改查询表单工作流：read → modify_and_write，参照 modifyCellGraph 模式
+ * read 节点用 ToolCallNode 纯函数读取，保证一定先读；
+ * modify_and_write 节点 context 自动包含 searchForm，LLM 只需决定怎么改 + 写入
+ */
+export function modifyFormGraph(): CompiledReportGraph {
+  const graph = new ReportStateGraph(reportStateSchema, {
+    input: { userMessage: true, intent: true, datasets: true, searchResults: true },
+    output: { searchForm: true }
+  })
+
+  // 节点1：读取查询表单（纯函数，零 LLM）
+  const readOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_form_out', readOut)
+  graph.addNode('read_form', new ToolCallNode({
+    nodeId: 'read_form',
+    toolName: 'get_search_form',
+    args: {},
+    outChannelName: 'read_form_out',
+    resultKey: 'searchForm'
+  }), {
+    triggers: ['__start__'],
+    triggerMode: 'all',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取查询表单数据' }
+  })
+
+  // 节点2：修改并写入查询表单
+  const writeOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('modify_and_write_form_out', writeOut)
+  graph.addNode('modify_and_write_form', new LLMDecideNode({
+    nodeId: 'modify_and_write_form',
+    allowedTools: ['set_search_form', 'get_search_form_template', 'load_report_introduce'],
+    requiredToolResults: ['set_search_form'],
+    maxIterations: 4,
+    description: 'searchForm 已在 context 中，禁止重读。按"读 searchForm → 场景判断（空表单先调 get_search_form_template 取模板 / 基于原数据调整）→ 调 set_search_form 写入"流程处理。',
+    outChannelName: 'modify_and_write_form_out'
+  }), {
+    triggers: ['searchForm'],
+    triggerMode: 'any',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '修改并写入查询表单' }
+  })
+
+  graph.addEdge('__start__', 'read_form')
+  graph.addEdge('read_form', 'modify_and_write_form')
+  graph.addEdge('modify_and_write_form', '__end__')
+
+  return graph.compile()
+}
+
+// ==================== 修改页面配置子工作流 ====================
+
+/**
+ * 修改页面配置工作流：read → modify_and_write，参照 modifyCellGraph 模式
+ * 同时处理 paper（纸张配置）、header（页眉）、footer（页脚）三部分
+ * read 阶段并行读取三者，modify_and_write 阶段由 LLM 统一决策
+ */
+export function modifyPageGraph(): CompiledReportGraph {
+  const graph = new ReportStateGraph(reportStateSchema, {
+    input: { userMessage: true, intent: true, searchResults: true },
+    output: { pageConfig: true, headerConfig: true, footerConfig: true }
+  })
+
+  // 节点1a：读取页面配置（纯函数，零 LLM）
+  const readPaperOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_paper_config_out', readPaperOut)
+  graph.addNode('read_paper_config', new ToolCallNode({
+    nodeId: 'read_paper_config',
+    toolName: 'get_paper_config',
+    args: {},
+    outChannelName: 'read_paper_config_out',
+    resultKey: 'pageConfig'
+  }), {
+    triggers: ['__start__'],
+    triggerMode: 'all',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取纸张配置数据' }
+  })
+
+  // 节点1b：读取页眉配置（纯函数，零 LLM）
+  const readHeaderOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_header_config_out', readHeaderOut)
+  graph.addNode('read_header_config', new ToolCallNode({
+    nodeId: 'read_header_config',
+    toolName: 'get_header',
+    args: {},
+    outChannelName: 'read_header_config_out',
+    resultKey: 'headerConfig'
+  }), {
+    triggers: ['__start__'],
+    triggerMode: 'all',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取页眉配置数据' }
+  })
+
+  // 节点1c：读取页脚配置（纯函数，零 LLM）
+  const readFooterOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_footer_config_out', readFooterOut)
+  graph.addNode('read_footer_config', new ToolCallNode({
+    nodeId: 'read_footer_config',
+    toolName: 'get_footer',
+    args: {},
+    outChannelName: 'read_footer_config_out',
+    resultKey: 'footerConfig'
+  }), {
+    triggers: ['__start__'],
+    triggerMode: 'all',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取页脚配置数据' }
+  })
+
+  // 节点2：修改并写入页面配置（含页眉页脚）
+  const writeOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('modify_and_write_page_out', writeOut)
+  graph.addNode('modify_and_write_page', new LLMDecideNode({
+    nodeId: 'modify_and_write_page',
+    allowedTools: ['update_paper', 'update_header', 'update_footer', 'get_paper_config_template', 'get_header_footer_template', 'load_report_introduce'],
+    requiredToolResults: ['update_paper', 'update_header', 'update_footer'],
+    maxIterations: 6,
+    description: 'pageConfig、headerConfig、footerConfig 已在 context 中，禁止重读。按以下流程处理：\n' +
+      '1. 纸张配置：读 pageConfig → 空配置先调 get_paper_config_template 取模板 / 基于原数据调整 → 调 update_paper 写入\n' +
+      '2. 页眉配置：读 headerConfig → 空配置先调 get_header_footer_template({type:"header"}) 取模板 / 基于原数据调整 → 调 update_header 写入\n' +
+      '3. 页脚配置：读 footerConfig → 空配置先调 get_header_footer_template({type:"footer"}) 取模板 / 基于原数据调整 → 调 update_footer 写入\n' +
+      '【重要】header 和 footer 是 reportDef 的独立字段，与 paper 平级，禁止把 header/footer 放进 paper 对象中。\n' +
+      '失败必须按 message 修正后重试对应工具，禁止换工具。',
+    outChannelName: 'modify_and_write_page_out'
+  }), {
+    triggers: ['pageConfig', 'headerConfig', 'footerConfig'],
+    triggerMode: 'any',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '修改并写入页面配置（含页眉页脚）' }
+  })
+
+  graph.addEdge('__start__', 'read_paper_config')
+  graph.addEdge('__start__', 'read_header_config')
+  graph.addEdge('__start__', 'read_footer_config')
+  graph.addEdge(['read_paper_config', 'read_header_config', 'read_footer_config'], 'modify_and_write_page')
+  graph.addEdge('modify_and_write_page', '__end__')
 
   return graph.compile()
 }
@@ -727,7 +874,7 @@ export function modifyReportGraph(): CompiledReportGraph {
     input: { userMessage: true, intent: true },
     // [修复] output 增加 rowData / colData：让 modify_row/col_subgraph 读到的行/列数据回传到主图 state，
     // 方便后续步骤（form/page）按需引用，也与 modify_cell_subgraph 回传 cellsData 行为一致
-    output: { cellsData: true, rowData: true, colData: true, pageConfig: true }
+    output: { cellsData: true, rowData: true, colData: true, pageConfig: true, headerConfig: true, footerConfig: true }
   })
 
   // 阶段1：知识准备（4 个并行节点）
@@ -1054,36 +1201,33 @@ export function modifyReportGraph(): CompiledReportGraph {
     metadata: { description: '修改列结构子流程' }
   })
 
-  // 阶段4：表单/页面操作
-  const modifyFormOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('modify_form_out', modifyFormOut)
-  graph.addNode('modify_form', new LLMDecideNode({
-    nodeId: 'modify_form',
-    allowedTools: ['get_search_form', 'set_search_form'],
-    description: '根据需求修改查询表单的配置',
-    outChannelName: 'modify_form_out'
-  }), {
+  // 阶段4：表单/页面操作（子图嵌入，参照 modify_cell_subgraph 模式）
+  graph.addNode('modify_form_subgraph', async (state, runtime) => {
+    const subGraph = modifyFormGraph()
+    const childRuntime = runtime?.fork()
+    const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
+    return result.state
+  }, {
     triggers: ['plan_tasks_out', 'select_datasource_op_out'],
     triggerMode: 'any',
     skipWhen: (state) => !state.intent?.needsFormOperation,
-    input: { datasets: true, intent: true },
-    metadata: { description: '修改查询表单' }
+    input: { datasets: true, intent: true, userMessage: true, searchResults: true },
+    output: { searchForm: true },
+    metadata: { description: '修改查询表单子流程' }
   })
 
-  const modifyPageOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('modify_page_out', modifyPageOut)
-  graph.addNode('modify_page', new LLMDecideNode({
-    nodeId: 'modify_page',
-    allowedTools: ['get_paper_config', 'update_paper'],
-    description: '根据需求修改页面配置（纸张大小、边距、方向等）',
-    outChannelName: 'modify_page_out'
-  }), {
+  graph.addNode('modify_page_subgraph', async (state, runtime) => {
+    const subGraph = modifyPageGraph()
+    const childRuntime = runtime?.fork()
+    const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
+    return result.state
+  }, {
     triggers: ['plan_tasks_out', 'select_datasource_op_out'],
     triggerMode: 'any',
     skipWhen: (state) => !state.intent?.needsPageConfigOperation,
-    input: { cellsData: true, searchForm: true, intent: true },
-    output: { pageConfig: true },
-    metadata: { description: '修改页面配置' }
+    input: { intent: true, userMessage: true, searchResults: true },
+    output: { pageConfig: true, headerConfig: true, footerConfig: true },
+    metadata: { description: '修改页面配置子流程（含页眉页脚）' }
   })
 
   // 边
@@ -1103,8 +1247,8 @@ export function modifyReportGraph(): CompiledReportGraph {
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
     if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
     if (state.intent?.needsColOperation) return 'modify_col_subgraph'
-    if (state.intent?.needsFormOperation) return 'modify_form'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
     return '__end__'
   })
 
@@ -1114,39 +1258,39 @@ export function modifyReportGraph(): CompiledReportGraph {
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
     if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
     if (state.intent?.needsColOperation) return 'modify_col_subgraph'
-    if (state.intent?.needsFormOperation) return 'modify_form'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
     return '__end__'
   })
   graph.addConditionalEdges('modify_dataset_subgraph', (state) => {
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
     if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
     if (state.intent?.needsColOperation) return 'modify_col_subgraph'
-    if (state.intent?.needsFormOperation) return 'modify_form'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
     return '__end__'
   })
   // modify_cell_subgraph 完成后按 form → page → __end__ 分级判断
   graph.addConditionalEdges('modify_cell_subgraph', (state) => {
-    if (state.intent?.needsFormOperation) return 'modify_form'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
     return '__end__'
   })
   // modify_row_subgraph 完成后：行+列场景接力到 modify_col_subgraph；否则走 form/page/__end__
   graph.addConditionalEdges('modify_row_subgraph', (state) => {
     if (state.intent?.needsColOperation) return 'modify_col_subgraph'
-    if (state.intent?.needsFormOperation) return 'modify_form'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
     return '__end__'
   })
   // modify_col_subgraph 完成后按 form → page → __end__ 分级判断
   graph.addConditionalEdges('modify_col_subgraph', (state) => {
-    if (state.intent?.needsFormOperation) return 'modify_form'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
     return '__end__'
   })
-  graph.addEdge('modify_form', 'modify_page')
-  graph.addEdge('modify_page', '__end__')
+  graph.addEdge('modify_form_subgraph', 'modify_page_subgraph')
+  graph.addEdge('modify_page_subgraph', '__end__')
 
   return graph.compile()
 }

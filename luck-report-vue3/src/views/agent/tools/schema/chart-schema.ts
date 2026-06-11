@@ -1,8 +1,5 @@
 /**
  * 图表单元格数据模型 JSON Schema 定义
- *
- * 本文件定义了图表单元格的核心数据模型、约束规则和数据模板。
- * 图表单元格支持多种图表类型：柱状图、折线图、饼图、雷达图、散点图、气泡图等。
  */
 
 // ==================== 图表相关 Schema ====================
@@ -175,103 +172,117 @@ export const ChartValueSchema = {
 
 /**
  * 校验图表值数据是否符合规范
+ * 收集 dataset/xaxes/yaxes/options/plugins 各部分的全部错误，一次性返回
+ * 避免 LLM 一次只看到一条报错反复重试
+ *
  * @param chartValue - 图表值对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateChartValue(chartValue: any): string | undefined {
   if (!chartValue || typeof chartValue !== 'object') {
     return 'chartValue 必须是对象类型'
   }
+  const errors: string[] = []
 
   // type 必须是 chart
   if (chartValue.type !== 'chart') {
-    return 'chartValue.type 必须是 "chart"'
+    errors.push('chartValue.type 必须是 "chart"')
   }
 
   // chart 必须是对象
   if (!chartValue.chart || typeof chartValue.chart !== 'object') {
-    return 'chartValue.chart 必须是对象类型'
-  }
+    errors.push('chartValue.chart 必须是对象类型')
+  } else {
+    // dataset 校验：收集 dataset 全部错误而不是只取第一个
+    const datasetError = validateChartDataset(chartValue.chart.dataset)
+    if (datasetError) errors.push(`chart.dataset: ${datasetError}`)
 
-  // dataset 校验
-  const datasetError = validateChartDataset(chartValue.chart.dataset)
-  if (datasetError) return datasetError
+    // xaxes 校验（可选）
+    if (chartValue.chart.xaxes) {
+      const xaxesError = validateChartAxis(chartValue.chart.xaxes, 'xaxes')
+      if (xaxesError) errors.push(`chart.xaxes: ${xaxesError}`)
+    }
 
-  // xaxes 校验（可选）
-  if (chartValue.chart.xaxes) {
-    const xaxesError = validateChartAxis(chartValue.chart.xaxes, 'xaxes')
-    if (xaxesError) return xaxesError
-  }
+    // yaxes 校验（可选）
+    if (chartValue.chart.yaxes) {
+      const yaxesError = validateChartAxis(chartValue.chart.yaxes, 'yaxes')
+      if (yaxesError) errors.push(`chart.yaxes: ${yaxesError}`)
+    }
 
-  // yaxes 校验（可选）
-  if (chartValue.chart.yaxes) {
-    const yaxesError = validateChartAxis(chartValue.chart.yaxes, 'yaxes')
-    if (yaxesError) return yaxesError
-  }
+    // options 校验（可选）：遍历全部选项并收集所有错误
+    if (chartValue.chart.options !== undefined) {
+      if (!Array.isArray(chartValue.chart.options)) {
+        errors.push('chart.options 必须是数组')
+      } else {
+        for (let i = 0; i < chartValue.chart.options.length; i++) {
+          const optionError = validateChartOption(chartValue.chart.options[i], i)
+          if (optionError) errors.push(`chart.options[${i}]: ${optionError}`)
+        }
+      }
+    }
 
-  // options 校验（可选）
-  if (chartValue.chart.options && Array.isArray(chartValue.chart.options)) {
-    for (let i = 0; i < chartValue.chart.options.length; i++) {
-      const optionError = validateChartOption(chartValue.chart.options[i], i)
-      if (optionError) return optionError
+    // plugins 校验（可选）：遍历全部插件并收集所有错误
+    if (chartValue.chart.plugins !== undefined) {
+      if (!Array.isArray(chartValue.chart.plugins)) {
+        errors.push('chart.plugins 必须是数组')
+      } else {
+        for (let i = 0; i < chartValue.chart.plugins.length; i++) {
+          const pluginError = validateChartPlugin(chartValue.chart.plugins[i], i)
+          if (pluginError) errors.push(`chart.plugins[${i}]: ${pluginError}`)
+        }
+      }
     }
   }
 
-  // plugins 校验（可选）
-  if (chartValue.chart.plugins && Array.isArray(chartValue.chart.plugins)) {
-    for (let i = 0; i < chartValue.chart.plugins.length; i++) {
-      const pluginError = validateChartPlugin(chartValue.chart.plugins[i], i)
-      if (pluginError) return pluginError
-    }
-  }
-
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验图表数据集是否符合规范
+ *
  * @param dataset - 图表数据集对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 function validateChartDataset(dataset: any): string | undefined {
   if (!dataset || typeof dataset !== 'object') {
     return 'chartValue.chart.dataset 必须是对象类型'
   }
+  const errors: string[] = []
 
   // type 校验
   const validChartTypes = ['bar', 'horizontalBar', 'line', 'pie', 'doughnut', 'radar', 'polarArea', 'scatter', 'bubble']
   if (!dataset.type || !validChartTypes.includes(dataset.type)) {
-    return `chartValue.chart.dataset.type 必须是 ${validChartTypes.join('/')} 之一`
+    errors.push(`type 必须是 ${validChartTypes.join('/')} 之一，当前为 ${dataset.type}`)
   }
 
   // datasetName 校验
   if (!dataset.datasetName || typeof dataset.datasetName !== 'string') {
-    return 'chartValue.chart.dataset.datasetName 必须是非空字符串'
+    errors.push('datasetName 必须是非空字符串')
   }
 
   // categoryProperty 校验
   if (!dataset.categoryProperty || typeof dataset.categoryProperty !== 'string') {
-    return 'chartValue.chart.dataset.categoryProperty 必须是非空字符串'
+    errors.push('categoryProperty 必须是非空字符串')
   }
 
   // 基础图表类型（bar/line/pie等）需要 valueProperty 和 collectType
   const basicChartTypes = ['bar', 'horizontalBar', 'line', 'pie', 'doughnut', 'radar', 'polarArea']
   if (basicChartTypes.includes(dataset.type)) {
     if (!dataset.valueProperty || typeof dataset.valueProperty !== 'string') {
-      return 'chartValue.chart.dataset.valueProperty 必须是非空字符串（基础图表类型）'
+      errors.push('valueProperty 必须是非空字符串（基础图表类型）')
     }
 
     // collectType 校验
     const validCollectTypes = ['select', 'sum', 'count', 'avg', 'max', 'min']
     if (dataset.collectType && !validCollectTypes.includes(dataset.collectType)) {
-      return `chartValue.chart.dataset.collectType 必须是 ${validCollectTypes.join('/')} 之一`
+      errors.push(`collectType 必须是 ${validCollectTypes.join('/')} 之一，当前为 ${dataset.collectType}`)
     }
 
     // seriesType 校验
     if (dataset.seriesType) {
       const validSeriesTypes = ['text', 'property']
       if (!validSeriesTypes.includes(dataset.seriesType)) {
-        return `chartValue.chart.dataset.seriesType 必须是 ${validSeriesTypes.join('/')} 之一`
+        errors.push(`seriesType 必须是 ${validSeriesTypes.join('/')} 之一，当前为 ${dataset.seriesType}`)
       }
     }
   }
@@ -279,50 +290,52 @@ function validateChartDataset(dataset: any): string | undefined {
   // 散点图需要 xProperty 和 yProperty
   if (dataset.type === 'scatter') {
     if (!dataset.xProperty || typeof dataset.xProperty !== 'string') {
-      return 'chartValue.chart.dataset.xProperty 必须是非空字符串（散点图）'
+      errors.push('xProperty 必须是非空字符串（散点图）')
     }
     if (!dataset.yProperty || typeof dataset.yProperty !== 'string') {
-      return 'chartValue.chart.dataset.yProperty 必须是非空字符串（散点图）'
+      errors.push('yProperty 必须是非空字符串（散点图）')
     }
   }
 
   // 气泡图需要 xProperty、yProperty 和 rProperty
   if (dataset.type === 'bubble') {
     if (!dataset.xProperty || typeof dataset.xProperty !== 'string') {
-      return 'chartValue.chart.dataset.xProperty 必须是非空字符串（气泡图）'
+      errors.push('xProperty 必须是非空字符串（气泡图）')
     }
     if (!dataset.yProperty || typeof dataset.yProperty !== 'string') {
-      return 'chartValue.chart.dataset.yProperty 必须是非空字符串（气泡图）'
+      errors.push('yProperty 必须是非空字符串（气泡图）')
     }
     if (!dataset.rProperty || typeof dataset.rProperty !== 'string') {
-      return 'chartValue.chart.dataset.rProperty 必须是非空字符串（气泡图）'
+      errors.push('rProperty 必须是非空字符串（气泡图）')
     }
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验图表轴配置是否符合规范
+ *
  * @param axis - 图表轴配置对象
  * @param axisName - 轴名称（xaxes/yaxes）
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 function validateChartAxis(axis: any, axisName: string): string | undefined {
   if (!axis || typeof axis !== 'object') {
     return `chartValue.chart.${axisName} 必须是对象类型`
   }
+  const errors: string[] = []
 
   // rotation 校验（可选）
   if (axis.rotation !== undefined && typeof axis.rotation !== 'number') {
-    return `chartValue.chart.${axisName}.rotation 必须是数字类型`
+    errors.push('rotation 必须是数字类型')
   }
 
   // xposition 校验（仅 xaxes）
   if (axisName === 'xaxes' && axis.xposition) {
     const validPositions = ['top', 'bottom']
     if (!validPositions.includes(axis.xposition)) {
-      return `chartValue.chart.${axisName}.xposition 必须是 ${validPositions.join('/')} 之一`
+      errors.push(`xposition 必须是 ${validPositions.join('/')} 之一，当前为 ${axis.xposition}`)
     }
   }
 
@@ -330,100 +343,103 @@ function validateChartAxis(axis: any, axisName: string): string | undefined {
   if (axisName === 'yaxes' && axis.yposition) {
     const validPositions = ['left', 'right']
     if (!validPositions.includes(axis.yposition)) {
-      return `chartValue.chart.${axisName}.yposition 必须是 ${validPositions.join('/')} 之一`
+      errors.push(`yposition 必须是 ${validPositions.join('/')} 之一，当前为 ${axis.yposition}`)
     }
   }
 
-  // scaleLabel 校验（可选）
+  // scaleLabel 校验（可选）：收集 display 字段类型错误与对象类型错误
   if (axis.scaleLabel) {
     if (typeof axis.scaleLabel !== 'object') {
-      return `chartValue.chart.${axisName}.scaleLabel 必须是对象类型`
-    }
-    if (axis.scaleLabel.display !== undefined && typeof axis.scaleLabel.display !== 'boolean') {
-      return `chartValue.chart.${axisName}.scaleLabel.display 必须是布尔类型`
+      errors.push('scaleLabel 必须是对象类型')
+    } else if (axis.scaleLabel.display !== undefined && typeof axis.scaleLabel.display !== 'boolean') {
+      errors.push('scaleLabel.display 必须是布尔类型')
     }
   }
 
   // ticks 校验（可选）
   if (axis.ticks) {
     if (typeof axis.ticks !== 'object') {
-      return `chartValue.chart.${axisName}.ticks 必须是对象类型`
+      errors.push('ticks 必须是对象类型')
     }
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验图表选项是否符合规范
+ * 收集 type/display/position/text 等字段的错误
+ *
  * @param option - 图表选项对象
  * @param index - 选项索引
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 function validateChartOption(option: any, index: number): string | undefined {
   if (!option || typeof option !== 'object') {
     return `chartValue.chart.options[${index}] 必须是对象类型`
   }
+  const errors: string[] = []
 
   // type 校验
   const validOptionTypes = ['title', 'legend', 'layout', 'animation']
   if (!option.type || !validOptionTypes.includes(option.type)) {
-    return `chartValue.chart.options[${index}].type 必须是 ${validOptionTypes.join('/')} 之一`
+    errors.push(`type 必须是 ${validOptionTypes.join('/')} 之一，当前为 ${option.type}`)
   }
 
   // display 校验（可选）
   if (option.display !== undefined && typeof option.display !== 'boolean') {
-    return `chartValue.chart.options[${index}].display 必须是布尔类型`
+    errors.push('display 必须是布尔类型')
   }
 
   // position 校验（可选）
   if (option.position) {
     const validPositions = ['top', 'bottom', 'left', 'right']
     if (!validPositions.includes(option.position)) {
-      return `chartValue.chart.options[${index}].position 必须是 ${validPositions.join('/')} 之一`
+      errors.push(`position 必须是 ${validPositions.join('/')} 之一，当前为 ${option.position}`)
     }
   }
 
   // title 类型必须有 text
   if (option.type === 'title' && option.display === true) {
     if (!option.text || typeof option.text !== 'string') {
-      return `chartValue.chart.options[${index}].text 必须是非空字符串（当 type 为 title 且 display 为 true 时）`
+      errors.push('text 必须是非空字符串（当 type 为 title 且 display 为 true 时）')
     }
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验图表插件是否符合规范
+ * 收集 name/display 字段的错误
+ *
  * @param plugin - 图表插件对象
  * @param index - 插件索引
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 function validateChartPlugin(plugin: any, index: number): string | undefined {
   if (!plugin || typeof plugin !== 'object') {
     return `chartValue.chart.plugins[${index}] 必须是对象类型`
   }
+  const errors: string[] = []
 
   // name 校验
   if (!plugin.name || typeof plugin.name !== 'string') {
-    return `chartValue.chart.plugins[${index}].name 必须是非空字符串`
+    errors.push('name 必须是非空字符串')
   }
 
   // display 校验（可选）
   if (plugin.display !== undefined && typeof plugin.display !== 'boolean') {
-    return `chartValue.chart.plugins[${index}].display 必须是布尔类型`
+    errors.push('display 必须是布尔类型')
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 // ==================== 数据模板生成函数 ====================
 
 /**
  * 生成图表单元格模板
- * 参考 doc/template/chart1.json 的结构
- * 默认生成一个 pie（饼图）模板，LLM 调用时可改 chart.dataset.type 切换图表类型
  *
  * @param rowIndex - 行索引，从0开始
  * @param colIndex - 列索引，从0开始

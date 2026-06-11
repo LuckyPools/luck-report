@@ -19,6 +19,11 @@ import {
   setSearchFormTool,
   getPaperConfigTool,
   updatePaperTool,
+  getHeaderConfigTool,
+  updateHeaderTool,
+  getFooterConfigTool,
+  updateFooterTool,
+  getHeaderFooterTemplateTool,
   getRowsTool,
   setRowsTool,
   insertRowTool,
@@ -45,13 +50,15 @@ import {
   getCellTemplateTool,
   getDatasetTemplateTool,
   getDatasourceTemplateTool,
+  getSearchFormTemplateTool,
+  getPaperConfigTemplateTool,
+  getRowDefinitionsTemplateTool,
+  getColumnDefinitionsTemplateTool,
 } from './report-tools'
 import { loadReportIntroduceTool } from './doc-tools.ts'
 
 /**
- * 工具注册表
- * 管理所有可用工具的注册、查找、列表
- * 参考 Claude Code 的 getAllBaseTools() 工具注册机制
+ * 工具注册表，管理工具的注册、查找和列表
  */
 export class ToolRegistry {
   /** 工具定义映射表，key 为工具名称 */
@@ -59,7 +66,6 @@ export class ToolRegistry {
 
   /**
    * 注册一个工具
-   * @param tool - 工具定义
    */
   register(tool: ToolDefinition): void {
     if (this.tools.has(tool.name)) {
@@ -70,7 +76,6 @@ export class ToolRegistry {
 
   /**
    * 批量注册工具
-   * @param tools - 工具定义数组
    */
   registerAll(tools: ToolDefinition[]): void {
     tools.forEach(t => this.register(t))
@@ -78,8 +83,6 @@ export class ToolRegistry {
 
   /**
    * 按名称查找工具
-   * @param name - 工具名称
-   * @returns 工具定义或 undefined
    */
   get(name: string): ToolDefinition | undefined {
     return this.tools.get(name)
@@ -87,34 +90,27 @@ export class ToolRegistry {
 
   /**
    * 获取所有已注册工具
-   * @returns 工具定义数组
    */
   getAll(): ToolDefinition[] {
     return Array.from(this.tools.values())
   }
 
   /**
-   * 获取所有只读工具名称列表
-   * 只读工具可并发执行，无需串行排队
-   * @returns 只读工具名称数组
+   * 获取所有只读工具名称列表，只读工具可并发执行
    */
   getReadOnlyToolNames(): string[] {
     return this.getAll().filter(t => t.readOnly).map(t => t.name)
   }
 
   /**
-   * 获取需要确认的工具名称列表
-   * 高风险操作执行前需用户确认
-   * @returns 需确认工具名称数组
+   * 获取需要确认的工具名称列表，高风险操作执行前需用户确认
    */
   getConfirmRequiredToolNames(): string[] {
     return this.getAll().filter(t => t.requireConfirm).map(t => t.name)
   }
 
   /**
-   * 生成供 LLM 使用的工具定义列表
-   * 将内部 ToolDefinition 转换为后台 API 需要的 tools 参数格式
-   * @returns 工具定义数组（API 格式）
+   * 生成供 LLM 使用的工具定义列表，将内部 ToolDefinition 转换为后台 API 需要的格式
    */
   toApiFormat(): ToolApiFormat[] {
     return this.getAll().map(t => ({
@@ -125,12 +121,7 @@ export class ToolRegistry {
   }
 
   /**
-   * 校验工具调用输入参数
-   * 使用工具的 inputSchema 进行基本校验（检查必填字段是否存在）
-   *
-   * @param toolName - 工具名称
-   * @param input - 调用输入参数
-   * @returns 校验结果，valid 为 true 表示通过
+   * 校验工具调用输入参数，使用工具的 inputSchema 进行基本校验
    */
   validateInput(toolName: string, input: Record<string, any>): { valid: boolean; errors: string[] } {
     const tool = this.tools.get(toolName)
@@ -158,27 +149,16 @@ export class ToolRegistry {
   }
 
   /**
-   * 按名称查找并执行工具
-   * 封装"查找 → 校验 → 执行"三步流程，行为对齐老版 workflow-engine.ts 中的手写逻辑
-   * 供新版工作流节点（workflow-graphs / llm-decide-node / legacy-adapter）统一调用
-   *
-   * @param name - 工具名称，string，不可为空
-   * @param input - 工具输入参数，Record<string, any>，不可为空
-   * @returns 工具执行结果，Promise<TOutput>
-   * @throws 工具不存在 / 参数校验失败时抛 Error（错误信息含具体原因）
+   * 按名称查找并执行工具，封装"查找 → 校验 → 执行"三步流程
    */
   async executeTool<TInput = any, TOutput = any>(
     name: string,
     input: TInput
   ): Promise<TOutput> {
-    // 第一步：查找工具
     const tool = this.tools.get(name)
     if (!tool) {
       throw new Error(`工具 "${name}" 不存在`)
     }
-    // 第二步：参数校验
-    // 优先使用工具自定义的 validate 闭包（业务级校验更精准）
-    // 兜底用 Schema 校验（检查必填字段、未知字段）
     if (tool.validate) {
       const err = tool.validate(input)
       if (err) {
@@ -190,16 +170,20 @@ export class ToolRegistry {
         throw new Error(`工具 "${name}" 参数校验失败: ${v.errors.join('; ')}`)
       }
     }
-    // 第三步：执行（execute 内部错误原样上抛，由调用方决定如何转为错误事件）
-    return tool.execute(input) as Promise<TOutput>
+    const rawResult = (await tool.execute(input)) as any
+    if (rawResult == null) {
+      console.warn(`[WARN][ToolRegistry] 工具 "${name}" 执行返回 null/undefined，已归一为业务失败对象`)
+      return {
+        success: false,
+        message: `工具 "${name}" 未返回结果`,
+        data: null
+      } as unknown as TOutput
+    }
+    return rawResult as TOutput
   }
 
   /**
-   * 获取所有已注册工具定义
-   * getAll 的语义化别名，专供 LLM 决策节点使用
-   * 命名差异原因：llm-decide-node 的语义是"取工具定义供 LLM 看"，getAll 偏底层
-   *
-   * @returns 工具定义数组，ToolDefinition[]
+   * 获取所有已注册工具定义，getAll 的语义化别名
    */
   getToolDefinitions(): ToolDefinition[] {
     return this.getAll()
@@ -208,7 +192,6 @@ export class ToolRegistry {
 
 /**
  * 创建默认工具注册表，注册所有报表操作工具
- * @returns 已初始化的工具注册表实例
  */
 export function createDefaultRegistry(): ToolRegistry {
   const registry = new ToolRegistry()
@@ -233,6 +216,11 @@ export function createDefaultRegistry(): ToolRegistry {
     setSearchFormTool,
     getPaperConfigTool,
     updatePaperTool,
+    getHeaderConfigTool,
+    updateHeaderTool,
+    getFooterConfigTool,
+    updateFooterTool,
+    getHeaderFooterTemplateTool,
 
     getRowsTool,
     setRowsTool,
@@ -263,6 +251,10 @@ export function createDefaultRegistry(): ToolRegistry {
     getCellTemplateTool,
     getDatasetTemplateTool,
     getDatasourceTemplateTool,
+    getSearchFormTemplateTool,
+    getPaperConfigTemplateTool,
+    getRowDefinitionsTemplateTool,
+    getColumnDefinitionsTemplateTool,
   ])
   return registry
 }

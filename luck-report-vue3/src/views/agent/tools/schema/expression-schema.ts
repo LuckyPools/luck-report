@@ -1,13 +1,9 @@
 /**
  * 表达式对象数据模型 JSON Schema 定义
- *
- * 本文件定义了表达式对象的核心数据模型。
- * ExpressionObjectSchema 是表达式解析后的结构化对象，被多个模块引用。
  */
 
 /**
  * ExpressionObject 表达式对象 Schema
- * 表达式解析后的结构化对象，包含表达式列表和返回表达式
  */
 export const ExpressionObjectSchema = {
   type: 'object',

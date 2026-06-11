@@ -11,8 +11,7 @@ import { executeCode } from '@/views/export/iframe-utils'
 import { useTaskList } from './useTaskList'
 
 /**
- * Agent 引擎配置
- * 创建 AgentEngine 实例时的配置项
+ * Agent 引擎配置，创建 AgentEngine 实例时的配置项
  */
 export interface AgentEngineConfig {
   /** 工具确认回调，返回 true 表示用户确认执行，False 表示拒绝 */
@@ -216,7 +215,6 @@ export class AgentEngine {
    * Agent 循环运行期间由循环内部同步处理压缩，避免并发压缩导致消息状态不一致
    */
   checkAndCompact(): void {
-    // Agent 循环运行中，由循环内部的同步压缩机制处理，跳过外部异步压缩
     if (this._running) return
 
     if (this.memoryManager.needsCompact()) {
@@ -316,12 +314,10 @@ export class AgentEngine {
         timestamp: Date.now()
       }
 
-      // 提取合并区域
       if (Array.isArray(s.mergedRegions)) {
         snapshot.mergedRegions = s.mergedRegions.slice(0, contextConfig.snapshotMaxMergedRegions)
       }
 
-      // 提取非空单元格（只保留关键单元格）
       if (typeof s.cells === 'object' && s.cells !== null) {
         const entries = Object.entries(s.cells as Record<string, any>).slice(0, contextConfig.snapshotMaxCellValues)
         for (const [key, cell] of entries) {
@@ -331,7 +327,6 @@ export class AgentEngine {
         }
       }
 
-      // 提取数据源绑定
       if (Array.isArray(s.dataBindings)) {
         snapshot.dataBindings = s.dataBindings.slice(0, contextConfig.snapshotMaxDataBindings)
       }
@@ -350,14 +345,12 @@ export class AgentEngine {
    * @param mm - 记忆管理器实例
    */
   private async autoCompact(mm: MemoryManager): Promise<void> {
-    // 防止并发：上一次压缩还在进行中时跳过
     if (this._compacting) {
       return
     }
     this._compacting = true
 
     try {
-      // 在压缩开始前先拍快照，确保压缩期间新增的消息不会被丢失
       const allMessages = mm.getContextMessages(999)
       const keepRecent = contextConfig.compactKeepRecent
       const oldMessages = allMessages.length > keepRecent
@@ -366,7 +359,6 @@ export class AgentEngine {
 
       if (oldMessages.length === 0) return
 
-      // 将内部 MemoryMessage 转换为 API 层 ContextMessage 格式
       const apiMessages: ContextMessage[] = oldMessages.map(msg => {
         if (msg.role === 'tool_result') {
           return {
@@ -389,7 +381,6 @@ export class AgentEngine {
         }
       })
 
-      // 获取报表快照文本，帮助 LLM 理解当前报表上下文
       const snapshot = mm.getReportSnapshot()
       const snapshotText = snapshot ? mm.buildSnapshotContext() : undefined
 

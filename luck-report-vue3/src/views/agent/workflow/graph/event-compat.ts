@@ -1,8 +1,5 @@
 /**
- * 事件兼容层
- * 将新架构的 StreamEvent 转换为旧版 WorkflowEvent，确保 UI 层无需修改
- *
- * 过渡期使用，新事件 API 稳定后可删除
+ * 事件兼容层，将新架构的 StreamEvent 转换为旧版 WorkflowEvent，确保 UI 层无需修改
  */
 
 import type { StreamEvent, UpdatesEventData } from './stream-mode'

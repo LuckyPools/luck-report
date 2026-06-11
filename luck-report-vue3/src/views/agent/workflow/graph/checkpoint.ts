@@ -1,16 +1,9 @@
 /**
- * 步骤检查点
- * 参照 LangGraph Checkpoint 机制，支持断点恢复
- *
- * 核心数据：
- * - channelVersions：每个 Channel 的版本号快照
- * - versionsSeen：每个节点对每个 Channel 看到的版本号
- * - channelSnapshots：每个 Channel 的值快照
+ * 步骤检查点，参照 LangGraph Checkpoint 机制，支持断点恢复
  */
 
 /**
- * 步骤检查点
- * 记录图执行到某一步时的完整状态，支持从断点恢复
+ * 步骤检查点，记录图执行到某一步时的完整状态，支持从断点恢复
  */
 export interface StepCheckpoint {
   /** 检查点ID */
@@ -30,8 +23,7 @@ export interface StepCheckpoint {
 }
 
 /**
- * 检查点管理器
- * 负责检查点的创建、存储和恢复
+ * 检查点管理器，负责检查点的创建、存储和恢复
  */
 export class CheckpointManager {
   private checkpoints: Map<string, StepCheckpoint> = new Map()

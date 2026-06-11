@@ -1,8 +1,6 @@
 /**
  * 二维码/条码单元格数据模型 JSON Schema 定义
- *
- * 本文件定义了二维码和条码单元格的核心数据模型、数据模板。
- * 支持静态文本和表达式动态计算两种来源模式。
+ * 定义二维码和条码单元格的核心数据模型，支持静态文本和表达式动态计算两种来源模式
  */
 
 // ==================== 二维码/条码相关 Schema ====================
@@ -166,58 +164,60 @@ export function getBarcodeCellTemplate(rowIndex: number, colIndex: number, text:
 
 /**
  * 校验二维码/条码值数据是否符合规范
+ *
  * @param zxingValue - 二维码/条码值对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateZxingValue(zxingValue: any): string | undefined {
   if (!zxingValue || typeof zxingValue !== 'object') {
     return 'zxingValue 必须是对象类型'
   }
+  const errors: string[] = []
 
   // type 必须是 zxing
   if (zxingValue.type !== 'zxing') {
-    return 'zxingValue.type 必须是 "zxing"'
+    errors.push('zxingValue.type 必须是 "zxing"')
   }
 
   // category 校验
   const validCategories = ['qrcode', 'barcode']
   if (!zxingValue.category || !validCategories.includes(zxingValue.category)) {
-    return `zxingValue.category 必须是 ${validCategories.join('/')} 之一`
+    errors.push(`zxingValue.category 必须是 ${validCategories.join('/')} 之一，当前为 ${zxingValue.category}`)
   }
 
   // source 校验
   const validSources = ['text', 'expression']
   if (!zxingValue.source || !validSources.includes(zxingValue.source)) {
-    return `zxingValue.source 必须是 ${validSources.join('/')} 之一`
+    errors.push(`zxingValue.source 必须是 ${validSources.join('/')} 之一，当前为 ${zxingValue.source}`)
   }
 
   // value 校验
   if (!zxingValue.value || typeof zxingValue.value !== 'string') {
-    return 'zxingValue.value 必须是非空字符串'
+    errors.push('zxingValue.value 必须是非空字符串')
   }
 
   // width 校验
   if (typeof zxingValue.width !== 'number' || zxingValue.width < 1) {
-    return 'zxingValue.width 必须是大于0的整数'
+    errors.push('zxingValue.width 必须是大于0的整数')
   }
 
   // height 校验
   if (typeof zxingValue.height !== 'number' || zxingValue.height < 1) {
-    return 'zxingValue.height 必须是大于0的整数'
+    errors.push('zxingValue.height 必须是大于0的整数')
   }
 
   // barcode 类型时 format 校验
   if (zxingValue.category === 'barcode') {
     const validFormats = ['QR_CODE', 'AZTEC', 'CODABAR', 'CODE_39', 'CODE_93', 'CODE_128', 'DATA_MATRIX', 'EAN_8', 'EAN_13', 'ITF', 'PDF_417', 'UPC_A', 'UPC_E']
     if (zxingValue.format && !validFormats.includes(zxingValue.format)) {
-      return `zxingValue.format 必须是 ${validFormats.join('/')} 之一`
+      errors.push(`zxingValue.format 必须是 ${validFormats.join('/')} 之一，当前为 ${zxingValue.format}`)
     }
   }
 
   // codeDisplay 校验
   if (zxingValue.codeDisplay !== undefined && typeof zxingValue.codeDisplay !== 'boolean') {
-    return 'zxingValue.codeDisplay 必须是布尔类型'
+    errors.push('zxingValue.codeDisplay 必须是布尔类型')
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }

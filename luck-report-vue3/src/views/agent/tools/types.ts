@@ -1,7 +1,5 @@
 /**
- * 工具定义接口
- * 参考 Claude Code 的 Tool<Input, Output> 类型，适配前端报表场景
- * 每个工具对应一个报表操作，LLM 通过 tool_use 调用，前端通过 PostMessage 执行
+ * 工具定义接口，适配前端报表场景
  */
 export interface ToolDefinition<TInput = any, TOutput = any> {
   /** 工具名称，唯一标识，如 "set_cell_value" */
@@ -21,8 +19,7 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
 }
 
 /**
- * 工具调用记录
- * 记录一次完整的工具调用生命周期
+ * 工具调用记录，包含调用ID、参数、结果、状态等
  */
 export interface ToolCall {
   /** 调用唯一 ID，由 LLM 返回 */
@@ -40,8 +37,7 @@ export interface ToolCall {
 }
 
 /**
- * 工具定义的 API 格式
- * 发送给后台 LLM 的工具定义格式，遵循 Function Calling 协议
+ * 工具定义的 API 格式，遵循 Function Calling 协议
  */
 export interface ToolApiFormat {
   /** 工具名称 */
@@ -53,8 +49,7 @@ export interface ToolApiFormat {
 }
 
 /**
- * 任务对象
- * 用于展示 Agent 的任务规划步骤和执行进度
+ * 任务对象，用于展示 Agent 任务规划和执行进度
  */
 export interface Task {
   /** 任务唯一标识 */

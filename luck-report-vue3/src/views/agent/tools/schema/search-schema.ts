@@ -1,15 +1,11 @@
 /**
  * 查询表单数据模型 JSON Schema 定义
- *
- * 本文件定义了查询表单的核心数据模型、约束规则和校验函数。
- * 查询表单用于构建报表的参数查询界面。
  */
 
 // ==================== 查询表单 Schema ====================
 
 /**
  * Option 选项 Schema
- * 文档参考: form-design.md
  */
 export const OptionSchema = {
   type: 'object',
@@ -36,7 +32,6 @@ export const RegListSchema = {
 
 /**
  * BaseInputComponent 输入组件公共属性 Schema
- * 文档参考: form-design.md
  */
 export const BaseInputComponentSchema = {
   type: 'object',
@@ -65,7 +60,6 @@ export const BaseInputComponentSchema = {
 
 /**
  * Input 单行文本 Schema
- * 文档参考: form-design.md
  */
 export const InputSchema = {
   type: 'object',
@@ -90,7 +84,6 @@ export const InputSchema = {
 
 /**
  * InputNumber 计数器 Schema
- * 文档参考: form-design.md
  */
 export const InputNumberSchema = {
   type: 'object',
@@ -108,7 +101,6 @@ export const InputNumberSchema = {
 
 /**
  * Select 下拉选择 Schema
- * 文档参考: form-design.md
  */
 export const SelectSchema = {
   type: 'object',
@@ -129,7 +121,6 @@ export const SelectSchema = {
 
 /**
  * RadioGroup 单选框组 Schema
- * 文档参考: form-design.md
  */
 export const RadioGroupSchema = {
   type: 'object',
@@ -149,7 +140,6 @@ export const RadioGroupSchema = {
 
 /**
  * CheckboxGroup 多选框组 Schema
- * 文档参考: form-design.md
  */
 export const CheckboxGroupSchema = {
   type: 'object',
@@ -169,7 +159,6 @@ export const CheckboxGroupSchema = {
 
 /**
  * Switch 开关 Schema
- * 文档参考: form-design.md
  */
 export const SwitchSchema = {
   type: 'object',
@@ -188,8 +177,7 @@ export const SwitchSchema = {
 }
 
 /**
- * DatePicker 日期选择 Schema
- * 文档参考: form-design.md
+ * DatePicker 日期选择器 Schema
  */
 export const DatePickerSchema = {
   type: 'object',
@@ -211,7 +199,6 @@ export const DatePickerSchema = {
 
 /**
  * Button 按钮 Schema
- * 文档参考: form-design.md
  */
 export const ButtonSchema = {
   type: 'object',
@@ -255,7 +242,6 @@ export const FormComponentSchema = {
 
 /**
  * RowComponent 行容器 Schema
- * 文档参考: form-design.md
  */
 export const RowComponentSchema = {
   type: 'object',
@@ -281,7 +267,6 @@ export const RowComponentSchema = {
 
 /**
  * SearchForm 查询表单 Schema
- * 文档参考: form-design.md
  */
 export const SearchFormSchema = {
   type: 'object',
@@ -307,113 +292,128 @@ export const SearchFormSchema = {
 
 /**
  * 校验查询表单数据是否符合规范
+ * 遍历 fields 全部行容器，收集每个 RowComponent 和子组件的错误，一次性返回
+ * 避免 LLM 一次只看到一条报错反复重试
+ *
  * @param searchForm - 查询表单对象
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 export function validateSearchForm(searchForm: any): string | undefined {
   if (!searchForm || typeof searchForm !== 'object') {
     return 'searchForm 必须是对象类型'
   }
+  const errors: string[] = []
 
   // tag 必须是 u-form
   if (searchForm.tag !== 'u-form') {
-    return 'searchForm.tag 必须是 "u-form"'
+    errors.push('searchForm.tag 必须是 "u-form"')
   }
 
   // fields 必须是数组
   if (!Array.isArray(searchForm.fields)) {
-    return 'searchForm.fields 必须是数组'
+    errors.push('searchForm.fields 必须是数组')
+  } else {
+    // 校验每个 field（RowComponent）：收集所有行的错误而不是只取第一个
+    for (let i = 0; i < searchForm.fields.length; i++) {
+      const row = searchForm.fields[i]
+      const rowError = validateRowComponent(row, i)
+      if (rowError) {
+        errors.push(`fields[${i}]: ${rowError}`)
+      }
+    }
   }
 
-  // 校验每个 field（RowComponent）
-  for (let i = 0; i < searchForm.fields.length; i++) {
-    const row = searchForm.fields[i]
-    const rowError = validateRowComponent(row, i)
-    if (rowError) return rowError
-  }
-
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验行容器组件
+ * 收集 tag/layout/children 的错误，并且遍历全部子组件收集错误
+ *
  * @param row - 行容器对象
  * @param index - 行索引
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 function validateRowComponent(row: any, index: number): string | undefined {
   if (!row || typeof row !== 'object') {
     return `searchForm.fields[${index}] 必须是对象类型`
   }
+  const errors: string[] = []
 
   // tag 必须是 u-row
   if (row.tag !== 'u-row') {
-    return `searchForm.fields[${index}].tag 必须是 "u-row"`
+    errors.push(`tag 必须是 "u-row"，当前为 ${row.tag}`)
   }
 
   // layout 必须是 rowFormItem
   if (row.layout !== 'rowFormItem') {
-    return `searchForm.fields[${index}].layout 必须是 "rowFormItem"`
+    errors.push(`layout 必须是 "rowFormItem"，当前为 ${row.layout}`)
   }
 
   // children 必须是数组
   if (!Array.isArray(row.children)) {
-    return `searchForm.fields[${index}].children 必须是数组`
+    errors.push('children 必须是数组')
+  } else {
+    // 校验每个子组件：收集所有子组件的错误而不是只取第一个
+    for (let j = 0; j < row.children.length; j++) {
+      const child = row.children[j]
+      const childError = validateFormComponent(child, index, j)
+      if (childError) {
+        errors.push(`children[${j}]: ${childError}`)
+      }
+    }
   }
 
-  // 校验每个子组件
-  for (let j = 0; j < row.children.length; j++) {
-    const child = row.children[j]
-    const childError = validateFormComponent(child, index, j)
-    if (childError) return childError
-  }
-
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
 }
 
 /**
  * 校验表单组件
+ *
  * @param component - 表单组件对象
  * @param rowIndex - 行索引
  * @param childIndex - 子组件索引
- * @returns 错误信息，undefined 表示校验通过
+ * @returns 错误信息（多条用换行分隔），undefined 表示校验通过
  */
 function validateFormComponent(component: any, rowIndex: number, childIndex: number): string | undefined {
   if (!component || typeof component !== 'object') {
     return `searchForm.fields[${rowIndex}].children[${childIndex}] 必须是对象类型`
   }
+  const errors: string[] = []
 
   const validTags = ['u-input', 'u-input-number', 'u-select', 'u-radio-group', 'u-checkbox-group', 'u-switch', 'u-date-picker', 'u-button']
   if (!validTags.includes(component.tag)) {
-    return `searchForm.fields[${rowIndex}].children[${childIndex}].tag 必须是 ${validTags.join('/')} 之一`
+    errors.push(`tag 必须是 ${validTags.join('/')} 之一，当前为 ${component.tag}`)
   }
 
   // layout 必须是 colFormItem
   if (component.layout !== 'colFormItem') {
-    return `searchForm.fields[${rowIndex}].children[${childIndex}].layout 必须是 "colFormItem"`
+    errors.push(`layout 必须是 "colFormItem"，当前为 ${component.layout}`)
   }
 
   // span 校验
   if (typeof component.span !== 'number' || component.span < 1 || component.span > 24) {
-    return `searchForm.fields[${rowIndex}].children[${childIndex}].span 必须是 1-24 之间的整数`
+    errors.push('span 必须是 1-24 之间的整数')
   }
 
   // 非按钮组件必须有 vModel
   if (component.tag !== 'u-button') {
     if (!component.vModel || typeof component.vModel !== 'string') {
-      return `searchForm.fields[${rowIndex}].children[${childIndex}].vModel 必须是非空字符串`
+      errors.push('vModel 必须是非空字符串')
     }
   }
 
   // Select/RadioGroup/CheckboxGroup 必须有 options
   if (['u-select', 'u-radio-group', 'u-checkbox-group'].includes(component.tag)) {
     if (!Array.isArray(component.options)) {
-      return `searchForm.fields[${rowIndex}].children[${childIndex}].options 必须是数组`
-    }
-    for (let k = 0; k < component.options.length; k++) {
-      const opt = component.options[k]
-      if (!opt.label || !opt.value) {
-        return `searchForm.fields[${rowIndex}].children[${childIndex}].options[${k}] 必须包含 label 和 value`
+      errors.push('options 必须是数组')
+    } else {
+      // 遍历每个 option，收集所有非法 option 的错误
+      for (let k = 0; k < component.options.length; k++) {
+        const opt = component.options[k]
+        if (!opt || !opt.label || !opt.value) {
+          errors.push(`options[${k}] 必须包含 label 和 value`)
+        }
       }
     }
   }
@@ -422,7 +422,7 @@ function validateFormComponent(component: any, rowIndex: number, childIndex: num
   if (component.tag === 'u-date-picker') {
     const validDateTypes = ['date', 'datetime', 'week', 'month', 'year', 'daterange']
     if (!validDateTypes.includes(component.type)) {
-      return `searchForm.fields[${rowIndex}].children[${childIndex}].type 必须是 ${validDateTypes.join('/')} 之一`
+      errors.push(`type 必须是 ${validDateTypes.join('/')} 之一，当前为 ${component.type}`)
     }
   }
 
@@ -478,5 +478,285 @@ function validateFormComponent(component: any, rowIndex: number, childIndex: num
     }
   }
 
-  return undefined
+  return errors.length ? errors.join('\n') : undefined
+}
+
+// ==================== 模板生成函数 ====================
+
+/**
+ * 各组件类型到默认模板的映射，用于 getSearchFormTemplate 按类型生成组件示例
+ */
+const COMPONENT_TEMPLATE_MAP: Record<string, (vModel: string, label: string) => any> = {
+  input: (vModel, label) => ({
+    label,
+    tag: 'u-input',
+    tagIcon: 'input',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    placeholder: `请输入${label}`,
+    clearable: false,
+    readonly: false,
+    maxlength: null,
+    showWordLimit: false,
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: '',
+    formId: vModel,
+    renderKey: vModel
+  }),
+  inputNumber: (vModel, label) => ({
+    label,
+    tag: 'u-input-number',
+    tagIcon: 'number',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    stepStrictly: false,
+    controlsPosition: '',
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: '',
+    formId: vModel,
+    renderKey: vModel
+  }),
+  select: (vModel, label) => ({
+    label,
+    tag: 'u-select',
+    tagIcon: 'select',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    multiple: false,
+    clearable: false,
+    filterable: false,
+    placeholder: `请选择${label}`,
+    options: [],
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: '',
+    formId: vModel,
+    renderKey: vModel
+  }),
+  radioGroup: (vModel, label) => ({
+    label,
+    tag: 'u-radio-group',
+    tagIcon: 'radio',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    options: [],
+    optionType: 'default',
+    border: false,
+    size: 'medium',
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: '',
+    formId: vModel,
+    renderKey: vModel
+  }),
+  checkboxGroup: (vModel, label) => ({
+    label,
+    tag: 'u-checkbox-group',
+    tagIcon: 'checkbox',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    options: [],
+    optionType: 'default',
+    border: false,
+    size: 'medium',
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: [],
+    formId: vModel,
+    renderKey: vModel
+  }),
+  switch: (vModel, label) => ({
+    label,
+    tag: 'u-switch',
+    tagIcon: 'switch',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    activeColor: null,
+    inactiveColor: null,
+    activeValue: true,
+    inactiveValue: false,
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: false,
+    formId: vModel,
+    renderKey: vModel
+  }),
+  datePicker: (vModel, label) => ({
+    label,
+    tag: 'u-date-picker',
+    tagIcon: 'date',
+    vModel,
+    span: 24,
+    layout: 'colFormItem',
+    type: 'date',
+    format: 'YYYY-MM-DD',
+    valueFormat: 'format',
+    placeholder: `请选择${label}`,
+    clearable: false,
+    readonly: false,
+    disabled: false,
+    required: false,
+    changeTag: false,
+    defaultValue: '',
+    formId: vModel,
+    renderKey: vModel
+  }),
+  button: (_vModel, label) => ({
+    label: label || '查询',
+    type: 'primary',
+    size: 'medium',
+    tag: 'u-button',
+    tagIcon: 'button',
+    span: 24,
+    layout: 'colFormItem',
+    disabled: false,
+    changeTag: false,
+    defaultValue: '',
+    vModel: '',
+    formId: 'btn_query',
+    renderKey: 'btn_query'
+  })
+}
+
+/**
+ * 生成查询表单模板，包含指定类型的组件示例
+ *
+ * @param componentTypes - 需要的组件类型数组，如 ['input','select','datePicker']，可为空（返回空壳模板）
+ * @returns 完整的查询表单模板对象，包含 u-form 外壳和指定组件
+ */
+export function getSearchFormTemplate(componentTypes?: string[]): any {
+  const fields: any[] = []
+
+  if (componentTypes && componentTypes.length > 0) {
+    // 每个组件类型生成一个 RowComponent 包裹一个子组件
+    const children: any[] = []
+    for (const type of componentTypes) {
+      const factory = COMPONENT_TEMPLATE_MAP[type]
+      if (factory) {
+        // vModel 和 label 用类型名做占位，LLM 基于模板修改时替换
+        const vModel = `${type}Field`
+        const label = `${type}字段`
+        children.push(factory(vModel, label))
+      }
+    }
+    if (children.length > 0) {
+      fields.push({
+        type: 'default',
+        tag: 'u-row',
+        tagIcon: 'row',
+        span: 24,
+        gutter: 15,
+        justify: 'start',
+        align: 'top',
+        layout: 'rowFormItem',
+        layoutTree: true,
+        componentName: 'row1',
+        formId: 'row1',
+        renderKey: 'row1',
+        document: '',
+        children
+      })
+    }
+  }
+
+  return {
+    formRef: 'uForm',
+    tag: 'u-form',
+    formModel: 'formData',
+    size: 'small',
+    labelPosition: 'left',
+    labelWidth: 100,
+    formRules: 'rules',
+    gutter: 15,
+    disabled: false,
+    span: 24,
+    formBtns: true,
+    fields
+  }
+}
+
+// ==================== 数据规范化函数 ====================
+
+/**
+ * 规范化查询表单数据：补齐布尔字段默认值、生成 renderKey/formId 等
+ * 与 validateSearchForm 职责分离：normalize 只补字段，validate 检查结构性错误
+ *
+ * @param searchForm - 查询表单对象，可为空
+ * @returns 规范化后的查询表单对象
+ */
+export function normalizeSearchForm(searchForm: any): any {
+  if (!searchForm || typeof searchForm !== 'object') return searchForm
+
+  // 补齐顶层布尔属性默认值
+  if (searchForm.disabled === undefined || searchForm.disabled === null) searchForm.disabled = false
+  if (searchForm.formBtns === undefined || searchForm.formBtns === null) searchForm.formBtns = true
+
+  // 补齐 fields 中每个组件的布尔属性
+  if (Array.isArray(searchForm.fields)) {
+    for (const row of searchForm.fields) {
+      if (!row || typeof row !== 'object') continue
+      if (Array.isArray(row.children)) {
+        for (const child of row.children) {
+          normalizeFormComponent(child)
+        }
+      }
+    }
+  }
+
+  return searchForm
+}
+
+/**
+ * 规范化单个表单组件：补齐布尔字段默认值
+ *
+ * @param component - 表单组件对象，可为空
+ * @returns 规范化后的表单组件对象
+ */
+function normalizeFormComponent(component: any): any {
+  if (!component || typeof component !== 'object') return component
+
+  // 公共布尔属性
+  if (component.disabled === undefined || component.disabled === null) component.disabled = false
+  if (component.required === undefined || component.required === null) component.required = false
+  if (component.changeTag === undefined || component.changeTag === null) component.changeTag = false
+
+  // u-input 特有布尔属性
+  if (component.tag === 'u-input') {
+    if (component.clearable === undefined || component.clearable === null) component.clearable = false
+    if (component.readonly === undefined || component.readonly === null) component.readonly = false
+    if (component.showWordLimit === undefined || component.showWordLimit === null) component.showWordLimit = false
+  }
+
+  // u-input-number 特有布尔属性
+  if (component.tag === 'u-input-number') {
+    if (component.stepStrictly === undefined || component.stepStrictly === null) component.stepStrictly = false
+  }
+
+  // u-select 特有布尔属性
+  if (component.tag === 'u-select') {
+    if (component.clearable === undefined || component.clearable === null) component.clearable = false
+    if (component.multiple === undefined || component.multiple === null) component.multiple = false
+    if (component.filterable === undefined || component.filterable === null) component.filterable = false
+  }
+
+  // u-date-picker 特有布尔属性
+  if (component.tag === 'u-date-picker') {
+    if (component.clearable === undefined || component.clearable === null) component.clearable = false
+  }
+
+  return component
 }

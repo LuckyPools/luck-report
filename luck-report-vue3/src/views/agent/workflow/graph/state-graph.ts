@@ -1,12 +1,5 @@
 /**
- * 图构建器
- * 参照 LangGraph StateGraph 设计
- *
- * 核心改进：
- * 1. 节点间通过 Channel 传递数据，而非直接引用 stepResults
- * 2. 边（Edge）决定执行顺序，条件边支持路由
- * 3. 编译时校验图的完整性（无孤立节点、无断边）
- * 4. 运行时严格按超步执行，上一步 Channel 有值才触发下一步
+ * 图构建器，参照 LangGraph StateGraph 设计
  */
 
 import type { ConditionalEdgeReturn } from './graph-utils'

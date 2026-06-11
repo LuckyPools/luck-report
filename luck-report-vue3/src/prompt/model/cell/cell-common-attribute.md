@@ -23,3 +23,4 @@
 - cellStyle.align 必须是 left/center/right 之一
 - 颜色格式必须是 RGB 格式 "R,G,B"，如 "255,0,0"
 - dataset 类型单元格必须包含 datasetName、aggregate、property
+- 只有数据集类型单元格和表达式类型单元格才有条件属性`conditionPropertyItems`，其它类型单元格一律不允许有条件属性

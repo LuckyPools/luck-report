@@ -1,18 +1,11 @@
 /**
- * 工作流全局状态定义
- * 参照 LangGraph Annotation 模式，每个字段通过 reducer 决定如何合并
- *
- * 核心设计：
- * - 每个状态字段配套 reducer（与 LangGraph Annotation 一致）
- * - BinaryOperatorAggregateChannel 是 reducer 的载体
- * - 节点的 return Partial<ReportWorkflowState> 通过 reducer 合并到全局 state
+ * 工作流全局状态定义，参照 LangGraph Annotation 模式，每个字段通过 reducer 决定如何合并
  */
 
 // ==================== Reducer 配置 ====================
 
 /**
- * 字段 reducer 配置
- * 参照 LangGraph Annotation 中每个字段声明 reducer 的模式
+ * 字段 reducer 配置，参照 LangGraph Annotation 中每个字段声明 reducer 的模式
  */
 export type StateFieldReducer<T> =
   /** 覆盖式写入（单值字段） */
@@ -95,8 +88,7 @@ export interface WorkflowStepRecord {
 // ==================== 工作流状态 ====================
 
 /**
- * 工作流全局状态
- * 参照 LangGraph Annotation 模式，每个字段通过 reducer 决定如何合并
+ * 工作流全局状态，参照 LangGraph Annotation 模式，每个字段通过 reducer 决定如何合并
  */
 export interface ReportWorkflowState {
   /** 用户原始输入 */
@@ -123,6 +115,10 @@ export interface ReportWorkflowState {
   colData: Record<string, any>[] | null
   /** 页面配置（overwrite） */
   pageConfig: Record<string, any> | null
+  /** 页眉配置（overwrite） */
+  headerConfig: Record<string, any> | null
+  /** 页脚配置（overwrite） */
+  footerConfig: Record<string, any> | null
   /** 错误信息（append：跨节点累加） */
   errors: string[]
   /** 步骤执行记录（append：累加） */
@@ -136,9 +132,7 @@ export interface ReportWorkflowState {
 // ==================== State Schema 注册表 ====================
 
 /**
- * State Schema 注册表
- * 编译时将 ReportWorkflowState 编译为字段 → Channel 的映射
- * compile() 自动遍历此表创建对应 Channel 实例
+ * State Schema 注册表，编译时将 ReportWorkflowState 编译为字段 → Channel 的映射
  */
 export const reportStateSchema: Record<keyof ReportWorkflowState, StateFieldReducer<any>> = {
   userMessage:        { kind: 'overwrite' },
@@ -153,6 +147,8 @@ export const reportStateSchema: Record<keyof ReportWorkflowState, StateFieldRedu
   rowData:            { kind: 'overwrite', initial: null },
   colData:            { kind: 'overwrite', initial: null },
   pageConfig:         { kind: 'overwrite', initial: null },
+  headerConfig:       { kind: 'overwrite', initial: null },
+  footerConfig:       { kind: 'overwrite', initial: null },
   errors:             { kind: 'append', initial: [] },
   stepRecords:        { kind: 'append', initial: [] },
   searchResults:      { kind: 'binop', operator: (a, b) => ({ ...a, ...b }), initial: {} },

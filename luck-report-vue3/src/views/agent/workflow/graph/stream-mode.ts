@@ -1,17 +1,9 @@
 /**
- * 流模式定义
- * 参照 LangGraph StreamMode，定义工作流执行过程中的事件输出模式
- *
- * 不同模式适用于不同场景：
- * - values: 完整状态快照（调试/回放）
- * - updates: 增量更新（UI 实时渲染）
- * - messages: LLM 消息流（对话场景）
- * - debug: 调试信息（开发阶段）
+ * 流模式定义，参照 LangGraph StreamMode，定义工作流执行过程中的事件输出模式
  */
 
 /**
- * 流模式类型
- * 控制工作流执行过程中 yield 的事件粒度
+ * 流模式类型，控制工作流执行过程中 yield 的事件粒度
  */
 export type StreamMode =
   | 'values'    /** 每步 yield 完整 state 快照 */
@@ -21,8 +13,7 @@ export type StreamMode =
   | 'custom'    /** 自定义事件（由节点通过 runtime.emitEvent 发出） */
 
 /**
- * 流事件包装
- * 所有流式输出统一包装为此结构，适配层根据 mode 转换为旧版 WorkflowEvent
+ * 流事件包装，所有流式输出统一包装为此结构，适配层根据 mode 转换为旧版 WorkflowEvent
  */
 export interface StreamEvent {
   /** 产生事件的模式 */
@@ -34,8 +25,7 @@ export interface StreamEvent {
 }
 
 /**
- * 流事件数据联合类型
- * 不同 StreamMode 对应不同的事件数据结构
+ * 流事件数据联合类型，不同 StreamMode 对应不同的事件数据结构
  */
 export type StreamEventData =
   | ValuesEventData
