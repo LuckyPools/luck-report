@@ -44,7 +44,7 @@ export const SqlDatasetSchema = {
   type: 'object',
   properties: {
     name: { type: 'string', description: '数据集名称，数据源内唯一' },
-    sql: { type: 'string', description: 'SQL查询语句，支持参数占位符:paramName和脚本式SQL' },
+    sql: { type: 'string', description: 'SQL查询语句，支持参数占位符:paramName和表达式SQL，表达式SQL用 `${...}` 包裹，用于与普通SQL区分。' },
     parameters: { type: 'array', items: ParameterSchema, description: '查询参数列表' },
     fields: { type: 'array', items: FieldSchema, description: '字段列表' },
     sqlExpression: { type: 'object', description: '脚本式SQL表达式解析结果' }

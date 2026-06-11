@@ -510,14 +510,24 @@ export const MODIFY_REPORT_WORKFLOW: WorkflowDefinition = {
       description: '执行修改单元格子工作流：读取单元格 → 确保行列足够 → 修改并写入 → 清空（可选）'
     },
     {
-      id: 'modify_row_col',
-      name: '修改行列结构',
+      id: 'modify_row',
+      name: '修改行结构',
       tool: '_llm_decide',
       needsLLM: true,
-      condition: (ctx) => ctx.intent.needsRowColOperation,
-      allowedTools: ['get_rows', 'set_rows', 'update_row', 'get_columns', 'set_columns', 'update_column', 'insert_row', 'delete_row', 'insert_col', 'delete_col', 'merge_cells'],
+      condition: (ctx) => ctx.intent.needsRowOperation,
+      allowedTools: ['get_rows', 'set_rows', 'update_row', 'insert_row', 'delete_row'],
       maxRetries: 1,
-      description: '根据需求修改行高、列宽、插入/删除行列等'
+      description: '根据需求修改行高、插入/删除行等'
+    },
+    {
+      id: 'modify_col',
+      name: '修改列结构',
+      tool: '_llm_decide',
+      needsLLM: true,
+      condition: (ctx) => ctx.intent.needsColOperation,
+      allowedTools: ['get_columns', 'set_columns', 'update_column', 'insert_col', 'delete_col'],
+      maxRetries: 1,
+      description: '根据需求修改列宽、插入/删除列等'
     },
     {
       id: 'modify_search_form',

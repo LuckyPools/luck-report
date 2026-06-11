@@ -78,9 +78,13 @@ export const INTENT_ANALYSIS_SCHEMA = {
       type: 'boolean',
       description: '是否涉及页面配置的操作（读取或修改）'
     },
-    needsRowColOperation: {
+    needsRowOperation: {
       type: 'boolean',
-      description: '是否涉及行列结构的操作（读取或修改）'
+      description: '是否涉及行操作（行高调整、插入/删除行等）'
+    },
+    needsColOperation: {
+      type: 'boolean',
+      description: '是否涉及列操作（列宽调整、插入/删除列等）'
     },
     needsBusinessKnowledge: {
       type: 'boolean',
@@ -116,8 +120,8 @@ export const INTENT_ANALYSIS_SCHEMA = {
   },
   required: [
     'intentType', 'needsDatasourceOperation', 'needsCellOperation', 'needsFormOperation',
-    'needsPageConfigOperation', 'needsRowColOperation', 'needsBusinessKnowledge',
-    'needsAgentKnowledge', 'needsSchemaSearch', 'requiredDocs', 'taskDescription'
+    'needsPageConfigOperation', 'needsRowOperation', 'needsColOperation',
+    'needsBusinessKnowledge', 'needsAgentKnowledge', 'needsSchemaSearch', 'requiredDocs', 'taskDescription'
   ]
 }
 

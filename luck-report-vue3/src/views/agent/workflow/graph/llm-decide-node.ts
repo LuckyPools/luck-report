@@ -172,6 +172,13 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
     // [修复] resultKey 模式下，累计多次工具调用的合并数据
     // 仅在最后 finish 时一次性 stage 给 outChannel + 写 state，避免中间 stage 覆盖
     let accumulatedResult: Record<string, any> | null = null
+    // [诊断] 累积 LLM 文本回复（仅 token 事件拼接），用于"未调工具"关键决策点日志排查
+    // 不在循环内打印，仅在节点退出或 LLM 一轮空响应时按需打，避免高频日志
+    let assistantContent = ''
+    // [诊断] 是否设了必需工具要求：仅当 true 时，未调任何工具才算异常，才打 WARN
+    // plan_tasks 等未设必需工具的节点 LLM 不调工具是正常的，不打 WARN 避免噪音
+    const hasRequiredTools = (this.options.requiredToolResults?.length ?? 0) > 0
+      || (this.options.requiredToolResultsAny?.length ?? 0) > 0
     let iteration = 0
 
     console.log(`[DEBUG][llm-decide] [${nodeId}] 开始 allowedTools=${JSON.stringify(this.options.allowedTools)}`)
@@ -193,6 +200,8 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
       for await (const event of llmGen) {
         switch (event.type) {
           case 'token':
+            // [诊断] 仅累积 LLM 文本回复，不在每 token 打日志
+            assistantContent += event.content
             this.emitProgress(runtime, nodeId, event.content)
             break
 
@@ -290,6 +299,19 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
           }
 
           case 'done':
+            // [关键决策点] LLM 一轮没调任何工具但有必需工具要求 → 节点会失败
+            // 打 WARN 日志打印 LLM 实际回复，便于排查"为什么 LLM 决定不调工具"
+            // 仅在 hasRequiredTools=true 时打，避免 plan_tasks 等非必需节点产生噪音
+            if (!hasToolCall && hasRequiredTools) {
+              const preview = assistantContent.length > 500
+                ? assistantContent.slice(0, 500) + '...(已截断)'
+                : assistantContent
+              console.warn(
+                `[WARN][llm-decide] [${nodeId}] LLM 轮次未调任何工具 ` +
+                `必需=${JSON.stringify(this.options.requiredToolResults)}/缺任一=${JSON.stringify(this.options.requiredToolResultsAny)} ` +
+                `LLM回复="${preview}"`
+              )
+            }
             // [修复] 三重退出条件（满足任一即退出）：
             // 1. 必需工具已全部完成 → 不再给 LLM 机会重复调用已成功的工具
             // 2. LLM 本轮没有调用任何工具 → 说明 LLM 认为任务结束
@@ -310,6 +332,20 @@ export class LLMDecideNode implements IRunnable<Record<string, any>, Record<stri
     }
 
     console.log(`[DEBUG][llm-decide] [${nodeId}] 循环结束 共${iteration}轮 keys=${JSON.stringify(Object.keys(toolResults))}`)
+
+    // [关键决策点] 节点退出时若 LLM 一次工具都没调且设了必需工具要求 → 必失败
+    // 兜底 WARN：打印完整 LLM 文本回复（限长），便于排查"为什么 LLM 决定不调任何工具"
+    // 配合上面 done 分支的 WARN，双重保障：单轮未调 + 节点退出未调
+    if (Object.keys(toolResults).length === 0 && hasRequiredTools) {
+      const preview = assistantContent.length > 1000
+        ? assistantContent.slice(0, 1000) + '...(已截断)'
+        : assistantContent
+      console.warn(
+        `[WARN][llm-decide] [${nodeId}] 节点退出未调任何必需工具 ` +
+        `必需=${JSON.stringify(this.options.requiredToolResults)}/缺任一=${JSON.stringify(this.options.requiredToolResultsAny)} ` +
+        `LLM完整回复="${preview}"`
+      )
+    }
 
     // 4. 校验必需工具
     // [修复] 同时校验 AND 语义（requiredToolResults 全部必须）和 OR 语义（requiredToolResultsAny 任一即可）

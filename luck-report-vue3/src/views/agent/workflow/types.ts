@@ -118,8 +118,10 @@ export interface IntentAnalysisResult {
   needsFormOperation: boolean
   /** 是否涉及页面配置的操作（读取或修改） */
   needsPageConfigOperation: boolean
-  /** 是否涉及行列结构的操作（读取或修改） */
-  needsRowColOperation: boolean
+  /** 是否涉及行操作（行高调整、插入/删除行等） */
+  needsRowOperation: boolean
+  /** 是否涉及列操作（列宽调整、插入/删除列等） */
+  needsColOperation: boolean
   /** 是否涉及业务知识查询 */
   needsBusinessKnowledge: boolean
   /** 是否需要参考报表制作经验 */

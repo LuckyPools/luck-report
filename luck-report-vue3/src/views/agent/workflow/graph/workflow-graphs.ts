@@ -545,6 +545,156 @@ export function modifyCellGraph(): CompiledReportGraph {
   return graph.compile()
 }
 
+// ==================== 修改行子工作流 ====================
+
+/**
+ * 修改行结构工作流：read → ensure → modify_and_write，专注行操作（行高/插入/删除行）。
+ * read 节点用 resultKey='rowData' 把 get_rows 返回的数组写入 state.rowData；
+ * write 节点不设 resultKey（工具返回 success/message 不是数据本身），改用 outChannel 触发下游。
+ */
+export function modifyRowGraph(): CompiledReportGraph {
+  const graph = new ReportStateGraph(reportStateSchema, {
+    input: { userMessage: true, intent: true, searchResults: true },
+    output: { rowData: true }
+  })
+
+  // 节点1：读取行
+  const readOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_rows_out', readOut)
+  graph.addNode('read_rows', new LLMDecideNode({
+    nodeId: 'read_rows',
+    allowedTools: ['get_rows'],
+    requiredToolResultsAny: ['get_rows'],
+    maxIterations: 2,
+    resultKey: 'rowData',
+    description: '本步骤仅一次性读取所有行数据，调 get_rows() 一次。' +
+      '**禁止**重读、禁止调用写工具、禁止向用户提问。读完立即结束。',
+    outChannelName: 'read_rows_out'
+  }), {
+    triggers: ['__start__'],
+    triggerMode: 'all',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取行数据' }
+  })
+
+  // 节点2：确保目标行存在（缺失时插入）
+  const ensureOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('ensure_row_out', ensureOut)
+  graph.addNode('ensure_row', new LLMDecideNode({
+    nodeId: 'ensure_row',
+    allowedTools: ['insert_row'],
+    description: '检查目标行号是否已存在。已存在直接结束；不存在则调 insert_row 补齐。' +
+      '**禁止**调用 update_row / set_rows / 列相关工具 / write_cells 等。',
+    outChannelName: 'ensure_row_out'
+  }), {
+    triggers: ['rowData'],
+    triggerMode: 'any',
+    metadata: { description: '补齐缺失的行' }
+  })
+
+  // 节点3：修改并写入行
+  const writeOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('modify_and_write_row_out', writeOut)
+  graph.addNode('modify_and_write_row', new LLMDecideNode({
+    nodeId: 'modify_and_write_row',
+    allowedTools: ['set_rows', 'update_row', 'insert_row', 'backup_data', 'restore_data', 'load_report_introduce'],
+    requiredToolResultsAny: ['set_rows', 'update_row', 'insert_row'],
+    maxIterations: 4,
+    description: '**rowData 已在 context 中**，禁止再调 get_rows。' +
+      '单行改 → update_row({rowNumber, row: 完整row对象})；' +
+      '批量改或新建 → set_rows({rows: 全量数组}) 一次性传入。' +
+      '禁止分多轮写入。',
+    outChannelName: 'modify_and_write_row_out'
+  }), {
+    triggers: ['rowData'],
+    triggerMode: 'any',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '修改并写入行数据' }
+  })
+
+  graph.addEdge('__start__', 'read_rows')
+  graph.addEdge('read_rows', 'ensure_row')
+  graph.addEdge('ensure_row', 'modify_and_write_row')
+  graph.addEdge('modify_and_write_row', '__end__')
+
+  return graph.compile()
+}
+
+// ==================== 修改列子工作流 ====================
+
+/**
+ * 修改列结构工作流：read → ensure → modify_and_write，专注列操作（列宽/插入/删除列）。
+ * read 节点用 resultKey='colData' 把 get_columns 返回的数组写入 state.colData；
+ * write 节点不设 resultKey（工具返回 success/message 不是数据本身），改用 outChannel 触发下游。
+ */
+export function modifyColGraph(): CompiledReportGraph {
+  const graph = new ReportStateGraph(reportStateSchema, {
+    input: { userMessage: true, intent: true, searchResults: true },
+    output: { colData: true }
+  })
+
+  // 节点1：读取列
+  const readOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('read_cols_out', readOut)
+  graph.addNode('read_cols', new LLMDecideNode({
+    nodeId: 'read_cols',
+    allowedTools: ['get_columns'],
+    requiredToolResultsAny: ['get_columns'],
+    maxIterations: 2,
+    resultKey: 'colData',
+    description: '本步骤仅一次性读取所有列数据，调 get_columns() 一次。' +
+      '**禁止**重读、禁止调用写工具、禁止向用户提问。读完立即结束。',
+    outChannelName: 'read_cols_out'
+  }), {
+    triggers: ['__start__'],
+    triggerMode: 'all',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '读取列数据' }
+  })
+
+  // 节点2：确保目标列存在（缺失时插入）
+  const ensureOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('ensure_col_out', ensureOut)
+  graph.addNode('ensure_col', new LLMDecideNode({
+    nodeId: 'ensure_col',
+    allowedTools: ['insert_col'],
+    description: '检查目标列号是否已存在。已存在直接结束；不存在则调 insert_col 补齐。' +
+      '**禁止**调用 update_column / set_columns / 行相关工具 / write_cells 等。',
+    outChannelName: 'ensure_col_out'
+  }), {
+    triggers: ['colData'],
+    triggerMode: 'any',
+    metadata: { description: '补齐缺失的列' }
+  })
+
+  // 节点3：修改并写入列
+  const writeOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('modify_and_write_col_out', writeOut)
+  graph.addNode('modify_and_write_col', new LLMDecideNode({
+    nodeId: 'modify_and_write_col',
+    allowedTools: ['set_columns', 'update_column', 'insert_col', 'backup_data', 'restore_data', 'load_report_introduce'],
+    requiredToolResultsAny: ['set_columns', 'update_column', 'insert_col'],
+    maxIterations: 4,
+    description: '**colData 已在 context 中**，禁止再调 get_columns。' +
+      '单列改 → update_column({columnNumber, column: 完整column对象})；' +
+      '批量改或新建 → set_columns({columns: 全量数组}) 一次性传入。' +
+      '禁止分多轮写入。',
+    outChannelName: 'modify_and_write_col_out'
+  }), {
+    triggers: ['colData'],
+    triggerMode: 'any',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { description: '修改并写入列数据' }
+  })
+
+  graph.addEdge('__start__', 'read_cols')
+  graph.addEdge('read_cols', 'ensure_col')
+  graph.addEdge('ensure_col', 'modify_and_write_col')
+  graph.addEdge('modify_and_write_col', '__end__')
+
+  return graph.compile()
+}
+
 // ==================== 主工作流 ====================
 
 /**
@@ -558,7 +708,9 @@ export function modifyCellGraph(): CompiledReportGraph {
 export function modifyReportGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
     input: { userMessage: true, intent: true },
-    output: { cellsData: true, pageConfig: true }
+    // [修复] output 增加 rowData / colData：让 modify_row/col_subgraph 读到的行/列数据回传到主图 state，
+    // 方便后续步骤（form/page）按需引用，也与 modify_cell_subgraph 回传 cellsData 行为一致
+    output: { cellsData: true, rowData: true, colData: true, pageConfig: true }
   })
 
   // 阶段1：知识准备（4 个并行节点）
@@ -768,20 +920,24 @@ export function modifyReportGraph(): CompiledReportGraph {
       '数据源场景：get_datasources/get_datasets；表单场景：get_search_form。' +
       '**禁止**调用 get_paper_config / get_rows / get_columns / read_cell / read_cells / write_* 等工具；' +
       '**禁止**在本节点执行任何修改动作；**禁止**分多轮重复调用同一个工具。' +
-      '单元格场景无需本步探查，子图内的 read_cells 节点会自动读取。' +
+      '单元格/行列场景无需本步探查，子图内的 read_cells / read_rows_cols 节点会自动读取。' +
       '一次探查完成后立即结束。',
     outChannelName: 'plan_tasks_out'
   }), {
     // triggers 改用实际 Channel 名（load_docs/search_* 是节点名，不是 Channel）
     triggers: ['searchResults'],
     triggerMode: 'any',
-    // 任意 4 种操作任一需要时都要跑（用于分发到正确的子图）
+    // 任意 6 种操作任一需要时都要跑（用于分发到正确的子图）
+    // [修复] 加入 needsRowOperation / needsColOperation：行列调整场景（如"第一行高度设成90"）也要让 plan_tasks 跑
+    // 否则 plan_tasks 会被 skipWhen 跳过，row/col_subgraph 永远不被路由
     skipWhen: (state) => {
       const i = state.intent
       return !i?.needsDatasourceOperation
         && !i?.needsCellOperation
         && !i?.needsFormOperation
         && !i?.needsPageConfigOperation
+        && !i?.needsRowOperation
+        && !i?.needsColOperation
     },
     metadata: { description: '分析用户需求并规划任务' }
   })
@@ -879,6 +1035,38 @@ export function modifyReportGraph(): CompiledReportGraph {
     metadata: { description: '修改单元格子流程' }
   })
 
+  // 行结构子流程：处理行高调整、插入/删除行
+  // 与 modify_cell_subgraph 并列，由 plan_tasks 按 needsRowOperation 路由
+  graph.addNode('modify_row_subgraph', async (state, runtime) => {
+    const subGraph = modifyRowGraph()
+    const childRuntime = runtime?.fork()
+    const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
+    return result.state
+  }, {
+    triggers: ['plan_tasks_out', 'select_datasource_op_out'],
+    triggerMode: 'any',
+    skipWhen: (state) => !state.intent?.needsRowOperation,
+    input: { intent: true, userMessage: true, searchResults: true },
+    output: { rowData: true },
+    metadata: { description: '修改行结构子流程' }
+  })
+
+  // 列结构子流程：处理列宽调整、插入/删除列
+  // 与 modify_row_subgraph 并列，由 plan_tasks 按 needsColOperation 路由
+  graph.addNode('modify_col_subgraph', async (state, runtime) => {
+    const subGraph = modifyColGraph()
+    const childRuntime = runtime?.fork()
+    const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
+    return result.state
+  }, {
+    triggers: ['plan_tasks_out', 'select_datasource_op_out'],
+    triggerMode: 'any',
+    skipWhen: (state) => !state.intent?.needsColOperation,
+    input: { intent: true, userMessage: true, searchResults: true },
+    output: { colData: true },
+    metadata: { description: '修改列结构子流程' }
+  })
+
   // 阶段4：表单/页面操作
   const modifyFormOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('modify_form_out', modifyFormOut)
@@ -919,17 +1107,17 @@ export function modifyReportGraph(): CompiledReportGraph {
   // Barrier 终点改为 plan_tasks（route_datasource_op 已拆分为两个节点，plan_tasks 是入口）
   graph.addEdge(['load_docs', 'search_business', 'search_agent', 'search_schema'], 'plan_tasks')
 
-  // 条件路由挂在 plan_tasks 上（plan_tasks 总跑，select_datasource_op 是条件跑的）
-  // 判定逻辑：优先看 datasourceOperationType（数据源操作路由结果），再看 intent.needsCellOperation（单元格场景）
-  // 条件边：阶段2 → 阶段3 子图（按意图路由）
-  // [修复] 末尾追加 needsFormOperation / needsPageConfigOperation 兜底，
-  // 避免"单 form"或"单 page"场景 plan_tasks 返回 null 提前结束图
+  // 条件路由：阶段2 → 阶段3 子图，按意图路由
+  // 行列已拆为 needsRowOperation / needsColOperation：行+列场景两个子图都需要
+  // 但单条件边只能返回单目标，因此优先派发 row/col，剩余目标由子图之间的条件边接力
   graph.addConditionalEdges('plan_tasks', (state) => {
     const opType = state.intent?.datasourceOperationType
     if (opType === 'create_datasource') return 'create_datasource_subgraph'
     if (opType === 'create_dataset') return 'create_dataset_subgraph'
     if (opType === 'modify_dataset') return 'modify_dataset_subgraph'
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
+    if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
+    if (state.intent?.needsColOperation) return 'modify_col_subgraph'
     if (state.intent?.needsFormOperation) return 'modify_form'
     if (state.intent?.needsPageConfigOperation) return 'modify_page'
     return '__end__'
@@ -939,20 +1127,35 @@ export function modifyReportGraph(): CompiledReportGraph {
   graph.addConditionalEdges('create_datasource_subgraph', () => 'create_dataset_subgraph')
   graph.addConditionalEdges('create_dataset_subgraph', (state) => {
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
+    if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
+    if (state.intent?.needsColOperation) return 'modify_col_subgraph'
     if (state.intent?.needsFormOperation) return 'modify_form'
     if (state.intent?.needsPageConfigOperation) return 'modify_page'
     return '__end__'
   })
   graph.addConditionalEdges('modify_dataset_subgraph', (state) => {
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
+    if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
+    if (state.intent?.needsColOperation) return 'modify_col_subgraph'
     if (state.intent?.needsFormOperation) return 'modify_form'
     if (state.intent?.needsPageConfigOperation) return 'modify_page'
     return '__end__'
   })
-  // [修复] 原实现硬编码 () => 'modify_form'，当 needsFormOperation=false 时 modify_form 被 skipWhen 跳过，
-  // modify_page 也因 needsPageConfigOperation=false 被跳过，导致 modify_cell_subgraph 之后图直接断流
-  // 改为：按 form → page → __end__ 分级判断
+  // modify_cell_subgraph 完成后按 form → page → __end__ 分级判断
   graph.addConditionalEdges('modify_cell_subgraph', (state) => {
+    if (state.intent?.needsFormOperation) return 'modify_form'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    return '__end__'
+  })
+  // modify_row_subgraph 完成后：行+列场景接力到 modify_col_subgraph；否则走 form/page/__end__
+  graph.addConditionalEdges('modify_row_subgraph', (state) => {
+    if (state.intent?.needsColOperation) return 'modify_col_subgraph'
+    if (state.intent?.needsFormOperation) return 'modify_form'
+    if (state.intent?.needsPageConfigOperation) return 'modify_page'
+    return '__end__'
+  })
+  // modify_col_subgraph 完成后按 form → page → __end__ 分级判断
+  graph.addConditionalEdges('modify_col_subgraph', (state) => {
     if (state.intent?.needsFormOperation) return 'modify_form'
     if (state.intent?.needsPageConfigOperation) return 'modify_page'
     return '__end__'
@@ -1093,7 +1296,10 @@ export function getSubGraphByType(subworkflowType: string): CompiledReportGraph 
     modify_datasource: modifyDatasourceGraph,
     delete_datasource: deleteDatasourceGraph,
     delete_dataset: deleteDatasetGraph,
-    modify_cell: modifyCellGraph
+    modify_cell: modifyCellGraph,
+    // 行列结构子图：拆为 modify_row / modify_col，互补干扰、互不感知
+    modify_row: modifyRowGraph,
+    modify_col: modifyColGraph
   }
   const factory = subGraphFactories[subworkflowType]
   return factory?.()

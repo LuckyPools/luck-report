@@ -406,7 +406,8 @@ export class WorkflowEngine {
       needsCellOperation: obj.needsCellOperation ?? false,
       needsFormOperation: obj.needsFormOperation ?? false,
       needsPageConfigOperation: obj.needsPageConfigOperation ?? false,
-      needsRowColOperation: obj.needsRowColOperation ?? false,
+      needsRowOperation: obj.needsRowOperation ?? false,
+      needsColOperation: obj.needsColOperation ?? false,
       needsBusinessKnowledge: obj.needsBusinessKnowledge ?? false,
       needsAgentKnowledge: obj.needsAgentKnowledge ?? false,
       needsSchemaSearch: obj.needsSchemaSearch ?? false,
@@ -437,7 +438,8 @@ export class WorkflowEngine {
         needsCellOperation: false,
         needsFormOperation: false,
         needsPageConfigOperation: false,
-        needsRowColOperation: false,
+        needsRowOperation: false,
+        needsColOperation: false,
         needsBusinessKnowledge: false,
         needsAgentKnowledge: false,
         needsSchemaSearch: false,
@@ -454,7 +456,8 @@ export class WorkflowEngine {
       needsCellOperation: parsed.needsCellOperation ?? false,
       needsFormOperation: parsed.needsFormOperation ?? false,
       needsPageConfigOperation: parsed.needsPageConfigOperation ?? false,
-      needsRowColOperation: parsed.needsRowColOperation ?? false,
+      needsRowOperation: parsed.needsRowOperation ?? false,
+      needsColOperation: parsed.needsColOperation ?? false,
       needsBusinessKnowledge: parsed.needsBusinessKnowledge ?? false,
       needsAgentKnowledge: parsed.needsAgentKnowledge ?? false,
       needsSchemaSearch: parsed.needsSchemaSearch ?? false,
@@ -1599,7 +1602,8 @@ ${previousResultsSummary ? `前序步骤结果：\n${previousResultsSummary}` : 
       if (intent.needsDatasourceOperation) actions.push('配置数据源')
       if (intent.needsCellOperation) actions.push('修改单元格')
       if (intent.needsFormOperation) actions.push('配置查询表单')
-      if (intent.needsRowColOperation) actions.push('调整行列结构')
+      if (intent.needsRowOperation) actions.push('调整行结构')
+      if (intent.needsColOperation) actions.push('调整列结构')
       if (intent.needsPageConfigOperation) actions.push('调整页面配置')
       if (actions.length > 0) {
         parts.push(`接下来我将为您${actions.join('、')}，请稍候。`)

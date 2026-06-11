@@ -117,6 +117,10 @@ export interface ReportWorkflowState {
   searchForm: SearchFormConfig | null
   /** 单元格数据（overwrite） */
   cellsData: Record<string, any> | null
+  /** 行数据（overwrite）：modifyRowGraph 读到的行定义数组（来自 get_rows） */
+  rowData: Record<string, any>[] | null
+  /** 列数据（overwrite）：modifyColGraph 读到的列定义数组（来自 get_columns） */
+  colData: Record<string, any>[] | null
   /** 页面配置（overwrite） */
   pageConfig: Record<string, any> | null
   /** 错误信息（append：跨节点累加） */
@@ -146,6 +150,8 @@ export const reportStateSchema: Record<keyof ReportWorkflowState, StateFieldRedu
   datasetWriteResult: { kind: 'overwrite', initial: null },
   searchForm:         { kind: 'overwrite', initial: null },
   cellsData:          { kind: 'overwrite', initial: null },
+  rowData:            { kind: 'overwrite', initial: null },
+  colData:            { kind: 'overwrite', initial: null },
   pageConfig:         { kind: 'overwrite', initial: null },
   errors:             { kind: 'append', initial: [] },
   stepRecords:        { kind: 'append', initial: [] },
