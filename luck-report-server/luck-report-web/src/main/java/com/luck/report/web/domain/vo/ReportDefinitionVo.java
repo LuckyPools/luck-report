@@ -18,12 +18,16 @@ package com.luck.report.web.domain.vo;
 import com.luck.report.core.definition.*;
 import com.luck.report.core.definition.datasource.DatasourceDefinition;
 import com.luck.report.core.definition.searchform.SearchForm;
+import com.luck.report.web.converter.DefinitionVoConverter;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * 报表定义VO类，用于前端展示
+ * 将 CellDefinition 转换为 CellDefinitionVo，过滤前端不需要的字段
+ *
  * @author Jacky.gao
  * @since 2017年1月29日
  */
@@ -34,9 +38,13 @@ public class ReportDefinitionVo {
     private final List<RowDefinition> rows;
     private final List<ColumnDefinition> columns;
     private final List<DatasourceDefinition> datasources;
-    private final Map<String, CellDefinition> cellsMap = new HashMap<String, CellDefinition>();
+    private final Map<String, CellDefinitionVo> cellsMap = new HashMap<String, CellDefinitionVo>();
     private SearchForm searchForm;
 
+    /**
+     * 构造函数，将 ReportDefinition 转换为 ReportDefinitionVo
+     * @param report 报表定义
+     */
     public ReportDefinitionVo(ReportDefinition report) {
         this.paper = report.getPaper();
         this.header = report.getHeader();
@@ -46,7 +54,8 @@ public class ReportDefinitionVo {
         this.columns = report.getColumns();
         this.datasources = report.getDatasources();
         for (CellDefinition cell : report.getCells()) {
-            cellsMap.put(cell.getRowNumber() + "," + cell.getColumnNumber(), cell);
+            CellDefinitionVo cellVo = DefinitionVoConverter.toVo(cell);
+            cellsMap.put(cell.getRowNumber() + "," + cell.getColumnNumber(), cellVo);
         }
     }
 
@@ -78,7 +87,7 @@ public class ReportDefinitionVo {
         this.searchForm = searchForm;
     }
 
-    public Map<String, CellDefinition> getCellsMap() {
+    public Map<String, CellDefinitionVo> getCellsMap() {
         return cellsMap;
     }
 

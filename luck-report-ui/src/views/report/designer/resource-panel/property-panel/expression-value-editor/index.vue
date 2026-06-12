@@ -391,11 +391,10 @@ export default {
     /**
      * 处理格式变化
      */
-    handleFormatChange(format) {
+    handleFormatChange() {
       if (this.loadingCellData) return;
       const hot = TableManager.get();
       if (!hot) return;
-      this.format = format;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -405,7 +404,7 @@ export default {
           if (!newCellDef.cellStyle) {
             newCellDef.cellStyle = {};
           }
-          newCellDef.cellStyle.format = format;
+          newCellDef.cellStyle.format = this.format;
           setCell( i, j, newCellDef );
         }
       }

@@ -107,7 +107,7 @@
             :filter-by-query="true"
             :placeholder="$t('property.base.formatTip')"
             class="simple-suggest"
-            @input="handleFormatChange"
+            @blur="handleFormatChange"
         ></vue-simple-suggest>
       </u-form-item>
 
@@ -510,11 +510,10 @@ export default {
     /**
      * 处理格式变化
      */
-    handleFormatChange(value) {
+    handleFormatChange() {
       if (!this.isInitialized) {
         return;
       }
-      this.localFormat = value;
       this.$emit('update:format', this.localFormat);
       this.$emit('format-change', this.localFormat);
     },
