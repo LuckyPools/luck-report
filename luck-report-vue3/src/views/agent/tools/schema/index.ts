@@ -4,10 +4,6 @@
  * 本文件统一导出所有拆分后的 Schema 模块，便于外部引用。
  */
 
-// 表达式对象 Schema（独立文件，避免循环依赖）
-export {
-  ExpressionObjectSchema
-} from './expression-schema'
 
 // 单元格相关 Schema
 export {

@@ -5,9 +5,6 @@
 
 // ==================== 二维码/条码相关 Schema ====================
 
-// 导入表达式对象 Schema（避免循环依赖，从独立文件导入）
-import { ExpressionObjectSchema } from './expression-schema'
-
 /**
  * ZxingValue 二维码/条码值 Schema
  * 文档参考: qrcode-cell.md, barcode-cell.md
@@ -19,9 +16,6 @@ export const ZxingValueSchema = {
     category: { type: 'string', enum: ['qrcode', 'barcode'], description: '分类：qrcode为二维码，barcode为条码' },
     source: { type: 'string', enum: ['text', 'expression'], description: '数据来源：text为静态文本，expression为表达式动态计算' },
     value: { type: 'string', description: '编码内容或表达式文本' },
-    text: { type: 'string', description: '编码内容文本，与value相同' },
-    expr: { type: 'string', nullable: true, description: '表达式字符串，通常为null' },
-    expression: { ...ExpressionObjectSchema, description: '表达式对象，当source为expression时可能包含，通常为null' },
     width: { type: 'integer', description: '宽度(px)，最小值1，默认100', minimum: 1 },
     height: { type: 'integer', description: '高度(px)，最小值1，默认100', minimum: 1 },
     format: {
@@ -59,10 +53,7 @@ export function getQrcodeCellTemplate(rowIndex: number, colIndex: number, text: 
       width: 100,
       height: 100,
       source: 'text',
-      text,
-      expr: null,
       format: null,
-      expression: null,
       category: 'qrcode',
       codeDisplay: false,
       value: text,
@@ -93,8 +84,7 @@ export function getQrcodeCellTemplate(rowIndex: number, colIndex: number, text: 
     multiple: 0,
     expand: 'None',
     leftParentCellName: null,
-    topParentCellName: null,
-    conditionPropertyItems: null
+    topParentCellName: null
   }
 }
 
@@ -121,10 +111,7 @@ export function getBarcodeCellTemplate(rowIndex: number, colIndex: number, text:
       width: 103,
       height: 40,
       source: 'text',
-      text,
-      expr: null,
       format,
-      expression: null,
       category: 'barcode',
       codeDisplay: false,
       value: text,
@@ -155,8 +142,7 @@ export function getBarcodeCellTemplate(rowIndex: number, colIndex: number, text:
     multiple: 0,
     expand: 'None',
     leftParentCellName: null,
-    topParentCellName: null,
-    conditionPropertyItems: null
+    topParentCellName: null
   }
 }
 

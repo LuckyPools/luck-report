@@ -514,7 +514,6 @@ export function getChartCellTemplate(
     multiple: 0,
     expand: 'None',
     leftParentCellName: null,
-    topParentCellName: null,
-    conditionPropertyItems: null
+    topParentCellName: null
   }
 }

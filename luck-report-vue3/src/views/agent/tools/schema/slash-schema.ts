@@ -33,9 +33,7 @@ export const SlashValueSchema = {
       items: SlashSchema,
       description: '斜线列表，每条斜线包含坐标、角度和文本'
     },
-    value: { type: 'string', nullable: true, description: '值字段，通常为null' },
-    svg: { type: 'string', description: 'SVG内容，由系统渲染时自动生成' },
-    base64Data: { type: 'string', description: 'Base64图片数据，由系统渲染时自动生成' }
+    value: { type: 'string', nullable: true, description: '值字段，通常为null' }
   },
   required: ['type', 'slashes'],
   description: '斜线表头值对象，用于绘制斜线表头'
@@ -135,9 +133,7 @@ export function getSlashCellTemplate(rowIndex: number, colIndex: number): object
     colSpan: 0,
     name: `${colLetter}${rowNumber}`,
     value: {
-      svg: null,
       slashes: [],
-      base64Data: null,
       value: null,
       type: 'slash'
     },
@@ -166,7 +162,6 @@ export function getSlashCellTemplate(rowIndex: number, colIndex: number): object
     multiple: 0,
     expand: 'None',
     leftParentCellName: null,
-    topParentCellName: null,
-    conditionPropertyItems: null
+    topParentCellName: null
   }
 }

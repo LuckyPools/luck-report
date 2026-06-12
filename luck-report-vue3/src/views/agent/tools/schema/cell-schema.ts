@@ -5,7 +5,6 @@ import { ImageValueSchema, getImageCellTemplate, validateImageValue } from './im
 import { ZxingValueSchema, getQrcodeCellTemplate, getBarcodeCellTemplate, validateZxingValue } from './zxing-schema'
 import { ChartValueSchema, getChartCellTemplate, validateChartValue } from './chart-schema'
 import { SlashValueSchema, getSlashCellTemplate, validateSlashValue } from './slash-schema'
-import { ExpressionObjectSchema } from './expression-schema'
 
 /** Border 边框 Schema */
 export const BorderSchema = {
@@ -57,10 +56,8 @@ export const ExpressionValueSchema = {
   properties: {
     type: { type: 'string', const: 'expression' },
     value: { type: 'string', description: '表达式源码，包含换行和空格的完整表达式文本' },
-    text: { type: 'string', description: '表达式源码，与value相同' },
-    expression: { ...ExpressionObjectSchema, description: '表达式对象，解析后的结构化数据' }
   },
-  required: ['type', 'value', 'text']
+  required: ['type', 'value']
 }
 
 /** DatasetCondition 数据集过滤条件 Schema */
@@ -68,12 +65,10 @@ export const DatasetConditionSchema = {
   type: 'object',
   properties: {
     left: { type: 'string', description: '左侧表达式，字段名或表达式' },
-    op: { type: 'string', enum: ['GreatThen', 'EqualsGreatThen', 'LessThen', 'EqualsLessThen', 'Equals', 'NotEquals', 'In', 'NotIn', 'Like'], description: '比较运算符枚举值' },
     operation: { type: 'string', description: '操作符符号，如==、<、>、<=' },
     right: { type: 'string', description: '右侧表达式，比较值' },
     join: { type: 'string', enum: ['and', 'or'], description: '条件连接方式' },
-    type: { type: 'string', description: '条件类型，如property表示属性条件' },
-    nextCondition: { type: 'object', nullable: true, description: '下一个嵌套条件（已废弃，必须设为null）' }
+    type: { type: 'string', description: '条件类型，如property表示属性条件' }
   }
 }
 
@@ -90,7 +85,6 @@ export const DatasetValueSchema = {
       description: '聚合方式：select/group/customgroup/regroup/reselect支持展开，sum/count/max/min/avg返回单值'
     },
     order: { type: 'string', enum: ['none', 'asc', 'desc'], description: '排序方式，仅select/group等聚合可用' },
-    expr: { type: 'string', nullable: true, description: '表达式字符串，通常为null' },
     value: { type: 'string', description: '表达式值字符串，如"orders.group(price)"' },
     conditions: {
       type: 'array',
@@ -133,11 +127,7 @@ export const LinkParameterSchema = {
   type: 'object',
   properties: {
     name: { type: 'string', description: '参数名，只允许英文+字符串的组合' },
-    value: { type: 'string', description: '参数值，可为表达式' },
-    valueExpression: {
-      ...ExpressionObjectSchema,
-      description: '参数值表达式对象，当value为表达式时使用'
-    }
+    value: { type: 'string', description: '参数值，可为表达式' }
   },
   required: ['name', 'value']
 }
@@ -152,19 +142,13 @@ export const ConditionSchema = {
       description: '条件类型：property-属性条件(比较数据集字段值)，expression-表达式条件(左右均为表达式)，cell-单元格条件(比较指定单元格的值)，current-当前值条件(比较当前单元格自身值)'
     },
     left: { type: 'string', nullable: true, description: '左侧表达式，type为property时为字段名，type为cell时为单元格名称，type为current（推荐改写为property）时为null' },
-    op: {
-      type: 'string',
-      enum: ['GreatThen', 'EqualsGreatThen', 'LessThen', 'EqualsLessThen', 'Equals', 'NotEquals', 'In', 'NotIn', 'Like'],
-      description: '比较运算符枚举名。与 operation 二选一即可，框架会自动补齐缺失的一侧。引擎按 op 判定比较方式'
-    },
     operation: {
       type: 'string',
       enum: ['>', '>=', '<', '<=', '==', '!=', 'in', 'not in', 'like'],
-      description: '比较运算符符号。与 op 二选一即可，框架会自动补齐缺失的一侧。设计器 UI 按 operation 显示条件文本'
+      description: '比较运算符符号，如 >、>=、<、<=、==、!=、in、not in、like'
     },
     right: { type: 'string', description: '右侧比较值' },
-    join: { type: 'string', enum: ['and', 'or', null], description: '条件连接方式，多个条件时使用and或or连接' },
-    nextCondition: { type: 'object', nullable: true, description: '下一个嵌套条件（已废弃，必须设为null）'}
+    join: { type: 'string', enum: ['and', 'or', null], description: '条件连接方式，多个条件时使用and或or连接' }
   },
   required: ['type', 'right']
 }
@@ -277,8 +261,7 @@ export function getSimpleCellTemplate(rowIndex: number, colIndex: number): objec
     multiple: 0,
     expand: 'None',
     leftParentCellName: null,
-    topParentCellName: null,
-    conditionPropertyItems: null
+    topParentCellName: null
   }
 }
 
@@ -332,8 +315,6 @@ export function getDatasetCellTemplate(
 export function getExpressionCellTemplate(rowIndex: number, colIndex: number, expression: string = ''): object {
   const baseCell = getSimpleCellTemplate(rowIndex, colIndex) as any
   baseCell.value = {
-    text: expression,
-    expression: null,
     value: expression,
     type: 'expression'
   }
@@ -405,23 +386,8 @@ export function getCellTemplateByType(
 /** 支持条件属性的单元格类型 */
 export const CONDITION_SUPPORTED_TYPES = ['expression', 'dataset'] as const
 
-/** op → operation 映射 */
-export const OP_TO_OPERATION_MAP: Record<string, string> = {
-  GreatThen: '>',
-  EqualsGreatThen: '>=',
-  LessThen: '<',
-  EqualsLessThen: '<=',
-  Equals: '==',
-  NotEquals: '!=',
-  In: 'in',
-  NotIn: 'not in',
-  Like: 'like'
-}
-
-/** operation → op 反向映射 */
-export const OPERATION_TO_OP_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(OP_TO_OPERATION_MAP).map(([op, operation]) => [operation, op])
-)
+/** 支持的操作符数组 */
+export const OPERATION_ARRAY: string[] = ['>', '>=', '<', '<=', '==', '!=', 'in', 'not in', 'like']
 
 /**
  * 校验条件属性项结构，收集所有错误一次性返回
@@ -484,18 +450,9 @@ function validateCondition(cond: any, index: number, allConditions: any[]): stri
   if (!validTypes.includes(cond.type)) {
     errors.push(`type 必须是 ${validTypes.join('/')} 之一，当前为 ${cond.type}`)
   }
-  // op 与 operation 二者至少填一个
-  const validOps = Object.keys(OP_TO_OPERATION_MAP)
-  const validOperations = Object.values(OP_TO_OPERATION_MAP)
-  const hasOp = cond.op != null && cond.op !== ''
-  const hasOperation = cond.operation != null && cond.operation !== ''
-  if (!hasOp && !hasOperation) {
-    errors.push(`op 与 operation 至少填一个（op 枚举：${validOps.join('/')}；operation 符号：${validOperations.join('/')}）`)
-  }
-  if (hasOp && !validOps.includes(cond.op)) {
-    errors.push(`op 必须是 ${validOps.join('/')} 之一，当前为 ${cond.op}`)
-  }
-  if (hasOperation && !validOperations.includes(cond.operation)) {
+  // operation 必须为合法操作符
+  const validOperations = OPERATION_ARRAY
+  if (!validOperations.includes(cond.operation)) {
     errors.push(`operation 必须是 ${validOperations.join('/')} 之一，当前为 ${cond.operation}`)
   }
   if (cond.right == null || cond.right === '') {
@@ -543,7 +500,7 @@ function normalizeConditionPropertyItem(item: any): any {
 }
 
 /**
- * 规范化单个条件对象，补齐 op/operation/left/join 等字段
+ * 规范化单个条件对象，补齐 operation/left/join 等字段
  * @param cond - 原始条件
  * @param index - 在 conditions 数组中的索引
  * @returns 规范化后的条件对象
@@ -555,15 +512,7 @@ function normalizeCondition(cond: any, index: number): any {
     type = 'property'
   }
 
-  // op ↔ operation 双向补齐
-  let op = cond.op
-  let operation = cond.operation
-  if ((op == null || op === '') && (operation != null && operation !== '')) {
-    op = OPERATION_TO_OP_MAP[operation] ?? null
-  }
-  if (operation == null || operation === '') {
-    operation = OP_TO_OPERATION_MAP[op] ?? null
-  }
+  let operation = cond.operation ?? null
 
   // left 缺省值
   let left = cond.left
@@ -582,11 +531,9 @@ function normalizeCondition(cond: any, index: number): any {
   return {
     type,
     left: left ?? null,
-    op,
     operation,
     right: cond.right ?? '',
-    join,
-    nextCondition: null
+    join
   }
 }
 
@@ -595,7 +542,7 @@ function normalizeCondition(cond: any, index: number): any {
  * @param index - 在 conditions 数组中的索引，决定 join 默认值
  * @param type - 条件类型：property/expression/cell/current
  * @param left - 左侧值：property 传字段名/cell 传单元格名/current 传 null
- * @param op - 运算符枚举（同时会自动补 operation）
+ * @param operation - 比较运算符符号，如 >、>=、<、<=、==、!=、in、not in、like
  * @param right - 右侧比较值
  * @param join - 条件连接方式；index=0 时强制置 null
  * @returns 符合 ConditionSchema 规范的条件对象
@@ -604,18 +551,16 @@ function getConditionTemplate(
   index: number,
   type: 'property' | 'expression' | 'cell' | 'current',
   left: string | null,
-  op: keyof typeof OP_TO_OPERATION_MAP,
+  operation: string,
   right: string,
   join?: 'and' | 'or'
 ): Record<string, any> {
   return {
     type,
     left,
-    op,
-    operation: OP_TO_OPERATION_MAP[op],
+    operation,
     right,
-    join: index === 0 ? null : (join ?? 'and'),
-    nextCondition: null
+    join: index === 0 ? null : (join ?? 'and')
   }
 }
 
@@ -671,18 +616,16 @@ export function getExpressionCellWithConditionTemplate(
   const baseCell = JSON.parse(JSON.stringify(getExpressionCellTemplate(rowIndex, colIndex, expression)))
 
   baseCell.value = {
-    text: expression,
     value: expression,
-    expression: null,
     type: 'expression'
   }
 
   baseCell.conditionPropertyItems = [
     // 第 1 组：单条件（property，属性值等于 9 → 红色背景）
     getConditionPropertyItemTemplate(
-      '值等于9时红色',
+      'group1',
       [
-        getConditionTemplate(0, 'property', null, 'Equals', '9')
+        getConditionTemplate(0, 'property', null, '==', '9')
       ],
       {
         bgcolor: '255,0,0',
@@ -692,10 +635,10 @@ export function getExpressionCellWithConditionTemplate(
 
     // 第 2 组：多条件 AND（current>11 AND cell(B2)==4）
     getConditionPropertyItemTemplate(
-      '值>11且B2=4时加粗黄字',
+      'group2',
       [
-        getConditionTemplate(0, 'current', null, 'GreatThen', '11'),
-        getConditionTemplate(1, 'cell', 'B2', 'Equals', '4', 'and')
+        getConditionTemplate(0, 'current', null, '>', '11'),
+        getConditionTemplate(1, 'cell', 'B2', '==', '4', 'and')
       ],
       {
         bold: true,
@@ -717,10 +660,10 @@ export function getExpressionCellWithConditionTemplate(
 
     // 第 3 组：多条件 OR（property<5 OR property>100）
     getConditionPropertyItemTemplate(
-      '值<5或>100时顶部对齐',
+      'group3',
       [
-        getConditionTemplate(0, 'property', 'value', 'LessThen', '5'),
-        getConditionTemplate(1, 'property', 'value', 'GreatThen', '100', 'or')
+        getConditionTemplate(0, 'property', 'value', '<', '5'),
+        getConditionTemplate(1, 'property', 'value', '>', '100', 'or')
       ],
       {
         valign: 'top',
