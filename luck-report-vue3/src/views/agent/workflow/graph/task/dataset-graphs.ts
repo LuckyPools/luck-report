@@ -13,91 +13,315 @@ import {
 } from '../index.ts'
 import type { CompiledReportGraph } from '../index.ts'
 import { reportStateSchema } from '../state.ts'
+import {
+  extractTargetTableNames,
+  filterActiveErrors,
+  inferDatasetName,
+  inferSqlFromResolvedSchema,
+  inferTableQuery,
+  parseSchemaPromptText,
+  readResolvedSchema,
+  resolveBuildinDatasource,
+  runToolWithEvent
+} from '../utils.ts'
+import { modifyFormGraph } from './form-page-graphs.ts'
+
+/**
+ * 给 LLM 决策节点加一层"入口/出口"日志包装（modifyDatasetGraph 等仍使用）
+ */
+function llmNodeWithLog(inner: LLMDecideNode): LLMDecideNode {
+  const originalInvoke = inner.invoke.bind(inner)
+  Object.defineProperty(inner, 'invoke', {
+    configurable: true,
+    writable: true,
+    value: async (state: Record<string, any>, config: any) => {
+      const nodeId = inner.options.nodeId
+      const slim = {
+        userMessagePreview: typeof state.userMessage === 'string' ? state.userMessage.slice(0, 80) : undefined,
+        intent: state.intent,
+        targetDatasourceName: state.targetDatasourceName,
+        hasTableStructures: !!state.tableStructures,
+        hasDatasetTemplate: !!state.datasetTemplate,
+        hasDataset: !!state.dataset,
+        errors: state.errors
+      }
+      console.log(`[dataset-graph] ${nodeId} 入口`, JSON.stringify(slim))
+      const result = await originalInvoke(state, config)
+      const summary: Record<string, any> = { resultKeys: Object.keys(result ?? {}) }
+      if (result.errors) summary.errors = result.errors
+      if (result.dataset) {
+        const ds: any = result.dataset
+        summary.dataset = { name: ds.name, fieldCount: Array.isArray(ds.fields) ? ds.fields.length : 0 }
+      }
+      console.log(`[dataset-graph] ${nodeId} 出口`, JSON.stringify(summary))
+      return result
+    }
+  })
+  return inner
+}
 
 // ==================== 创建数据集子工作流 ====================
 
 /**
- * 创建数据集工作流
- * 失败节点不写业务 Channel，下游不触发；SQL 校验失败走条件边回退
+ * 创建数据集工作流（最小重构 — 确定性代码管道，本子图内无 LLM）
+ *
+ * prepare_schema → resolve_datasource → resolve_table → fetch_dataset_template
+ * → build_dataset → validate_dataset → add_dataset → confirm_dataset → sync_form_subgraph
  */
 export function createDatasetGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
-    input: { userMessage: true, intent: true },
-    output: { datasetWriteResult: true, searchForm: true }
+    input: { userMessage: true, intent: true, searchResults: true, datasources: true },
+    output: {
+      datasetWriteResult: true,
+      searchForm: true,
+      dataset: true,
+      targetDatasourceName: true,
+      targetTableNames: true,
+      tableStructures: true,
+      datasetTemplate: true,
+      datasources: true,
+      errors: true
+    }
   })
 
-  // 节点1：确认数据源并准备SQL
-  const prepareSqlOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('prepare_sql_out', prepareSqlOut)
-  graph.addNode('prepare_sql', new LLMDecideNode({
-    nodeId: 'prepare_sql',
-    allowedTools: ['get_datasources', 'search_schema', 'load_buildin_datasources', 'add_datasource', 'get_table_relation', 'load_bean_methods', 'get_datasets', 'get_dataset_template'],
-    requiredToolResults: ['get_datasources'],
-    maxIterations: 4,
-    description: '确认数据源存在（不存在则通过 search_schema 定位并创建），准备SQL或Bean方法，生成数据集对象',
-    outChannelName: 'prepare_sql_out'
-  }), {
+  const hasPreparedSearch = (state: Record<string, any>) => {
+    const sr = state.searchResults || {}
+    return !!(sr.search_schema && sr.load_buildin_datasources)
+  }
+
+  graph.addNode('prepare_schema', async (state, runtime) => {
+    const stepId = 'prepare_schema'
+    const sr: any = { ...(state.searchResults || {}) }
+    const userMsg = String(state.userMessage ?? '')
+    const query = inferTableQuery(userMsg, state.intent) || userMsg
+
+    if (!sr.search_schema) {
+      sr.search_schema = await runToolWithEvent(runtime, stepId, 'search_schema', { query })
+    }
+    if (!sr.load_buildin_datasources) {
+      sr.load_buildin_datasources = await runToolWithEvent(runtime, stepId, 'load_buildin_datasources', {})
+    }
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({
+      reused: hasPreparedSearch(state),
+      hasSearchSchema: !!sr.search_schema,
+      buildinCount: Array.isArray(sr.load_buildin_datasources?.datasources) ? sr.load_buildin_datasources.datasources.length : 0
+    }))
+    return { searchResults: sr }
+  }, {
     triggers: ['__start__'],
     triggerMode: 'all',
-    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
-    metadata: { description: '确认数据源与准备SQL' }
+    metadata: { silent: true, description: '准备 search_schema + buildin 列表' }
   })
 
-  // 节点2：校验SQL
-  const validateSqlOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('validate_sql_out', validateSqlOut)
-  graph.addNode('validate_sql', new LLMDecideNode({
-    nodeId: 'validate_sql',
-    allowedTools: ['preview_data', 'build_fields'],
-    requiredToolResults: ['preview_data', 'build_fields'],
-    maxIterations: 3,
-    description: '调用 preview_data 验证SQL，调用 build_fields 解析字段',
-    outChannelName: 'validate_sql_out'
-  }), {
-    triggers: ['prepare_sql_out'],
+  graph.addNode('resolve_datasource', async (state, runtime) => {
+    const stepId = 'resolve_datasource'
+    const result = await resolveBuildinDatasource(runtime, stepId, state)
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({
+      targetDatasourceName: result.targetDatasourceName,
+      errors: result.errors
+    }))
+    if (result.errors?.length) return { errors: result.errors }
+    return {
+      targetDatasourceName: result.targetDatasourceName,
+      datasources: result.datasources
+    }
+  }, {
+    triggers: ['searchResults'],
     triggerMode: 'any',
-    retryPolicy: { maxAttempts: 3, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
-    metadata: { description: '校验SQL并解析字段' }
+    metadata: { silent: true, description: '选名 + 反查 + 必要时创建 buildin 数据源' }
   })
 
-  // 节点3：写入数据集
-  const addDatasetOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('add_dataset_out', addDatasetOut)
-  graph.addNode('add_dataset', new LLMDecideNode({
-    nodeId: 'add_dataset',
-    allowedTools: ['add_dataset'],
-    requiredToolResults: ['add_dataset'],
-    maxIterations: 3,
-    description: '调用 add_dataset 写入数据集',
-    outChannelName: 'add_dataset_out'
-  }), {
-    triggers: ['fieldsResult'],
-    triggerMode: 'all',
-    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
-    metadata: { description: '写入数据集' }
+  graph.addNode('resolve_table', async (state, runtime) => {
+    const stepId = 'resolve_table'
+    const dsName = state.targetDatasourceName
+    const userMsg = String(state.userMessage ?? '')
+    if (!dsName) return { errors: ['resolve_table: 缺少 targetDatasourceName'] }
+
+    const sr = (state.searchResults as any)?.search_schema
+    let tableQuery = extractTargetTableNames(sr, dsName, userMsg, 1)[0]
+    if (!tableQuery) tableQuery = inferTableQuery(userMsg, state.intent)
+
+    console.log(`[dataset-graph] ${stepId} 入口`, JSON.stringify({ dsName, tableQuery }))
+    try {
+      const structure = await runToolWithEvent(runtime, stepId, 'get_table_relation', {
+        datasourceName: dsName,
+        query: tableQuery
+      })
+      const parsed = parseSchemaPromptText(structure, userMsg, tableQuery)
+      if (!parsed.tableName) {
+        return { errors: [`resolve_table: 无法解析物理表名 (query=${tableQuery})`] }
+      }
+      const resolved = {
+        datasourceName: dsName,
+        tableName: parsed.tableName,
+        tableQuery,
+        columns: parsed.columns,
+        schemaPrompt: parsed.schemaPrompt,
+        tables: [{ tableName: parsed.tableName, structure }]
+      }
+      console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({
+        tableName: parsed.tableName, columnCount: parsed.columns.length
+      }))
+      return {
+        targetTableNames: [parsed.tableName],
+        tableStructures: resolved
+      }
+    } catch (e: any) {
+      return { errors: [`resolve_table: get_table_relation 失败 (${tableQuery}): ${e?.message ?? String(e)}`] }
+    }
+  }, {
+    triggers: ['targetDatasourceName'],
+    triggerMode: 'any',
+    metadata: { silent: true, description: '取表结构并解析为 ResolvedSchema' }
   })
 
-  // 节点4：同步查询表单
-  const syncFormOut = new LastValueAfterFinishChannel<any>()
-  graph.addChannel('sync_form_out', syncFormOut)
-  graph.addNode('sync_form', new LLMDecideNode({
-    nodeId: 'sync_form',
-    allowedTools: ['get_search_form', 'set_search_form'],
-    maxIterations: 3,
-    description: '检查查询表单是否已配置对应筛选组件，缺失则补充',
-    outChannelName: 'sync_form_out'
-  }), {
+  graph.addNode('fetch_dataset_template', async (state, runtime) => {
+    const stepId = 'fetch_dataset_template'
+    const template = await runToolWithEvent(runtime, stepId, 'get_dataset_template', {})
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({
+      templateKeys: template && typeof template === 'object' ? Object.keys(template) : null
+    }))
+    return { datasetTemplate: template }
+  }, {
+    triggers: ['tableStructures'],
+    triggerMode: 'any',
+    metadata: { silent: true, description: '取 SQL 数据集模板' }
+  })
+
+  graph.addNode('build_dataset', async (state, runtime) => {
+    const stepId = 'build_dataset'
+    const dsName = state.targetDatasourceName
+    const template = state.datasetTemplate as Record<string, any> | null
+    const resolved = readResolvedSchema(state.tableStructures)
+    if (!dsName) return { errors: ['build_dataset: 缺少 targetDatasourceName'] }
+    if (!template) return { errors: ['build_dataset: 缺少 datasetTemplate'] }
+    if (!resolved) return { errors: ['build_dataset: 缺少 ResolvedSchema'] }
+
+    const sql = inferSqlFromResolvedSchema(resolved)
+    if (!sql) return { errors: ['build_dataset: 无法生成 SQL'] }
+
+    const fieldsResult: any = await runToolWithEvent(runtime, stepId, 'build_fields', {
+      sql, type: 'buildin', name: dsName
+    })
+    if (fieldsResult?.success === false || fieldsResult?.error) {
+      return { errors: [`build_fields 失败: ${fieldsResult?.message || fieldsResult?.error}`] }
+    }
+    const fields = Array.isArray(fieldsResult?.fields) ? fieldsResult.fields : fieldsResult
+    if (!Array.isArray(fields) || fields.length === 0) {
+      return { errors: ['build_fields 未返回有效 fields'] }
+    }
+
+    const dataset = {
+      ...template,
+      name: inferDatasetName(String(state.userMessage ?? ''), template),
+      sql,
+      fields
+    }
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({
+      datasetName: dataset.name, fieldCount: fields.length, sqlPreview: sql.slice(0, 100)
+    }))
+    return { dataset, fieldsResult: { success: true, fields } }
+  }, {
+    triggers: ['datasetTemplate'],
+    triggerMode: 'any',
+    metadata: { silent: true, description: '组装 SQL 数据集对象' }
+  })
+
+  graph.addNode('validate_dataset', async (state, runtime) => {
+    const stepId = 'validate_dataset'
+    const dsName = state.targetDatasourceName
+    const dataset = state.dataset
+    if (!dsName || !dataset) return { errors: ['validate_dataset: 缺少 datasourceName 或 dataset'] }
+
+    const result: any = await runToolWithEvent(runtime, stepId, 'validate_dataset', {
+      datasourceName: dsName,
+      dataset
+    })
+    if (!result?.valid) {
+      const errs = Array.isArray(result?.errors) ? result.errors : ['validate_dataset 校验未通过']
+      return { errors: errs }
+    }
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({ valid: true }))
+    return {
+      dataset: result.normalized ?? dataset,
+      sqlValidationResult: { success: true, data: result }
+    }
+  }, {
+    triggers: ['dataset'],
+    triggerMode: 'any',
+    metadata: { silent: true, description: '校验数据集结构 + SQL 预览' }
+  })
+
+  graph.addNode('add_dataset', async (state, runtime) => {
+    const stepId = 'add_dataset'
+    const dsName = state.targetDatasourceName
+    const dataset = state.dataset
+    if (!dsName || !dataset) return { errors: ['add_dataset: 缺少 datasourceName 或 dataset'] }
+
+    const result: any = await runToolWithEvent(runtime, stepId, 'add_dataset', {
+      datasourceName: dsName,
+      dataset
+    })
+    if (result?.success === false) {
+      return { errors: [`add_dataset 失败: ${result.message || '未知错误'}`] }
+    }
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({ success: true }))
+    return { datasetWriteResult: { success: true, message: result?.message, datasetId: result?.datasetId } }
+  }, {
+    triggers: ['sqlValidationResult'],
+    triggerMode: 'any',
+    metadata: { silent: true, description: '写入数据集' }
+  })
+
+  graph.addNode('confirm_dataset', async (state, runtime) => {
+    const stepId = 'confirm_dataset'
+    const dsName = state.targetDatasourceName
+    const datasetName = (state.dataset as any)?.name
+    if (!dsName || !datasetName) {
+      return { errors: ['confirm_dataset: 缺少 datasourceName 或 datasetName'] }
+    }
+    const result: any = await runToolWithEvent(runtime, stepId, 'get_datasets', { datasourceName: dsName, datasetName })
+    const list: any[] = Array.isArray(result) ? result : (Array.isArray(result?.datasets) ? result.datasets : [])
+    const found = list.some((d: any) => d?.name === datasetName)
+    console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({ dsName, datasetName, found }))
+    if (!found) return { errors: [`数据集 ${dsName}/${datasetName} 未找到，写入可能失败`] }
+    return { datasets: list }
+  }, {
     triggers: ['datasetWriteResult'],
-    triggerMode: 'all',
-    metadata: { description: '同步查询表单' }
+    triggerMode: 'any',
+    metadata: { silent: true, description: '反查确认数据集已写入' }
   })
 
-  // 边：严格顺序
-  graph.addEdge('__start__', 'prepare_sql')
-  graph.addEdge('prepare_sql', 'validate_sql')
-  graph.addEdge('validate_sql', 'add_dataset')
-  graph.addEdge('add_dataset', 'sync_form')
-  graph.addEdge('sync_form', '__end__')
+  graph.addNode('sync_form_subgraph', async (state, runtime) => {
+    const subGraph = modifyFormGraph()
+    const childRuntime = runtime?.fork()
+    const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
+    const childErrors = filterActiveErrors(result.state.errors)
+    const output: Record<string, any> = { searchForm: result.state.searchForm }
+    if (childErrors.length > 0) output.errors = childErrors
+    return output
+  }, {
+    triggers: ['datasets'],
+    triggerMode: 'any',
+    skipWhen: (state) => {
+      const params = (state.dataset as any)?.parameters
+      return !Array.isArray(params) || params.length === 0
+    },
+    input: { datasets: true, intent: true, userMessage: true, searchResults: true, dataset: true },
+    output: { searchForm: true, errors: true },
+    metadata: { description: '同步查询表单子流程（仅在有查询条件时执行）' }
+  })
+
+  graph.addEdge('__start__', 'prepare_schema')
+  graph.addEdge('prepare_schema', 'resolve_datasource')
+  graph.addEdge('resolve_datasource', 'resolve_table')
+  graph.addEdge('resolve_table', 'fetch_dataset_template')
+  graph.addEdge('fetch_dataset_template', 'build_dataset')
+  graph.addEdge('build_dataset', 'validate_dataset')
+  graph.addEdge('validate_dataset', 'add_dataset')
+  graph.addEdge('add_dataset', 'confirm_dataset')
+  graph.addEdge('confirm_dataset', 'sync_form_subgraph')
+  graph.addEdge('sync_form_subgraph', '__end__')
 
   return graph.compile()
 }
@@ -114,7 +338,6 @@ export function modifyDatasetGraph(): CompiledReportGraph {
     output: { datasets: true, searchForm: true }
   })
 
-  // 节点1：确认数据集存在
   graph.addNode('confirm_dataset_exists', async (state, runtime) => {
     const datasets = await runtime?.toolRegistry.executeTool('get_datasets', {})
     return { datasets: Array.isArray(datasets) ? datasets : [datasets] }
@@ -124,7 +347,6 @@ export function modifyDatasetGraph(): CompiledReportGraph {
     metadata: { silent: true, description: '获取现有数据集对象' }
   })
 
-  // 节点2：修改数据集内容
   const modifyOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('modify_dataset_obj_out', modifyOut)
   graph.addNode('modify_dataset_obj', new LLMDecideNode({
@@ -140,7 +362,6 @@ export function modifyDatasetGraph(): CompiledReportGraph {
     metadata: { description: '修改数据集内容' }
   })
 
-  // 节点3：校验SQL并重建字段
   const validateOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('validate_and_rebuild_out', validateOut)
   graph.addNode('validate_and_rebuild_fields', new LLMDecideNode({
@@ -158,7 +379,6 @@ export function modifyDatasetGraph(): CompiledReportGraph {
     metadata: { description: '校验SQL并重建字段' }
   })
 
-  // 节点4：更新数据集
   const updateOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('update_dataset_out', updateOut)
   graph.addNode('update_dataset', new LLMDecideNode({
@@ -175,7 +395,6 @@ export function modifyDatasetGraph(): CompiledReportGraph {
     metadata: { description: '写入数据集' }
   })
 
-  // 节点5：同步查询表单
   const syncFormOut = new LastValueAfterFinishChannel<any>()
   graph.addChannel('sync_modified_form_out', syncFormOut)
   graph.addNode('sync_modified_form', new LLMDecideNode({
@@ -190,10 +409,8 @@ export function modifyDatasetGraph(): CompiledReportGraph {
     metadata: { description: '同步查询表单' }
   })
 
-  // 边
   graph.addEdge('__start__', 'confirm_dataset_exists')
   graph.addEdge('confirm_dataset_exists', 'modify_dataset_obj')
-  // 条件边：SQL 未变时跳过 rebuild 直接 update
   graph.addConditionalEdges('modify_dataset_obj', (state) => {
     if (!state.sqlValidationResult?.data?.sqlChanged) {
       return 'update_dataset'
@@ -209,9 +426,6 @@ export function modifyDatasetGraph(): CompiledReportGraph {
 
 // ==================== 删除数据集子工作流 ====================
 
-/**
- * 删除数据集工作流
- */
 export function deleteDatasetGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
     input: { userMessage: true, intent: true },

@@ -154,7 +154,13 @@ export const getTableRelationTool: ToolDefinition<{
   query: string;
 }> = {
   name: 'get_table_relation',
-  description: '获取内置数据源的表字段和表关联信息。可以传入datasourceId或datasourceName（二选一），返回格式化的表结构信息，包括表名、字段、表关联关系等，用于构建SQL数据集。',
+  description: '【必传校验】获取内置数据源的表字段和表关联信息。\n' +
+    '【硬约束】调用本工具**必须**同时传 query **和** datasourceId/datasourceName 之一，缺任一字段会执行失败。\n' +
+    '【参数】\n' +
+    '- query (必填, string): 待查询的表名，如"用户表"或"user"\n' +
+    '- datasourceId (与 datasourceName 二选一, integer): 数据源ID\n' +
+    '- datasourceName (与 datasourceId 二选一, string): 数据源名称（推荐使用本字段，对齐 buildin 数据源中文名）\n' +
+    '【返回】格式化的表结构信息，包括表名、字段、表关联关系等，用于构建SQL数据集。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -171,7 +177,12 @@ export const getTableRelationTool: ToolDefinition<{
         description: '待查询的表名，如"用户表"'
       }
     },
-    required: ['query']
+    required: ['query'],
+    // 硬约束：query 必填 + datasourceId/datasourceName 至少二选一，让 JSON-Schema 校验阶段就拒绝"只 query"的请求
+    anyOf: [
+      { required: ['datasourceId'] },
+      { required: ['datasourceName'] }
+    ]
   },
   execute: async ({ datasourceId, datasourceName, query }) => {
     const params: { id?: number; name?: string; query: string } = { query }

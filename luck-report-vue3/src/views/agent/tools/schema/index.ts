@@ -72,6 +72,7 @@ export {
   getSqlDatasetTemplate,
   getBuildinDatasourceTemplate,
   validateDataset,
+  normalizeDataset,
   validateDatasource,
   normalizeDatasource
 } from './datasource-schema'

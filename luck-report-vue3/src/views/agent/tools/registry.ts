@@ -23,7 +23,7 @@ import {
     addDatasetTool, buildFieldsTool,
     getDatasetsTool, getDatasetTemplateTool, previewDataTool,
     removeDatasetTool,
-    updateDatasetTool
+    updateDatasetTool, validateDatasetTool
 } from "@/views/agent/tools/dataset-tools.ts";
 import {
   deleteColTool, deleteRowTool,
@@ -193,6 +193,7 @@ export function createDefaultRegistry(): ToolRegistry {
     addDatasetTool,
     updateDatasetTool,
     removeDatasetTool,
+    validateDatasetTool,
 
     getSearchFormTool,
     setSearchFormTool,

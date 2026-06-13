@@ -4,6 +4,7 @@ import type { WorkflowRuntime } from '../runtime.ts'
 import type { ToolRegistry } from '../../../tools/registry.ts'
 import type { MemoryManager } from '../../../memory/memory-manager.ts'
 import type { LLMDecideNode } from './llm-decide-node.ts'
+import { buildWorkflowStateContext } from '../utils.ts'
 
 /**
  * 过滤允许的工具定义
@@ -66,7 +67,7 @@ export function buildMessages(
       }
     }
   }
-  const userMessage = state.userMessage + knowledgeBlock + stepContext
+  const userMessage = state.userMessage + knowledgeBlock + buildWorkflowStateContext(state) + stepContext
 
   return [
     ...history,

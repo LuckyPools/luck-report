@@ -99,6 +99,16 @@ export interface ReportWorkflowState {
   datasources: DatasourceInfo[]
   /** 数据集列表（overwrite） */
   datasets: DatasetInfo[]
+  /** 单个待写入的数据集对象（overwrite）：createDatasetGraph 在 build/validate/add 阶段之间传递 */
+  dataset: Record<string, any> | null
+  /** 选中的目标数据源名称（overwrite）：createDatasetGraph 在 pick_datasource 阶段锁定，build 阶段使用 */
+  targetDatasourceName: string | null
+  /** 选中的目标表名列表（overwrite）：resolve_table 解析出的物理表名 */
+  targetTableNames: string[]
+  /** 数据源表结构信息（overwrite）：resolve_table 写入 ResolvedSchema，build_dataset 只读 */
+  tableStructures: Record<string, any> | null
+  /** SQL 数据集模板（overwrite）：fetch_dataset_template 节点取数后写入，compose_dataset 节点使用 */
+  datasetTemplate: Record<string, any> | null
   /** SQL 校验结果（overwrite：失败时保持 null） */
   sqlValidationResult: { success: boolean; data?: any; error?: string } | null
   /** 字段解析结果（overwrite） */
@@ -139,6 +149,11 @@ export const reportStateSchema: Record<keyof ReportWorkflowState, StateFieldRedu
   intent:             { kind: 'overwrite' },
   datasources:        { kind: 'overwrite', initial: [] },
   datasets:           { kind: 'overwrite', initial: [] },
+  dataset:            { kind: 'overwrite', initial: null },
+  targetDatasourceName: { kind: 'overwrite', initial: null },
+  targetTableNames:   { kind: 'overwrite', initial: [] },
+  tableStructures:    { kind: 'overwrite', initial: null },
+  datasetTemplate:    { kind: 'overwrite', initial: null },
   sqlValidationResult:{ kind: 'overwrite', initial: null },
   fieldsResult:       { kind: 'overwrite', initial: null },
   datasetWriteResult: { kind: 'overwrite', initial: null },

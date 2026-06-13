@@ -178,6 +178,55 @@ export function validateDataset(dataset: any): string | undefined {
   return errors.length ? errors.join('\n') : undefined
 }
 
+/** 数据集名称合法字符：英文/数字/下划线，且以英文开头 */
+const DATASET_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/
+
+/**
+ * 规范化数据集对象，补齐必填字段默认值并剥离非法字段
+ * 作用：让 LLM 传"残缺"数据时也能写出符合规范的数据集，避免 add_dataset 写入时因字段缺失失败
+ *
+ * @param dataset - 原始数据集对象（可能来自 LLM）
+ * @returns 符合规范的数据集对象；非法输入兜底返回空 SQL 模板
+ */
+export function normalizeDataset(dataset: any): Record<string, any> {
+  // 防御：非对象 / 数组输入 → 兜底为空 SQL 模板
+  if (!dataset || typeof dataset !== 'object' || Array.isArray(dataset)) {
+    return { ...getSqlDatasetTemplate() }
+  }
+
+  // name 兜底：去前后空格，空则用占位名
+  const name = typeof dataset.name === 'string' && dataset.name.trim() !== ''
+    ? dataset.name.trim()
+    : 'dataset_name'
+
+  // sql 兜底：必须是非空字符串，否则用空串（validateDataset 会拦截空 SQL）
+  const sql = typeof dataset.sql === 'string' ? dataset.sql : ''
+
+  // parameters 兜底为数组；逐项补齐 name/type/defaultValue
+  const validParamTypes = ['String', 'Integer', 'Float', 'Boolean', 'Date', 'List']
+  const parameters: any[] = Array.isArray(dataset.parameters)
+    ? dataset.parameters
+        .filter((p: any) => p && typeof p === 'object')
+        .map((p: any) => ({
+          name: typeof p.name === 'string' && p.name.trim() !== '' ? p.name.trim() : 'param_name',
+          type: validParamTypes.includes(p.type) ? p.type : 'String',
+          defaultValue: typeof p.defaultValue === 'string' ? p.defaultValue : ''
+        }))
+    : []
+
+  // fields 兜底为数组；只保留 { name } 形态
+  const fields: any[] = Array.isArray(dataset.fields)
+    ? dataset.fields
+        .filter((f: any) => f && typeof f === 'object' && typeof f.name === 'string' && f.name.trim() !== '')
+        .map((f: any) => ({ name: f.name.trim() }))
+    : []
+
+  // sqlExpression 兜底为 null
+  const sqlExpression = dataset.sqlExpression == null ? null : dataset.sqlExpression
+
+  return { name, sql, parameters, fields, sqlExpression }
+}
+
 /**
  * 规范化数据源对象，按 type 补齐必填字段默认值并剥离非法字段
  * 作用：让 LLM 传"残缺"数据时也能写出符合规范的数据源

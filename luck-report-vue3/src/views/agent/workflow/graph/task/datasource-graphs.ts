@@ -13,7 +13,13 @@ import {
 } from '../index.ts'
 import type { CompiledReportGraph } from '../index.ts'
 import { reportStateSchema } from '../state.ts'
-import { extractSearchCandidates, pickDatasourceName, runToolWithEvent } from '../utils.ts'
+import {
+  extractSearchCandidates,
+  extractTargetTableNames,
+  filterActiveErrors,
+  pickDatasourceName,
+  runToolWithEvent
+} from '../utils.ts'
 
 // ==================== 创建数据源子工作流 ====================
 
@@ -24,8 +30,13 @@ import { extractSearchCandidates, pickDatasourceName, runToolWithEvent } from '.
 export function createDatasourceGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
     input: { userMessage: true, intent: true, datasources: true, searchResults: true },
-    output: { datasources: true, errors: true }
+    output: { datasources: true, errors: true, targetDatasourceName: true, targetTableNames: true }
   })
+
+  const hasSearchResults = (state: Record<string, any>) => {
+    const sr = state.searchResults || {}
+    return !!(sr.search_schema && sr.load_buildin_datasources)
+  }
 
   // 节点1：搜索 + 加载 buildin 合法名（LLM 负责"理解用户意图"与决定是否终止）
   const searchOut = new LastValueAfterFinishChannel<any>()
@@ -49,11 +60,12 @@ export function createDatasourceGraph(): CompiledReportGraph {
   }), {
     triggers: ['__start__'],
     triggerMode: 'all',
+    skipWhen: hasSearchResults,
     retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
     metadata: { description: '搜索数据源并筛选buildin类型' }
   })
 
-  // 节点2：代码节点 - 确定性选名 + 拉取模板 + 写入
+  // 节点2：确定性选名 + 反查已存在则跳过 + 否则拉模板写入
   graph.addNode('pick_and_add_datasource', async (state, runtime) => {
     const stepId = 'pick_and_add_datasource'
     const sr: any = state.searchResults || {}
@@ -64,28 +76,45 @@ export function createDatasourceGraph(): CompiledReportGraph {
       return { errors: ['未获取到合法的 buildin 数据源列表'] }
     }
 
-    // 候选名集合兜底：search_schema 结果 → 全部合法名（保持与旧逻辑兼容）
     const searchCandidates = extractSearchCandidates(sr.search_schema)
-    const fallbackCandidates = legalNames
     const pickedName = pickDatasourceName(searchCandidates, legalNames)
-      ?? pickDatasourceName(fallbackCandidates, legalNames)
+      ?? pickDatasourceName(legalNames, legalNames)
     if (!pickedName) {
       return { errors: ['未找到与用户需求匹配的内置数据源，jdbc/spring 类型数据源需在报表设计器中手动添加'] }
     }
 
-    // 拉取模板
+    const targetTableNames = extractTargetTableNames(
+      sr.search_schema,
+      pickedName,
+      String(state.userMessage ?? ''),
+      1
+    )
+    console.log(`[datasource-graph] ${stepId} 选名`, JSON.stringify({
+      searchCandidates, pickedName, targetTableNames
+    }))
+
+    const existing: any = await runToolWithEvent(runtime, stepId, 'get_datasources', {})
+    const dsList: any[] = Array.isArray(existing) ? existing : (Array.isArray(existing?.datasources) ? existing.datasources : [])
+    const exists = dsList.some((d: any) => d?.name === pickedName)
+    if (exists) {
+      console.log(`[datasource-graph] ${stepId} 跳过创建`, JSON.stringify({ pickedName, reason: '已存在' }))
+      return {
+        targetDatasourceName: pickedName,
+        targetTableNames: targetTableNames.length > 0 ? targetTableNames : undefined,
+        datasources: dsList
+      }
+    }
+
     const template: any = await runToolWithEvent(runtime, stepId, 'get_datasource_template', { name: pickedName })
     if (!template || template.error || !template.name || template.type !== 'buildin') {
       return { errors: [`获取数据源模板失败，名称: ${pickedName}，模板: ${JSON.stringify(template)}`] }
     }
 
-    // 写入
     const addResult: any = await runToolWithEvent(runtime, stepId, 'add_datasource', { datasource: template })
     if (addResult?.success === false) {
       return { errors: [`添加数据源失败: ${addResult.message || '未知错误'}`] }
     }
 
-    // 合并到 state.datasources，触发下游 confirm
     const newDatasource = {
       name: template.name,
       type: template.type,
@@ -95,28 +124,46 @@ export function createDatasourceGraph(): CompiledReportGraph {
     const merged = previous.some((d: any) => d?.name === newDatasource.name)
       ? previous
       : [...previous, newDatasource]
-    return { datasources: merged }
+    return {
+      targetDatasourceName: pickedName,
+      targetTableNames: targetTableNames.length > 0 ? targetTableNames : undefined,
+      datasources: merged
+    }
   }, {
-    triggers: ['searchResults'],
+    triggers: ['searchResults', 'search_filter_out'],
     triggerMode: 'any',
-    metadata: { silent: true, description: '选名+写入数据源' }
+    skipWhen: (state) => !hasSearchResults(state),
+    metadata: { silent: true, description: '选名+反查+写入数据源' }
   })
 
-  // 节点3：确认数据源是否创建成功
-  graph.addNode('confirm_datasource', async (state, runtime) => {
+  // 节点3：确认数据源是否就绪
+  graph.addNode('confirm_datasource', async (state) => {
+    const dsName = state.targetDatasourceName
     const datasources = state.datasources
+    if (!dsName) {
+      return { errors: ['数据源选名失败，未确定 targetDatasourceName'] }
+    }
     if (!datasources || (Array.isArray(datasources) && datasources.length === 0)) {
       return { errors: ['数据源创建失败或未找到匹配的内置数据源，当前报表仍无数据源'] }
     }
-    return { datasources }
+    const activeErrors = filterActiveErrors(state.errors)
+    if (activeErrors.length > 0) {
+      return { errors: activeErrors }
+    }
+    return {
+      targetDatasourceName: dsName,
+      targetTableNames: state.targetTableNames,
+      datasources
+    }
   }, {
-    triggers: ['datasources'],
+    triggers: ['datasources', 'targetDatasourceName'],
     triggerMode: 'any',
     metadata: { silent: true, description: '确认数据源存在' }
   })
 
-  // 边：严格顺序，无分支
+  // 边：search 可跳过（父图已 search）；pick 支持 __start__ 直连（预加载 searchResults 时）
   graph.addEdge('__start__', 'search_and_filter')
+  graph.addEdge('__start__', 'pick_and_add_datasource')
   graph.addEdge('search_and_filter', 'pick_and_add_datasource')
   graph.addEdge('pick_and_add_datasource', 'confirm_datasource')
   graph.addEdge('confirm_datasource', '__end__')

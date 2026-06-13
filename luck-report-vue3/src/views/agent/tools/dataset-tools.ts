@@ -1,6 +1,6 @@
 import type { ToolDefinition } from './types'
 import { executeCode } from '@/views/export/iframe-utils'
-import {DatasetSchema, getSqlDatasetTemplate, validateDataset} from './schema/index'
+import {DatasetSchema, getSqlDatasetTemplate, normalizeDataset, validateDataset} from './schema/index'
 
 /**
  * 获取数据集工具
@@ -52,7 +52,9 @@ export const addDatasetTool: ToolDefinition<{
     required: ['datasourceName', 'dataset']
   },
   execute: async ({ datasourceName, dataset }) => {
-    return executeCode(`addDataset({datasourceName:'${datasourceName}',dataset:${JSON.stringify(dataset)}})`)
+    // 关键决策点：写入前用 normalizeDataset 补齐 LLM 容易遗漏的字段（parameters/fields/sqlExpression），避免写入失败
+    const normalized = normalizeDataset(dataset)
+    return executeCode(`addDataset({datasourceName:'${datasourceName}',dataset:${JSON.stringify(normalized)}})`)
   },
   readOnly: false,
   requireConfirm: false,
@@ -80,7 +82,9 @@ export const updateDatasetTool: ToolDefinition<{
     required: ['datasourceName', 'datasetName', 'dataset']
   },
   execute: async ({ datasourceName, datasetName, dataset }) => {
-    return executeCode(`updateDataset({datasourceName:'${datasourceName}',datasetName:'${datasetName}',dataset:${JSON.stringify(dataset)}})`)
+    // 关键决策点：写入前用 normalizeDataset 补齐字段，与 add_dataset 保持一致
+    const normalized = normalizeDataset(dataset)
+    return executeCode(`updateDataset({datasourceName:'${datasourceName}',datasetName:'${datasetName}',dataset:${JSON.stringify(normalized)}})`)
   },
   readOnly: false,
   requireConfirm: false,
@@ -218,6 +222,68 @@ export const getDatasetTemplateTool: ToolDefinition<{
   },
   execute: async ({ name, sql }) => {
     return getSqlDatasetTemplate(name, sql)
+  },
+  readOnly: true,
+  requireConfirm: false
+}
+
+/**
+ * 校验数据集工具：结构校验（validateDataset）+ SQL 预览（preview_data 联动）
+ * 返回 { valid: boolean, errors: string[], normalized: object, preview: any } 结构
+ */
+export const validateDatasetTool: ToolDefinition<{
+  datasourceName: string;
+  dataset: any;
+}> = {
+  name: 'validate_dataset',
+  description: `校验数据集对象是否合法，串联"结构校验 + SQL 预览"两步。
+【必传】datasourceName: 目标 buildin 数据源名称；dataset: 待校验的数据集对象。
+【返回】{ valid, errors, normalized, preview }：valid=true 表示通过；errors 为错误信息列表；normalized 为 normalizeDataset 规范化后的对象；preview 为 preview_data 工具的执行结果。
+【强制】add_dataset 前必须调用本工具；preview_data 的 name 参数使用 datasourceName。`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      datasourceName: { type: 'string', description: '目标 buildin 数据源名称' },
+      dataset: DatasetSchema
+    },
+    required: ['datasourceName', 'dataset']
+  },
+  execute: async ({ datasourceName, dataset }) => {
+    // 步骤1：规范化数据集
+    const normalized = normalizeDataset(dataset)
+    // 步骤2：结构校验
+    const structureError = validateDataset(normalized)
+    const structureErrors: string[] = structureError ? structureError.split('\n').filter(Boolean) : []
+    // 步骤3：SQL 预览（结构校验通过后再调，避免无效预览）
+    let preview: any = null
+    let previewError: string | null = null
+    if (structureErrors.length === 0 && normalized.sql) {
+      const args: string[] = [
+        `sql:'${String(normalized.sql).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`,
+        `type:'buildin'`,
+        `name:'${datasourceName}'`
+      ]
+      if (Array.isArray(normalized.parameters) && normalized.parameters.length > 0) {
+        args.push(`parameters:${JSON.stringify(normalized.parameters)}`)
+      }
+      try {
+        preview = await executeCode(`previewData({${args.join(',')}})`)
+      } catch (e: any) {
+        previewError = e?.message ?? String(e)
+      }
+    }
+    // 步骤4：汇总
+    const allErrors: string[] = [...structureErrors]
+    if (previewError) allErrors.push(`preview_data 执行异常: ${previewError}`)
+    if (preview && preview.success === false) {
+      allErrors.push(`preview_data 校验失败: ${preview.message || JSON.stringify(preview)}`)
+    }
+    return {
+      valid: allErrors.length === 0,
+      errors: allErrors,
+      normalized,
+      preview
+    }
   },
   readOnly: true,
   requireConfirm: false

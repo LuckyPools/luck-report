@@ -13,6 +13,7 @@ import type { CompiledReportGraph } from '../index.ts'
 import { reportStateSchema } from '../state.ts'
 import {
   extractDocsMap,
+  filterActiveErrors,
   formatDocsAsText
 } from '../utils.ts'
 import { createDatasourceGraph } from './datasource-graphs.ts'
@@ -233,9 +234,19 @@ export function modifyReportGraph(): CompiledReportGraph {
   })
 
   // 将 select_datasource_op 的结果写入 intent.datasourceOperationType，供下游条件边使用
+  // 关键：select_datasource_operation 工具描述里承诺 "create_datasource 会自动升级为 create_datasource_and_dataset"
+  // 这里必须真正实现这个升级，否则 LLM 返回 create_datasource 后流程会停在 create_datasource_subgraph 不再往下走
   graph.addNode('apply_datasource_type', async (state) => {
     const result = state.select_datasource_operation
-    const opType = result?.operationType
+    let opType: string | undefined = result?.operationType
+    const rawOpType = opType
+    if (opType === 'create_datasource') {
+      opType = 'create_datasource_and_dataset'
+    }
+    // 关键决策点：记录 LLM 选了什么类型、是否发生升级
+    console.log(`[modify-report] apply_datasource_type 决策`, JSON.stringify({
+      rawOpType, finalOpType: opType, upgraded: rawOpType !== opType
+    }))
     if (opType && state.intent) {
       return { intent: { ...state.intent, datasourceOperationType: opType } }
     }
@@ -251,15 +262,31 @@ export function modifyReportGraph(): CompiledReportGraph {
     const subGraph = createDatasourceGraph()
     const childRuntime = runtime?.fork()
     const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
-    // 强制把子图 errors 带回主图，防止主图条件边误判成功
-    const childErrors = Array.isArray(result.state.errors) ? result.state.errors : []
-    return { ...result.state, errors: childErrors.length > 0 ? childErrors : undefined }
+    const childErrors = filterActiveErrors(result.state.errors)
+    const output: Record<string, any> = {
+      targetDatasourceName: result.state.targetDatasourceName,
+      targetTableNames: result.state.targetTableNames,
+      datasources: result.state.datasources
+    }
+    if (childErrors.length > 0) {
+      output.errors = childErrors
+    }
+    return output
   }, {
-    triggers: ['plan_tasks_out', 'select_datasource_op_out'],
+    // 关键：去掉 select_datasource_op_out trigger
+    // 原因：skipWhen 命中时不会更新 versionsSeen，导致 trigger 在后续超级步（apply_datasource_type 升级 opType 后）仍判定为"新触发"，
+    // 从而和条件边 from apply_datasource_type 的目标并行调度。路由改走条件边即可：
+    //   - 纯 create_datasource: plan_tasks 条件边直跳
+    //   - 升级 create_datasource_and_dataset: apply_datasource_type 条件边直跳
+    triggers: ['plan_tasks_out'],
     triggerMode: 'any',
-    skipWhen: (state) => state.intent?.datasourceOperationType !== 'create_datasource',
+    skipWhen: (state) => {
+      // 接受 create_datasource 与 create_datasource_and_dataset：apply_datasource_type 会把 create_datasource 升级成后者
+      const op = state.intent?.datasourceOperationType
+      return op !== 'create_datasource' && op !== 'create_datasource_and_dataset'
+    },
     input: { datasources: true, intent: true, userMessage: true, searchResults: true },
-    output: { datasources: true, errors: true },
+    output: { datasources: true, errors: true, targetDatasourceName: true, targetTableNames: true },
     metadata: { description: '创建数据源子流程' }
   })
 
@@ -267,13 +294,32 @@ export function modifyReportGraph(): CompiledReportGraph {
     const subGraph = createDatasetGraph()
     const childRuntime = runtime?.fork()
     const result = await subGraph.execute(state, { configurable: { runtime: childRuntime } })
-    return result.state
+    const childErrors = filterActiveErrors(result.state.errors)
+    const output: Record<string, any> = {
+      datasets: result.state.datasets,
+      searchForm: result.state.searchForm,
+      dataset: result.state.dataset,
+      targetDatasourceName: result.state.targetDatasourceName
+    }
+    if (childErrors.length > 0) {
+      output.errors = childErrors
+    }
+    console.log(`[modify-report] create_dataset_subgraph 子图结果`, JSON.stringify({
+      success: result.success, childErrors, hasDataset: !!result.state.dataset
+    }))
+    return output
   }, {
-    triggers: ['plan_tasks_out', 'select_datasource_op_out'],
+    // 关键：去掉 select_datasource_op_out trigger（修复 error-21：被 create_datasource_subgraph 并行调度的根因）
+    // 仅保留 plan_tasks_out 作为辅助触发：纯 create_dataset 走 plan_tasks 条件边直跳；create_datasource_and_dataset 走 create_datasource_subgraph 条件边接力
+    triggers: ['plan_tasks_out'],
     triggerMode: 'any',
-    skipWhen: (state) => state.intent?.datasourceOperationType !== 'create_dataset',
+    skipWhen: (state) => {
+      // 接受 create_dataset 与 create_datasource_and_dataset：后者由 create_datasource_subgraph 完成数据源后接力过来
+      const op = state.intent?.datasourceOperationType
+      return op !== 'create_dataset' && op !== 'create_datasource_and_dataset'
+    },
     input: { datasources: true, intent: true, userMessage: true, searchResults: true },
-    output: { datasets: true, searchForm: true },
+    output: { datasets: true, searchForm: true, errors: true },
     metadata: { description: '创建数据集子流程' }
   })
 
@@ -388,7 +434,8 @@ export function modifyReportGraph(): CompiledReportGraph {
   // apply_datasource_type 后按已设置的 datasourceOperationType 路由到对应子图
   graph.addConditionalEdges('apply_datasource_type', (state) => {
     const opType = state.intent?.datasourceOperationType
-    if (opType === 'create_datasource') return 'create_datasource_subgraph'
+    // 升级后的 "create_datasource_and_dataset" 先走数据源子图（先建数据源），子图完成后由其自身条件边接力到 create_dataset_subgraph
+    if (opType === 'create_datasource' || opType === 'create_datasource_and_dataset') return 'create_datasource_subgraph'
     if (opType === 'create_dataset') return 'create_dataset_subgraph'
     if (opType === 'modify_dataset') return 'modify_dataset_subgraph'
     return '__end__'
@@ -396,15 +443,32 @@ export function modifyReportGraph(): CompiledReportGraph {
 
   // 子工作流完成后的路由
   graph.addConditionalEdges('create_datasource_subgraph', (state) => {
-    if (Array.isArray(state.errors) && state.errors.length > 0) {
+    const childErrors = filterActiveErrors(state.errors)
+    if (childErrors.length > 0) {
+      console.log(`[modify-report] create_datasource_subgraph 路由`, JSON.stringify({
+        target: '__end__', reason: 'errors 非空', errCount: childErrors.length, firstError: childErrors[0]
+      }))
       return '__end__'
     }
     if (state.intent?.datasourceOperationType === 'create_datasource_and_dataset') {
+      console.log(`[modify-report] create_datasource_subgraph 路由`, JSON.stringify({
+        target: 'create_dataset_subgraph', reason: 'opType=create_datasource_and_dataset'
+      }))
       return 'create_dataset_subgraph'
     }
+    console.log(`[modify-report] create_datasource_subgraph 路由`, JSON.stringify({
+      target: '__end__', reason: 'opType 不是 create_datasource_and_dataset', opType: state.intent?.datasourceOperationType
+    }))
     return '__end__'
   })
   graph.addConditionalEdges('create_dataset_subgraph', (state) => {
+    const childErrors = filterActiveErrors(state.errors)
+    if (childErrors.length > 0) {
+      console.log(`[modify-report] create_dataset_subgraph 路由`, JSON.stringify({
+        target: '__end__', reason: 'errors 非空', errCount: childErrors.length, firstError: childErrors[0]
+      }))
+      return '__end__'
+    }
     if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
     if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
     if (state.intent?.needsColOperation) return 'modify_col_subgraph'
