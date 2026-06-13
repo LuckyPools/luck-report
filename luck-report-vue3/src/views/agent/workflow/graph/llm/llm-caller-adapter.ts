@@ -7,9 +7,9 @@
  */
 
 import { chatStream, type ContextMessage, type SseToolCall } from '@/api/chat'
-import type { LLMCaller, LLMEvent, LLMCallOptions } from './runtime'
-import type { MemoryManager } from '../../memory/memory-manager'
-import type { ContextManager } from '../../core/context-manager'
+import type { LLMCaller, LLMEvent, LLMCallOptions } from '../runtime.ts'
+import type { MemoryManager } from '../../../memory/memory-manager.ts'
+import type { ContextManager } from '../../../core/context-manager.ts'
 
 /**
  * 创建 LLM 调用器

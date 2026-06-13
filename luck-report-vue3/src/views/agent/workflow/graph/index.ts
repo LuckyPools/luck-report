@@ -52,8 +52,8 @@ export { WorkflowRuntime } from './runtime'
 export type { LLMCaller, LLMEvent, LLMCallOptions, WorkflowRuntimeOptions } from './runtime'
 
 // LLMDecideNode
-export { LLMDecideNode } from './llm-decide-node'
-export type { LLMDecideNodeOptions } from './llm-decide-node'
+export { LLMDecideNode } from './llm/llm-decide-node.ts'
+export type { LLMDecideNodeOptions } from './llm/llm-decide-node.ts'
 
 // ToolCallNode
 export { ToolCallNode } from './tool-call-node'

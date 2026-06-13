@@ -72,7 +72,8 @@ export {
   getSqlDatasetTemplate,
   getBuildinDatasourceTemplate,
   validateDataset,
-  validateDatasource
+  validateDatasource,
+  normalizeDatasource
 } from './datasource-schema'
 
 // 斜线表头相关 Schema

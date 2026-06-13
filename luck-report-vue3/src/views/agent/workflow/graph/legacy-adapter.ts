@@ -18,7 +18,7 @@ import {
 } from './index'
 import type { StateFieldReducer, ReportWorkflowState } from './state'
 import { reportStateSchema } from './state'
-import { LLMDecideNode } from './llm-decide-node'
+import { LLMDecideNode } from './llm/llm-decide-node.ts'
 import type { WorkflowRuntime, LLMCaller } from './runtime'
 
 /**

@@ -1,61 +1,42 @@
 import type { ToolDefinition, ToolApiFormat } from './types'
-import {
-  searchBusinessKnowledgeTool,
-  searchAgentKnowledgeTool,
-  readCellsTool,
-  writeCellsTool,
-  getDatasourcesTool,
-  setDatasourcesTool,
-  addDatasourceTool,
-  updateDatasourceTool,
-  removeDatasourceTool,
-  getTableRelationTool,
-  searchSchemaTool,
-  getDatasetsTool,
-  addDatasetTool,
-  updateDatasetTool,
-  removeDatasetTool,
-  getSearchFormTool,
-  setSearchFormTool,
-  getPaperConfigTool,
-  updatePaperTool,
-  getHeaderConfigTool,
-  updateHeaderTool,
-  getFooterConfigTool,
-  updateFooterTool,
-  getHeaderFooterTemplateTool,
-  getRowsTool,
-  setRowsTool,
-  insertRowTool,
-  deleteRowTool,
-  getColumnsTool,
-  setColumnsTool,
-  insertColTool,
-  deleteColTool,
-  mergeCellsTool,
-  // backupDataTool,
-  // restoreDataTool,
-  validateExpressionTool,
-  previewDataTool,
-  buildFieldsTool,
-  saveReportTool,
-  loadBuildinDatasourcesTool,
-  testConnectionTool,
-  loadBeanMethodsTool,
-  validateConditionTool,
-  clearCellContentTool,
-  clearCellStyleTool,
-  clearCellAllTool,
-  selectDatasourceOperationTool,
-  getCellTemplateTool,
-  getDatasetTemplateTool,
-  getDatasourceTemplateTool,
-  getSearchFormTemplateTool,
-  getPaperConfigTemplateTool,
-  getRowDefinitionsTemplateTool,
-  getColumnDefinitionsTemplateTool,
-} from './report-tools'
+
 import { loadReportIntroduceTool } from './doc-tools.ts'
+import {
+  saveReportTool,
+  searchAgentKnowledgeTool,
+  searchBusinessKnowledgeTool, validateConditionTool, validateExpressionTool
+} from "@/views/agent/tools/common-tools.ts";
+import {
+    clearCellAllTool,
+    clearCellContentTool,
+    clearCellStyleTool, getCellTemplateTool, mergeCellsTool,
+    readCellsTool,
+    writeCellsTool
+} from "@/views/agent/tools/cell-tools.ts";
+import {
+    addDatasourceTool,
+    getDatasourcesTool, getDatasourceTemplateTool,
+    getTableRelationTool, loadBeanMethodsTool, loadBuildinDatasourcesTool,
+    searchSchemaTool, selectDatasourceOperationTool
+} from "@/views/agent/tools/datasource-tools.ts";
+import {
+    addDatasetTool, buildFieldsTool,
+    getDatasetsTool, getDatasetTemplateTool, previewDataTool,
+    removeDatasetTool,
+    updateDatasetTool
+} from "@/views/agent/tools/dataset-tools.ts";
+import {
+  deleteColTool, deleteRowTool,
+  getColumnDefinitionsTemplateTool, getColumnsTool,
+  getRowDefinitionsTemplateTool, getRowsTool, insertColTool, insertRowTool, setColumnsTool, setRowsTool
+} from "@/views/agent/tools/row-col-tools.ts";
+import {
+  getFooterConfigTool,
+  getHeaderConfigTool, getHeaderFooterTemplateTool,
+  getPaperConfigTemplateTool, getPaperConfigTool,
+  getSearchFormTemplateTool,
+  getSearchFormTool, setSearchFormTool, updateFooterTool, updateHeaderTool, updatePaperTool
+} from "@/views/agent/tools/page-tools.ts";
 
 /**
  * 工具注册表，管理工具的注册、查找和列表
@@ -212,8 +193,10 @@ export function createDefaultRegistry(): ToolRegistry {
     addDatasetTool,
     updateDatasetTool,
     removeDatasetTool,
+
     getSearchFormTool,
     setSearchFormTool,
+
     getPaperConfigTool,
     updatePaperTool,
     getHeaderConfigTool,

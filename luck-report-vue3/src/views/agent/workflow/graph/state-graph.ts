@@ -384,7 +384,7 @@ export class CompiledReportGraph {
     input: Record<string, any>,
     config?: { configurable?: Record<string, any>; recursionLimit?: number; signal?: AbortSignal }
   ): Promise<GraphExecutionResult> {
-    const { GraphExecutor } = await import('./graph-executor')
+    const { GraphExecutor } = await import('./executor/graph-executor.ts')
     const executor = new GraphExecutor(this, config)
     return executor.execute(input)
   }
@@ -401,7 +401,7 @@ export class CompiledReportGraph {
     config?: { configurable?: Record<string, any>; recursionLimit?: number; signal?: AbortSignal },
     modes: string[] = ['updates']
   ): AsyncGenerator<any> {
-    const { GraphExecutor } = await import('./graph-executor')
+    const { GraphExecutor } = await import('./executor/graph-executor.ts')
     const executor = new GraphExecutor(this, config)
     yield* executor.stream(input, modes)
   }
