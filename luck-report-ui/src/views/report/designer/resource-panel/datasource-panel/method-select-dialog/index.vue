@@ -2,6 +2,7 @@
   <UDialog
       :title="$t('dialog.methodSelect.title')"
       width="600px"
+      top="25vh"
       :visible="visible"
       @close="closeDialog"
       :loading="loading"
