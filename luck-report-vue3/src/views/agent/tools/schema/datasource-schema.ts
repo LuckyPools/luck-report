@@ -105,8 +105,7 @@ export function getSqlDatasetTemplate(name: string = 'dataset_name', sql: string
     name,
     sql,
     parameters: [],
-    fields: [],
-    sqlExpression: null
+    fields: []
   }
 }
 
@@ -221,10 +220,8 @@ export function normalizeDataset(dataset: any): Record<string, any> {
         .map((f: any) => ({ name: f.name.trim() }))
     : []
 
-  // sqlExpression 兜底为 null
-  const sqlExpression = dataset.sqlExpression == null ? null : dataset.sqlExpression
 
-  return { name, sql, parameters, fields, sqlExpression }
+  return { name, sql, parameters, fields }
 }
 
 /**

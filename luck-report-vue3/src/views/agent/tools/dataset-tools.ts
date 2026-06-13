@@ -52,7 +52,7 @@ export const addDatasetTool: ToolDefinition<{
     required: ['datasourceName', 'dataset']
   },
   execute: async ({ datasourceName, dataset }) => {
-    // 关键决策点：写入前用 normalizeDataset 补齐 LLM 容易遗漏的字段（parameters/fields/sqlExpression），避免写入失败
+    // 关键决策点：写入前用 normalizeDataset 补齐 LLM 容易遗漏的字段（parameters/fields），避免写入失败
     const normalized = normalizeDataset(dataset)
     return executeCode(`addDataset({datasourceName:'${datasourceName}',dataset:${JSON.stringify(normalized)}})`)
   },
@@ -300,8 +300,6 @@ export const parseFilterConditionsTool: ToolDefinition<{
     operator: string
     label: string
   }>
-  needsExpression: boolean
-  expressionDescription?: string
 }> = {
   name: 'parse_filter_conditions',
   description: `解析用户需求中的筛选/查询条件，输出结构化的条件列表。
@@ -310,9 +308,7 @@ export const parseFilterConditionsTool: ToolDefinition<{
   - columnName：数据库列名，必须来自表结构中实际存在的列
   - paramName：数据集参数名（用于 SQL 占位符 :paramName 和 parameters 数组），建议与 columnName 一致
   - operator：SQL 操作符，可选 LIKE / = / >= / <= / IN / BETWEEN，字符串模糊匹配用 LIKE
-  - label：中文标签，用于查询表单的显示名称
-【needsExpression】是否需要构造表达式（不同条件下执行不同 SQL）。当用户需求包含"不同XX显示不同数据"、"按XX切换"等条件分支语义时为 true。
-【expressionDescription】当 needsExpression 为 true 时，用一句话描述表达式逻辑（如"根据部门ID查不同的表"）。`,
+  - label：中文标签，用于查询表单的显示名称`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -329,18 +325,14 @@ export const parseFilterConditionsTool: ToolDefinition<{
           },
           required: ['columnName', 'paramName', 'operator', 'label']
         }
-      },
-      needsExpression: { type: 'boolean', description: '是否需要构造条件表达式（不同条件下执行不同 SQL）' },
-      expressionDescription: { type: 'string', description: '当 needsExpression=true 时，描述表达式逻辑' }
+      }
     },
-    required: ['conditions', 'needsExpression']
+    required: ['conditions']
   },
   execute: async (input) => {
     // 透传：LLM 的结构化输出直接作为工具返回值，供节点写入 state
     return {
-      conditions: Array.isArray(input.conditions) ? input.conditions : [],
-      needsExpression: !!input.needsExpression,
-      expressionDescription: input.expressionDescription ?? null
+      conditions: Array.isArray(input.conditions) ? input.conditions : []
     }
   },
   readOnly: true,

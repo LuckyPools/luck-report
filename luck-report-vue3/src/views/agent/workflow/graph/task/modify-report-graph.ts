@@ -17,7 +17,7 @@ import {
   formatDocsAsText
 } from '../utils.ts'
 import { createDatasourceGraph } from './datasource-graphs.ts'
-import { createDatasetGraph, modifyDatasetGraph } from './dataset-graphs.ts'
+import { createDatasetGraph, modifyDatasetGraph } from './dataset-create-graphs.ts'
 import { modifyCellGraph } from './cell-graphs.ts'
 import { modifyRowGraph, modifyColGraph } from './row-col-graphs.ts'
 import { modifyFormGraph, modifyPageGraph } from './form-page-graphs.ts'

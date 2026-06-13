@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import type { Task } from '../tools/types'
-import type { WorkflowStepRecord } from '../workflow/types'
+import type { WorkflowStepRecord } from '../workflow/graph'
 
 /**
  * 任务列表管理 Hook，负责 Task 对象的创建、更新、查询
@@ -98,7 +98,7 @@ export function useTaskList() {
  * @returns 任务状态
  */
 function mapWorkflowStatusToTaskStatus(
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'error'
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'error' | 'skipped'
 ): Task['status'] {
   switch (status) {
     case 'in_progress':
@@ -107,6 +107,7 @@ function mapWorkflowStatusToTaskStatus(
       return 'completed'
     case 'cancelled':
     case 'error':
+    case 'skipped':
       return 'cancelled'
     default:
       return 'pending'

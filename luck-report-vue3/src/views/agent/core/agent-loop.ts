@@ -8,16 +8,13 @@ import type { MemoryManager } from '../memory/memory-manager'
 import type { ContextManager } from './context-manager'
 import type { ReportSnapshot } from '../memory/types'
 import type { TokenUsage } from '@/api/chat'
-import type { WorkflowStepRecord } from '../workflow/types'
+import type { WorkflowStepRecord } from '../workflow/graph'
 import type { IntentAnalysisResult } from '../workflow/types'
 import { chatStream, type ContextMessage, type SseToolCall } from '@/api/chat'
 import { getIntentAnalysisPrompt, INTENT_ANALYSIS_SCHEMA, buildIntentAnalysisTools, buildIntentToolChoice, INTENT_TOOL_NAME } from '../workflow/intent-prompt'
-import { WorkflowRuntime, type LLMCaller } from '../workflow/graph/runtime'
+import { WorkflowRuntime } from '../workflow/graph/runtime'
 import { createLLMCaller } from '../workflow/graph/llm/llm-caller-adapter.ts'
 import { getGraphByIntent } from '../workflow/graph/workflow-graphs'
-import { compileLegacyWorkflow } from '../workflow/graph/legacy-adapter'
-import { convertStreamEvent } from '../workflow/graph/event-compat'
-import { getWorkflowByIntent, getSubworkflowByType } from '../workflow/workflow-definitions'
 import type { StreamEvent } from '../workflow/graph/stream-mode'
 
 /**
@@ -136,21 +133,13 @@ async function runWorkflowMode(
     console.log(`[DEBUG][agent-loop] 阶段1完成 intent=${intent.intentType}`)
 
     // ==================== 阶段2：选择工作流图 ====================
-    // 优先使用新图引擎，找不到时回退到旧引擎的适配层
+    // 仅使用新图引擎（graph/workflow-graphs.ts 中注册的 modify_report / analyze_report）
     const compiledGraph = getGraphByIntent(intent.intentType)
     console.log(`[DEBUG][agent-loop] 阶段2 查图 intent=${intent.intentType} found=${!!compiledGraph}`)
-    const useNewEngine = !!compiledGraph
 
-    if (!useNewEngine) {
-      // 回退：用旧 WorkflowDefinition 编译为 CompiledReportGraph
-      const workflow = getWorkflowByIntent(intent.intentType)
-      if (!workflow) {
-        onEvent({ type: 'text_delta', content: `未找到意图类型 "${intent.intentType}" 对应的工作流` })
-        onEvent({ type: 'done', reason: 'error', error: `未找到工作流: ${intent.intentType}` })
-        return
-      }
-      // 用适配层将旧定义编译为新图
-      await executeWithLegacyAdapter(workflow, intent, userMessage, config, stepRecords, onEvent)
+    if (!compiledGraph) {
+      onEvent({ type: 'text_delta', content: `未找到意图类型 "${intent.intentType}" 对应的工作流图` })
+      onEvent({ type: 'done', reason: 'error', error: `未找到工作流图: ${intent.intentType}` })
       return
     }
 
@@ -181,10 +170,10 @@ async function runWorkflowMode(
     }
     console.log(`[DEBUG][agent-loop] 阶段3 流式执行 graphInput=${Object.keys(graphInput).join(',')}`)
 
-    const nodeNames = compiledGraph!.getNodeNames()
+    const nodeNames = compiledGraph.getNodeNames()
     for (const nodeName of nodeNames) {
       if (nodeName.startsWith('__')) continue
-      const nodeDef = compiledGraph!.getNode(nodeName)
+      const nodeDef = compiledGraph.getNode(nodeName)
       if (nodeDef?.skipWhen && nodeDef.skipWhen(graphInput)) {
         continue
       }
@@ -201,7 +190,7 @@ async function runWorkflowMode(
     let hasError = false
     let errorMessage = ''
 
-    for await (const streamEvent of compiledGraph!.stream(graphInput, {
+    for await (const streamEvent of compiledGraph.stream(graphInput, {
       configurable: { runtime },
       signal,
       recursionLimit: 25
@@ -390,75 +379,6 @@ function parseIntentJson(text: string): IntentAnalysisResult {
     requiredDocs: [],
     taskDescription: ''
   }
-}
-
-// ==================== 旧引擎适配路径 ====================
-
-/**
- * 使用旧 WorkflowDefinition 适配层执行
- * 当新图引擎尚未覆盖的工作流，回退到旧定义 + 适配层
- *
- * @param workflow - 旧版工作流定义，WorkflowDefinition，不可为空
- * @param intent - 意图分析结果，IntentAnalysisResult，不可为空
- * @param userMessage - 用户输入消息，string，不可为空
- * @param config - 循环配置，AgentLoopConfig，不可为空
- * @param stepRecords - 步骤记录，WorkflowStepRecord[]，不可为空
- * @param onEvent - 事件回调，不可为空
- */
-async function executeWithLegacyAdapter(
-  workflow: any,
-  intent: IntentAnalysisResult,
-  userMessage: string,
-  config: AgentLoopConfig,
-  stepRecords: WorkflowStepRecord[],
-  onEvent: (event: AgentEvent) => void
-): Promise<void> {
-  // 用适配层编译旧定义为新图
-  const subworkflows: Record<string, any> = {}
-  for (const [key, fn] of Object.entries(getSubworkflowByType as any)) {
-    if (typeof fn === 'function') {
-      const def = fn()
-      if (def) subworkflows[key] = def
-    }
-  }
-
-  const compiledGraph = compileLegacyWorkflow(workflow, subworkflows)
-
-  const llmCaller = createLLMCaller(config.memoryManager, config.contextManager)
-  const runtime = new WorkflowRuntime({
-    toolRegistry: config.toolRegistry,
-    memoryManager: config.memoryManager,
-    contextManager: config.contextManager,
-    llmCaller,
-    signal: config.signal,
-    onToolConfirm: config.onToolConfirm,
-    sessionId: config.sessionId,
-    modelId: config.modelId,
-    onEvent: (streamEvent: StreamEvent) => {
-      const agentEvents = convertStreamEventToAgentEvent(streamEvent, new Map())
-      for (const evt of agentEvents) {
-        onEvent(evt)
-      }
-    }
-  })
-
-  const graphInput = { userMessage, intent }
-  const stepToolCallIdMap = new Map<string, string>()
-  let hasError = false
-  let errorMessage = ''
-
-  for await (const streamEvent of compiledGraph.stream(graphInput, {
-    configurable: { runtime },
-    signal: config.signal,
-    recursionLimit: 25
-  })) {
-    const agentEvents = convertStreamEventToAgentEvent(streamEvent, stepToolCallIdMap)
-    for (const evt of agentEvents) {
-      onEvent(evt)
-    }
-  }
-
-  onEvent({ type: 'done', reason: hasError ? 'error' : 'completed', error: hasError ? errorMessage : undefined })
 }
 
 // ==================== 事件适配 ====================

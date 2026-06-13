@@ -130,7 +130,7 @@ export interface ReportWorkflowState {
   /** 查询表单配置（overwrite） */
   searchForm: SearchFormConfig | null
   /** 筛选条件分析结果（overwrite）：resolve_filter_conditions LLM 节点解析用户需求后写入 */
-  filterAnalysis: { conditions: FilterCondition[]; needsExpression: boolean } | null
+  filterAnalysis: { conditions: FilterCondition[] } | null
   /** 单元格数据（overwrite） */
   cellsData: Record<string, any> | null
   /** 行数据（overwrite）：modifyRowGraph 读到的行定义数组（来自 get_rows） */

@@ -1,6 +1,6 @@
 /** 工作流图统一导出与注册表入口（按业务域拆分到 task/ 子模块） */
 
-import { createDatasetGraph, modifyDatasetGraph, deleteDatasetGraph } from './task/dataset-graphs.ts'
+import { createDatasetGraph, modifyDatasetGraph, deleteDatasetGraph } from './task/dataset-create-graphs.ts'
 import { createDatasourceGraph, modifyDatasourceGraph, deleteDatasourceGraph } from './task/datasource-graphs.ts'
 import { modifyCellGraph } from './task/cell-graphs.ts'
 import { modifyRowGraph, modifyColGraph } from './task/row-col-graphs.ts'
