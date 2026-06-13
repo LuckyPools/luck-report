@@ -70,6 +70,8 @@ export class WorkflowRuntime {
   /** 大模型配置ID */
   readonly modelId?: number
   readonly runId: string
+  /** fork 自增计数器，每次 fork() 递增，嵌入子 runId 确保 toolCallId 全局唯一 */
+  private forkCounter: number = 0
   private channelMap: Map<string, StateChannel<any>> = new Map()
 
   /**
@@ -116,9 +118,11 @@ export class WorkflowRuntime {
 
   /**
    * 派生一个独立的子运行时
+   * fork 自增计数器并嵌入 runId，确保子图 toolCallId 全局唯一，避免多次 fork 间 ID 冲突
    * @returns 派生的子运行时，WorkflowRuntime
    */
   fork(): WorkflowRuntime {
+    this.forkCounter++
     const child = new WorkflowRuntime({
       toolRegistry: this.toolRegistry,
       memoryManager: this.memoryManager,
@@ -129,7 +133,7 @@ export class WorkflowRuntime {
       onEvent: this.onEvent,
       sessionId: this.sessionId,
       modelId: this.modelId,
-      runId: this.runId
+      runId: `${this.runId}_f${this.forkCounter}`
     })
     return child
   }

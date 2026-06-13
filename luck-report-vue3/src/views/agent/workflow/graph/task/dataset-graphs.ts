@@ -63,10 +63,10 @@ function llmNodeWithLog(inner: LLMDecideNode): LLMDecideNode {
 // ==================== 创建数据集子工作流 ====================
 
 /**
- * 创建数据集工作流（最小重构 — 确定性代码管道，本子图内无 LLM）
+ * 创建数据集工作流（最小重构 — 确定性代码管道 + 筛选条件 LLM 节点）
  *
  * prepare_schema → resolve_datasource → resolve_table → fetch_dataset_template
- * → build_dataset → validate_dataset → add_dataset → confirm_dataset → sync_form_subgraph
+ * → resolve_filter_conditions → build_dataset → validate_dataset → add_dataset → confirm_dataset → sync_form_subgraph
  */
 export function createDatasetGraph(): CompiledReportGraph {
   const graph = new ReportStateGraph(reportStateSchema, {
@@ -79,6 +79,7 @@ export function createDatasetGraph(): CompiledReportGraph {
       targetTableNames: true,
       tableStructures: true,
       datasetTemplate: true,
+      filterAnalysis: true,
       datasources: true,
       errors: true
     }
@@ -188,6 +189,34 @@ export function createDatasetGraph(): CompiledReportGraph {
     metadata: { silent: true, description: '取 SQL 数据集模板' }
   })
 
+  // resolve_filter_conditions：LLM 解析用户需求中的筛选条件和表达式需求
+  // 始终运行（不 skipWhen），无筛选需求时 LLM 快速返回空条件，避免 build_dataset 触发时序问题
+  const filterAnalysisOut = new LastValueAfterFinishChannel<any>()
+  graph.addChannel('filter_analysis_out', filterAnalysisOut)
+  graph.addNode('resolve_filter_conditions', new LLMDecideNode({
+    nodeId: 'resolve_filter_conditions',
+    allowedTools: ['parse_filter_conditions'],
+    requiredToolResults: ['parse_filter_conditions'],
+    maxIterations: 1,
+    description:
+      '分析用户需求中是否包含筛选/查询条件和表达式需求。\n' +
+      '【判断规则】\n' +
+      '1. 用户需求明确提到"添加XX作为查询条件"、"按XX筛选"、"根据XX搜索"、"XX作为参数" → 有筛选条件\n' +
+      '   → 提取 columnName（必须是表结构中实际存在的列）、paramName、operator、label\n' +
+      '2. 用户需求提到"不同XX显示不同数据"、"按XX切换"、"条件不同SQL不同" → 需要表达式\n' +
+      '   → 设置 needsExpression=true 并描述 expressionDescription\n' +
+      '3. 以上都没有 → 无筛选需求\n' +
+      '   → 立即调用 parse_filter_conditions({conditions:[], needsExpression:false})\n' +
+      '【约束】columnName 必须来自表结构，禁止编造；立即调用工具，不要调用其他工具。',
+    outChannelName: 'filter_analysis_out',
+    resultKey: 'filterAnalysis'
+  }), {
+    triggers: ['datasetTemplate'],
+    triggerMode: 'any',
+    retryPolicy: { maxAttempts: 2, retryOn: defaultRetryOn, clearMemoryOnRetry: true },
+    metadata: { silent: true, description: '解析筛选条件和表达式需求' }
+  })
+
   graph.addNode('build_dataset', async (state, runtime) => {
     const stepId = 'build_dataset'
     const dsName = state.targetDatasourceName
@@ -197,11 +226,61 @@ export function createDatasetGraph(): CompiledReportGraph {
     if (!template) return { errors: ['build_dataset: 缺少 datasetTemplate'] }
     if (!resolved) return { errors: ['build_dataset: 缺少 ResolvedSchema'] }
 
-    const sql = inferSqlFromResolvedSchema(resolved)
+    let sql = inferSqlFromResolvedSchema(resolved)
     if (!sql) return { errors: ['build_dataset: 无法生成 SQL'] }
 
+    // 读取 LLM 解析出的筛选条件分析结果
+    const filterAnalysis = (state as any).filterAnalysis as {
+      conditions?: Array<{ columnName: string; paramName: string; operator: string; label: string }>
+      needsExpression?: boolean
+      expressionDescription?: string
+    } | null
+    const conditions = filterAnalysis?.conditions ?? []
+    const needsExpression = filterAnalysis?.needsExpression ?? false
+    const parameters: any[] = []
+    let sqlExpression: string | null = null
+
+    if (conditions.length > 0) {
+      // 构建 parameters 数组
+      for (const cond of conditions) {
+        parameters.push({ name: cond.paramName, type: 'string', defaultValue: '' })
+      }
+
+      // 构建 WHERE 子句
+      const whereClauses = conditions.map(cond => {
+        const col = cond.columnName
+        const param = `:${cond.paramName}`
+        switch (cond.operator) {
+          case 'LIKE':
+            return `${col} LIKE CONCAT('%', ${param}, '%')`
+          case '>=':
+          case '<=':
+          case '=':
+            return `${col} ${cond.operator} ${param}`
+          case 'IN':
+            return `${col} IN (${param})`
+          case 'BETWEEN':
+            return `${col} BETWEEN ${param}`
+          default:
+            return `${col} LIKE CONCAT('%', ${param}, '%')`
+        }
+      })
+      sql = `${sql} WHERE ${whereClauses.join(' AND ')}`
+
+      // 构造表达式：不同条件下执行不同 SQL
+      if (needsExpression) {
+        const condChecks = conditions
+          .map(c => `${c.paramName} != null && ${c.paramName} != ''`)
+          .join(' && ')
+        const baseSql = inferSqlFromResolvedSchema(resolved) ?? sql
+        sqlExpression = `\${if (${condChecks}) { return "${sql.replace(/"/g, '\\"')}" } else { return "${baseSql.replace(/"/g, '\\"')}" }}`
+      }
+    }
+
+    // build_fields 使用不含 WHERE 的基础 SQL（占位符会导致字段解析失败）
+    const baseSqlForFields = inferSqlFromResolvedSchema(resolved) ?? sql
     const fieldsResult: any = await runToolWithEvent(runtime, stepId, 'build_fields', {
-      sql, type: 'buildin', name: dsName
+      sql: baseSqlForFields, type: 'buildin', name: dsName
     })
     if (fieldsResult?.success === false || fieldsResult?.error) {
       return { errors: [`build_fields 失败: ${fieldsResult?.message || fieldsResult?.error}`] }
@@ -211,20 +290,28 @@ export function createDatasetGraph(): CompiledReportGraph {
       return { errors: ['build_fields 未返回有效 fields'] }
     }
 
-    const dataset = {
+    const dataset: Record<string, any> = {
       ...template,
       name: inferDatasetName(String(state.userMessage ?? ''), template),
       sql,
+      parameters,
       fields
     }
+    if (sqlExpression) {
+      dataset.sqlExpression = sqlExpression
+    }
     console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({
-      datasetName: dataset.name, fieldCount: fields.length, sqlPreview: sql.slice(0, 100)
+      datasetName: dataset.name,
+      fieldCount: fields.length,
+      sqlPreview: sql.slice(0, 100),
+      paramCount: parameters.length,
+      hasExpression: !!sqlExpression
     }))
     return { dataset, fieldsResult: { success: true, fields } }
   }, {
-    triggers: ['datasetTemplate'],
+    triggers: ['filterAnalysis'],
     triggerMode: 'any',
-    metadata: { silent: true, description: '组装 SQL 数据集对象' }
+    metadata: { silent: true, description: '组装 SQL 数据集对象（含筛选条件和表达式）' }
   })
 
   graph.addNode('validate_dataset', async (state, runtime) => {
@@ -284,7 +371,11 @@ export function createDatasetGraph(): CompiledReportGraph {
     const list: any[] = Array.isArray(result) ? result : (Array.isArray(result?.datasets) ? result.datasets : [])
     const found = list.some((d: any) => d?.name === datasetName)
     console.log(`[dataset-graph] ${stepId} 出口`, JSON.stringify({ dsName, datasetName, found }))
-    if (!found) return { errors: [`数据集 ${dsName}/${datasetName} 未找到，写入可能失败`] }
+    if (!found) {
+      // 降级为 warning，不阻断下游 sync_form_subgraph（add_dataset 可能已成功但 get_datasets 有延迟）
+      console.warn(`[dataset-graph] ${stepId} 警告: 数据集 ${dsName}/${datasetName} 未在 get_datasets 中找到，可能写入延迟`)
+      return { datasets: state.datasets ?? [] }
+    }
     return { datasets: list }
   }, {
     triggers: ['datasetWriteResult'],
@@ -316,7 +407,8 @@ export function createDatasetGraph(): CompiledReportGraph {
   graph.addEdge('prepare_schema', 'resolve_datasource')
   graph.addEdge('resolve_datasource', 'resolve_table')
   graph.addEdge('resolve_table', 'fetch_dataset_template')
-  graph.addEdge('fetch_dataset_template', 'build_dataset')
+  graph.addEdge('fetch_dataset_template', 'resolve_filter_conditions')
+  graph.addEdge('resolve_filter_conditions', 'build_dataset')
   graph.addEdge('build_dataset', 'validate_dataset')
   graph.addEdge('validate_dataset', 'add_dataset')
   graph.addEdge('add_dataset', 'confirm_dataset')

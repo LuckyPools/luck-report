@@ -21,7 +21,7 @@ import {
 } from "@/views/agent/tools/datasource-tools.ts";
 import {
     addDatasetTool, buildFieldsTool,
-    getDatasetsTool, getDatasetTemplateTool, previewDataTool,
+    getDatasetsTool, getDatasetTemplateTool, parseFilterConditionsTool, previewDataTool,
     removeDatasetTool,
     updateDatasetTool, validateDatasetTool
 } from "@/views/agent/tools/dataset-tools.ts";
@@ -194,6 +194,7 @@ export function createDefaultRegistry(): ToolRegistry {
     updateDatasetTool,
     removeDatasetTool,
     validateDatasetTool,
+    parseFilterConditionsTool,
 
     getSearchFormTool,
     setSearchFormTool,

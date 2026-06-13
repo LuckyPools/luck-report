@@ -60,6 +60,18 @@ export interface FieldInfo {
   aggregation?: string
 }
 
+/** 筛选条件定义，由 resolve_filter_conditions LLM 节点解析产出 */
+export interface FilterCondition {
+  /** 数据库列名，如 "username" */
+  columnName: string
+  /** 数据集参数名，如 "username" */
+  paramName: string
+  /** SQL 操作符："LIKE" | "=" | ">=" | "<=" | "IN" */
+  operator: string
+  /** 中文标签，如 "用户名"，供查询表单使用 */
+  label: string
+}
+
 /** 意图分析结果（复用旧类型） */
 export type { IntentAnalysisResult } from '../types'
 
@@ -117,6 +129,8 @@ export interface ReportWorkflowState {
   datasetWriteResult: { success: boolean; message?: string; error?: string; datasetId?: string } | null
   /** 查询表单配置（overwrite） */
   searchForm: SearchFormConfig | null
+  /** 筛选条件分析结果（overwrite）：resolve_filter_conditions LLM 节点解析用户需求后写入 */
+  filterAnalysis: { conditions: FilterCondition[]; needsExpression: boolean } | null
   /** 单元格数据（overwrite） */
   cellsData: Record<string, any> | null
   /** 行数据（overwrite）：modifyRowGraph 读到的行定义数组（来自 get_rows） */
@@ -158,6 +172,7 @@ export const reportStateSchema: Record<keyof ReportWorkflowState, StateFieldRedu
   fieldsResult:       { kind: 'overwrite', initial: null },
   datasetWriteResult: { kind: 'overwrite', initial: null },
   searchForm:         { kind: 'overwrite', initial: null },
+  filterAnalysis:     { kind: 'overwrite', initial: null },
   cellsData:          { kind: 'overwrite', initial: null },
   rowData:            { kind: 'overwrite', initial: null },
   colData:            { kind: 'overwrite', initial: null },

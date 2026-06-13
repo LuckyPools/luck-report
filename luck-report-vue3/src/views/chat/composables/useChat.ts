@@ -237,9 +237,15 @@ export function useChat() {
       }
 
       case 'tool_call_confirm': {
-        const msg = messageList.value.find(
-          m => m.agentToolCall?.toolCallId === event.toolCall.toolCallId
-        )
+        // 逆序查找：同一 toolCallId 可能因 fork 复用出现多条，始终更新最近一条
+        let msg: Message | undefined
+        for (let i = messageList.value.length - 1; i >= 0; i--) {
+          const item = messageList.value[i]
+          if (item?.agentToolCall?.toolCallId === event.toolCall.toolCallId) {
+            msg = item
+            break
+          }
+        }
         if (msg?.agentToolCall) {
           msg.agentToolCall.status = 'confirming'
         }
@@ -247,9 +253,15 @@ export function useChat() {
       }
 
       case 'tool_call_result': {
-        const toolMsg = messageList.value.find(
-          m => m.agentToolCall?.toolCallId === event.toolCall.toolCallId
-        )
+        // 逆序查找：同一 toolCallId 可能因 fork 复用出现多条，始终更新最近一条
+        let toolMsg: Message | undefined
+        for (let i = messageList.value.length - 1; i >= 0; i--) {
+          const item = messageList.value[i]
+          if (item?.agentToolCall?.toolCallId === event.toolCall.toolCallId) {
+            toolMsg = item
+            break
+          }
+        }
         if (toolMsg?.agentToolCall) {
           toolMsg.agentToolCall.result = event.toolCall.result
           toolMsg.agentToolCall.status = event.toolCall.status === 'done' ? 'done' : 'error'
