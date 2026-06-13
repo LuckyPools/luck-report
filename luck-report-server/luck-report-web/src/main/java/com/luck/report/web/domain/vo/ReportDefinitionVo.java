@@ -16,9 +16,9 @@
 package com.luck.report.web.domain.vo;
 
 import com.luck.report.core.definition.*;
-import com.luck.report.core.definition.datasource.DatasourceDefinition;
 import com.luck.report.core.definition.searchform.SearchForm;
 import com.luck.report.web.converter.DefinitionVoConverter;
+import com.luck.report.web.domain.vo.datasource.DatasourceDefinitionVo;
 
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +37,7 @@ public class ReportDefinitionVo {
     private final HeaderFooterDefinition footer;
     private final List<RowDefinition> rows;
     private final List<ColumnDefinition> columns;
-    private final List<DatasourceDefinition> datasources;
+    private final List<DatasourceDefinitionVo> datasources;
     private final Map<String, CellDefinitionVo> cellsMap = new HashMap<String, CellDefinitionVo>();
     private SearchForm searchForm;
 
@@ -52,7 +52,8 @@ public class ReportDefinitionVo {
         this.searchForm = report.getSearchForm();
         this.rows = report.getRows();
         this.columns = report.getColumns();
-        this.datasources = report.getDatasources();
+        // 通过 Converter 多态分发，过滤 sqlExpression 等后端专用字段
+        this.datasources = DefinitionVoConverter.toDatasourceVoList(report.getDatasources());
         for (CellDefinition cell : report.getCells()) {
             CellDefinitionVo cellVo = DefinitionVoConverter.toVo(cell);
             cellsMap.put(cell.getRowNumber() + "," + cell.getColumnNumber(), cellVo);
@@ -63,7 +64,7 @@ public class ReportDefinitionVo {
         return columns;
     }
 
-    public List<DatasourceDefinition> getDatasources() {
+    public List<DatasourceDefinitionVo> getDatasources() {
         return datasources;
     }
 

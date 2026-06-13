@@ -18,17 +18,30 @@ package com.luck.report.web.converter;
 import com.luck.report.core.definition.CellDefinition;
 import com.luck.report.core.definition.ConditionPropertyItem;
 import com.luck.report.core.definition.LinkParameter;
+import com.luck.report.core.definition.datasource.BuildinDatasourceDefinition;
+import com.luck.report.core.definition.datasource.DatasourceDefinition;
+import com.luck.report.core.definition.datasource.JdbcDatasourceDefinition;
+import com.luck.report.core.definition.datasource.SpringBeanDatasourceDefinition;
+import com.luck.report.core.definition.dataset.BeanDatasetDefinition;
+import com.luck.report.core.definition.dataset.DatasetDefinition;
+import com.luck.report.core.definition.dataset.SqlDatasetDefinition;
 import com.luck.report.core.definition.value.*;
 import com.luck.report.core.expression.model.Condition;
-import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.model.condition.BaseCondition;
-import com.luck.report.core.expression.model.condition.ConditionType;
-import com.luck.report.core.expression.model.condition.Join;
+import com.luck.report.web.domain.vo.dataset.BeanDatasetDefinitionVo;
+import com.luck.report.web.domain.vo.datasource.BuildinDatasourceDefinitionVo;
 import com.luck.report.web.domain.vo.CellDefinitionVo;
 import com.luck.report.web.domain.vo.ConditionPropertyItemVo;
 import com.luck.report.web.domain.vo.ConditionVo;
+import com.luck.report.web.domain.vo.datasource.DatasourceDefinitionVo;
+import com.luck.report.web.domain.vo.dataset.DatasetDefinitionVo;
+import com.luck.report.web.domain.vo.datasource.JdbcDatasourceDefinitionVo;
 import com.luck.report.web.domain.vo.LinkParameterVo;
+import com.luck.report.web.domain.vo.datasource.SpringBeanDatasourceDefinitionVo;
+import com.luck.report.web.domain.vo.dataset.SqlDatasetDefinitionVo;
 import com.luck.report.web.domain.vo.value.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
@@ -42,6 +55,8 @@ import java.util.List;
  * @since 2024年
  */
 public final class DefinitionVoConverter {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefinitionVoConverter.class);
 
     private DefinitionVoConverter() {
         // 私有构造器，防止实例化
@@ -238,5 +253,143 @@ public final class DefinitionVoConverter {
             vo.setType(bc.getType());
         }
         return vo;
+    }
+
+    /**
+     * 转换 SqlDatasetDefinition 为 SqlDatasetDefinitionVo
+     * <p>
+     * 显式忽略 sqlExpression 字段，避免把后端表达式对象序列化到前端
+     * </p>
+     * @param dataset SQL 数据集定义
+     * @return VO 对象；入参为 null 时返回 null
+     */
+    public static SqlDatasetDefinitionVo toVo(SqlDatasetDefinition dataset) {
+        if (dataset == null) {
+            return null;
+        }
+        SqlDatasetDefinitionVo vo = new SqlDatasetDefinitionVo();
+        // 公共字段（name/fields）继承自 DatasetDefinitionVo
+        vo.setName(dataset.getName());
+        vo.setFields(dataset.getFields());
+        // 显式赋值而非 BeanUtils 整体拷贝，确保不会误带入 sqlExpression
+        vo.setSql(dataset.getSql());
+        vo.setParameters(dataset.getParameters());
+        return vo;
+    }
+
+    /**
+     * 转换 BeanDatasetDefinition 为 BeanDatasetDefinitionVo
+     * @param dataset Bean 数据集定义
+     * @return VO 对象；入参为 null 时返回 null
+     */
+    public static BeanDatasetDefinitionVo toVo(BeanDatasetDefinition dataset) {
+        if (dataset == null) {
+            return null;
+        }
+        BeanDatasetDefinitionVo vo = new BeanDatasetDefinitionVo();
+        vo.setName(dataset.getName());
+        vo.setFields(dataset.getFields());
+        vo.setMethod(dataset.getMethod());
+        vo.setClazz(dataset.getClazz());
+        return vo;
+    }
+
+    /**
+     * 转换 DatasetDefinition 为对应 VO（多态分发）
+     * <p>
+     * 当前支持 SqlDatasetDefinition / BeanDatasetDefinition；未识别类型记录 warn 日志并按父类 VO 输出
+     * </p>
+     * @param dataset 数据集定义
+     * @return VO 对象；入参为 null 时返回 null
+     */
+    public static DatasetDefinitionVo toDatasetVo(DatasetDefinition dataset) {
+        if (dataset == null) {
+            return null;
+        }
+        if (dataset instanceof SqlDatasetDefinition) {
+            return toVo((SqlDatasetDefinition) dataset);
+        }
+        if (dataset instanceof BeanDatasetDefinition) {
+            return toVo((BeanDatasetDefinition) dataset);
+        }
+        // 兜底：未识别子类时仅拷贝公共字段，避免静默丢字段
+        logger.warn("未识别的 DatasetDefinition 子类: {}", dataset.getClass().getName());
+        DatasetDefinitionVo vo = new DatasetDefinitionVo();
+        vo.setName(dataset.getName());
+        vo.setFields(dataset.getFields());
+        return vo;
+    }
+
+    /**
+     * 批量转换 DatasetDefinition 列表
+     * @param datasets 数据集定义列表
+     * @return VO 列表；入参为 null 时返回 null
+     */
+    public static List<DatasetDefinitionVo> toDatasetVoList(List<DatasetDefinition> datasets) {
+        if (datasets == null || datasets.isEmpty()) {
+            return null;
+        }
+        List<DatasetDefinitionVo> voList = new ArrayList<>(datasets.size());
+        for (DatasetDefinition dataset : datasets) {
+            voList.add(toDatasetVo(dataset));
+        }
+        return voList;
+    }
+
+    /**
+     * 转换 DatasourceDefinition 为对应 VO（多态分发）
+     * <p>
+     * 支持 JdbcDatasourceDefinition / BuildinDatasourceDefinition / SpringBeanDatasourceDefinition；
+     * 未识别类型走父类 DatasourceDefinitionVo 兜底，避免 NPE 与字段丢失
+     * </p>
+     * @param datasource 数据源定义
+     * @return VO 对象；入参为 null 时返回 null
+     */
+    public static DatasourceDefinitionVo toVo(DatasourceDefinition datasource) {
+        if (datasource == null) {
+            return null;
+        }
+        DatasourceDefinitionVo vo;
+        if (datasource instanceof JdbcDatasourceDefinition) {
+            JdbcDatasourceDefinition jdbc = (JdbcDatasourceDefinition) datasource;
+            JdbcDatasourceDefinitionVo jdbcVo = new JdbcDatasourceDefinitionVo();
+            jdbcVo.setDriver(jdbc.getDriver());
+            jdbcVo.setUrl(jdbc.getUrl());
+            jdbcVo.setUsername(jdbc.getUsername());
+            jdbcVo.setPassword(jdbc.getPassword());
+            vo = jdbcVo;
+        } else if (datasource instanceof BuildinDatasourceDefinition) {
+            vo = new BuildinDatasourceDefinitionVo();
+        } else if (datasource instanceof SpringBeanDatasourceDefinition) {
+            SpringBeanDatasourceDefinition spring = (SpringBeanDatasourceDefinition) datasource;
+            SpringBeanDatasourceDefinitionVo springVo = new SpringBeanDatasourceDefinitionVo();
+            springVo.setBeanId(spring.getBeanId());
+            vo = springVo;
+        } else {
+            // 兜底：未识别子类时仅拷贝公共字段
+            logger.warn("未识别的 DatasourceDefinition 子类: {}", datasource.getClass().getName());
+            vo = new DatasourceDefinitionVo();
+        }
+        // 公共字段：name / type / datasets
+        vo.setName(datasource.getName());
+        vo.setType(datasource.getType());
+        vo.setDatasets(toDatasetVoList(datasource.getDatasets()));
+        return vo;
+    }
+
+    /**
+     * 批量转换 DatasourceDefinition 列表
+     * @param datasources 数据源定义列表
+     * @return VO 列表；入参为 null 时返回 null
+     */
+    public static List<DatasourceDefinitionVo> toDatasourceVoList(List<DatasourceDefinition> datasources) {
+        if (datasources == null || datasources.isEmpty()) {
+            return null;
+        }
+        List<DatasourceDefinitionVo> voList = new ArrayList<>(datasources.size());
+        for (DatasourceDefinition datasource : datasources) {
+            voList.add(toVo(datasource));
+        }
+        return voList;
     }
 }
