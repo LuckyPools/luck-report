@@ -91,5 +91,33 @@ export {
     getCompiledNode
 } from './wrapper'
 
+// 任务计划抽象（TaskNode / Dispatcher / Planner / Summary）
+export {
+    PLANNER_TOOL_NAME,
+    PLANNER_TASK_SCHEMA,
+    validateTaskPlan,
+    pickReadyTasks,
+    isPlanDone,
+    isPlanDead,
+    propagateFailure
+} from './task-plan'
+export type {
+    TaskNode,
+    TaskPlan,
+    TaskStatus,
+    TaskFailPolicy,
+    TaskExecResult,
+    TaskExecutor,
+    ActionRegistry,
+    ActionRegistryEntry
+} from './task-plan'
+
+// 节点工厂（Planner / Dispatcher / Summary）
+export {
+    buildPlannerNode,
+    buildDispatcherNode,
+    buildSummaryNode
+} from './dispatcher'
+
 // 常用 LangGraph 重新导出（业务代码直接从此处导入，简化路径）
 export { StateGraph, Annotation, START, END, Command, Send, interrupt } from '@langchain/langgraph'

@@ -1,4 +1,5 @@
 import { createDefaultRegistry } from '../tools/registry'
+import { registerPlannerTool } from '../workflow/task-plan'
 import { MemoryManager } from '../memory/memory-manager'
 import { ContextManager } from '../core/context-manager'
 import { runAgentLoop, type AgentEvent, type AgentLoopConfig } from '../core/agent-loop'
@@ -41,7 +42,13 @@ export interface AgentEngineConfig {
  */
 export class AgentEngine {
   /** 工具注册表 */
-  readonly toolRegistry = createDefaultRegistry()
+  readonly toolRegistry = (() => {
+    // 关键决策点：构造时同步注册虚拟工具 plan_tasks
+    // 让 planner 节点的 LLM 能收到完整 inputSchema，强制走 function calling
+    const r = createDefaultRegistry()
+    registerPlannerTool(r)
+    return r
+  })()
   /** 记忆管理器 */
   readonly memoryManager = new MemoryManager()
   /** 上下文管理器 */

@@ -1,13 +1,21 @@
 /**
- * 修改报表主工作流（LangGraph 版本）
- * 完整流程：load_docs + 并行知识搜索 → plan_tasks（探查意图）→ select_datasource_op / apply_datasource_type → 子图路由 → form/page 收尾
+ * 修改报表主工作流（LangGraph 版本 · 任务计划模式）
  *
- * 与自建引擎版本的差异：
- * 1. 不再 new LastValueAfterFinishChannel
- * 2. skipWhen 在节点函数内部提前 return {}
- * 3. 路由完全用 addConditionalEdges 表达
- * 4. 子图节点用 withInput 包装，调用 subGraph.execute(state, { runtime })
- * 5. search_business / search_agent / search_schema 合并为单节点 search_knowledge，按 intent 决定跑哪几个工具
+ * 新拓扑：
+ *   load_docs ╮
+ *             ├─► plan_tasks(LLM) ─► dispatch_task ⇄ dispatch_task ─► summary(LLM) ─► END
+ * search_knowledge ╯
+ *
+ * 关键改造：
+ * 1. 不再用 select_datasource_op / apply_datasource_type 等硬路由；Planner 把需求拆成 TaskPlan
+ * 2. Dispatcher 节点自环执行，按 dependsOn 拓扑排序 + 失败策略
+ * 3. summary 节点由 Planner 决定是否需要（plan 中 action='summary'）
+ * 4. 现有 11 个子图原样复用，靠 task.description 透传到 userMessage 触发子图内 LLM 决策
+ *
+ * 与旧版本的兼容：
+ * - ModifyReportInputAnnotation / ModifyReportOutputAnnotation 不变
+ * - 业务字段（cellsData / datasources / datasets / rowData / colData / pageConfig / ...）字段名不变
+ * - taskPlan / taskResults / plannerError 三个新字段为可选，旧 UI 不读取
  */
 
 import { StateGraph, START, END } from '@langchain/langgraph'
@@ -16,11 +24,9 @@ import {
   ModifyReportInputAnnotation,
   ModifyReportOutputAnnotation,
   WorkflowRuntimeAnnotation,
-  withInput,
-  runtimeToContext
+  withInput
 } from '../index.ts'
 import type { CompiledReportGraph } from '../index.ts'
-import { createLLMDecideNode } from '@/views/agent/workflow/nodes/llm-decide-node.ts'
 import { extractDocsMap, filterActiveErrors, formatDocsAsText, runToolWithEvent } from '../utils.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 import { createDatasourceGraph, modifyDatasourceGraph, deleteDatasourceGraph } from './datasource-graphs.ts'
@@ -29,22 +35,27 @@ import { modifyCellGraph } from './cell-graphs.ts'
 import { modifyRowGraph, modifyColGraph } from './row-col-graphs.ts'
 import { modifyFormGraph, modifyPageGraph } from './form-page-graphs.ts'
 import { buildLoadDocsNode } from './load-docs.ts'
+import {
+  buildPlannerNode,
+  buildDispatcherNode,
+  buildSummaryNode
+} from '../dispatcher.ts'
+import type { ActionRegistry } from '../task-plan.ts'
+import { runtimeToContext } from '../index.ts'
+
+/** Dispatcher 自环轮次字段名（写到 state，dispatcher 自增） */
+const DISPATCH_ROUND_FIELD = 'dispatchRound'
 
 /**
- * 修改报表工作流（LangGraph 版本）
+ * 修改报表工作流（任务计划模式）
  * @returns 编译后的可执行图
  */
 export function modifyReportGraph(): CompiledReportGraph {
-  // 阶段1：加载本地知识库（无条件必跑，复用公共 load_docs 节点）
+  // ===== 阶段1：前置探查 =====
   const loadDocs = buildLoadDocsNode()
-
-  // 知识搜索（按 intent 决定跑哪些工具）
-  // 关键：自建引擎里 search_business/search_agent/search_schema 是三个独立节点 + skipWhen
-  // LangGraph 改用单节点 + 内部按 intent 标志位条件触发；这样在 barrier 节点（plan_tasks）之前不依赖外部分支
   const searchKnowledge = withInput(async (state: ReportState, _config, runtime) => {
     const intent = state.intent
     const sr = { ...(state.searchResults || {}) } as Record<string, any>
-
     // 业务知识搜索
     if (intent?.needsBusinessKnowledge && !sr.search_business) {
       sr.search_business = await runToolWithEvent(runtime, 'search_business', 'search_business_knowledge', { query: state.userMessage })
@@ -57,307 +68,246 @@ export function modifyReportGraph(): CompiledReportGraph {
     if (intent?.needsSchemaSearch && !sr.search_schema) {
       sr.search_schema = await runToolWithEvent(runtime, 'search_schema', 'search_schema', { query: state.userMessage })
     }
-
     return { searchResults: sr } as ReportStateUpdate
   }, { nodeName: 'search_knowledge' })
 
-  // 阶段2：plan_tasks 探查（仅 datasource / dataset / form 场景必跑）
-  const planTasks = createLLMDecideNode({
-    nodeId: 'plan_tasks',
-    allowedTools: ['get_datasources', 'get_datasets', 'get_search_form'],
-    maxIterations: 1,
-    description:
-      '**只读探查节点**。根据用户需求和 intent，仅调用与本步意图直接相关的只读工具来确认上下文：' +
-      '数据源场景：get_datasources/get_datasets；表单场景：get_search_form。' +
-      '**禁止**调用 get_paper_config / get_rows / get_columns / read_cells / write_* 等工具；' +
-      '**禁止**在本节点执行任何修改动作；**禁止**分多轮重复调用同一个工具。' +
-      '单元格/行列场景无需本步探查，子图内的 read_cells / read_rows_cols 节点会自动读取。' +
-      '一次探查完成后立即结束。'
-  })
+  // ===== 阶段2：Planner（LLM Decider 包装，FC 强制输出 TaskPlan）=====
+  const planner = buildPlannerNode({ maxRetries: 1 })
 
-  // 阶段2.5：声明数据源操作类型（仅数据源场景）
-  // 关键决策点：内部把 create_datasource 升级为 create_datasource_and_dataset（一步出结果，省一个纯代码节点）
-  const selectDatasourceOp = createLLMDecideNode({
-    nodeId: 'select_datasource_op',
-    allowedTools: ['select_datasource_operation'],
-    requiredToolResults: ['select_datasource_operation'],
-    maxIterations: 1,
-    description:
-      '【本节点唯一任务】立刻调用 select_datasource_operation 工具，**禁止**调用其他任何工具。\n' +
-      '【禁止】不要重复审视历史对话、不要重新分析用户意图、不要纠结数据源名称。意图已经由 plan_tasks 节点分析好，你只负责"翻译"。\n' +
-      '【禁止】不要在思考里长篇大论，看到意图后 1 步内就调工具，思考控制在 200 字以内。\n' +
-      '【决策树】根据 state.intent.datasourceOperationHint（plan_tasks 已经给好）直接映射：\n' +
-      '  - 包含"新建/创建/添加/新增"且涉及数据源 → operationType=create_datasource_and_dataset（直接升级，连带建数据集）\n' +
-      '  - 包含"新建/创建/添加/新增"且仅涉及数据集 → operationType=create_dataset（datasourceName 从 searchResults.get_datasources 里挑最匹配的）\n' +
-      '  - 包含"修改/编辑/更新/改" → operationType=modify_datasource 或 modify_dataset（按 hint 指明）\n' +
-      '  - 包含"删除/移除" → operationType=delete_datasource 或 delete_dataset\n' +
-      '【兜底】如果 hint 缺失，根据 userMessage 里的动词（创建/修改/删除）做最直接判断，**不要反复揣摩**。'
-  })
-
-  // 阶段2.6：应用数据源操作类型到 intent（升级为 create_datasource_and_dataset 等）
-  // 关键决策点：把"原始 operationType"映射为"父图路由期望的最终类型"
-  //  - create_datasource → create_datasource_and_dataset（一步完成创建+建数据集）
-  //  - 其它 operationType 原样透传
-  const applyDatasourceType = withInput(async (state: ReportState) => {
-    const result = state.select_datasource_operation
-    let opType: string | undefined = result?.operationType
-    // 关键决策点：create_datasource 升级为 create_datasource_and_dataset
-    if (opType === 'create_datasource') opType = 'create_datasource_and_dataset'
-    if (opType && state.intent) {
-      return { intent: { ...state.intent, datasourceOperationType: opType } } as ReportStateUpdate
+  /**
+   * Planner 后处理节点（纯函数）
+   * - LLM Decider 节点返回的 statePatch 形如 { plan_tasks: { tasks: [...] } }
+   * - 把 plan_tasks 工具结果解析为 TaskNode[]，挂到 state.taskPlan
+   * - 校验合法性：失败时填 plannerError，Dispatcher 看到后跳过调度
+   */
+  const collectPlan = withInput(async (state: ReportState) => {
+    // 关键决策点：planner 节点 resultKey='taskResults'，所以 plan_tasks 工具结果在 state.taskResults['plan_tasks']
+    // （state 没声明 plan_tasks 字段，LangGraph 会丢弃直接 return 的键；必须落到已声明字段才能被后续节点读）
+    const planResult = state.taskResults?.['plan_tasks']
+    if (!planResult) {
+      return { plannerError: 'Planner 未调用 plan_tasks 工具', taskPlan: [] } as ReportStateUpdate
     }
-    return {} as ReportStateUpdate
-  }, { nodeName: 'apply_datasource_type' })
-
-  // 阶段3：子图嵌入工厂
-  // 关键：自建引擎里通过 triggerMode/skipWhen 控制子图何时被调度
-  // LangGraph 直接由条件边从 plan_tasks / apply_datasource_type 路由进来，skipWhen 退化为条件边的 if 分支
-  const runSubGraph = (
-    subGraphFactory: () => CompiledReportGraph,
-    nodeName: string,
-    description: string,
-    pickOutput: (result: any) => Record<string, any>
-  ) => withInput(async (state: ReportState, _config, runtime) => {
-    const subGraph = subGraphFactory()
-    const childRuntime = runtime?.fork?.()
-    const result = await subGraph.invoke(state as Record<string, any>, {
-      context: runtimeToContext(childRuntime ?? runtime)
-    })
-    const childErrors = filterActiveErrors((result as any).errors)
-    const out = pickOutput(result)
-    if (childErrors.length > 0) out.errors = childErrors
-    return out as ReportStateUpdate
-  }, { nodeName })
-
-  // 复用 runner 工厂减少重复
-  const createDatasourceSub = runSubGraph(
-    createDatasourceGraph,
-    'create_datasource_subgraph',
-    '创建数据源子流程',
-    (r) => ({
-      targetDatasourceName: (r as any).targetDatasourceName,
-      targetTableNames: (r as any).targetTableNames,
-      datasources: (r as any).datasources
-    })
-  )
-  const createDatasetSub = runSubGraph(
-    createDatasetGraph,
-    'create_dataset_subgraph',
-    '创建数据集子流程',
-    (r) => ({
-      datasets: (r as any).datasets,
-      searchForm: (r as any).searchForm,
-      dataset: (r as any).dataset,
-      targetDatasourceName: (r as any).targetDatasourceName
-    })
-  )
-  const modifyDatasetSub = runSubGraph(
-    modifyDatasetGraph,
-    'modify_dataset_subgraph',
-    '修改数据集子流程',
-    (r) => ({
-      datasets: (r as any).datasets,
-      searchForm: (r as any).searchForm,
-      dataset: (r as any).dataset
-    })
-  )
-  const modifyCellSub = runSubGraph(
-    modifyCellGraph,
-    'modify_cell_subgraph',
-    '修改单元格子流程',
-    (r) => ({ cellsData: (r as any).cellsData })
-  )
-  const modifyRowSub = runSubGraph(
-    modifyRowGraph,
-    'modify_row_subgraph',
-    '修改行结构子流程',
-    (r) => ({ rowData: (r as any).rowData })
-  )
-  const modifyColSub = runSubGraph(
-    modifyColGraph,
-    'modify_col_subgraph',
-    '修改列结构子流程',
-    (r) => ({ colData: (r as any).colData })
-  )
-  const modifyFormSub = runSubGraph(
-    modifyFormGraph,
-    'modify_form_subgraph',
-    '修改查询表单子流程',
-    (r) => ({ searchForm: (r as any).searchForm })
-  )
-  const modifyPageSub = runSubGraph(
-    modifyPageGraph,
-    'modify_page_subgraph',
-    '修改页面配置子流程（含页眉页脚）',
-    (r) => ({
-      pageConfig: (r as any).pageConfig,
-      headerConfig: (r as any).headerConfig,
-      footerConfig: (r as any).footerConfig
-    })
-  )
-  // 数据源 modify / delete 在 select_datasource_op 阶段接入
-  const modifyDatasourceSub = runSubGraph(
-    modifyDatasourceGraph,
-    'modify_datasource_subgraph',
-    '修改数据源子流程',
-    (r) => ({ datasources: (r as any).datasources })
-  )
-  const deleteDatasourceSub = runSubGraph(
-    deleteDatasourceGraph,
-    'delete_datasource_subgraph',
-    '删除数据源子流程',
-    (r) => ({ datasources: (r as any).datasources })
-  )
-  const deleteDatasetSub = runSubGraph(
-    deleteDatasetGraph,
-    'delete_dataset_subgraph',
-    '删除数据集子流程',
-    (r) => ({ datasets: (r as any).datasets })
-  )
-
-  // 条件边：plan_tasks → 下游路由
-  const planTasksRouter = (state: ReportState) => {
-    const opType = state.intent?.datasourceOperationType
-    if (opType === 'create_datasource') return 'create_datasource_subgraph'
-    if (opType === 'create_dataset') return 'create_dataset_subgraph'
-    if (opType === 'modify_dataset') return 'modify_dataset_subgraph'
-    if (state.intent?.needsDatasourceOperation && !opType) return 'select_datasource_op'
-    if (state.intent?.needsCellOperation) return 'modify_cell_subgraph'
-    if (state.intent?.needsRowOperation) return 'modify_row_subgraph'
-    if (state.intent?.needsColOperation) return 'modify_col_subgraph'
-    if (state.intent?.needsFormOperation) return 'modify_form_subgraph'
-    if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
-    return END
-  }
-
-  // 条件边：apply_datasource_type → 子图路由
-  const applyTypeRouter = (state: ReportState) => {
-    const opType = state.intent?.datasourceOperationType
-    if (opType === 'create_datasource' || opType === 'create_datasource_and_dataset') return 'create_datasource_subgraph'
-    if (opType === 'create_dataset') return 'create_dataset_subgraph'
-    if (opType === 'modify_dataset') return 'modify_dataset_subgraph'
-    if (opType === 'modify_datasource') return 'modify_datasource_subgraph'
-    if (opType === 'delete_datasource') return 'delete_datasource_subgraph'
-    if (opType === 'delete_dataset') return 'delete_dataset_subgraph'
-    return END
-  }
-
-  // 条件边：create_datasource_subgraph 完成后 → create_dataset_subgraph（仅当升级场景）
-  const createDsSubRouter = (state: ReportState) => {
-    const childErrors = filterActiveErrors(state.errors)
-    if (childErrors.length > 0) return END
-    if (state.intent?.datasourceOperationType === 'create_datasource_and_dataset') return 'create_dataset_subgraph'
-    return END
-  }
-
-  // 条件边：create_dataset_subgraph / modify_dataset_subgraph / modify_cell_subgraph
-  //        / modify_row_subgraph / modify_col_subgraph 完成后 → 接力下游子图
-  // 合并为单一路由函数：参数化"已跳过的子图"和"是否检查 errors"
-  // 命中优先级：cell → row → col → form → page → END
-  const makeSubEndRouter = (skipFlags: { cell?: boolean; row?: boolean; col?: boolean; form?: boolean }, checkErrors: boolean) =>
-    (state: ReportState) => {
-      if (checkErrors && filterActiveErrors(state.errors).length > 0) return END
-      const intent = state.intent
-      if (!skipFlags.cell && intent?.needsCellOperation) return 'modify_cell_subgraph'
-      if (!skipFlags.row && intent?.needsRowOperation) return 'modify_row_subgraph'
-      if (!skipFlags.col && intent?.needsColOperation) return 'modify_col_subgraph'
-      if (!skipFlags.form && intent?.needsFormOperation) return 'modify_form_subgraph'
-      if (intent?.needsPageConfigOperation) return 'modify_page_subgraph'
-      return END
+    const tasks: any[] = Array.isArray(planResult?.tasks) ? planResult.tasks : []
+    if (tasks.length === 0) {
+      // Planner 主动输出空 → 走 summary 节点由其直接回答
+      return { taskPlan: [], plannerError: null } as ReportStateUpdate
     }
+    // 关键决策点：统一补默认值（id/action 必填，description 用于 LLM Decider 重写 userMessage）
+    const plan = tasks.map((t, idx) => ({
+      id: t.id || `t${idx + 1}`,
+      action: t.action,
+      params: { ...(t.params ?? {}), description: t.params?.description ?? t.description ?? state.userMessage },
+      dependsOn: t.dependsOn ?? [],
+      onFail: t.onFail ?? 'abort',
+      maxRetries: t.maxRetries ?? 0,
+      status: 'pending',
+      retryCount: 0
+    }))
+    return { taskPlan: plan, plannerError: null } as ReportStateUpdate
+  }, { nodeName: 'collect_plan' })
 
-  // 关键：使用链式 API 保持 LangGraph StateGraph 的 N 类型推断
+  // ===== 阶段3：Dispatcher（自环节点）=====
+  const registry: ActionRegistry = buildActionRegistry()
+  const dispatcher = buildDispatcherNode(registry, { maxRounds: 50 })
+
+  // ===== 阶段4：Summary =====
+  const summary = buildSummaryNode({ maxIterations: 2 })
+
+  // ===== 主图组装 =====
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('load_docs', loadDocs)
     .addNode('search_knowledge', searchKnowledge)
-    .addNode('plan_tasks', planTasks)
-    .addNode('select_datasource_op', selectDatasourceOp)
-    .addNode('apply_datasource_type', applyDatasourceType)
-    .addNode('create_datasource_subgraph', createDatasourceSub)
-    .addNode('create_dataset_subgraph', createDatasetSub)
-    .addNode('modify_dataset_subgraph', modifyDatasetSub)
-    .addNode('modify_datasource_subgraph', modifyDatasourceSub)
-    .addNode('delete_datasource_subgraph', deleteDatasourceSub)
-    .addNode('delete_dataset_subgraph', deleteDatasetSub)
-    .addNode('modify_cell_subgraph', modifyCellSub)
-    .addNode('modify_row_subgraph', modifyRowSub)
-    .addNode('modify_col_subgraph', modifyColSub)
-    .addNode('modify_form_subgraph', modifyFormSub)
-    .addNode('modify_page_subgraph', modifyPageSub)
-    // 阶段1：load_docs + search_knowledge 并行（all 模式汇合到 plan_tasks）
+    .addNode('plan_tasks', planner)
+    .addNode('collect_plan', collectPlan)
+    .addNode('dispatch_task', dispatcher)
+    .addNode('summary', summary)
+    // 阶段1：load_docs + search_knowledge 并行汇合到 plan_tasks
     .addEdge(START, 'load_docs')
     .addEdge(START, 'search_knowledge')
-    .addEdge(['load_docs', 'search_knowledge'], 'plan_tasks')
-    // 阶段2：plan_tasks 条件路由
-    .addConditionalEdges('plan_tasks', planTasksRouter, {
-      create_datasource_subgraph: 'create_datasource_subgraph',
-      create_dataset_subgraph: 'create_dataset_subgraph',
-      modify_dataset_subgraph: 'modify_dataset_subgraph',
-      modify_cell_subgraph: 'modify_cell_subgraph',
-      modify_row_subgraph: 'modify_row_subgraph',
-      modify_col_subgraph: 'modify_col_subgraph',
-      modify_form_subgraph: 'modify_form_subgraph',
-      modify_page_subgraph: 'modify_page_subgraph',
-      select_datasource_op: 'select_datasource_op',
-      [END]: END
-    })
-    .addEdge('select_datasource_op', 'apply_datasource_type')
-    .addConditionalEdges('apply_datasource_type', applyTypeRouter, {
-      create_datasource_subgraph: 'create_datasource_subgraph',
-      create_dataset_subgraph: 'create_dataset_subgraph',
-      modify_dataset_subgraph: 'modify_dataset_subgraph',
-      modify_datasource_subgraph: 'modify_datasource_subgraph',
-      delete_datasource_subgraph: 'delete_datasource_subgraph',
-      delete_dataset_subgraph: 'delete_dataset_subgraph',
-      [END]: END
-    })
-    // 子图完成后按意图接力到 form/page
-    .addConditionalEdges('create_datasource_subgraph', createDsSubRouter, {
-      create_dataset_subgraph: 'create_dataset_subgraph',
-      [END]: END
-    })
-    .addConditionalEdges('create_dataset_subgraph', makeSubEndRouter({ form: true }, true), {
-      modify_cell_subgraph: 'modify_cell_subgraph',
-      modify_row_subgraph: 'modify_row_subgraph',
-      modify_col_subgraph: 'modify_col_subgraph',
-      modify_form_subgraph: 'modify_form_subgraph',
-      modify_page_subgraph: 'modify_page_subgraph',
-      [END]: END
-    })
-    .addConditionalEdges('modify_dataset_subgraph', makeSubEndRouter({}, false), {
-      modify_cell_subgraph: 'modify_cell_subgraph',
-      modify_row_subgraph: 'modify_row_subgraph',
-      modify_col_subgraph: 'modify_col_subgraph',
-      modify_form_subgraph: 'modify_form_subgraph',
-      modify_page_subgraph: 'modify_page_subgraph',
-      [END]: END
-    })
-    .addConditionalEdges('modify_cell_subgraph', makeSubEndRouter({ cell: true }, false), {
-      modify_row_subgraph: 'modify_row_subgraph',
-      modify_col_subgraph: 'modify_col_subgraph',
-      modify_form_subgraph: 'modify_form_subgraph',
-      modify_page_subgraph: 'modify_page_subgraph',
-      [END]: END
-    })
-    .addConditionalEdges('modify_row_subgraph', makeSubEndRouter({ cell: true, row: true }, false), {
-      modify_col_subgraph: 'modify_col_subgraph',
-      modify_form_subgraph: 'modify_form_subgraph',
-      modify_page_subgraph: 'modify_page_subgraph',
-      [END]: END
-    })
-    .addConditionalEdges('modify_col_subgraph', makeSubEndRouter({ cell: true, row: true, col: true }, false), {
-      modify_form_subgraph: 'modify_form_subgraph',
-      modify_page_subgraph: 'modify_page_subgraph',
-      [END]: END
-    })
-    .addConditionalEdges('modify_form_subgraph', (state: ReportState) => {
-      if (state.intent?.needsPageConfigOperation) return 'modify_page_subgraph'
-      return END
+    .addEdge('load_docs', 'plan_tasks')
+    .addEdge('search_knowledge', 'plan_tasks')
+    // 阶段2：planner → 收集 plan
+    .addEdge('plan_tasks', 'collect_plan')
+    // 阶段3：dispatch_task 自环
+    .addEdge('collect_plan', 'dispatch_task')
+    .addConditionalEdges('dispatch_task', (state: ReportState) => {
+      // 全部 done 或卡死或超轮次 → 进 summary
+      const plan = state.taskPlan ?? []
+      const round = (state as any)[DISPATCH_ROUND_FIELD] ?? 0
+      const allDone = plan.every(t => ['success', 'failed', 'skipped'].includes(t.status ?? ''))
+      const dead = plan.length > 0 && plan.filter(t => t.status === 'pending' || t.status === 'in_progress').length === 0
+      if (allDone || dead || round >= 50) return 'summary'
+      return 'dispatch_task'
     }, {
-      modify_page_subgraph: 'modify_page_subgraph',
-      [END]: END
+      dispatch_task: 'dispatch_task',
+      summary: 'summary'
     })
-    .addEdge('modify_page_subgraph', END)
+    // 阶段4：summary → END
+    .addEdge('summary', END)
 
-  return g.compile({ input: ModifyReportInputAnnotation, output: ModifyReportOutputAnnotation })
+  return g.compile({ input: ModifyReportInputAnnotation, output: ModifyReportOutputAnnotation } as any)
+}
+
+/**
+ * Action → 子图注册表
+ * 覆盖：read 任务（直接读状态，不调子图） + 写任务（调对应子图）
+ *
+ * 关键决策：read_* 类任务由 Dispatcher 内置 executor 快速处理（不入子图），
+ * 减少 LLM 决策消耗；write_* 类任务才走子图，依赖 LLM Decider 做实际写。
+ *
+ * 子图 invoke 透传机制：factory 接 task，闭包内把 task.params.description 注入到
+ * 子图 invoke 期间的 userMessage（让子图内 LLM Decider 拿到该 task 的具体描述），
+ * 不修改子图源码。
+ */
+function buildActionRegistry(): ActionRegistry {
+  return {
+    // ============== 读任务（直接读 state 字段，不调子图）==============
+    read_datasources: {
+      nodeId: 'read_datasources',
+      kind: 'read',
+      factory: () => readStateSubgraph('datasources'),
+      pickOutput: (sub) => ({ datasources: sub.datasources })
+    },
+    read_datasets: {
+      nodeId: 'read_datasets',
+      kind: 'read',
+      factory: () => readStateSubgraph('datasets'),
+      pickOutput: (sub) => ({ datasets: sub.datasets })
+    },
+    read_cells: {
+      nodeId: 'read_cells',
+      kind: 'read',
+      factory: () => readStateSubgraph('cellsData'),
+      pickOutput: (sub) => ({ cellsData: sub.cellsData })
+    },
+    read_rows: {
+      nodeId: 'read_rows',
+      kind: 'read',
+      factory: () => readStateSubgraph('rowData'),
+      pickOutput: (sub) => ({ rowData: sub.rowData })
+    },
+    read_cols: {
+      nodeId: 'read_cols',
+      kind: 'read',
+      factory: () => readStateSubgraph('colData'),
+      pickOutput: (sub) => ({ colData: sub.colData })
+    },
+    read_form: {
+      nodeId: 'read_form',
+      kind: 'read',
+      factory: () => readStateSubgraph('searchForm'),
+      pickOutput: (sub) => ({ searchForm: sub.searchForm })
+    },
+    read_page: {
+      nodeId: 'read_page',
+      kind: 'read',
+      factory: () => readStateSubgraph('pageConfig'),
+      pickOutput: (sub) => ({ pageConfig: sub.pageConfig, headerConfig: sub.headerConfig, footerConfig: sub.footerConfig })
+    },
+    read_report: {
+      nodeId: 'read_report',
+      kind: 'read',
+      factory: () => readStateSubgraph('reportState'),
+      pickOutput: (sub) => ({ reportState: sub.reportState })
+    },
+
+    // ============== 写任务（调对应子图）==============
+    create_datasource: wrapWriteAction('create_datasource_subgraph', createDatasourceGraph, (sub) => ({
+      datasources: sub.datasources,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_datasource: wrapWriteAction('modify_datasource_subgraph', modifyDatasourceGraph, (sub) => ({
+      datasources: sub.datasources,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    delete_datasource: wrapWriteAction('delete_datasource_subgraph', deleteDatasourceGraph, (sub) => ({
+      datasources: sub.datasources,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    create_dataset: wrapWriteAction('create_dataset_subgraph', createDatasetGraph, (sub) => ({
+      datasets: sub.datasets,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_dataset: wrapWriteAction('modify_dataset_subgraph', modifyDatasetGraph, (sub) => ({
+      datasets: sub.datasets,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    delete_dataset: wrapWriteAction('delete_dataset_subgraph', deleteDatasetGraph, (sub) => ({
+      datasets: sub.datasets,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_cell: wrapWriteAction('modify_cell_subgraph', modifyCellGraph, (sub) => ({
+      cellsData: sub.cellsData,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_row: wrapWriteAction('modify_row_subgraph', modifyRowGraph, (sub) => ({
+      rowData: sub.rowData,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_col: wrapWriteAction('modify_col_subgraph', modifyColGraph, (sub) => ({
+      colData: sub.colData,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_form: wrapWriteAction('modify_form_subgraph', modifyFormGraph, (sub) => ({
+      searchForm: sub.searchForm,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    modify_page: wrapWriteAction('modify_page_subgraph', modifyPageGraph, (sub) => ({
+      pageConfig: sub.pageConfig,
+      headerConfig: sub.headerConfig,
+      footerConfig: sub.footerConfig,
+      datasetWriteResult: sub.datasetWriteResult
+    }))
+  }
+}
+
+/**
+ * 把"写子图"封装成 ActionRegistryEntry
+ * 闭包持有 task，子图 invoke 时把 task.params.description 注入到 userMessage + taskParams
+ * @param nodeId - 节点 ID 标识
+ * @param factoryFn - 子图工厂（无参，返回 CompiledReportGraph）
+ * @param pickOutput - 子图结果 → statePatch 映射
+ * @returns ActionRegistryEntry
+ */
+function wrapWriteAction(
+  nodeId: string,
+  factoryFn: () => CompiledReportGraph,
+  pickOutput: (subResult: any) => Record<string, any>
+): ActionRegistry['create_datasource'] {
+  return {
+    nodeId,
+    kind: 'write',
+    factory: (task) => {
+      const sub = factoryFn()
+      return {
+        invoke: async (state: any, options?: any) => {
+          // 关键决策点：闭包注入 task.params 到子图 invoke 期间的 userMessage / taskParams
+          // 子图内 LLM Decider 节点会读到这两个字段，从而执行"该 task 范围内的具体动作"
+          const desc = task?.params?.description ?? state.userMessage
+          const childState = { ...state, userMessage: desc, taskParams: task?.params ?? {} }
+          return await sub.invoke(childState, options)
+        }
+      } as CompiledReportGraph
+    },
+    pickOutput
+  }
+}
+
+/**
+ * 把 state 的某个字段透传出来的"读子图"
+ * 实际只跑一个空子图返回 state，由 pickOutput 提取字段
+ * 读任务用 subGraph.invoke 是为了不破坏统一调度（executor 统一调用入口）
+ * @param field - state 中要读的字段名
+ * @returns 一个能 invoke 的子图
+ */
+function readStateSubgraph(field: string, _task?: any): CompiledReportGraph {
+  const nodeName = `passthrough_${field}`
+  const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
+    .addNode(nodeName, withInput(async (state: ReportState) => {
+      // 把当前 state 原样返回；pickOutput 决定取哪个字段
+      return { [field]: (state as any)[field] } as ReportStateUpdate
+    }, { nodeName }))
+    .addEdge(START, nodeName)
+    .addEdge(nodeName, END)
+  return g.compile() as CompiledReportGraph
 }

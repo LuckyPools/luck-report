@@ -88,6 +88,13 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     let assistantContent = ''
     const hasRequiredTools = (options.requiredToolResults?.length ?? 0) > 0
       || (options.requiredToolResultsAny?.length ?? 0) > 0
+    const toolChoice: any = hasRequiredTools
+      ? (options.requiredToolResults?.length === 1
+        ? { type: 'function', function: { name: options.requiredToolResults[0] } }
+        : 'required')
+      : undefined
+    // 关键决策点日志：诊断 tool_choice 是否真传给 LLM
+    console.log(`[llm-decide] node=${nodeId} allowedTools=${JSON.stringify(options.allowedTools)} requiredToolResults=${JSON.stringify(options.requiredToolResults)} toolChoice=${JSON.stringify(toolChoice)}`)
     let iteration = 0
 
     while (iteration < maxIterations) {
@@ -96,7 +103,8 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
       const llmGen = runtime.llmCaller(messages, tools, {
         signal: runtime.signal,
         sessionId: runtime.sessionId,
-        modelId: runtime.modelId
+        modelId: runtime.modelId,
+        toolChoice
       })
 
       let hasToolCall = false
@@ -232,6 +240,8 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     const missingTools = checkRequiredTools(options, toolResults)
     const missingAny = checkRequiredToolsAny(options, toolResults)
     if (missingTools.length > 0 || missingAny.length > 0) {
+      // 关键决策点日志：诊断 LLM 没调必需工具时实际输出内容
+      console.log(`[llm-decide] node=${nodeId} 必需工具未执行 toolResultsKeys=${JSON.stringify(Object.keys(toolResults))} assistantContent前200字=${assistantContent.slice(0, 200)}`)
       const reasons = [
         ...missingTools.map(t => `缺少: ${t}`),
         ...missingAny.map(t => `缺少任一: ${t}`)
@@ -258,9 +268,18 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
 function filterAllowedTools(options: LLMDecideNodeOptions, toolRegistry: any): any[] {
   const allTools = toolRegistry.getToolDefinitions()
   if (options.allowedTools.length === 0) return allTools
-  return allTools.filter((t: any) =>
+  const matched = allTools.filter((t: any) =>
     options.allowedTools.includes(t.function?.name ?? t.name)
   )
+  // 兜底：虚拟工具（如 plan_tasks）未注册到 toolRegistry 时，按 allowedTools 名字注入占位
+  // 让 LLM 收到 tool_choice 目标存在，能正确返回 function calling 而非降级为 ```json``` 文本
+  if (matched.length === 0) {
+    return options.allowedTools.map((name: string) => ({
+      type: 'function',
+      function: { name, description: `${name}（虚拟工具，由 LLM Decider 注入 schema）`, parameters: { type: 'object' } }
+    }))
+  }
+  return matched
 }
 
 /**

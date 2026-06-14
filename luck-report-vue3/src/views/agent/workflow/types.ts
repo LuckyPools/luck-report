@@ -41,6 +41,46 @@ export interface IntentAnalysisResult {
 
 import type { CompiledStateGraph } from '@langchain/langgraph'
 
+/** 任务执行状态（运行时由 Dispatcher 写） */
+export type TaskStatus = 'pending' | 'in_progress' | 'success' | 'failed' | 'skipped'
+
+/** 任务失败策略 */
+export type TaskFailPolicy = 'abort' | 'skip' | 'continue'
+
+/**
+ * 任务节点（通用抽象）
+ * 任何"动作"都是 TaskNode：
+ * - 读：read_datasources / read_datasets / read_cells ...
+ * - 写：create_datasource / modify_dataset / modify_cell ...
+ * - 收尾：summary
+ * 循环、批处理、跨组件依赖都通过 params / dependsOn 表达，不为特定场景建专用节点
+ */
+export interface TaskNode {
+  /** 任务唯一 ID（同 plan 内唯一），Planner 输出 t1/t2/... */
+  id: string
+  /** 任务动作，决定走哪个 executor */
+  action: string
+  /** 动作参数，透传给对应 executor / 子图 */
+  params?: Record<string, any>
+  /** 依赖的 task id 列表：所列任务全部 success 后本任务才可执行 */
+  dependsOn?: string[]
+  /** 失败策略：abort=中断后续 / skip=标 skipped 继续 / continue=忽略失败继续，默认 abort */
+  onFail?: TaskFailPolicy
+  /** 单任务最大重试次数（不含首次），默认 0 */
+  maxRetries?: number
+  /** 状态：运行时由 Dispatcher 写 */
+  status?: TaskStatus
+  /** 任务结果：运行时由 Dispatcher 写 */
+  result?: any
+  /** 错误信息：运行时由 Dispatcher 写 */
+  error?: string
+  /** 已重试次数：运行时由 Dispatcher 写 */
+  retryCount?: number
+}
+
+/** 任务计划 = 任务节点列表 */
+export type TaskPlan = TaskNode[]
+
 /** 节点定义元数据（用于 UI 展示） */
 export interface NodeMeta {
   type: 'node' | 'subgraph'

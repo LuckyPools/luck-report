@@ -45,6 +45,8 @@ export function createLLMCaller(
     let resolveWait: (() => void) | null = null
     let done = false
     let hasError = false
+    // 关键决策点日志：仅在首个 token 出现时打一次（避免循环高频打日志）
+    let tokenStartLogged = false
 
     /** 将事件放入队列，通知等待者 */
     const pushEvent = (event: LLMEvent) => {
@@ -61,17 +63,26 @@ export function createLLMCaller(
       return new Promise(r => { resolveWait = r })
     }
 
+    // 关键决策点日志：诊断 toolChoice / tools 实际传给 chatStream 的值
+    console.log(`[llm-caller] tools=${JSON.stringify((tools ?? []).map(t => t.function?.name ?? t.name))} toolChoice=${JSON.stringify(options?.toolChoice)}`)
     // 调用 chatStream
     chatStream(
       '',
       {
         onMessage: (data: string) => {
+          // 关键决策点日志：仅首个 token 出现时打一次（不刷屏）
+          if (!tokenStartLogged) {
+            tokenStartLogged = true
+            console.log(`[llm-caller] onMessage 首个 token 出现，长度=${data.length}`)
+          }
           pushEvent({ type: 'token', content: data })
         },
         onReasoning: (data: string) => {
           pushEvent({ type: 'reasoning', content: data })
         },
         onToolUse: (toolCall: SseToolCall) => {
+          // 关键决策点日志：诊断 LLM 是否触发了 function calling
+          console.log(`[llm-caller] onToolUse toolName=${toolCall.toolName} input=${JSON.stringify(toolCall.input)}`)
           pushEvent({
             type: 'tool_call',
             toolCallId: toolCall.toolCallId,
@@ -104,6 +115,8 @@ export function createLLMCaller(
       tools,
       options?.sessionId,
       options?.modelId
+      // 关键决策点：thinking mode 下后端禁止 tool_choice=required/object（OpenAI 限制），
+      // 传了直接 400；强制 LLM 调工具的职责改由"完整 schema + maxIterations 重试 + 系统强制提示"承担
     )
 
     // 从队列中 yield 事件

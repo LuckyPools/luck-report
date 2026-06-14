@@ -5,7 +5,7 @@
  */
 
 import { Annotation } from '@langchain/langgraph'
-import type { IntentAnalysisResult } from './types.ts'
+import type { IntentAnalysisResult, TaskNode } from './types.ts'
 
 // ==================== 字段类型定义（与自建引擎一致） ====================
 
@@ -184,6 +184,38 @@ export const ReportStateAnnotation = Annotation.Root({
 
   /** select_datasource_op 节点的工具调用结果，供 apply_datasource_type 读取 operationType */
   select_datasource_operation: Annotation<Record<string, any> | null>({
+    reducer: (a, b) => b ?? a,
+    default: () => null
+  }),
+
+  // ==================== 任务计划（TaskPlan / Dispatcher）==================
+  /** 任务计划，由 Planner 节点生成，Dispatcher 自环执行 */
+  taskPlan: Annotation<TaskNode[]>({
+    reducer: (a, b) => b ?? a,
+    default: () => []
+  }),
+  /** 任务执行结果，key 为 task id；用于 summary 节点汇总、跨任务读数据 */
+  taskResults: Annotation<Record<string, any>>({
+    reducer: (a, b) => ({ ...a, ...(b ?? {}) }),
+    default: () => ({})
+  }),
+  /** Planner 失败时的错误信息；Dispatcher 看到非空时直接进 summary */
+  plannerError: Annotation<string | null>({
+    reducer: (a, b) => b ?? a,
+    default: () => null
+  }),
+  /** 任务计划最大调度轮次（防止死循环），由主图常量传入 */
+  planMaxRounds: Annotation<number | null>({
+    reducer: (a, b) => b ?? a,
+    default: () => null
+  }),
+  /** Dispatcher 自环计数器：每轮自增 1，主图条件边据此判断是否进 summary */
+  dispatchRound: Annotation<number>({
+    reducer: (a, b) => b ?? 0,
+    default: () => 0
+  }),
+  /** 任务参数透传：Dispatcher invoke 子图前把 task.params 注入到这里，子图 LLM Decider 可读 */
+  taskParams: Annotation<Record<string, any> | null>({
     reducer: (a, b) => b ?? a,
     default: () => null
   }),
