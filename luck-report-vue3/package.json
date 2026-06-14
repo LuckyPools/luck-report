@@ -20,6 +20,8 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@langchain/core": "^1.1.49",
+    "@langchain/langgraph": "^1.4.2",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.16.1",
     "dompurify": "^3.4.7",

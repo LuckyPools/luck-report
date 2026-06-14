@@ -1,12 +1,13 @@
 /**
- * 工作流运行时配置，参照 LangGraph config.configurable 模式
+ * 工作流运行时（LangGraph 节点共享的上下文对象）
+ * 节点签名 (state, config, runtime) 中第三个参数即此对象
+ * 内置事件总线、fork 派生、LLM / 工具 / 记忆三大能力
  */
 
-import type { ToolRegistry } from '../../tools/registry'
-import type { MemoryManager } from '../../memory/memory-manager'
-import type { ContextManager } from '../../core/context-manager'
-import type { StateChannel } from './channels'
-import type { StreamEvent } from './stream-mode'
+import type { ToolRegistry } from '../tools/registry.ts'
+import type { MemoryManager } from '../memory/memory-manager.ts'
+import type { ContextManager } from '../core/context-manager.ts'
+import type { StreamEvent } from './stream-mode.ts'
 
 /**
  * LLM 调用事件
@@ -22,10 +23,10 @@ export type LLMEvent =
 
 /**
  * LLM 调用器抽象，将 chatStream 的回调式 API 适配为 AsyncGenerator 模式
- * @param messages - 对话消息列表，ContextMessage[]，不可为空
- * @param tools - 工具定义列表，any[]，可选
- * @param options - 调用选项，LLMCallOptions，可选
- * @returns LLM 事件异步生成器，AsyncGenerator<LLMEvent>
+ * @param messages - 对话消息列表，不可为空
+ * @param tools - 工具定义列表，可选
+ * @param options - 调用选项，可选
+ * @returns LLM 事件异步生成器
  */
 export type LLMCaller = (
   messages: any[],
@@ -48,7 +49,7 @@ export interface LLMCallOptions {
 }
 
 /**
- * 工作流运行时，节点执行时通过第二个参数 (state, runtime) 访问
+ * 工作流运行时，节点执行时通过第三个参数 (state, config, runtime) 访问
  */
 export class WorkflowRuntime {
   /** 工具注册表 */
@@ -63,16 +64,16 @@ export class WorkflowRuntime {
   readonly signal?: AbortSignal
   /** 工具确认回调 */
   readonly onToolConfirm?: (toolCall: any) => Promise<boolean>
-  /** 事件发射器 */
+  /** 事件回调（节点通过 emitEvent 间接调用） */
   readonly onEvent?: (event: StreamEvent) => void
   /** 会话ID */
   readonly sessionId?: string
   /** 大模型配置ID */
   readonly modelId?: number
+  /** 当前执行 ID（fork 时子 runtime 继承并扩展） */
   readonly runId: string
   /** fork 自增计数器，每次 fork() 递增，嵌入子 runId 确保 toolCallId 全局唯一 */
   private forkCounter: number = 0
-  private channelMap: Map<string, StateChannel<any>> = new Map()
 
   /**
    * 构造工作流运行时
@@ -92,34 +93,17 @@ export class WorkflowRuntime {
   }
 
   /**
-   * 发射流事件
-   * @param event - 流事件，StreamEvent，不可为空
+   * 发射流事件（节点内统一入口）
+   * @param event - 流事件，不可为空
    */
   emitEvent(event: StreamEvent): void {
     this.onEvent?.(event)
   }
 
   /**
-   * 注入当前执行的 Channel 映射
-   * @param channels - 当前执行的 Channel 映射，Map<string, StateChannel<any>>，不可为空
-   */
-  setChannelMap(channels: Map<string, StateChannel<any>>): void {
-    this.channelMap = channels
-  }
-
-  /**
-   * 按名称获取当前执行的 Channel 实例
-   * @param name - Channel 名称，string，不可为空
-   * @returns 对应 Channel 实例；未找到时返回 undefined
-   */
-  getChannel<T = any>(name: string): StateChannel<T> | undefined {
-    return this.channelMap.get(name)
-  }
-
-  /**
    * 派生一个独立的子运行时
    * fork 自增计数器并嵌入 runId，确保子图 toolCallId 全局唯一，避免多次 fork 间 ID 冲突
-   * @returns 派生的子运行时，WorkflowRuntime
+   * @returns 派生的子运行时
    */
   fork(): WorkflowRuntime {
     this.forkCounter++

@@ -1,10 +1,16 @@
-/** 工作流图通用辅助函数：文档提取 / 命名选取 / 工具调用包装 / 缓存复用 */
+/**
+ * 工作流图通用辅助函数：文档提取 / 命名选取 / 工具调用包装 / 缓存复用
+ * 业务节点通过 import { extractDocsMap, runToolWithEvent, ... } from '../utils' 使用
+ */
 
 // 兼容旧版 load_report_introduce 返回字符串的兜底分隔
 export const DOC_SEPARATOR = /\n*---- 分界线 ----\n*/
 
 /**
  * 从 load_report_introduce 工具返回结果中提取 { docName: content } 映射
+ * @param result - 工具返回的原始结果
+ * @param fallbackNames - 字符串模式的兜底 docName 列表
+ * @returns 文档名到内容的映射
  */
 export function extractDocsMap(result: any, fallbackNames?: string[]): Record<string, string> {
   if (!result) return {}
@@ -28,6 +34,8 @@ export function extractDocsMap(result: any, fallbackNames?: string[]): Record<st
 
 /**
  * 把工具返回值规范化为 LLM/UI 友好的纯文本
+ * @param result - 工具返回的原始结果
+ * @returns 纯文本，多个文档用 DOC_SEPARATOR 分隔
  */
 export function formatDocsAsText(result: any): string {
   if (!result) return ''
@@ -43,6 +51,8 @@ export function formatDocsAsText(result: any): string {
 
 /**
  * 从 search_schema 工具返回结果中提取候选数据源名
+ * @param searchResult - 搜索结果
+ * @returns 数据源名列表
  */
 export function extractSearchCandidates(searchResult: any): string[] {
   if (!searchResult) return []
@@ -59,6 +69,9 @@ export function extractSearchCandidates(searchResult: any): string[] {
 /**
  * 从候选名 + 合法 buildin 列表中确定性选一个数据源名（绕开 LLM 幻觉）
  * 无交集时返回 null，由调用方决定如何处理（提示用户、终止或回退）
+ * @param searchCandidates - 候选名列表
+ * @param legalNames - 合法数据源名列表
+ * @returns 选中的数据源名，无匹配时返回 null
  */
 export function pickDatasourceName(searchCandidates: string[], legalNames: string[]): string | null {
   if (legalNames.length === 0) return null
@@ -275,7 +288,13 @@ export function inferSqlFromTableStructures(tableStructures: any, userMessage = 
   })
 }
 
-/** 确定性找/建 buildin 数据源 */
+/**
+ * 确定性找/建 buildin 数据源
+ * @param runtime - 工作流运行时
+ * @param stepId - 节点ID，用于事件关联
+ * @param state - 工作流状态
+ * @returns 目标数据源名 / 合并后的数据源列表 / 错误列表
+ */
 export async function resolveBuildinDatasource(
   runtime: any,
   stepId: string,
@@ -356,10 +375,34 @@ export function filterActiveErrors(errors: unknown): string[] {
 }
 
 /**
+ * 统一生成 toolCallId：避免各节点/工具类各自拼接不同格式
+ * 格式：{runId_prefix}_{stepId}_{toolName}_{timestamp}_{rand4}
+ * - runId_prefix：runtime.runId 前 8 位（跨 run 区分）
+ * - stepId：节点ID
+ * - toolName：工具名
+ * - 后缀：时间戳 + 4 位随机
+ *
+ * @param stepId - 节点ID，不可为空
+ * @param toolName - 工具名，不可为空
+ * @param runId - runtime.runId，可选（无则只保 4 段）
+ * @returns 工具调用ID
+ */
+export function buildToolCallId(stepId: string, toolName: string, runId?: string): string {
+  const rand = Math.random().toString(36).slice(2, 6)
+  const prefix = runId ? `${runId.slice(0, 8)}_` : ''
+  return `${prefix}${stepId}_${toolName}_${Date.now()}_${rand}`
+}
+
+/**
  * 通用工具调用包装：发"工具调用"事件 → 执行 → 发"工具结果"事件
+ * @param runtime - 工作流运行时
+ * @param stepId - 节点ID（事件关联用）
+ * @param toolName - 工具名
+ * @param input - 工具入参
+ * @returns 工具返回结果
  */
 export async function runToolWithEvent<T>(runtime: any, stepId: string, toolName: string, input: any): Promise<T> {
-  const toolCallId = `${stepId}_${toolName}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+  const toolCallId = buildToolCallId(stepId, toolName, runtime?.runId)
   runtime?.emitEvent({
     mode: 'updates',
     event: { nodeId: stepId, output: { type: 'tool_call', toolCallId, toolName, input }, status: 'running' },

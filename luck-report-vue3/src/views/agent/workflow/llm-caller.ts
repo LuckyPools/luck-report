@@ -1,23 +1,21 @@
 /**
  * chatStream 适配器
  * 将回调式 chatStream API 包装为 LLMCaller（AsyncGenerator<LLMEvent>）
- *
- * 适配层：新架构的 LLMDecideNode 需要 AsyncGenerator 接口，
- * 而现有 chatStream 是 SSE 流式 + 回调式 API
+ * LLM 决策节点通过 runtime.llmCaller 调用，输出与 LangGraph 工具调用解耦
  */
 
 import { chatStream, type ContextMessage, type SseToolCall } from '@/api/chat'
-import type { LLMCaller, LLMEvent, LLMCallOptions } from '../runtime.ts'
-import type { MemoryManager } from '../../../memory/memory-manager.ts'
-import type { ContextManager } from '../../../core/context-manager.ts'
+import type { LLMCaller, LLMEvent, LLMCallOptions } from './runtime.ts'
+import type { MemoryManager } from '../memory/memory-manager.ts'
+import type { ContextManager } from '../core/context-manager.ts'
 
 /**
  * 创建 LLM 调用器
  * 将 chatStream 回调式 API 包装为 AsyncGenerator<LLMEvent>
  *
- * @param memoryManager - 记忆管理器，用于读写消息历史，MemoryManager，不可为空
- * @param contextManager - 上下文管理器，用于构建系统提示词，ContextManager，不可为空
- * @returns LLM 调用器函数，LLMCaller
+ * @param memoryManager - 记忆管理器，用于读写消息历史，不可为空
+ * @param contextManager - 上下文管理器，用于构建系统提示词，不可为空
+ * @returns LLM 调用器函数
  */
 export function createLLMCaller(
   memoryManager: MemoryManager,

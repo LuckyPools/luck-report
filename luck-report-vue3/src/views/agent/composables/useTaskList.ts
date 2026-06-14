@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import type { Task } from '../tools/types'
-import type { WorkflowStepRecord } from '../workflow/graph'
+import type { WorkflowStepRecord } from '../workflow/state.ts'
 
 /**
  * 任务列表管理 Hook，负责 Task 对象的创建、更新、查询

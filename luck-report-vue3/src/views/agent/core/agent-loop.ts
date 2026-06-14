@@ -8,14 +8,17 @@ import type { MemoryManager } from '../memory/memory-manager'
 import type { ContextManager } from './context-manager'
 import type { ReportSnapshot } from '../memory/types'
 import type { TokenUsage } from '@/api/chat'
-import type { WorkflowStepRecord } from '../workflow/graph'
+import type { WorkflowStepRecord } from '../workflow/state.ts'
 import type { IntentAnalysisResult } from '../workflow/types'
 import { chatStream, type ContextMessage, type SseToolCall } from '@/api/chat'
 import { getIntentAnalysisPrompt, INTENT_ANALYSIS_SCHEMA, buildIntentAnalysisTools, buildIntentToolChoice, INTENT_TOOL_NAME } from '../workflow/intent-prompt'
-import { WorkflowRuntime } from '../workflow/graph/runtime'
-import { createLLMCaller } from '../workflow/graph/llm/llm-caller-adapter.ts'
-import { getGraphByIntent } from '../workflow/graph/workflow-graphs'
-import type { StreamEvent } from '../workflow/graph/stream-mode'
+import { WorkflowRuntime } from '../workflow/runtime.ts'
+import { createLLMCaller } from '../workflow/llm-caller.ts'
+import { getGraphByIntent } from '../workflow/workflow-graphs.ts'
+import { getCompiledNodeNames, getCompiledNode } from '../workflow/wrapper.ts'
+import { runtimeToContext } from '../workflow/context-annotation.ts'
+import { filterActiveErrors } from '../workflow/utils.ts'
+import type { StreamEvent } from '../workflow/stream-mode.ts'
 
 /**
  * Agent 循环事件类型
@@ -156,9 +159,26 @@ async function runWorkflowMode(
       sessionId: config.sessionId,
       modelId: config.modelId,
       onEvent: (streamEvent: StreamEvent) => {
-        const agentEvents = convertStreamEventToAgentEvent(streamEvent, stepToolCallIdMap)
-        for (const evt of agentEvents) {
-          onEvent(evt)
+        // 节点内 emitEvent 发出的事件直接转换为 AgentEvent
+        if (streamEvent.mode === 'updates') {
+          const data = streamEvent.event as any
+          const output = data.output ?? {}
+          if (output.type === 'step_progress') {
+            onEvent({ type: 'text_delta', content: output.message ?? '' })
+          } else if (output.type === 'step_reasoning') {
+            onEvent({ type: 'reasoning_delta', content: output.content ?? '' })
+          } else if (output.type === 'tool_call') {
+            const toolCallId = output.toolCallId || `wf_${data.nodeId}_${output.toolName}`
+            stepToolCallIdMap.set(output.toolCallId || data.nodeId, toolCallId)
+            onEvent({ type: 'tool_call_start', toolCall: { toolCallId, toolName: output.toolName ?? '', input: output.input, status: 'running' } })
+          } else if (output.type === 'tool_result') {
+            const toolCallId = output.toolCallId
+              ? (stepToolCallIdMap.get(output.toolCallId) || output.toolCallId)
+              : (stepToolCallIdMap.get(data.nodeId) || `wf_${data.nodeId}_${output.toolName}`)
+            onEvent({ type: 'tool_call_result', toolCall: { toolCallId, toolName: output.toolName ?? '', input: {}, status: output.error ? 'error' : 'done', result: output.result, error: output.error } })
+          } else if (data.status === 'failed') {
+            onEvent({ type: 'text_delta', content: `  错误: ${data.error ?? '未知错误'}\n` })
+          }
         }
       }
     })
@@ -170,16 +190,13 @@ async function runWorkflowMode(
     }
     console.log(`[DEBUG][agent-loop] 阶段3 流式执行 graphInput=${Object.keys(graphInput).join(',')}`)
 
-    const nodeNames = compiledGraph.getNodeNames()
+    const nodeNames = getCompiledNodeNames(compiledGraph)
     for (const nodeName of nodeNames) {
       if (nodeName.startsWith('__')) continue
-      const nodeDef = compiledGraph.getNode(nodeName)
-      if (nodeDef?.skipWhen && nodeDef.skipWhen(graphInput)) {
-        continue
-      }
+      const nodeDef = getCompiledNode(compiledGraph, nodeName)
       stepRecords.push({
         stepId: nodeName,
-        stepName: nodeDef?.metadata?.description ?? nodeName,
+        stepName: nodeDef?.description ?? nodeName,
         status: 'pending',
         retryCount: 0
       })
@@ -190,32 +207,40 @@ async function runWorkflowMode(
     let hasError = false
     let errorMessage = ''
 
-    for await (const streamEvent of compiledGraph.stream(graphInput, {
-      configurable: { runtime },
+    const stream = await compiledGraph.stream(graphInput, {
+      context: runtimeToContext(runtime),
       signal,
-      recursionLimit: 25
-    })) {
-      if (streamEvent.mode === 'updates') {
-        const data = streamEvent.event as any
-        const record = stepRecords.find(r => r.stepId === data.nodeId)
-        if (record) {
-          if (data.status === 'running' && record.status === 'pending') {
-            record.status = 'in_progress'
-          } else if (data.status === 'success') {
-            record.status = 'completed'
-          } else if (data.status === 'failed') {
-            record.status = 'error'
-            record.error = data.error
+      recursionLimit: 25,
+      streamMode: 'updates'
+    })
+
+    for await (const chunk of stream) {
+      // chunk 格式：{ [nodeName]: { ...output } }
+      const nodeNames = Object.keys(chunk)
+      for (const nodeName of nodeNames) {
+        if (nodeName.startsWith('__')) continue
+        const output = chunk[nodeName]
+        const record = stepRecords.find(r => r.stepId === nodeName)
+        if (record && record.status === 'pending') {
+          record.status = 'completed'
+        }
+        // 检查节点输出中的错误
+        if (output?.errors) {
+          const childErrors = filterActiveErrors(output.errors)
+          if (childErrors.length > 0) {
+            if (record) {
+              record.status = 'error'
+              record.error = childErrors.join('; ')
+            }
             hasError = true
-            errorMessage = data.error ?? ''
-          } else if (data.status === 'skipped') {
-            record.status = 'cancelled'
+            errorMessage = childErrors.join('; ')
           }
         }
-        config.onStepRecordsChange?.([...stepRecords], data.nodeId)
+        config.onStepRecordsChange?.([...stepRecords], nodeName)
       }
 
-      const agentEvents = convertStreamEventToAgentEvent(streamEvent, stepToolCallIdMap)
+      // 将 LangGraph 原始 chunk 转换为 AgentEvent
+      const agentEvents = convertChunkToAgentEvents(chunk, stepToolCallIdMap)
       for (const evt of agentEvents) {
         onEvent(evt)
       }
@@ -384,29 +409,33 @@ function parseIntentJson(text: string): IntentAnalysisResult {
 // ==================== 事件适配 ====================
 
 /**
- * 将新架构 StreamEvent 转换为 AgentEvent
- * @param streamEvent - 新架构流事件，StreamEvent，不可为空
+ * 将 LangGraph stream chunk 转换为 AgentEvent
+ * chunk 格式：{ [nodeName]: { ...output } }
+ * 节点通过 runtime.emitEvent 发出的事件已由 runtime.onEvent 直接处理
+ * 这里只处理节点输出的结构化信息（step_progress / tool_call / tool_result 等）
+ *
+ * @param chunk - LangGraph stream chunk，Record<string, any>，不可为空
  * @param toolCallIdMap - toolCallId 映射表，Map<string, string>，不可为空
  * @returns Agent 事件数组，AgentEvent[]
  */
-function convertStreamEventToAgentEvent(
-  streamEvent: StreamEvent,
+function convertChunkToAgentEvents(
+  chunk: Record<string, any>,
   toolCallIdMap: Map<string, string>
 ): AgentEvent[] {
   const results: AgentEvent[] = []
 
-  if (streamEvent.mode === 'updates') {
-    const data = streamEvent.event as any
-    const output = data.output ?? {}
+  for (const [nodeName, output] of Object.entries(chunk)) {
+    if (nodeName.startsWith('__') || !output || typeof output !== 'object') continue
 
-    // 根据输出中的 type 字段判断事件类型
+    // 节点输出中可能包含 emitEvent 发出的事件记录
+    // 也可能包含结构化的 step_progress / tool_call / tool_result
     if (output.type === 'step_progress') {
       results.push({ type: 'text_delta', content: output.message ?? '' })
     } else if (output.type === 'step_reasoning') {
       results.push({ type: 'reasoning_delta', content: output.content ?? '' })
     } else if (output.type === 'tool_call') {
-      const toolCallId = output.toolCallId || `wf_${data.nodeId}_${output.toolName}`
-      toolCallIdMap.set(output.toolCallId || data.nodeId, toolCallId)
+      const toolCallId = output.toolCallId || `wf_${nodeName}_${output.toolName}`
+      toolCallIdMap.set(output.toolCallId || nodeName, toolCallId)
       results.push({
         type: 'tool_call_start',
         toolCall: {
@@ -419,7 +448,7 @@ function convertStreamEventToAgentEvent(
     } else if (output.type === 'tool_result') {
       const toolCallId = output.toolCallId
         ? (toolCallIdMap.get(output.toolCallId) || output.toolCallId)
-        : (toolCallIdMap.get(data.nodeId) || `wf_${data.nodeId}_${output.toolName}`)
+        : (toolCallIdMap.get(nodeName) || `wf_${nodeName}_${output.toolName}`)
       results.push({
         type: 'tool_call_result',
         toolCall: {
@@ -431,8 +460,6 @@ function convertStreamEventToAgentEvent(
           error: output.error
         }
       })
-    } else if (data.status === 'failed') {
-      results.push({ type: 'text_delta', content: `  错误: ${data.error ?? '未知错误'}\n` })
     }
   }
 

@@ -32,3 +32,25 @@ export interface IntentAnalysisResult {
   /** 任务描述，供后续步骤的 LLM 参考 */
   taskDescription: string
 }
+
+
+/**
+ * LangGraph 适配层类型定义
+ * 业务代码直接复用 LangGraph CompiledStateGraph 类型，不再自定义
+ */
+
+import type { CompiledStateGraph } from '@langchain/langgraph'
+
+/** 节点定义元数据（用于 UI 展示） */
+export interface NodeMeta {
+  type: 'node' | 'subgraph'
+  description?: string
+  /** 节点是否可跳过（运行时由 skipWhen 决定；此字段仅在静态构建期已知） */
+  skippable?: boolean
+}
+
+/** 编译后图统一接口 = LangGraph CompiledStateGraph（适配器已删除） */
+export type CompiledReportGraph = CompiledStateGraph<any, any, any, any, any, any, any, any, any, any>
+
+/** 自建图（legacy）和 LangGraph 图（new）的工厂统一签名 */
+export type CompiledGraphFactory = () => CompiledReportGraph
