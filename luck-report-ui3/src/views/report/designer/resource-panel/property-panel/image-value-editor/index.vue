@@ -2,396 +2,359 @@
   <div class="image-value-editor" ref="container">
 
     <div class="property-quote">
-      {{ $t('property.image.config') }}
+      {{ t('property.image.config') }}
     </div>
 
-    <u-form :label-width="100" labelPosition="left">
-      <u-form-item class="property-label" :label="$t('property.image.width') + '(px)'">
-        <u-input-number
-          :placeholder="$t('property.image.widthPlaceholder')"
-          v-model="width"
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form-item class="property-label" :label="t('property.image.width') + '(px)'">
+        <a-input-number
+          :placeholder="t('property.image.widthPlaceholder')"
+          v-model:value="width"
           :min="1"
           @change="handleWidthChange"
         />
-      </u-form-item>
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.image.height') + '(px)'">
-        <u-input-number
-          :placeholder="$t('property.image.heightPlaceholder')"
-          v-model="height"
+      <a-form-item class="property-label" :label="t('property.image.height') + '(px)'">
+        <a-input-number
+          :placeholder="t('property.image.heightPlaceholder')"
+          v-model:value="height"
           :min="1"
           @change="handleHeightChange"
         />
-      </u-form-item>
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.image.source')">
-        <u-select
-          v-model="source"
+      <a-form-item class="property-label" :label="t('property.image.source')">
+        <a-select
+          v-model:value="source"
           style="width: 250px"
+          :options="sourceOptions"
           @change="handleSourceChange"
-        >
-          <u-option
-            v-for="option in sourceOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.image.expand')" v-show="source === 'expression'">
-        <u-radio-group
-          v-model="expand"
+      <a-form-item class="property-label" :label="t('property.image.expand')" v-show="source === 'expression'">
+        <a-radio-group
+          v-model:value="expand"
           @change="handleExpandChange"
         >
-          <u-radio
-            v-for="option in [
-              { value: 'Down', label: $t('property.image.down') },
-              { value: 'Right', label: $t('property.image.right') },
-              { value: 'None', label: $t('property.image.noneExpand') }
-            ]"
+          <a-radio
+            v-for="option in expandOptions"
             :key="option.value"
-            :label="option.value"
+            :value="option.value"
           >
             {{ option.label }}
-          </u-radio>
-        </u-radio-group>
-      </u-form-item>
+          </a-radio>
+        </a-radio-group>
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('property.image.p')" v-show="source === 'text'">
-        <u-input
-          :title="$t('property.image.tip')"
-          :placeholder="$t('property.image.tip')"
-          :clearable="true"
+      <a-form-item class="property-label" :label="t('property.image.p')" v-show="source === 'text'">
+        <a-input
+          :title="t('property.image.tip')"
+          :placeholder="t('property.image.tip')"
+          allow-clear
           style="width: 250px;"
-          v-model="path"
+          v-model:value="path"
           @blur="handlePathChange"
         />
-      </u-form-item>
+      </a-form-item>
 
       <div v-show="source === 'expression'">
-        <u-form-item class="property-label" :label="$t('property.image.expr')">
-        </u-form-item>
+        <a-form-item class="property-label" :label="t('property.image.expr')">
+        </a-form-item>
         <div style="border: solid 1px #eeeeee;">
           <textarea ref="codeEditor"></textarea>
         </div>
       </div>
-    </u-form>
+    </a-form>
   </div>
 </template>
 
-<script>
-import CodeMirror from 'codemirror';
-import 'codemirror/addon/hint/show-hint.js';
-import 'codemirror/addon/lint/lint.js';
-import { setDirty } from '@/utils/table.js';
-import { scriptValidation } from '@/api/designer/index.js';
-import UForm from "@/components/form/index.vue";
-import UFormItem from "@/components/form-item/index.vue";
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import UInput from '@/components/input/index.vue';
-import { showAlert } from '@/utils/comnon.js';
-import { deepCopy } from '@/components/utils/index.js';
-import { mapGetters, mapActions } from 'vuex';
-import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager';
+<script setup lang="ts">
+/**
+ * ImageValueEditor 图片值编辑器（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. cellPosition 变化或 isCellUpdate=true → loadCellData 回填
+ * 2. source=text → 直接编辑 path；source=expression → CodeMirror 编辑 value.value
+ * 3. width/height/source/path/expand 写回 cellDef.value
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UForm/UFormItem/USelect/UOption/URadioGroup/URadio/UInputNumber/UInput（自定义）→ a-form/a-form-item/a-select/a-radio-group/a-radio/a-input-number/a-input
+ * - a-input-number 的 v-model:value 是 number|null
+ * - this.$refs.codeEditor → ref<HTMLTextAreaElement | null>(null)
+ * - Vuex mapGetters/mapActions → useReportStore (Pinia)
+ */
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import CodeMirror from 'codemirror'
+import 'codemirror/addon/hint/show-hint.js'
+import 'codemirror/addon/lint/lint.js'
+import { setDirty } from '@/utils/table'
+import { scriptValidation } from '@/api/designer'
+import { showAlert } from '@/utils/comnon'
+import { deepCopy } from '@/utils/comnon'
+import { getCell, setCell } from '@/utils/contextActions'
+import TableManager from '@/views/report/designer/edit-table/manager'
+import { useReportStore } from '@/store/modules/report'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ImageValueEditor',
-  components: {
-    UForm,
-    UFormItem,
-    USelect,
-    UOption,
-    URadioGroup,
-    URadio,
-    UInputNumber,
-    UInput
-  },
-  props: {
-    rowIndex: {
-      type: Number,
-      default: 0
-    },
-    colIndex: {
-      type: Number,
-      default: 0
-    },
-    row2Index: {
-      type: Number,
-      default: 0
-    },
-    col2Index: {
-      type: Number,
-      default: 0
+defineOptions({ name: 'ImageValueEditor' })
+
+
+const { t } = useI18n()
+interface SelectOption {
+  value: string
+  label: string
+}
+
+const props = withDefaults(
+  defineProps<{
+    rowIndex?: number
+    colIndex?: number
+    row2Index?: number
+    col2Index?: number
+  }>(),
+  {
+    rowIndex: 0,
+    colIndex: 0,
+    row2Index: 0,
+    col2Index: 0
+  }
+)
+
+const reportStore = useReportStore()
+
+// ====== 状态 ======
+const codeMirror = ref<any>(null)
+const loadingCellData = ref<boolean>(false)
+const width = ref<number | null>(null)
+const height = ref<number | null>(null)
+const source = ref<string>('text')
+const path = ref<string>('')
+const expand = ref<string>('None')
+const codeEditorRef = ref<HTMLTextAreaElement | null>(null)
+
+// ====== 来自 store ======
+const context = computed(() => reportStore.getContext)
+const isCellUpdate = computed(() => reportStore.getIsCellUpdate)
+
+// ====== 选项 ======
+const sourceOptions = computed<SelectOption[]>(() => [
+  { value: 'text', label: t('property.image.path') },
+  { value: 'expression', label: t('property.image.expr') }
+])
+
+const expandOptions = computed<SelectOption[]>(() => [
+  { value: 'Down', label: t('property.image.down') },
+  { value: 'Right', label: t('property.image.right') },
+  { value: 'None', label: t('property.image.noneExpand') }
+])
+
+const cellPosition = computed<string>(() => `${props.rowIndex},${props.colIndex}`)
+
+/** 构建 CodeMirror 脚本校验函数 */
+const buildScriptLintFunction = () => {
+  return async (text: string, updateLinting: any, options: any, editor: any) => {
+    if (text === '') {
+      updateLinting(editor, [])
+      return
     }
-  },
-  computed: {
-    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
-    context() {
-      return this.getContext;
-    },
-    isCellUpdate() {
-      return this.getIsCellUpdate;
-    },
-    sourceOptions() {
-      return [
-        { value: 'text', label: this.$t('property.image.path') },
-        { value: 'expression', label: this.$t('property.image.expr') }
-      ];
-    },
-    cellPosition() {
-      return `${this.rowIndex},${this.colIndex}`;
+    if (!text || text === '') {
+      return
     }
-  },
-  data() {
-    return {
-      codeMirror: null,
-      loadingCellData: false,
-      width: '',
-      height: '',
-      source: 'text',
-      path: '',
-      expand: 'None'
-    };
-  },
-  watch: {
-    cellPosition: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
-      }
-    },
-    isCellUpdate: {
-      handler(newVal) {
-        if (newVal) {
-          this.loadCellData();
-          this.setCellUpdate(false);
+
+    try {
+      const result = await scriptValidation(text)
+      if (result) {
+        for (const item of result) {
+          item.from = { line: item.line - 1 }
+          item.to = { line: item.line - 1 }
         }
-      }
-    }
-  },
-  beforeDestroy() {
-    if (this.codeMirror) {
-      this.codeMirror.toTextArea();
-      this.codeMirror = null;
-    }
-  },
-  methods: {
-    ...mapActions('report', ['setCellUpdate']),
-    /**
-     * 初始化代码编辑器
-     */
-    initCodeEditor() {
-      const textarea = this.$refs.codeEditor;
-      if (!textarea) return;
-
-      this.codeMirror = CodeMirror.fromTextArea(textarea, {
-        mode: 'javascript',
-        lineNumbers: true,
-        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lint: {
-          getAnnotations: this.buildScriptLintFunction(),
-          async: true
-        }
-      });
-
-      this.$nextTick(() => {
-        if (this.codeMirror) {
-          this.codeMirror.refresh();
-        }
-      });
-      this.codeMirror.setSize('auto', '120px');
-
-      this.codeMirror.on('change', (cm, changes) => {
-        if (this.loadingCellData) return;
-        const expr = cm.getValue();
-        if (expr === 'undefined' || expr === undefined || expr === null) {
-          return;
-        }
-        const cellDef = getCell(this.rowIndex, this.colIndex);
-        if (cellDef && cellDef.value) {
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.value.value = expr;
-          setCell( this.rowIndex, this.colIndex, newCellDef );
-        }
-        setDirty();
-      });
-
-      this.loadCellData();
-    },
-
-    /**
-     * 加载单元格数据
-     */
-    loadCellData() {
-      const currentCellDef = getCell(this.rowIndex, this.colIndex);
-      if (!currentCellDef || !currentCellDef.value) return;
-
-      this.width = currentCellDef.value.width || '';
-      this.height = currentCellDef.value.height || '';
-      this.source = currentCellDef.value.source || 'text';
-
-      this.path = '';
-      if (this.source === 'text') {
-        this.path = currentCellDef.value.value || '';
+        updateLinting(editor, result)
       } else {
-        if (this.codeMirror) {
-          let valueToSet = currentCellDef.value.value || '';
-          if (valueToSet === 'undefined') {
-            valueToSet = '';
-          }
-          this.loadingCellData = true;
-          this.codeMirror.setValue(valueToSet);
-          this.loadingCellData = false;
-        }
+        updateLinting(editor, [])
       }
-
-      this.expand = currentCellDef.expand || 'None';
-
-      this.$nextTick(() => {
-        if (this.source === 'expression' && !this.codeMirror) {
-          this.initCodeEditor();
-        } else if (this.source === 'expression' && this.codeMirror) {
-          let valueToSet = currentCellDef.value.value || '';
-          if (valueToSet === 'undefined') {
-            valueToSet = '';
-          }
-          this.loadingCellData = true;
-          this.codeMirror.setValue(valueToSet);
-          this.loadingCellData = false;
-        }
-      });
-    },
-
-    /**
-     * 构建脚本校验函数
-     */
-    buildScriptLintFunction() {
-      return async (text, updateLinting, options, editor) => {
-        if (text === '') {
-          updateLinting(editor, []);
-          return;
-        }
-        if (!text || text === '') {
-          return;
-        }
-
-        try {
-          const result = await scriptValidation(text);
-          if (result) {
-            for (let item of result) {
-              item.from = { line: item.line - 1 };
-              item.to = { line: item.line - 1 };
-            }
-            updateLinting(editor, result);
-          } else {
-            updateLinting(editor, []);
-          }
-        } catch (error) {
-          console.error('Script validation error:', error);
-          showAlert(this.$t('property.base.syntaxError'));
-        }
-      };
-    },
-
-    /**
-     * 处理宽度变化
-     */
-    handleWidthChange() {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (cellDef && cellDef.value) {
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.value.width = this.width;
-        setCell( this.rowIndex, this.colIndex, newCellDef );
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理高度变化
-     */
-    handleHeightChange() {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (cellDef && cellDef.value) {
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.value.height = this.height;
-        setCell( this.rowIndex, this.colIndex, newCellDef );
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理图片来源变化
-     */
-    handleSourceChange() {
-
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (cellDef && cellDef.value) {
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.value.source = this.source;
-        setCell( this.rowIndex, this.colIndex, newCellDef );
-      }
-
-      if (this.source === 'expression' && !this.codeMirror) {
-        this.$nextTick(() => {
-          this.initCodeEditor();
-        });
-      }
-
-      setDirty();
-    },
-
-    /**
-     * 处理路径变化
-     */
-    handlePathChange() {
-      if (this.path){
-        this.path = this.path.trim()
-      }
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (cellDef && cellDef.value) {
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.value.value = this.path;
-        setCell( this.rowIndex, this.colIndex, newCellDef );
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理展开选项变化
-     */
-    handleExpandChange(expand) {
-      const hot = TableManager.get();
-      if (!hot) return;
-      this.expand = expand;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) continue;
-
-          const type = cellDef.value.type;
-          if (type === 'dataset' || type === 'expression' || type === 'image') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.expand = expand;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      hot.render();
-      setDirty();
+    } catch (error) {
+      console.error('Script validation error:', error)
+      showAlert(t('property.base.syntaxError'))
     }
   }
-};
+}
+
+/** 初始化 CodeMirror */
+const initCodeEditor = (): void => {
+  const textarea = codeEditorRef.value
+  if (!textarea) return
+
+  codeMirror.value = CodeMirror.fromTextArea(textarea, {
+    mode: 'javascript',
+    lineNumbers: true,
+    gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+    lint: {
+      getAnnotations: buildScriptLintFunction(),
+      async: true
+    }
+  })
+
+  nextTick(() => {
+    if (codeMirror.value) {
+      codeMirror.value.refresh()
+    }
+  })
+  codeMirror.value.setSize('auto', '120px')
+
+  codeMirror.value.on('change', (cm: any) => {
+    if (loadingCellData.value) return
+    const expr = cm.getValue()
+    if (expr === 'undefined' || expr === undefined || expr === null) {
+      return
+    }
+    const cellDef = getCell(props.rowIndex, props.colIndex)
+    if (cellDef && cellDef.value) {
+      const newCellDef = deepCopy(cellDef)
+      newCellDef.value.value = expr
+      setCell(props.rowIndex, props.colIndex, newCellDef)
+    }
+    setDirty()
+  })
+
+  loadCellData()
+}
+
+/** 加载单元格数据 */
+const loadCellData = (): void => {
+  const currentCellDef = getCell(props.rowIndex, props.colIndex)
+  if (!currentCellDef || !currentCellDef.value) return
+
+  width.value = currentCellDef.value.width ?? null
+  height.value = currentCellDef.value.height ?? null
+  source.value = currentCellDef.value.source || 'text'
+
+  path.value = ''
+  if (source.value === 'text') {
+    path.value = currentCellDef.value.value || ''
+  } else {
+    if (codeMirror.value) {
+      let valueToSet = currentCellDef.value.value || ''
+      if (valueToSet === 'undefined') {
+        valueToSet = ''
+      }
+      loadingCellData.value = true
+      codeMirror.value.setValue(valueToSet)
+      loadingCellData.value = false
+    }
+  }
+
+  expand.value = currentCellDef.expand || 'None'
+
+  nextTick(() => {
+    if (source.value === 'expression' && !codeMirror.value) {
+      initCodeEditor()
+    } else if (source.value === 'expression' && codeMirror.value) {
+      let valueToSet = currentCellDef.value.value || ''
+      if (valueToSet === 'undefined') {
+        valueToSet = ''
+      }
+      loadingCellData.value = true
+      codeMirror.value.setValue(valueToSet)
+      loadingCellData.value = false
+    }
+  })
+}
+
+watch(cellPosition, () => {
+  loadCellData()
+}, { immediate: true })
+
+watch(isCellUpdate, (newVal) => {
+  if (newVal) {
+    loadCellData()
+    reportStore.setCellUpdate(false)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (codeMirror.value) {
+    codeMirror.value.toTextArea()
+    codeMirror.value = null
+  }
+})
+
+const handleWidthChange = (): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.value) {
+    const newCellDef = deepCopy(cellDef)
+    newCellDef.value.width = width.value
+    setCell(props.rowIndex, props.colIndex, newCellDef)
+  }
+  setDirty()
+}
+
+const handleHeightChange = (): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.value) {
+    const newCellDef = deepCopy(cellDef)
+    newCellDef.value.height = height.value
+    setCell(props.rowIndex, props.colIndex, newCellDef)
+  }
+  setDirty()
+}
+
+const handleSourceChange = (): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.value) {
+    const newCellDef = deepCopy(cellDef)
+    newCellDef.value.source = source.value
+    setCell(props.rowIndex, props.colIndex, newCellDef)
+  }
+
+  if (source.value === 'expression' && !codeMirror.value) {
+    nextTick(() => {
+      initCodeEditor()
+    })
+  }
+
+  setDirty()
+}
+
+const handlePathChange = (): void => {
+  if (path.value) {
+    path.value = path.value.trim()
+  }
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.value) {
+    const newCellDef = deepCopy(cellDef)
+    newCellDef.value.value = path.value
+    setCell(props.rowIndex, props.colIndex, newCellDef)
+  }
+  setDirty()
+}
+
+const handleExpandChange = (val: string): void => {
+  const hot = TableManager.get()
+  if (!hot) return
+  expand.value = val
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j)
+      if (!cellDef) continue
+
+      const type = cellDef.value?.type
+      if (type === 'dataset' || type === 'expression' || type === 'image') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.expand = val
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  hot.render()
+  setDirty()
+}
 </script>
 
 <style scoped>
+.image-value-editor {
+  width: 100%;
+}
 </style>
-
-
-
-

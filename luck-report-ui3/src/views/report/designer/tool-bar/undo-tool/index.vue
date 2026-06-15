@@ -1,32 +1,50 @@
 <template>
-  <u-button
-      :title="$t('tools.undo.undo')"
-      class="tool-button"
-      icon="icon-undo"
-      @click="handleClick"
+  <a-button
+    :title="t('tools.undo.undo')"
+    type="text"
+    class="tool-button"
+    @click="handleClick"
   >
-  </u-button>
+    <template #icon>
+      <i class="iconfont icon-undo"></i>
+    </template>
+  </a-button>
 </template>
 
-<script>
-import { undoManager } from '@/utils/table.js';
-import { showAlert } from '@/utils/comnon.js';
-import UButton from "@/components/button/index.vue";
+<script setup lang="ts">
+/**
+ * UndoTool 撤销工具（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. handleClick → undoManager.undo()
+ * 2. 若无可撤销 → 弹提示
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UButton（自定义）→ a-button + 模板内 icon 槽
+ * - 移除 $emit，本组件无对外事件
+ */
+import { undoManager } from '@/utils/table'
+import { showAlert } from '@/utils/comnon'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'UndoTool',
-  components: {UButton},
-  methods: {
-    handleClick() {
-      if (undoManager.hasUndo()) {
-        undoManager.undo();
-      } else {
-        showAlert(this.$t('tools.undo.noUndo'));
-      }
-    }
+defineOptions({ name: 'UndoTool' })
+
+
+const { t } = useI18n()
+/** 撤销或提示无内容可撤销 */
+function handleClick(): void {
+  if (undoManager.hasUndo()) {
+    undoManager.undo()
+  } else {
+    showAlert(t('tools.undo.noUndo'))
   }
-};
+}
 </script>
 
 <style scoped>
+.tool-button {
+  font-size: 16px;
+  margin: 7px 0;
+}
 </style>

@@ -17,7 +17,7 @@
  * - value / cellDef 类型为 unknown，由函数内做窄化
  * - CrossTabWidget / ChartWidget 暂为 .js（依赖阶段 1.4 迁完后再收紧类型）
  */
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class';
 import ChartWidget from '@/views/report/designer/edit-table/chart-widget/class';
 import chartWidgetManager from '@/views/report/designer/edit-table/chart-widget/manager';
@@ -122,14 +122,14 @@ export function afterRenderer(
       td.innerHTML = tip
     }
   } else if (valueType === 'image') {
-    tip = $t('table.render.image') + (cellValue.value || '')
+    tip = i18n.global.t('table.render.image') + (cellValue.value || '')
     const image = document.createElement('img')
     image.src = imageIcon
     image.width = 20
     emptyElement(td)
     td.appendChild(image)
   } else if (valueType === 'slash') {
-    tip = $t('table.render.slash')
+    tip = i18n.global.t('table.render.slash')
     const widgetKey = `${row}_${col}`
     const slashNames = (cellValue.slashes || []).map(s => s.text)
     const valueString = slashNames.join('|')
@@ -144,9 +144,9 @@ export function afterRenderer(
     }
   } else if (valueType === 'zxing') {
     let imagePath = qrcodeIcon
-    tip = $t('table.render.qrcode')
+    tip = i18n.global.t('table.render.qrcode')
     if (cellValue.category === 'barcode') {
-      tip = $t('table.render.barcode')
+      tip = i18n.global.t('table.render.barcode')
       imagePath = barcodeIcon
     }
     const width = cellValue.width
@@ -158,7 +158,7 @@ export function afterRenderer(
     emptyElement(td)
     td.appendChild(image)
   } else if (valueType === 'chart') {
-    tip = $t('table.render.chart')
+    tip = i18n.global.t('table.render.chart')
     const widgetKey = `${row}_${col}`
     const context = getContext() as ReportContext | null
     if (!context) return

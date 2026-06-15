@@ -2,12 +2,12 @@
  * Created by Jacky.gao on 2016/7/27.
  */
 import UndoManager from 'undo-manager';
-import MessageBox from '@/components/messagebox/instance';
+import MessageBox from '@/utils/messagebox';
 import { useReportStore } from '@/store/modules/report';
 import {getCell, getCellName} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager';
 import { getUrlQueryString } from '@/utils/url';
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import type { ReportCell } from '@/types/report-def'
 import type { HandsontableInstance } from '@/types/handsontable'
 
@@ -177,13 +177,13 @@ export function tableToXml(context: any): string {
             if(value.type==='dataset'){
                 let msg=null;
                 if(!value.datasetName){
-                    msg=$t('validation.cell.datasetNameRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.datasetNameRequired', { cell: cellName });
                 }
                 if(!msg && !value.property){
-                    msg=$t('validation.cell.propertyRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.propertyRequired', { cell: cellName });
                 }
                 if(!msg && !value.aggregate){
-                    msg=$t('validation.cell.aggregateRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.aggregateRequired', { cell: cellName });
                 }
                 if(msg){
                     MB.alert(msg);
@@ -224,7 +224,7 @@ export function tableToXml(context: any): string {
                 cellXml+=`</dataset-value>`;
             }else if(value.type==='expression'){
                 if(!value.value || value.value===''){
-                    const msg=$t('validation.cell.expressionRequired', { cell: cellName });
+                    const msg=i18n.global.t('validation.cell.expressionRequired', { cell: cellName });
                     MB.alert(msg);
                     throw msg;
                 }
@@ -238,10 +238,10 @@ export function tableToXml(context: any): string {
             }else if(value.type==='image'){
                 let msg=null;
                 if(value.source==='text' && (!value.value || value.value.trim()==='')){
-                    msg=$t('validation.cell.imagePathRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.imagePathRequired', { cell: cellName });
                 }
                 if(value.source==='expression' && (!value.value || value.value.trim()==='')){
-                    msg=$t('validation.cell.imageExpressionRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.imageExpressionRequired', { cell: cellName });
                 }
                 if(msg){
                     MB.alert(msg);
@@ -262,10 +262,10 @@ export function tableToXml(context: any): string {
             }else if(value.type==='zxing'){
                 let msg=null;
                 if(value.source==='text' && (!value.value || value.value.trim()==='')){
-                    msg=$t('validation.cell.zxingTextRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.zxingTextRequired', { cell: cellName });
                 }
                 if(value.source==='expression' && (!value.value || value.value.trim()==='')){
-                    msg=$t('validation.cell.zxingExpressionRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.zxingExpressionRequired', { cell: cellName });
                 }
                 if(msg){
                     MB.alert(msg);
@@ -298,7 +298,7 @@ export function tableToXml(context: any): string {
 
                 // 校验数据集名称
                 if(!dataset.datasetName){
-                    msg=$t('validation.cell.chartDatasetRequired', { cell: cellName });
+                    msg=i18n.global.t('validation.cell.chartDatasetRequired', { cell: cellName });
                 }
 
                 // 根据图表类型进行不同校验
@@ -306,46 +306,46 @@ export function tableToXml(context: any): string {
                     if(chartType==='scatter'){
                         // 散点图校验：categoryProperty、xProperty、yProperty 必填
                         if(!dataset.categoryProperty){
-                            msg=$t('validation.cell.scatterCategoryPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.scatterCategoryPropertyRequired', { cell: cellName });
                         }
                         if(!msg && !dataset.xProperty){
-                            msg=$t('validation.cell.scatterXPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.scatterXPropertyRequired', { cell: cellName });
                         }
                         if(!msg && !dataset.yProperty){
-                            msg=$t('validation.cell.scatterYPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.scatterYPropertyRequired', { cell: cellName });
                         }
                     }else if(chartType==='bubble'){
                         // 气泡图校验：categoryProperty、xProperty、yProperty、rProperty 必填
                         if(!dataset.categoryProperty){
-                            msg=$t('validation.cell.bubbleCategoryPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.bubbleCategoryPropertyRequired', { cell: cellName });
                         }
                         if(!msg && !dataset.xProperty){
-                            msg=$t('validation.cell.bubbleXPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.bubbleXPropertyRequired', { cell: cellName });
                         }
                         if(!msg && !dataset.yProperty){
-                            msg=$t('validation.cell.bubbleYPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.bubbleYPropertyRequired', { cell: cellName });
                         }
                         if(!msg && !dataset.rProperty){
-                            msg=$t('validation.cell.bubbleRPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.bubbleRPropertyRequired', { cell: cellName });
                         }
                     }else{
                         // 普通图表校验：valueProperty、collectType 必填
                         if(!dataset.valueProperty){
-                            msg=$t('validation.cell.chartValuePropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.chartValuePropertyRequired', { cell: cellName });
                         }
                         if(!msg && !dataset.collectType){
-                            msg=$t('validation.cell.chartCollectTypeRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.chartCollectTypeRequired', { cell: cellName });
                         }
                         // line、bar、horizontalBar、area、radar 需要分类属性
                         if(!msg && ['line','bar','horizontalBar','area','radar'].includes(chartType) && !dataset.categoryProperty){
-                            msg=$t('validation.cell.chartCategoryPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.chartCategoryPropertyRequired', { cell: cellName });
                         }
                         // 系列类型校验
                         if(!msg && dataset.seriesType==='property' && !dataset.seriesProperty){
-                            msg=$t('validation.cell.chartSeriesPropertyRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.chartSeriesPropertyRequired', { cell: cellName });
                         }
                         if(!msg && dataset.seriesType==='text' && !dataset.seriesText){
-                            msg=$t('validation.cell.chartSeriesTextRequired', { cell: cellName });
+                            msg=i18n.global.t('validation.cell.chartSeriesTextRequired', { cell: cellName });
                         }
                     }
                 }

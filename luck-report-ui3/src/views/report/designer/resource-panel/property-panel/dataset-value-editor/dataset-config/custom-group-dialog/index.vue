@@ -1,96 +1,93 @@
 <template>
-  <UDialog
-    :title="$t('dialog.customGroup.title')"
-    width="800px"
-    :visible="visible"
-    @close="handleClose"
+  <a-modal
+    :title="t('dialog.customGroup.title')"
+    :width="800"
+    :open="visible"
+    @cancel="handleClose"
   >
     <div class="custom-group-dialog">
       <div class="form-group">
         <!-- 分组项管理 -->
         <div class="group-items-section">
           <div class="button-group">
-            <u-button
-                type="info"
-                icon="icon-plus-circle"
-                :title="$t('dialog.customGroup.addGroup')"
-                @click="addItem"
+            <a-button
+              type="primary"
+              :title="t('dialog.customGroup.addGroup')"
+              @click="addItem"
             >
-            </u-button>
-            <u-button
-                type="info"
-                icon="icon-delete"
-                :title="$t('dialog.customGroup.deleteGroup')"
-                @click="deleteItem"
+              <template #icon><i class="iconfont icon-plus-circle"></i></template>
+            </a-button>
+            <a-button
+              type="primary"
+              :title="t('dialog.customGroup.deleteGroup')"
+              @click="deleteItem"
             >
-            </u-button>
-            <u-button
-                type="info"
-                icon="icon-edit"
-                :title="$t('dialog.customGroup.editGroup')"
-                @click="editItem"
+              <template #icon><i class="iconfont icon-delete"></i></template>
+            </a-button>
+            <a-button
+              type="primary"
+              :title="t('dialog.customGroup.editGroup')"
+              @click="editItem"
             >
-            </u-button>
+              <template #icon><i class="iconfont icon-edit"></i></template>
+            </a-button>
           </div>
 
-          <div style="margin-top: 5px" >
-            <select
-                v-model="selectedItemIndex"
-                size="15"
-                class="form-control group-select"
-                @change="onSelectedItemChange"
-            >
-              <option v-for="(item, index) in localGroupItems" :key="index" :value="index">
-                {{ item.name }}
-              </option>
-            </select>
+          <div style="margin-top: 5px;">
+            <a-select
+              v-model:value="selectedItemIndex"
+              class="group-select"
+              :options="groupItemOptions"
+              :field-names="{ label: 'name', value: 'index' }"
+              @change="onSelectedItemChange"
+            />
           </div>
         </div>
 
         <!-- 条件管理 -->
-        <div class="conditions-section" v-show="selectedItemIndex !== null && selectedItemIndex !== -1">
+        <div
+          class="conditions-section"
+          v-show="selectedItemIndex !== null && selectedItemIndex !== -1"
+        >
           <div class="condition-header">
-            <label>{{ $t('dialog.customGroup.groupCondition') }}：</label>
+            <label>{{ t('dialog.customGroup.groupCondition') }}：</label>
             <div class="button-group">
-              <u-button
-                  type="info"
-                  icon="icon-plus-circle"
-                  :title="$t('dialog.customGroup.addCondition')"
-                  @click="addCondition"
+              <a-button
+                type="primary"
+                :title="t('dialog.customGroup.addCondition')"
+                @click="addCondition"
               >
-              </u-button>
-              <u-button
-                  type="info"
-                  icon="icon-delete"
-                  :title="$t('dialog.customGroup.delTitle')"
-                  @click="deleteCondition"
+                <template #icon><i class="iconfont icon-plus-circle"></i></template>
+              </a-button>
+              <a-button
+                type="primary"
+                :title="t('dialog.customGroup.delTitle')"
+                @click="deleteCondition"
               >
-              </u-button>
-              <u-button
-                  type="info"
-                  icon="icon-edit"
-                  :title="$t('dialog.customGroup.editTip')"
-                  @click="editCondition"
+                <template #icon><i class="iconfont icon-delete"></i></template>
+              </a-button>
+              <a-button
+                type="primary"
+                :title="t('dialog.customGroup.editTip')"
+                @click="editCondition"
               >
-              </u-button>
+                <template #icon><i class="iconfont icon-edit"></i></template>
+              </a-button>
             </div>
           </div>
-          <select
-            v-model="selectedConditionIndex"
-            size="13"
-            class="form-control condition-select"
-          >
-            <option v-for="(condition, index) in currentConditions" :key="index" :value="index">
-              {{ formatConditionText(condition, index) }}
-            </option>
-          </select>
+          <a-select
+            v-model:value="selectedConditionIndex"
+            class="condition-select"
+            :options="conditionOptions"
+            :field-names="{ label: 'label', value: 'index' }"
+          />
         </div>
       </div>
     </div>
 
     <!-- GroupItemDialog 组件 -->
     <GroupItemDialog
-      :visible.sync="groupItemDialogVisible"
+      v-model:visible="groupItemDialogVisible"
       :group-item="groupItem"
       :operation="operation"
       @saveAfter="handleGroupItemSave"
@@ -98,280 +95,284 @@
 
     <!-- ConditionDialog 组件 -->
     <ConditionDialog
-      :visible.sync="conditionDialogVisible"
+      v-model:visible="conditionDialogVisible"
       :fields="fields"
       :condition="editingCondition"
       :conditions="currentConditions"
       @saveAfter="handleConditionSave"
     />
 
-    <!-- 底部按钮 -->
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
+      <a-button type="primary" @click="handleOk">{{ t('dialog.common.ok') }}</a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import {showAlert, showConfirm} from '@/utils/comnon.js';
-import {deepCopy} from '@/components/utils/index.js';
-import GroupItemDialogVue
-  from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-item-dialog/index.vue';
-import ConditionDialogVue
-  from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
+<script setup lang="ts">
+/**
+ * CustomGroupDialog 自定义分组配置弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → 深拷贝 groupItems → localGroupItems + 默认选中第 0 项
+ * 2. 用户在分组项 / 条件中增删改 → 通过嵌套子弹窗（GroupItemDialog / ConditionDialog）回写
+ * 3. 「确定」→ emit('save', localGroupItems) + 关闭
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UButton（自定义）→ a-modal/a-button
+ * - 原生 <select> → a-select
+ * - 子弹窗使用 v-model:visible 双向绑定
+ */
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { showAlert, showConfirm } from '@/utils/comnon'
+import { deepCopy } from '@/utils/comnon'
+import GroupItemDialog, { type GroupItem, type GroupItemSavePayload } from '../custom-group-item-dialog/index.vue'
+import ConditionDialog, { type ConditionData } from '../condition-dialog/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'CustomGroupDialog',
-  components: {
-    UButton,
-    UDialog,
-    GroupItemDialog: GroupItemDialogVue,
-    ConditionDialog: ConditionDialogVue
-  },
-  props: {
-    groupItems: {
-      type: Array,
-      default: () => []
-    },
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    fields: {
-      type: Array,
-      default: null
-    }
-  },
-  data() {
-    return {
-      localGroupItems: [],
-      selectedItemIndex: null,
-      selectedConditionIndex: null,
-      conditionDialogVisible: false,
-      editingCondition: null,
-      groupItemDialogVisible: false,
-      groupItem: null,
-      operation: 'add'
-    };
-  },
-  computed: {
-    currentConditions() {
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        return [];
-      }
-      return this.localGroupItems[this.selectedItemIndex]?.conditions || [];
-    }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.initData();
-      }
-    }
-  },
-  mounted() {
-    // 添加键盘事件监听
-    document.addEventListener('keydown', this.handleKeydown);
-  },
-  beforeDestroy() {
-    // 移除事件监听
-    document.removeEventListener('keydown', this.handleKeydown);
-  },
-  methods: {
-    /**
-     * 初始化本地数据
-     */
-    initData() {
-      const source = Array.isArray(this.groupItems) ? this.groupItems : [];
-      this.localGroupItems = deepCopy(source);
-      if (this.localGroupItems.length > 0) {
-        this.selectedItemIndex = 0;
-      }
-      this.selectedConditionIndex = null;
-    },
+defineOptions({ name: 'CustomGroupDialog' })
 
-    /**
-     * 确认保存操作
-     */
-    handleOk() {
-      if (!Array.isArray(this.localGroupItems)) {
-        this.localGroupItems = [];
-      }
-      this.$emit('save', this.localGroupItems);
-      this.handleClose();
-    },
 
-    handleClose() {
-      this.$emit('update:visible', false);
-      this.$emit('close');
-    },
+const { t } = useI18n()
+/** 字段元数据 */
+interface Field {
+  name: string
+  [key: string]: unknown
+}
 
-    // 分组项管理方法
-    addItem() {
-      this.groupItem = {name: '', conditions: []};
-      this.operation = 'add';
-      this.groupItemDialogVisible = true;
-    },
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    groupItems?: GroupItem[]
+    fields?: Field[] | null
+  }>(),
+  {
+    visible: false,
+    groupItems: () => [],
+    fields: null
+  }
+)
 
-    deleteItem() {
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.deleteTip'));
-        return;
-      }
+const emit = defineEmits<{
+  (e: 'save', groupItems: GroupItem[]): void
+  (e: 'close'): void
+  (e: 'update:visible', val: boolean): void
+}>()
 
-      const item = this.localGroupItems[this.selectedItemIndex];
-      showConfirm(`${this.$t('dialog.customGroup.deleteConfirm')}[${item.name}]?`).then(() => {
-        this.localGroupItems.splice(this.selectedItemIndex, 1);
-        this.selectedItemIndex = null;
-        this.selectedConditionIndex = null;
-      });
-    },
+const localGroupItems = ref<GroupItem[]>([])
+const selectedItemIndex = ref<number | null>(null)
+const selectedConditionIndex = ref<number | null>(null)
+const conditionDialogVisible = ref<boolean>(false)
+const editingCondition = ref<ConditionData | null>(null)
+const groupItemDialogVisible = ref<boolean>(false)
+const groupItem = ref<GroupItem | null>(null)
+const operation = ref<string>('add')
 
-    editItem() {
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.modTip'));
-        return;
-      }
+/** 当前选中分组项的条件集合 */
+const currentConditions = computed<ConditionData[]>(() => {
+  if (
+    selectedItemIndex.value === null ||
+    selectedItemIndex.value === -1 ||
+    !localGroupItems.value[selectedItemIndex.value]
+  ) {
+    return []
+  }
+  return (localGroupItems.value[selectedItemIndex.value].conditions as ConditionData[]) || []
+})
 
-      const item = this.localGroupItems[this.selectedItemIndex];
-      this.groupItem = { ...item };
-      this.operation = 'edit';
-      this.groupItemDialogVisible = true;
-    },
+/** a-select options：分组项 */
+const groupItemOptions = computed(() =>
+  localGroupItems.value.map((item, index) => ({
+    index,
+    name: item.name
+  }))
+)
 
-    onSelectedItemChange() {
-      this.selectedConditionIndex = null;
-    },
+/** a-select options：条件 */
+const conditionOptions = computed(() =>
+  currentConditions.value.map((condition, index) => ({
+    index,
+    label: formatConditionText(condition, index)
+  }))
+)
 
-    // 条件管理方法
-    addCondition() {
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.selectTip'));
-        return;
-      }
-
-      const currentItem = this.localGroupItems[this.selectedItemIndex];
-      this.editingCondition = null;
-      this.conditionDialogVisible = true;
-    },
-
-    editCondition() {
-      if (this.selectedConditionIndex === null || this.selectedConditionIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.editConditionTip'));
-        return;
-      }
-
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.selectTip'));
-        return;
-      }
-
-      const currentItem = this.localGroupItems[this.selectedItemIndex];
-      const conditions = currentItem.conditions || [];
-      this.editingCondition = conditions[this.selectedConditionIndex];
-      this.conditionDialogVisible = true;
-    },
-
-    /**
-     * 处理分组项保存事件
-     */
-    handleGroupItemSave(data) {
-      if (!Array.isArray(this.localGroupItems)) {
-        this.localGroupItems = [];
-      }
-
-      if (data.operation === 'add') {
-        this.localGroupItems.push(data.groupItem);
-      } else if (data.operation === 'edit' && this.selectedItemIndex >= 0) {
-        this.$set(this.localGroupItems, this.selectedItemIndex, data.groupItem);
-      }
-    },
-
-    /**
-     * 处理条件保存事件
-     * @param {Object} conditionData - 条件数据
-     */
-    handleConditionSave(conditionData) {
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        return;
-      }
-
-      const currentItem = this.localGroupItems[this.selectedItemIndex];
-      const conditions = currentItem.conditions || [];
-      const newCondition = this.buildCondition(conditionData);
-
-      if (conditionData.isEdit && this.selectedConditionIndex >= 0) {
-        Object.assign(conditions[this.selectedConditionIndex], newCondition);
-      } else {
-        conditions.push(newCondition);
-      }
-    },
-
-    /**
-     * 重置所有选择状态
-     */
-    resetSelection() {
-      this.selectedItemIndex = null;
-      this.selectedConditionIndex = null;
-    },
-
-    /**
-     * 构建条件对象
-     * @param {Object} data - 原始条件数据
-     * @returns {Object} 格式化后的条件对象
-     */
-    buildCondition(data) {
-      return {
-        left: data.left,
-        operation: data.operation,
-        op: data.operation,
-        right: data.right,
-        join: data.join
-      };
-    },
-
-    deleteCondition() {
-      if (this.selectedConditionIndex === null || this.selectedConditionIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.delConditionTip'));
-        return;
-      }
-
-      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
-        showAlert(this.$t('dialog.customGroup.selectTip'));
-        return;
-      }
-
-      const currentItem = this.localGroupItems[this.selectedItemIndex];
-      const conditions = currentItem.conditions || [];
-
-      conditions.splice(this.selectedConditionIndex, 1);
-      this.selectedConditionIndex = null;
-    },
-
-    formatConditionText(condition, index) {
-      const op = condition.operation || condition.op;
-      let text = `${condition.left} ${op} ${condition.right}`;
-
-      if (index > 0 && condition.join) {
-        text = `${condition.join} ${text}`;
-      }
-
-      return text;
-    },
-
-    // 键盘事件处理
-    handleKeydown(e) {
-      if (this.visible) {
-        if (e.key === 'Escape') {
-          this.handleClose();
-        }
-      }
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      initData()
     }
   }
-};
+)
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
+/** 初始化：深拷贝入参 + 默认选中第 0 项 */
+const initData = (): void => {
+  const source = Array.isArray(props.groupItems) ? props.groupItems : []
+  localGroupItems.value = deepCopy(source) as GroupItem[]
+  if (localGroupItems.value.length > 0) {
+    selectedItemIndex.value = 0
+  }
+  selectedConditionIndex.value = null
+}
+
+const handleOk = (): void => {
+  if (!Array.isArray(localGroupItems.value)) {
+    localGroupItems.value = []
+  }
+  emit('save', localGroupItems.value)
+  handleClose()
+}
+
+const handleClose = (): void => {
+  emit('update:visible', false)
+  emit('close')
+}
+
+// ============ 分组项管理 ============
+const addItem = (): void => {
+  groupItem.value = { name: '', conditions: [] }
+  operation.value = 'add'
+  groupItemDialogVisible.value = true
+}
+
+const deleteItem = (): void => {
+  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
+    showAlert(t('dialog.customGroup.deleteTip'))
+    return
+  }
+
+  const item = localGroupItems.value[selectedItemIndex.value]
+  showConfirm(`${t('dialog.customGroup.deleteConfirm')}[${item.name}]?`).then(() => {
+    localGroupItems.value.splice(selectedItemIndex.value!, 1)
+    selectedItemIndex.value = null
+    selectedConditionIndex.value = null
+  })
+}
+
+const editItem = (): void => {
+  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
+    showAlert(t('dialog.customGroup.modTip'))
+    return
+  }
+
+  const item = localGroupItems.value[selectedItemIndex.value]
+  groupItem.value = { ...item }
+  operation.value = 'edit'
+  groupItemDialogVisible.value = true
+}
+
+const onSelectedItemChange = (): void => {
+  selectedConditionIndex.value = null
+}
+
+// ============ 条件管理 ============
+const addCondition = (): void => {
+  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
+    showAlert(t('dialog.customGroup.selectTip'))
+    return
+  }
+
+  editingCondition.value = null
+  conditionDialogVisible.value = true
+}
+
+const editCondition = (): void => {
+  if (selectedConditionIndex.value === null || selectedConditionIndex.value === -1) {
+    showAlert(t('dialog.customGroup.editConditionTip'))
+    return
+  }
+  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
+    showAlert(t('dialog.customGroup.selectTip'))
+    return
+  }
+
+  const currentItem = localGroupItems.value[selectedItemIndex.value]
+  const conditions = (currentItem.conditions as ConditionData[]) || []
+  editingCondition.value = conditions[selectedConditionIndex.value]
+  conditionDialogVisible.value = true
+}
+
+/** 处理子弹窗回写的分组项 */
+const handleGroupItemSave = (data: GroupItemSavePayload): void => {
+  if (!Array.isArray(localGroupItems.value)) {
+    localGroupItems.value = []
+  }
+
+  if (data.operation === 'add') {
+    localGroupItems.value.push(data.groupItem!)
+  } else if (data.operation === 'edit' && selectedItemIndex.value !== null && selectedItemIndex.value >= 0) {
+    localGroupItems.value[selectedItemIndex.value] = data.groupItem!
+  }
+}
+
+/** 处理子弹窗回写的条件 */
+const handleConditionSave = (conditionData: ConditionData): void => {
+  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
+    return
+  }
+
+  const currentItem = localGroupItems.value[selectedItemIndex.value]
+  if (!currentItem.conditions) {
+    currentItem.conditions = []
+  }
+  const conditions = currentItem.conditions as ConditionData[]
+  const newCondition = buildCondition(conditionData)
+
+  if (conditionData.isEdit && selectedConditionIndex.value !== null && selectedConditionIndex.value >= 0) {
+    conditions[selectedConditionIndex.value] = newCondition
+  } else {
+    conditions.push(newCondition)
+  }
+}
+
+/** 构造条件对象：operation / op 同步保留，向后兼容老消费者 */
+const buildCondition = (data: ConditionData): ConditionData => ({
+  left: data.left,
+  operation: data.operation,
+  op: data.operation,
+  right: data.right,
+  join: data.join
+})
+
+const deleteCondition = (): void => {
+  if (selectedConditionIndex.value === null || selectedConditionIndex.value === -1) {
+    showAlert(t('dialog.customGroup.delConditionTip'))
+    return
+  }
+  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
+    showAlert(t('dialog.customGroup.selectTip'))
+    return
+  }
+
+  const currentItem = localGroupItems.value[selectedItemIndex.value]
+  const conditions = (currentItem.conditions as ConditionData[]) || []
+  conditions.splice(selectedConditionIndex.value, 1)
+  selectedConditionIndex.value = null
+}
+
+const formatConditionText = (condition: ConditionData, index: number): string => {
+  const op = condition.operation || (condition as any).op
+  let text = `${condition.left} ${op} ${condition.right}`
+
+  if (index > 0 && condition.join) {
+    text = `${condition.join} ${text}`
+  }
+  return text
+}
+
+const handleKeydown = (e: KeyboardEvent): void => {
+  if (props.visible && e.key === 'Escape') {
+    handleClose()
+  }
+}
 </script>
 
 <style scoped>
@@ -395,17 +396,9 @@ export default {
   flex: 1;
 }
 
-.group-select{
-  width: 200px;
-  height: 280px;
-  display: inline-block;
-  outline: none
-}
-
-.condition-select{
-  height: 280px;
-  outline: none;
-  margin-top: 5px;
+.group-select,
+.condition-select {
+  width: 100%;
 }
 
 .condition-header {
@@ -418,7 +411,7 @@ export default {
   margin-right: 10px;
 }
 
-.u-button + .u-button{
+.button-group :deep(.ant-btn + .ant-btn) {
   margin-left: 5px;
 }
 </style>

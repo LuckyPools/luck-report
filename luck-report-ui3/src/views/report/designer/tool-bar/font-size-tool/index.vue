@@ -1,189 +1,234 @@
 <template>
-  <div class="u-inline">
-    <ButtonGroup
-      :buttonText="currentFontSize.toString()"
-      :showText="true"
-      :title="$t('tools.fontSize.size')"
-      :customClass="'font-size-tool-dropdown'"
-      :menuItems="menuItems"
-    />
+  <div class="u-inline font-size-tool-dropdown">
+    <a-dropdown trigger="click">
+      <a-button type="text" :title="t('tools.fontSize.size')" class="info-button">
+        <span class="button-text">{{ currentFontSize }}</span>
+      </a-button>
+      <template #overlay>
+        <a-menu @click="handleMenuClick" class="font-size-menu">
+          <a-menu-item v-for="size in fontSizes" :key="size">{{ size }}</a-menu-item>
+        </a-menu>
+      </template>
+    </a-dropdown>
   </div>
 </template>
 
-<script>
-import { undoManager, setDirty } from '@/utils/table.js';
-import { showAlert } from '@/utils/comnon.js';
-import { deepCopy } from '@/components/utils/index.js';
-import ButtonGroup from '@/components/button-group/index.vue';
-import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager';
+<script setup lang="ts">
+/**
+ * FontSizeTool 字号工具（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. 监听 selectedCells 变化，回调 refresh 同步当前 fontSize
+ * 2. 点击菜单项 → applyFontSize(size) → 写 cellStyle.fontSize + 推 undo
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup> + 显式 type 标注
+ * - ButtonGroup（自定义下拉按钮）→ a-dropdown + a-button + a-menu
+ * - @/utils/table.js → @/utils/table（已有 TS 入口）
+ * - data()/methods/watch → ref + 普通函数 + watch
+ * - 移除 $emit，本组件无对外事件
+ */
+import { ref, watch } from 'vue'
+import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
+import { undoManager, setDirty } from '@/utils/table'
+import { showAlert } from '@/utils/comnon'
+import { deepCopy } from '@/utils/comnon'
+import { getCell, setCell } from '@/utils/contextActions'
+import TableManager from '@/views/report/designer/edit-table/manager'
+import type { ReportCell, ReportCellStyle } from '@/types/report-def'
+import type { HandsontableInstance } from '@/types/handsontable'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'FontSizeTool',
-  components: {
-    ButtonGroup
-  },
-  props: {
-    selectedCells: {
-      type: Object,
-      default: () => ({
-        rowIndex: null,
-        colIndex: null,
-        row2Index: null,
-        col2Index: null
-      })
+defineOptions({ name: 'FontSizeTool' })
+
+
+const { t } = useI18n()
+/** 入参：当前选中单元格坐标（行/列均为 0-based，null 表示未选） */
+interface SelectedCells {
+  rowIndex: number | null
+  colIndex: number | null
+  row2Index: number | null
+  col2Index: number | null
+}
+
+const props = withDefaults(
+  defineProps<{ selectedCells: SelectedCells }>(),
+  {
+    selectedCells: () => ({
+      rowIndex: null,
+      colIndex: null,
+      row2Index: null,
+      col2Index: null
+    })
+  }
+)
+
+/** 单元格 key → 原 fontSize 值（用于 undo 恢复） */
+type OldFontSizeMap = Record<string, number | undefined>
+
+const DEFAULT_FONT_SIZE = 10
+
+/** 字号选项：1..100 */
+const fontSizes: number[] = Array.from({ length: 100 }, (_, i) => i + 1)
+
+/** 当前激活的字号（驱动按钮文字） */
+const currentFontSize = ref<number>(DEFAULT_FONT_SIZE)
+
+/** a-menu 点击入口（按 key 解析为 number 后分发） */
+function handleMenuClick(info: MenuInfo): void {
+  const size = Number(info.key)
+  if (!Number.isNaN(size)) {
+    applyFontSize(size)
+  }
+}
+
+/**
+ * 检查是否有选中的单元格
+ * @returns true=有选择；false=无选择且已弹提示
+ */
+function checkSelection(): boolean {
+  const hot = TableManager.get()
+  const selected = hot?.getSelected()
+  if (!selected || selected.length === 0) {
+    showAlert((window as { $t?: (k: string) => string }).$t?.('selectTargetCellFirst') ?? 'selectTargetCellFirst')
+    return false
+  }
+  return true
+}
+
+/**
+ * 提取并归一化选中区域
+ * @returns [startRow, startCol, endRow, endCol]
+ */
+function pickRange(table: HandsontableInstance): [number, number, number, number] {
+  const selected = table.getSelected()
+  let [startRow, startCol, endRow, endCol] = selected[0]
+  if (startRow > endRow) [startRow, endRow] = [endRow, startRow]
+  if (startCol > endCol) [startCol, endCol] = [endCol, startCol]
+  return [startRow, startCol, endRow, endCol]
+}
+
+/**
+ * 应用选定的字号 + 推 undo/redo
+ */
+function applyFontSize(fontSize: number): void {
+  if (!checkSelection()) return
+
+  const table = TableManager.get()
+  if (!table) return
+  const [startRow, startCol, endRow, endCol] = pickRange(table)
+
+  const oldFontSize = updateFontSize(startRow, startCol, endRow, endCol, fontSize)
+  table.render()
+
+  undoManager.add({
+    redo: () => {
+      updateFontSize(startRow, startCol, endRow, endCol, fontSize)
+      table.render()
+      setDirty()
+    },
+    undo: () => {
+      restoreFontSize(startRow, startCol, endRow, endCol, oldFontSize)
+      table.render()
+      setDirty()
     }
-  },
-  data() {
-    return {
-      currentFontSize: 10,
-      fontSizes: Array.from({ length: 100 }, (_, i) => i + 1)
-    };
-  },
-  computed: {
-      menuItems() {
-          return this.fontSizes.map(size => ({
-              text: size,
-              action: () => this.applyFontSize(size)
-          }));
-      }
-  },
-  watch: {
-    selectedCells: {
-      deep: true,
-      handler(newVal) {
-        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
-          this.refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
-        }
-      }
-    }
-  },
-  methods: {
+  })
+  setDirty()
+}
 
-    // 检查是否有选中的单元格
-    checkSelection() {
-      const hot = TableManager.get();
-      const selected = hot.getSelected();
-      if (!selected || selected.length === 0) {
-        showAlert(this.$t('selectTargetCellFirst'));
-        return false;
-      }
-      return true;
-    },
-    // 应用选定的字号
-    applyFontSize(fontSize) {
-      if (!this.checkSelection()) {
-        return;
-      }
+/**
+ * 更新选区单元格字号
+ * @returns 旧 fontSize 表（用于 undo）
+ */
+function updateFontSize(
+  startRow: number,
+  startCol: number,
+  endRow: number,
+  endCol: number,
+  fontSize: number
+): OldFontSizeMap {
+  const oldFontSize: OldFontSizeMap = {}
 
-      const table = TableManager.get();
-      const selected = table.getSelected();
-      let [startRow, startCol, endRow, endCol] = selected[0];
+  for (let i = startRow; i <= endRow; i++) {
+    for (let j = startCol; j <= endCol; j++) {
+      const cellDef = getCell(i, j) as ReportCell | null
+      if (!cellDef) continue
 
-      if (startRow > endRow) {
-        [startRow, endRow] = [endRow, startRow];
-      }
-      if (startCol > endCol) {
-        [startCol, endCol] = [endCol, startCol];
-      }
+      const newCellDef = deepCopy(cellDef) as ReportCell
+      const cellStyle = newCellDef.cellStyle as ReportCellStyle
+      oldFontSize[`${i},${j}`] = newCellDef.cellStyle.fontSize as number | undefined
+      cellStyle.fontSize = fontSize
+      setCell(i, j, newCellDef)
 
-      const oldFontSize = this.updateFontSize(startRow, startCol, endRow, endCol, fontSize);
-      table.render();
-
-      undoManager.add({
-        redo: () => {
-          this.updateFontSize(startRow, startCol, endRow, endCol, fontSize);
-          table.render();
-          setDirty();
-        },
-        undo: () => {
-          this.restoreFontSize(startRow, startCol, endRow, endCol, oldFontSize);
-          table.render();
-          setDirty();
-        }
-      });
-
-      setDirty();
-    },
-    // 更新字号
-    updateFontSize(startRow, startCol, endRow, endCol, fontSize) {
-      const oldFontSize = {};
-
-      for (let i = startRow; i <= endRow; i++) {
-        for (let j = startCol; j <= endCol; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-
-          const newCellDef = deepCopy(cellDef);
-          const cellStyle = newCellDef.cellStyle;
-          oldFontSize[i + ',' + j] = newCellDef.cellStyle.fontSize;
-          cellStyle.fontSize = fontSize;
-          setCell( i, j, newCellDef );
-
-          // 更新工具状态为第一个单元格的字号
-          if (i === startRow && j === startCol) {
-            this.currentFontSize = cellStyle.fontSize;
-          }
-        }
-      }
-
-      return oldFontSize;
-    },
-    // 恢复字号
-    restoreFontSize(startRow, startCol, endRow, endCol, oldFontSize) {
-      for (let i = startRow; i <= endRow; i++) {
-        for (let j = startCol; j <= endCol; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-
-          const newCellDef = deepCopy(cellDef);
-          const cellStyle = newCellDef.cellStyle;
-          cellStyle.fontSize = oldFontSize[i + ',' + j];
-          setCell( i, j, newCellDef );
-
-          // 更新工具状态为第一个单元格的字号
-          if (i === startRow && j === startCol) {
-            this.currentFontSize = cellStyle.fontSize || 10;
-          }
-        }
-      }
-    },
-    // 刷新工具状态
-    refresh(startRow, startCol, endRow, endCol) {
-      if (startRow > endRow) {
-        [startRow, endRow] = [endRow, startRow];
-      }
-      if (startCol > endCol) {
-        [startCol, endCol] = [endCol, startCol];
-      }
-
-      // 获取第一个单元格的字号
-      for (let i = startRow; i <= endRow; i++) {
-        for (let j = startCol; j <= endCol; j++) {
-          const cellDef = getCell(i, j);
-
-          if (!cellDef) {
-            continue;
-          }
-
-          const cellStyle = cellDef.cellStyle;
-          const fontSize = cellStyle.fontSize || 10;
-          this.currentFontSize = fontSize;
-          break;
-        }
-        break;
+      // 更新工具状态为第一个单元格的字号
+      if (i === startRow && j === startCol) {
+        currentFontSize.value = cellStyle.fontSize as number
       }
     }
   }
-};
+  return oldFontSize
+}
+
+/**
+ * 恢复选区单元格字号（undo 链路）
+ */
+function restoreFontSize(
+  startRow: number,
+  startCol: number,
+  endRow: number,
+  endCol: number,
+  oldFontSize: OldFontSizeMap
+): void {
+  for (let i = startRow; i <= endRow; i++) {
+    for (let j = startCol; j <= endCol; j++) {
+      const cellDef = getCell(i, j) as ReportCell | null
+      if (!cellDef) continue
+
+      const newCellDef = deepCopy(cellDef) as ReportCell
+      const cellStyle = newCellDef.cellStyle as ReportCellStyle
+      cellStyle.fontSize = oldFontSize[`${i},${j}`]
+      setCell(i, j, newCellDef)
+
+      // 更新工具状态为第一个单元格的字号
+      if (i === startRow && j === startCol) {
+        currentFontSize.value = (cellStyle.fontSize as number) || DEFAULT_FONT_SIZE
+      }
+    }
+  }
+}
+
+/**
+ * 同步工具状态：取选中区第一个单元格的 fontSize
+ */
+function refresh(startRow: number, startCol: number, endRow: number, endCol: number): void {
+  if (startRow > endRow) [startRow, endRow] = [endRow, startRow]
+  if (startCol > endCol) [startCol, endCol] = [endCol, startCol]
+
+  for (let i = startRow; i <= endRow; i++) {
+    for (let j = startCol; j <= endCol; j++) {
+      const cellDef = getCell(i, j) as ReportCell | null
+      if (!cellDef) continue
+
+      const cellStyle = cellDef.cellStyle as ReportCellStyle
+      currentFontSize.value = (cellStyle.fontSize as number) || DEFAULT_FONT_SIZE
+      return
+    }
+  }
+}
+
+watch(
+  () => props.selectedCells,
+  (newVal) => {
+    if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+      refresh(newVal.rowIndex, newVal.colIndex, newVal.row2Index ?? 0, newVal.col2Index ?? 0)
+    }
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
-.font-size-tool-dropdown ::v-deep .button-text {
+.font-size-tool-dropdown .button-text {
   display: inline-block;
   vertical-align: top;
   width: 28px;
@@ -191,5 +236,10 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-left: 0;
+}
+
+.font-size-menu {
+  max-height: 240px;
+  overflow-y: auto;
 }
 </style>

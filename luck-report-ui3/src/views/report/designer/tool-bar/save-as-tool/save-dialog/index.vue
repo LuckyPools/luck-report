@@ -1,418 +1,487 @@
 <template>
-  <UDialog
-    :title="$t('dialog.save.title')"
-    width="800px"
-    :visible="visible"
-    @close="handleClose"
+  <a-modal
+    :title="t('dialog.save.title')"
+    :width="800"
+    :open="visible"
+    :mask-closable="false"
+    @cancel="handleClose"
   >
     <div class="save-dialog-content">
-      <u-form :label-width="90" label-position="left">
-        <u-form-item :label="$t('dialog.save.fileName')" class="property-label">
-          <u-input
-            v-model="fileName"
+      <a-form :label-col="{ style: { width: '90px' } }" :colon="false">
+        <a-form-item :label="t('dialog.save.fileName')">
+          <a-input
+            v-model:value="fileName"
             ref="fileNameInput"
             style="width: 340px"
           />
-        </u-form-item>
+        </a-form-item>
 
-        <u-form-item :label="$t('dialog.save.source')" class="property-label">
-          <u-select
-            v-model="selectedProvider"
+        <a-form-item :label="t('dialog.save.source')">
+          <a-select
+            v-model:value="selectedProvider"
             @change="handleProviderChange"
           >
-            <u-option
+            <a-select-option
               v-for="option in providerOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
-        <u-form-item :label="$t('dialog.save.currentPath')" class="property-label">
+        <a-form-item :label="t('dialog.save.currentPath')">
           <div class="path-content">
             <div class="path-breadcrumb">
               <span class="path-segment" @click="navigateToPath(-1)">/</span>
-              <template v-for="(segment, index) in pathSegments">
-                <span class="path-segment" :key="'seg-' + index" @click="navigateToPath(index)">
+              <template v-for="(segment, index) in pathSegments" :key="'seg-' + index">
+                <span class="path-segment" @click="navigateToPath(index)">
                   {{ segment }}
                 </span>
-                <span class="path-separator" :key="'sep-' + index">/</span>
+                <span class="path-separator">/</span>
               </template>
             </div>
-            <u-button
-                v-if="canGoBack"
-                @click="goBack"
-                type="info"
-                size="small"
-                icon="icon-undo"
+            <a-button
+              v-if="canGoBack"
+              @click="goBack"
+              type="primary"
+              size="small"
             >
-              {{ $t('dialog.save.backToParent') }}
-            </u-button>
+              <template #icon><i class="iconfont icon-undo"></i></template>
+              {{ t('dialog.save.backToParent') }}
+            </a-button>
           </div>
-        </u-form-item>
-      </u-form>
+        </a-form-item>
+      </a-form>
 
-      <div class="file-list-container table-wrapper" v-loading="loading">
-        <table class="table-container">
-          <thead class="table-container-header">
-            <tr>
-              <th><span>{{ $t('dialog.save.fileName') }}</span></th>
-              <th style="width:200px;"><span>{{ $t('dialog.save.modDate') }}</span></th>
-              <th style="width:50px;"><span>{{ $t('dialog.save.operator') }}</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(file, index) in currentReportFiles" :key="index" style="height: 35px;">
-              <td>
-                <span
-                  :class="{ 'folder-name': file.directory }"
-                  @click="handleFileClick(file)"
-                  :style="{ cursor: file.directory ? 'pointer' : 'default' }"
-                >
-                  <i v-if="file.directory" class="iconfont icon-folder"></i>
-                  {{ file.name }}
-                </span>
-              </td>
-              <td><span>{{ formatDate(file.updateDate) }}</span></td>
-              <td class="table-container-btn" >
-                <u-button
+      <div class="file-list-container table-wrapper">
+        <a-spin :spinning="loading">
+          <table class="table-container">
+            <thead class="table-container-header">
+              <tr>
+                <th><span>{{ t('dialog.save.fileName') }}</span></th>
+                <th style="width:200px;"><span>{{ t('dialog.save.modDate') }}</span></th>
+                <th style="width:50px;"><span>{{ t('dialog.save.operator') }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(file, index) in currentReportFiles" :key="index" style="height: 35px;">
+                <td>
+                  <span
+                    :class="{ 'folder-name': file.directory }"
+                    @click="handleFileClick(file)"
+                    :style="{ cursor: file.directory ? 'pointer' : 'default' }"
+                  >
+                    <i v-if="file.directory" class="iconfont icon-folder"></i>
+                    {{ file.name }}
+                  </span>
+                </td>
+                <td><span>{{ formatDateOf(file.updateDate) }}</span></td>
+                <td class="table-container-btn">
+                  <a-button
                     v-if="!file.directory"
-                    type="info"
-                    icon="icon-delete"
-                    :title="$t('dialog.open.del')"
+                    type="link"
+                    :title="t('dialog.open.del')"
+                    style="color: red"
                     @click="deleteFile(file, index)"
-                    style="border: none;color: red">
-                </u-button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  >
+                    <template #icon><i class="iconfont icon-delete"></i></template>
+                  </a-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </a-spin>
       </div>
     </div>
 
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleSave">{{ $t('dialog.save.save') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <a-button @click="handleClose" type="primary" style="margin-right: 10px;">
+        {{ t('dialog.common.cancel') }}
+      </a-button>
+      <a-button type="primary" @click="handleSave">
+        {{ t('dialog.save.save') }}
+      </a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import { formatDate, resetDirty, tableToXml } from '@/utils/table.js';
-import UDialog from '@/components/dialog/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import { saveReportFile, deleteReportFile, loadReportProviders, loadReportProvidersByPath } from '@/api/designer';
-import { showAlert, showConfirm } from '@/utils/comnon.js';
-import UButton from "@/components/button/index.vue";
-import UInput from "@/components/input/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import { mapGetters } from 'vuex';
-import { LoadingDirective } from '@/components/loading/instance.js';
+<script setup lang="ts">
+/**
+ * SaveDialog 报表保存弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → loadReports 加载报表目录
+ * 2. 切换 provider / 目录 → 更新 currentReportFiles
+ * 3. 点击「保存」→ 校验文件名/重名 → saveReportFile
+ * 4. 保存成功 → 更新 store.setIsSaved / setFileName → emit('save-after', fullFileName)
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UForm/USelect/UOption/UButton/UInput（自定义）→ a-modal/a-form/a-select/a-select-option/a-button/a-input
+ * - v-loading 自定义指令 → a-spin
+ * - mapGetters / Vuex → useReportStore
+ * - $store.dispatch('report/X', y) → report.X(y)
+ * - $emit → defineEmits
+ * - beforeDestroy → onBeforeUnmount
+ */
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { formatDate, resetDirty, tableToXml } from '@/utils/table'
+import { showAlert, showConfirm } from '@/utils/comnon'
+import {
+  saveReportFile,
+  deleteReportFile,
+  loadReportProviders,
+  loadReportProvidersByPath
+} from '@/api/designer'
+import { useReportStore } from '@/store/modules/report'
+import { useI18n } from 'vue-i18n'
+import type { ReportContext } from '@/types/report-def'
 
-export default {
-  name: 'SaveDialog',
-  components: {
-    UButton,
-    UDialog,
-    USelect,
-    UOption,
-    UInput,
-    UForm,
-    UFormItem
-  },
-  directives: {
-    loading: LoadingDirective
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    }
-  },
-  data() {
-    return {
-      fileName: '',
-      selectedProvider: '',
-      providers: [],
-      reportFilesData: {},
-      currentReportFiles: [],
-      currentProviderPrefix: '',
-      currentPath: '',
-      pathHistory: [],
-      loading: false
-    };
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    },
-    // 为USelect组件准备的提供者选项
-    providerOptions() {
-      return this.providers.map(provider => ({
-        value: provider.prefix,
-        label: provider.name
-      }));
-    },
-    canGoBack() {
-      return this.pathHistory.length > 0;
-    },
-    pathSegments() {
-      if (!this.currentPath) return [];
-      return this.currentPath.split('/').filter(Boolean);
-    }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.loadReports();
-      }
-    }
-  },
-  mounted() {
-    // 添加键盘事件监听
-    document.addEventListener('keydown', this.handleKeydown);
-  },
-  beforeDestroy() {
-    // 移除事件监听
-    document.removeEventListener('keydown', this.handleKeydown);
-  },
-  methods: {
-    loadReports() {
-      this.loading = true;
-      loadReportProviders()
-        .then(response => {
+defineOptions({ name: 'SaveDialog' })
 
-          let providers;
-          if (response && Array.isArray(response)) {
-            // 如果response本身就是数组
-            providers = response;
-          } else if (response && response.data && Array.isArray(response.data)) {
-            providers = response.data;
-          } else {
-            showAlert(this.$t('dialog.save.loadFail'));
-            return;
-          }
+/** 报表文件元数据 */
+interface ReportFileItem {
+  name: string
+  path: string
+  directory: boolean
+  updateDate?: string | number | Date
+  [key: string]: unknown
+}
 
-          if (!Array.isArray(providers)) {
-            showAlert(this.$t('dialog.save.loadFail'));
-            return;
-          }
-          this.providers = providers;
+/** 报表提供者元数据 */
+interface ReportProvider {
+  prefix: string
+  name: string
+  reportFiles?: ReportFileItem[]
+  [key: string]: unknown
+}
 
-          // 初始化报表文件数据
-          for (let provider of providers) {
-            let { reportFiles, name, prefix } = provider;
-            this.reportFilesData[prefix] = reportFiles || [];
-          }
+/** 接口统一返回结构（可能直接是数组，也可能是 { data: [...] }） */
+type ProvidersResponse = ReportProvider[] | { data?: ReportProvider[] } | null | undefined
 
-          // 默认选择第一个提供者
-          if (this.providers.length > 0) {
-            this.selectedProvider = this.providers[0].prefix;
-            this.onProviderChange();
-          }
-        })
-        .catch(error => {
-          if (error.msg) {
-            showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
-          } else {
-            showAlert(this.$t('dialog.save.loadFail'));
-          }
-        })
-        .finally(() => {
-          this.loading = false;
-        });
-    },
+const props = withDefaults(
+  defineProps<{ visible: boolean }>(),
+  { visible: false }
+)
 
-    loadProvidersByPath(path) {
-      const _this = this;
-      this.loading = true;
+const emit = defineEmits<{
+  (e: 'update:visible', val: boolean): void
+  (e: 'save-after', fullFile: string): void
+}>()
 
-      loadReportProvidersByPath(path)
-        .then(result => {
-          for (let prefix in result) {
-            let providerData = result[prefix];
-            _this.reportFilesData[`${prefix}:${path}`] = providerData.reportFiles;
-          }
-          _this.onProviderChange();
-        })
-        .catch(error => {
-          console.error('Error loading providers by path:', error);
-          if (error.msg) {
-            showAlert(_this.$t('dialog.save.serverError') + _this.$t('colon') + error.msg,  { useHTMLString: true });
-          } else {
-            showAlert(_this.$t('dialog.save.loadFail'));
-          }
-        })
-        .finally(() => {
-          _this.loading = false;
-        });
-    },
+const report = useReportStore()
+const { t } = useI18n()
 
-    onProviderChange() {
+/** 文件名输入 */
+const fileName = ref<string>('')
 
-      if (!this.selectedProvider || this.selectedProvider === '') {
-        this.currentReportFiles = [];
-        return;
-      }
+/** 当前选中的 provider 前缀 */
+const selectedProvider = ref<string>('')
 
-      const key = this.currentPath ? `${this.selectedProvider}:${this.currentPath}` : this.selectedProvider;
-      this.currentReportFiles = this.reportFilesData[key] || [];
-      this.currentProviderPrefix = this.selectedProvider;
-    },
+/** provider 列表 */
+const providers = ref<ReportProvider[]>([])
 
-    // 处理提供者变化的方法
-    handleProviderChange() {
-      this.currentPath = '';
-      this.pathHistory = [];
-      this.onProviderChange();
-    },
+/** 缓存各 provider / 路径下的报表文件 */
+const reportFilesData = ref<Record<string, ReportFileItem[]>>({})
 
-    handleFileClick(file) {
-      if (file.directory) {
-        this.pathHistory.push(this.currentPath);
-        this.currentPath = file.path;
-        this.loadProvidersByPath(this.currentPath);
-      }
-    },
+/** 当前展示的文件列表 */
+const currentReportFiles = ref<ReportFileItem[]>([])
 
-    goBack() {
-      if (this.pathHistory.length > 0) {
-        this.currentPath = this.pathHistory.pop();
-        if (this.currentPath === '') {
-          this.onProviderChange();
-        } else {
-          this.loadProvidersByPath(this.currentPath);
-        }
-      }
-    },
+/** 当前 provider 前缀（用于删除等操作时拼接） */
+const currentProviderPrefix = ref<string>('')
 
-    navigateToPath(index) {
-      if (index === -1) {
-        this.currentPath = '';
-        this.pathHistory = [];
-        this.onProviderChange();
-        return;
-      }
-      const segments = this.pathSegments.slice(0, index + 1);
-      const newPath = segments.join('/');
-      if (newPath !== this.currentPath) {
-        this.currentPath = newPath;
-        this.pathHistory = [];
-        this.loadProvidersByPath(this.currentPath);
-      }
-    },
+/** 当前路径 */
+const currentPath = ref<string>('')
 
-    deleteFile(file, index) {
-      showConfirm(this.$t('dialog.save.delConfirm') + file.name).then(() => {
-        const fullFile = this.currentProviderPrefix + (file.path || file.name);
+/** 路径历史栈 */
+const pathHistory = ref<string[]>([])
 
-        deleteReportFile(fullFile)
-            .then(() => {
-              this.currentReportFiles.splice(index, 1);
+/** 列表加载状态（v-loading） */
+const loading = ref<boolean>(false)
 
-              // 从数据源中移除
-              const reportFiles = this.reportFilesData[this.currentProviderPrefix];
-              const dataIndex = reportFiles.findIndex(f => f.name === file.name);
-              if (dataIndex > -1) {
-                reportFiles.splice(dataIndex, 1);
-              }
-            })
-            .catch(error => {
-              console.error('删除文件失败:', error);
-              if (error.msg) {
-                showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
-              } else {
-                showAlert(this.$t('dialog.save.delFail'));
-              }
-            });
-      });
-    },
+/** a-select 所需的 {value,label} 选项 */
+const providerOptions = computed<{ value: string; label: string }[]>(() =>
+  providers.value.map((p) => ({ value: p.prefix, label: p.name }))
+)
 
-    handleSave() {
-        if (this.fileName === '') {
-          showAlert(this.$t('dialog.save.nameTip'));
-          return;
-        }
+/** 是否能返回上一级 */
+const canGoBack = computed<boolean>(() => pathHistory.value.length > 0)
 
-        if (!this.currentProviderPrefix || !this.currentReportFiles) {
-          showAlert(this.$t('dialog.save.locationTip'));
-          return;
-        }
+/** 当前路径分段 */
+const pathSegments = computed<string[]>(() => {
+  if (!currentPath.value) return []
+  return currentPath.value.split('/').filter(Boolean)
+})
 
-        for (let file of this.currentReportFiles) {
-          if (!file.directory) {
-            let fileName = file.name;
-            let pos = fileName.indexOf(".");
-            fileName = fileName.substring(0, pos);
-            if (fileName === this.fileName) {
-              showAlert(this.$t('dialog.save.file') + '[' + this.fileName + ']' + this.$t('dialog.save.exist'));
-              return;
-            }
-          }
-        }
+/** 当前报表上下文 */
+const context = computed<ReportContext | null>(() => report.getContext)
 
-        let filePath = this.currentPath ? this.currentPath + '/' + this.fileName : this.fileName;
-        const fullFileName = this.currentProviderPrefix + filePath + ".ureport.xml";
-        const content = tableToXml(this.context);
-        let that = this;
-        saveReportFile(fullFileName, content)
-          .then(() => {
-            that.$store.dispatch('report/setIsSaved', true);
-            that.$store.dispatch('report/setFileName', fullFileName);
-            resetDirty();
-            showAlert(this.$t('dialog.save.success')).then(() => {
-              that.handleClose();
-              that.$emit('saveAfter', fullFileName);
-            });
-          })
-          .catch(error => {
-            console.error('保存文件失败:', error);
-            if (error.msg) {
-              showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
-            } else {
-              showAlert(this.$t('dialog.save.fail'));
-            }
-          });
-    },
-
-    handleClose() {
-      this.$emit('update:visible', false);
-      setTimeout(() => {
-        this.fileName = '';
-        this.selectedProvider = '';
-        this.currentReportFiles = [];
-        this.content = '';
-        this.currentPath = '';
-        this.pathHistory = [];
-      }, 300);
-    },
-
-    // 键盘事件处理
-    handleKeydown(e) {
-      if (this.visible) {
-        if (e.key === 'Escape') {
-          this.handleClose();
-        }
-      }
-    },
-
-    // 格式化日期
-    formatDate(date) {
-      return formatDate(date);
+/**
+ * 弹窗打开时加载报表提供者列表
+ */
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      loadReports()
     }
   }
-};
+)
+
+/** 全局 ESC 关闭弹窗（与原实现对齐） */
+function handleKeydown(e: KeyboardEvent): void {
+  if (props.visible && e.key === 'Escape') {
+    handleClose()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
+/**
+ * 把后端响应统一解析为 provider 数组
+ */
+function pickProviders(response: ProvidersResponse): ReportProvider[] | null {
+  if (Array.isArray(response)) return response
+  if (response && Array.isArray((response as { data?: ReportProvider[] }).data)) {
+    return (response as { data: ReportProvider[] }).data
+  }
+  return null
+}
+
+/**
+ * 拉取所有 provider
+ */
+function loadReports(): void {
+  loading.value = true
+  loadReportProviders()
+    .then((response: ProvidersResponse) => {
+      const list = pickProviders(response)
+      if (!list) {
+        showAlert(t('dialog.save.loadFail'))
+        return
+      }
+      providers.value = list
+      // 初始化报表文件数据
+      for (const provider of providers.value) {
+        const { reportFiles, prefix } = provider
+        if (prefix) {
+          reportFilesData.value[prefix] = reportFiles || []
+        }
+      }
+      if (providers.value.length > 0) {
+        selectedProvider.value = providers.value[0].prefix
+        onProviderChange()
+      }
+    })
+    .catch((error: { msg?: string }) => {
+      if (error.msg) {
+        showAlert(t('dialog.save.serverError') + t('colon') + error.msg, { useHTMLString: true })
+      } else {
+        showAlert(t('dialog.save.loadFail'))
+      }
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
+/**
+ * 拉取指定路径下的 provider 文件
+ */
+function loadProvidersByPath(path: string): void {
+  loading.value = true
+  loadReportProvidersByPath(path)
+    .then((result: Record<string, { reportFiles: ReportFileItem[] }>) => {
+      for (const prefix in result) {
+        const providerData = result[prefix]
+        reportFilesData.value[`${prefix}:${path}`] = providerData.reportFiles || []
+      }
+      onProviderChange()
+    })
+    .catch((error: { msg?: string }) => {
+      console.error('Error loading providers by path:', error)
+      if (error.msg) {
+        showAlert(t('dialog.save.serverError') + t('colon') + error.msg, { useHTMLString: true })
+      } else {
+        showAlert(t('dialog.save.loadFail'))
+      }
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
+/**
+ * 根据 selectedProvider / currentPath 拉出当前展示的文件列表
+ */
+function onProviderChange(): void {
+  if (!selectedProvider.value || selectedProvider.value === '') {
+    currentReportFiles.value = []
+    return
+  }
+  const key = currentPath.value
+    ? `${selectedProvider.value}:${currentPath.value}`
+    : selectedProvider.value
+  currentReportFiles.value = reportFilesData.value[key] || []
+  currentProviderPrefix.value = selectedProvider.value
+}
+
+/** provider 切换时清空路径上下文 */
+function handleProviderChange(): void {
+  currentPath.value = ''
+  pathHistory.value = []
+  onProviderChange()
+}
+
+/** 点击目录行：进入子目录 */
+function handleFileClick(file: ReportFileItem): void {
+  if (file.directory) {
+    pathHistory.value.push(currentPath.value)
+    currentPath.value = file.path
+    loadProvidersByPath(currentPath.value)
+  }
+}
+
+/** 返回上一级 */
+function goBack(): void {
+  if (pathHistory.value.length > 0) {
+    currentPath.value = pathHistory.value.pop() || ''
+    if (currentPath.value === '') {
+      onProviderChange()
+    } else {
+      loadProvidersByPath(currentPath.value)
+    }
+  }
+}
+
+/** 面包屑点击：跳到指定段对应路径 */
+function navigateToPath(index: number): void {
+  if (index === -1) {
+    currentPath.value = ''
+    pathHistory.value = []
+    onProviderChange()
+    return
+  }
+  const segments = pathSegments.value.slice(0, index + 1)
+  const newPath = segments.join('/')
+  if (newPath !== currentPath.value) {
+    currentPath.value = newPath
+    pathHistory.value = []
+    loadProvidersByPath(currentPath.value)
+  }
+}
+
+/** 删除指定文件 */
+function deleteFile(file: ReportFileItem, index: number): void {
+  showConfirm(t('dialog.save.delConfirm') + file.name).then(() => {
+    const fullFile = currentProviderPrefix.value + (file.path || file.name)
+    deleteReportFile(fullFile)
+      .then(() => {
+        currentReportFiles.value.splice(index, 1)
+        const reportFiles = reportFilesData.value[currentProviderPrefix.value]
+        if (reportFiles) {
+          const dataIndex = reportFiles.findIndex((f) => f.name === file.name)
+          if (dataIndex > -1) {
+            reportFiles.splice(dataIndex, 1)
+          }
+        }
+      })
+      .catch((error: { msg?: string }) => {
+        console.error('删除文件失败:', error)
+        if (error.msg) {
+          showAlert(t('dialog.save.serverError') + t('colon') + error.msg, { useHTMLString: true })
+        } else {
+          showAlert(t('dialog.save.delFail'))
+        }
+      })
+  })
+}
+
+/** 格式化日期（透传 table.formatDate） */
+function formatDateOf(date?: string | number | Date): string {
+  return (formatDate as unknown as (d: unknown, fmt?: string) => string)(date, 'yyyy-MM-dd HH:mm:ss')
+}
+
+/**
+ * 保存按钮：校验 → 序列化 → saveReportFile
+ * - 同名文件拦截
+ * - 成功后更新 store + emit('save-after')
+ */
+function handleSave(): void {
+  if (fileName.value === '') {
+    showAlert(t('dialog.save.nameTip'))
+    return
+  }
+
+  if (!currentProviderPrefix.value || !currentReportFiles.value) {
+    showAlert(t('dialog.save.locationTip'))
+    return
+  }
+
+  for (const file of currentReportFiles.value) {
+    if (!file.directory) {
+      const fName = file.name
+      const pos = fName.indexOf('.')
+      const baseName = fName.substring(0, pos)
+      if (baseName === fileName.value) {
+        showAlert(
+          t('dialog.save.file') + '[' + fileName.value + ']' + t('dialog.save.exist')
+        )
+        return
+      }
+    }
+  }
+
+  const filePath = currentPath.value
+    ? currentPath.value + '/' + fileName.value
+    : fileName.value
+  const fullFileName = currentProviderPrefix.value + filePath + '.ureport.xml'
+  const content = tableToXml(context.value)
+
+  saveReportFile(fullFileName, content)
+    .then(() => {
+      report.setIsSaved(true)
+      report.setFileName(fullFileName)
+      resetDirty()
+      showAlert(t('dialog.save.success')).then(() => {
+        handleClose()
+        emit('save-after', fullFileName)
+      })
+    })
+    .catch((error: { msg?: string }) => {
+      console.error('保存文件失败:', error)
+      if (error.msg) {
+        showAlert(t('dialog.save.serverError') + t('colon') + error.msg, { useHTMLString: true })
+      } else {
+        showAlert(t('dialog.save.fail'))
+      }
+    })
+}
+
+/** 关闭弹窗：清空表单字段（保留 300ms 缓冲避免动画中数据闪动） */
+function handleClose(): void {
+  emit('update:visible', false)
+  setTimeout(() => {
+    fileName.value = ''
+    selectedProvider.value = ''
+    currentReportFiles.value = []
+    currentPath.value = ''
+    pathHistory.value = []
+  }, 300)
+}
 </script>
 
 <style scoped>
 .save-dialog-content {
   padding: 15px;
 }
-
 .file-list-container {
   height: 300px;
   overflow-y: auto;
@@ -428,5 +497,28 @@ export default {
 .icon-folder {
   margin-right: 5px;
   color: #ffc107;
+}
+.path-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.path-breadcrumb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.path-segment {
+  cursor: pointer;
+  color: #008ed3;
+}
+.path-segment:hover {
+  text-decoration: underline;
+}
+.path-separator {
+  margin: 0 4px;
+  color: #999;
 }
 </style>

@@ -1,201 +1,194 @@
 <template>
   <div>
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="alignChecked" @change="onAlignChange">
-          {{ $t('dialog.propCondition.align') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <u-select
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="alignChecked" @change="onAlignChange">
+          {{ t('dialog.propCondition.align') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <a-select
             v-show="alignChecked"
-            v-model="align"
+            v-model:value="align"
             @change="onAlignValueChange"
             style="width: 120px"
-        >
-          <u-option
-              v-for="option in alignOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-      <u-col :span="8">
-        <u-select
+            :options="alignOptions"
+        />
+      </a-col>
+      <a-col :span="8">
+        <a-select
             v-show="alignChecked"
-            v-model="alignScope"
+            v-model:value="alignScope"
             @change="onAlignScopeChange"
             style="width: 120px"
-        >
-          <u-option
-              v-for="option in scopeOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-    </u-row>
+            :options="scopeOptions"
+        />
+      </a-col>
+    </a-row>
 
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="valignChecked" @change="onValignChange">
-          {{ $t('dialog.propCondition.valign') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <u-select
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="valignChecked" @change="onValignChange">
+          {{ t('dialog.propCondition.valign') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <a-select
             v-show="valignChecked"
-            v-model="valign"
+            v-model:value="valign"
             @change="onValignValueChange"
             style="width: 120px"
-        >
-          <u-option
-              v-for="option in valignOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-      <u-col :span="8">
-        <u-select
+            :options="valignOptions"
+        />
+      </a-col>
+      <a-col :span="8">
+        <a-select
             v-show="valignChecked"
-            v-model="valignScope"
+            v-model:value="valignScope"
             @change="onValignScopeChange"
             style="width: 120px"
-        >
-          <u-option
-              v-for="option in scopeOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-    </u-row>
+            :options="scopeOptions"
+        />
+      </a-col>
+    </a-row>
   </div>
 </template>
 
-<script>
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UCheckbox from '@/components/checkbox/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
-import configOptions from '../constants/config-options.js';
+<script setup lang="ts">
+/**
+ * AlignConfig 对齐方式条件配置（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-row/u-col/u-checkbox/u-select/u-option（自定义）→ a-row/a-col/a-checkbox/a-select
+ * - 选中态对齐使用 v-model:checked / v-model:value
+ */
+import { ref, watch, onMounted } from 'vue'
+import configOptions from '../constants/config-options'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'AlignConfig',
-  components: {
-    USelect,
-    UOption,
-    UCheckbox,
-    URow,
-    UCol
-  },
-  props: {
-    cellStyle: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      alignChecked: false,
-      align: '',
-      alignScope: 'cell',
+defineOptions({ name: 'AlignConfig' })
 
-      valignChecked: false,
-      valign: '',
-      valignScope: 'cell',
 
-      alignOptions: [],
-      valignOptions: [],
-      scopeOptions: []
-    };
-  },
-  created() {
-    this.alignOptions = configOptions.getAlignOptions(this.$t);
-    this.valignOptions = configOptions.getValignOptions(this.$t);
-    this.scopeOptions = configOptions.getScopeOptions(this.$t);
-  },
-  watch: {
-    cellStyle: {
-      handler(newVal) {
-        this.loadAlignProperties(newVal);
-      },
-      immediate: true,
-      deep: true
-    }
-  },
-  methods: {
-    loadAlignProperties(cellStyle) {
-      if (!cellStyle) return;
+const { t } = useI18n()
+interface CellStyle {
+  align?: string
+  alignScope?: string
+  valign?: string
+  valignScope?: string
+  [key: string]: unknown
+}
 
-      this.alignChecked = !!(cellStyle.align && cellStyle.align !== '');
-      this.align = this.alignChecked ? cellStyle.align : '';
-      this.alignScope = cellStyle.alignScope || 'cell';
-
-      this.valignChecked = !!(cellStyle.valign && cellStyle.valign !== '');
-      this.valign = this.valignChecked ? cellStyle.valign : '';
-      this.valignScope = cellStyle.valignScope || 'cell';
-    },
-
-    onAlignChange() {
-      this.$emit('align-change', {
-        type: 'align',
-        checked: this.alignChecked,
-        value: this.alignChecked ? 'center' : null,
-        scope: this.alignChecked ? 'cell' : null
-      });
-    },
-
-    onAlignValueChange() {
-      this.$emit('align-change', {
-        type: 'align',
-        checked: this.alignChecked,
-        value: this.align,
-        scope: this.alignScope
-      });
-    },
-
-    onAlignScopeChange() {
-      this.$emit('align-change', {
-        type: 'align',
-        checked: this.alignChecked,
-        value: this.align,
-        scope: this.alignScope
-      });
-    },
-
-    onValignChange() {
-      this.$emit('align-change', {
-        type: 'valign',
-        checked: this.valignChecked,
-        value: this.valignChecked ? 'middle' : null,
-        scope: this.valignChecked ? 'cell' : null
-      });
-    },
-
-    onValignValueChange() {
-      this.$emit('align-change', {
-        type: 'valign',
-        checked: this.valignChecked,
-        value: this.valign,
-        scope: this.valignScope
-      });
-    },
-
-    onValignScopeChange() {
-      this.$emit('align-change', {
-        type: 'valign',
-        checked: this.valignChecked,
-        value: this.valign,
-        scope: this.valignScope
-      });
-    }
+const props = withDefaults(
+  defineProps<{
+    cellStyle?: CellStyle | null
+  }>(),
+  {
+    cellStyle: () => ({})
   }
-};
+)
+
+const emit = defineEmits<{
+  (
+    e: 'align-change',
+    payload: {
+      type: 'align' | 'valign'
+      checked: boolean
+      value: string | null
+      scope: string | null
+    }
+  ): void
+}>()
+
+const alignChecked = ref<boolean>(false)
+const align = ref<string>('')
+const alignScope = ref<string>('cell')
+
+const valignChecked = ref<boolean>(false)
+const valign = ref<string>('')
+const valignScope = ref<string>('cell')
+
+const alignOptions = ref<{ value: string; label: string }[]>([])
+const valignOptions = ref<{ value: string; label: string }[]>([])
+const scopeOptions = ref<{ value: string; label: string }[]>([])
+
+onMounted(() => {
+  alignOptions.value = configOptions.getAlignOptions()
+  valignOptions.value = configOptions.getValignOptions()
+  scopeOptions.value = configOptions.getScopeOptions()
+})
+
+watch(
+  () => props.cellStyle,
+  (newVal) => {
+    loadAlignProperties(newVal)
+  },
+  { immediate: true, deep: true }
+)
+
+const loadAlignProperties = (cellStyle?: CellStyle | null): void => {
+  if (!cellStyle) return
+
+  alignChecked.value = !!(cellStyle.align && cellStyle.align !== '')
+  align.value = alignChecked.value ? (cellStyle.align as string) : ''
+  alignScope.value = cellStyle.alignScope || 'cell'
+
+  valignChecked.value = !!(cellStyle.valign && cellStyle.valign !== '')
+  valign.value = valignChecked.value ? (cellStyle.valign as string) : ''
+  valignScope.value = cellStyle.valignScope || 'cell'
+}
+
+const onAlignChange = (): void => {
+  emit('align-change', {
+    type: 'align',
+    checked: alignChecked.value,
+    value: alignChecked.value ? 'center' : null,
+    scope: alignChecked.value ? 'cell' : null
+  })
+}
+
+const onAlignValueChange = (): void => {
+  emit('align-change', {
+    type: 'align',
+    checked: alignChecked.value,
+    value: align.value,
+    scope: alignScope.value
+  })
+}
+
+const onAlignScopeChange = (): void => {
+  emit('align-change', {
+    type: 'align',
+    checked: alignChecked.value,
+    value: align.value,
+    scope: alignScope.value
+  })
+}
+
+const onValignChange = (): void => {
+  emit('align-change', {
+    type: 'valign',
+    checked: valignChecked.value,
+    value: valignChecked.value ? 'middle' : null,
+    scope: valignChecked.value ? 'cell' : null
+  })
+}
+
+const onValignValueChange = (): void => {
+  emit('align-change', {
+    type: 'valign',
+    checked: valignChecked.value,
+    value: valign.value,
+    scope: valignScope.value
+  })
+}
+
+const onValignScopeChange = (): void => {
+  emit('align-change', {
+    type: 'valign',
+    checked: valignChecked.value,
+    value: valign.value,
+    scope: valignScope.value
+  })
+}
 </script>

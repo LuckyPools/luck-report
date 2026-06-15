@@ -17,7 +17,7 @@
 
 import store from '@/store/vuex-compat';
 import TableManager from '@/views/report/designer/edit-table/manager';
-import { deepCopy } from '@/components/utils';
+import { deepCopy } from '@/utils/comnon';
 import { setDirty } from '@/utils/table';
 import type { ReportCell, ReportContext, ReportDatasource, ReportDataset, ReportSearchForm, ReportPaperLike, ReportRowDef, ReportColumnDef } from '@/types/report-def'
 

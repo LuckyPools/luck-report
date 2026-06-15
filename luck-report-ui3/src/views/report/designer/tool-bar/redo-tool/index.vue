@@ -1,31 +1,44 @@
 <template>
-  <u-button
-      :title="$t('tools.redo.redo')"
-      class="tool-button"
-      icon="icon-redo"
-      @click="handleClick"
+  <a-button
+    type="text"
+    :title="t('tools.redo.redo')"
+    class="tool-button"
+    @click="handleClick"
   >
-  </u-button>
+    <template #icon>
+      <i class="iconfont icon-redo"></i>
+    </template>
+  </a-button>
 </template>
 
-<script>
-import { undoManager } from '@/utils/table.js';
-import { showAlert } from '@/utils/comnon.js';
-import UButton from "@/components/button/index.vue";
+<script setup lang="ts">
+/**
+ * RedoTool 重做工具（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. handleClick → undoManager.redo()
+ * 2. 若无可重做 → 弹提示
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UButton（自定义）→ a-button + 模板内 icon 槽
+ */
+import { undoManager } from '@/utils/table'
+import { showAlert } from '@/utils/comnon'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'RedoTool',
-  components: {UButton},
-  methods: {
-    handleClick() {
-      if (undoManager.hasRedo()) {
-        undoManager.redo();
-      } else {
-        showAlert(this.$t('tools.redo.noRedo'));
-      }
-    }
+defineOptions({ name: 'RedoTool' })
+
+
+const { t } = useI18n()
+/** 重做或提示无内容可重做 */
+function handleClick(): void {
+  if (undoManager.hasRedo()) {
+    undoManager.redo()
+  } else {
+    showAlert(t('tools.redo.noRedo'))
   }
-};
+}
 </script>
 
 <style scoped>

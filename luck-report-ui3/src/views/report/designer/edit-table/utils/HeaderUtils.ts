@@ -15,7 +15,7 @@
  * - hot 参数类型为 HandsontableInstance
  * - 内部 rowHeaders 显式标注 band 联合类型，便于识别所有支持的 band
  */
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import { getContext } from '@/utils/contextActions';
 import type { HandsontableInstance } from '@/types/handsontable';
 import type { ReportRowHeader } from '@/types/report-def';
@@ -47,13 +47,13 @@ export function renderRowHeader(hot: HandsontableInstance): void {
       if (header.rowNumber === (i - 1)) {
         const band = header.band as RowHeaderBand
         if (band === 'headerrepeat') {
-          type = `<span style='color:blue;font-size: 10px' title='` + $t('table.header.hr') + `'>HR</span>`
+          type = `<span style='color:blue;font-size: 10px' title='` + i18n.global.t('table.header.hr') + `'>HR</span>`
         } else if (band === 'footerrepeat') {
-          type = `<span style='color:#d30a16;font-size: 10px' title='` + $t('table.header.fr') + `'>FR</span>`
+          type = `<span style='color:#d30a16;font-size: 10px' title='` + i18n.global.t('table.header.fr') + `'>FR</span>`
         } else if (band === 'title') {
-          type = `<span style='color:#d30a16;font-size: 10px' title='` + $t('table.header.t') + `'>T</span>`
+          type = `<span style='color:#d30a16;font-size: 10px' title='` + i18n.global.t('table.header.t') + `'>T</span>`
         } else if (band === 'summary') {
-          type = `<span style='color:#d30a16;font-size: 10px' title='` + $t('table.header.s') + `'>S</span>`
+          type = `<span style='color:#d30a16;font-size: 10px' title='` + i18n.global.t('table.header.s') + `'>S</span>`
         }
         break
       }

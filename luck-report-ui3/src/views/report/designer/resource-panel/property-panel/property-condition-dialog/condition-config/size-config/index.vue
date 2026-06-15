@@ -1,136 +1,146 @@
 <template>
   <div>
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="rowHeightChecked" @change="onRowHeightChange">
-          {{ $t('dialog.propCondition.rowHeight') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <u-input-number
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="rowHeightChecked" @change="onRowHeightChange">
+          {{ t('dialog.propCondition.rowHeight') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <a-input-number
             v-show="rowHeightChecked"
-            v-model="localRowHeight"
+            v-model:value="localRowHeight"
             :min="1"
-            @change="onRowHeightValueChange">
-        </u-input-number>
-      </u-col>
-      <u-col :span="8">
-      </u-col>
-    </u-row>
+            @change="onRowHeightValueChange"
+        />
+      </a-col>
+      <a-col :span="8">
+      </a-col>
+    </a-row>
 
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="colWidthChecked" @change="onColWidthChange">
-          {{ $t('dialog.propCondition.colWidth') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <u-input-number
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="colWidthChecked" @change="onColWidthChange">
+          {{ t('dialog.propCondition.colWidth') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <a-input-number
             v-show="colWidthChecked"
-            v-model="localColWidth"
+            v-model:value="localColWidth"
             :min="1"
-            @change="onColWidthValueChange">
-        </u-input-number>
-      </u-col>
-      <u-col :span="8">
-      </u-col>
-    </u-row>
+            @change="onColWidthValueChange"
+        />
+      </a-col>
+      <a-col :span="8">
+      </a-col>
+    </a-row>
   </div>
 </template>
 
-<script>
-import UInputNumber from '@/components/input-number/index.vue';
-import UCheckbox from '@/components/checkbox/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
+<script setup lang="ts">
+/**
+ * SizeConfig 行列宽高条件配置（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-row/u-col/u-checkbox/u-input-number（自定义）→ a-row/a-col/a-checkbox/a-input-number
+ * - 选中态对齐使用 v-model:checked / v-model:value
+ */
+import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'SizeConfig',
-  components: {
-    UInputNumber,
-    UCheckbox,
-    URow,
-    UCol
-  },
-  props: {
-    rowHeight: {
-      type: Number,
-      default: null
-    },
-    colWidth: {
-      type: Number,
-      default: null
-    }
-  },
-  data() {
-    return {
-      rowHeightChecked: false,
-      localRowHeight: 0,
+defineOptions({ name: 'SizeConfig' })
 
-      colWidthChecked: false,
-      localColWidth: 0
-    };
-  },
-  watch: {
-    rowHeight: {
-      handler(newVal) {
-        this.loadRowHeight(newVal);
-      },
-      immediate: true
-    },
-    colWidth: {
-      handler(newVal) {
-        this.loadColWidth(newVal);
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    loadRowHeight(rowHeight) {
-      this.rowHeightChecked = rowHeight !== null && rowHeight !== undefined && rowHeight !== -1;
-      this.localRowHeight = this.rowHeightChecked ? rowHeight : 0;
-    },
 
-    loadColWidth(colWidth) {
-      this.colWidthChecked = colWidth !== null && colWidth !== undefined && colWidth !== -1;
-      this.localColWidth = this.colWidthChecked ? colWidth : 0;
-    },
-
-    onRowHeightChange() {
-      this.$emit('size-change', {
-        type: 'rowHeight',
-        checked: this.rowHeightChecked,
-        value: this.rowHeightChecked ? this.localRowHeight : null
-      });
-    },
-
-    onRowHeightValueChange() {
-      if (this.rowHeightChecked) {
-        this.$emit('size-change', {
-          type: 'rowHeight',
-          checked: true,
-          value: this.localRowHeight
-        });
-      }
-    },
-
-    onColWidthChange() {
-      this.$emit('size-change', {
-        type: 'colWidth',
-        checked: this.colWidthChecked,
-        value: this.colWidthChecked ? this.localColWidth : null
-      });
-    },
-
-    onColWidthValueChange() {
-      if (this.colWidthChecked) {
-        this.$emit('size-change', {
-          type: 'colWidth',
-          checked: true,
-          value: this.localColWidth
-        });
-      }
-    }
+const { t } = useI18n()
+const props = withDefaults(
+  defineProps<{
+    rowHeight?: number | null
+    colWidth?: number | null
+  }>(),
+  {
+    rowHeight: null,
+    colWidth: null
   }
-};
+)
+
+const emit = defineEmits<{
+  (
+    e: 'size-change',
+    payload: {
+      type: 'rowHeight' | 'colWidth'
+      checked: boolean
+      value: number | null
+    }
+  ): void
+}>()
+
+const rowHeightChecked = ref<boolean>(false)
+const localRowHeight = ref<number>(0)
+
+const colWidthChecked = ref<boolean>(false)
+const localColWidth = ref<number>(0)
+
+const loadRowHeight = (rowHeight?: number | null): void => {
+  rowHeightChecked.value = rowHeight !== null && rowHeight !== undefined && rowHeight !== -1
+  localRowHeight.value = rowHeightChecked.value ? (rowHeight as number) : 0
+}
+
+const loadColWidth = (colWidth?: number | null): void => {
+  colWidthChecked.value = colWidth !== null && colWidth !== undefined && colWidth !== -1
+  localColWidth.value = colWidthChecked.value ? (colWidth as number) : 0
+}
+
+watch(
+  () => props.rowHeight,
+  (newVal) => {
+    loadRowHeight(newVal)
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.colWidth,
+  (newVal) => {
+    loadColWidth(newVal)
+  },
+  { immediate: true }
+)
+
+const onRowHeightChange = (): void => {
+  emit('size-change', {
+    type: 'rowHeight',
+    checked: rowHeightChecked.value,
+    value: rowHeightChecked.value ? localRowHeight.value : null
+  })
+}
+
+const onRowHeightValueChange = (): void => {
+  if (rowHeightChecked.value) {
+    emit('size-change', {
+      type: 'rowHeight',
+      checked: true,
+      value: localRowHeight.value
+    })
+  }
+}
+
+const onColWidthChange = (): void => {
+  emit('size-change', {
+    type: 'colWidth',
+    checked: colWidthChecked.value,
+    value: colWidthChecked.value ? localColWidth.value : null
+  })
+}
+
+const onColWidthValueChange = (): void => {
+  if (colWidthChecked.value) {
+    emit('size-change', {
+      type: 'colWidth',
+      checked: true,
+      value: localColWidth.value
+    })
+  }
+}
 </script>

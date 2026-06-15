@@ -1,18 +1,19 @@
 <template>
-  <UDialog
-    :title="$t('dialog.setting.title')"
+  <a-modal
+    :title="t('dialog.setting.title')"
     width="800px"
-    :visible="visible"
-    @close="handleClose"
+    :open="visible"
+    @cancel="handleClose"
+    @ok="handleOk"
   >
     <div class="settings-dialog">
       <!-- 选项卡导航 -->
-      <u-tabs v-model="activeTab">
-        <u-tab-pane :label="$t('dialog.setting.pageSetting')" index="page"></u-tab-pane>
-        <u-tab-pane :label="$t('dialog.setting.headerFooterSetting')" index="headerFooter"></u-tab-pane>
-        <u-tab-pane :label="$t('dialog.setting.pagingSetting')" index="paging"></u-tab-pane>
-        <u-tab-pane :label="$t('dialog.setting.columnSetting')" index="column"></u-tab-pane>
-      </u-tabs>
+      <a-tabs v-model:active-key="activeTab">
+        <a-tab-pane :key="'page'" :tab="t('dialog.setting.pageSetting')"></a-tab-pane>
+        <a-tab-pane :key="'headerFooter'" :tab="t('dialog.setting.headerFooterSetting')"></a-tab-pane>
+        <a-tab-pane :key="'paging'" :tab="t('dialog.setting.pagingSetting')"></a-tab-pane>
+        <a-tab-pane :key="'column'" :tab="t('dialog.setting.columnSetting')"></a-tab-pane>
+      </a-tabs>
 
       <!-- 选项卡内容 -->
       <div class="tab-content">
@@ -85,37 +86,35 @@
       @ok="handleFooterFontDialogOk"
     />
 
-    <div slot="footer" class="div-footer-align">
-      <u-button @click="handleClose" type="info" class="btn-cancel">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <div class="div-footer-align">
+        <a-button @click="handleClose" type="default" class="btn-cancel">{{ t('dialog.common.cancel') }}</a-button>
+        <a-button type="primary" @click="handleOk">{{ t('dialog.common.ok') }}</a-button>
+      </div>
+    </template>
+  </a-modal>
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
-import {buildPageSizeList, mmToPoint, setDirty} from '@/utils/table.js';
-import { deepCopy } from '@/components/utils/index.js';
+import { showAlert } from '@/utils/comnon';
+import { buildPageSizeList, mmToPoint, setDirty } from '@/utils/table';
+import { deepCopy } from '@/utils/comnon';
 import FontSettingDialog from '@/views/report/designer/tool-bar/settings-tool/font-setting-dialog/index.vue';
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UTabs from "@/components/tabs/index.vue";
-import UTabPane from "@/components/tabs/pane.vue";
 import PageSettings from './page/index.vue';
 import HeaderFooterSettings from '@/views/report/designer/tool-bar/settings-tool/settings-dialog/header-footer/index.vue';
 import PagingSettings from './paging/index.vue';
 import ColumnSettings from './column/index.vue';
-import { mapGetters } from 'vuex';
-import { updateReportDef } from '@/utils/contextActions.js';
+import { useReportStore } from '@/store/modules/report';
+import { updateReportDef } from '@/utils/contextActions';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'SettingsDialog',
+  setup() {
+    return { t: useI18n().t };
+  },
   components: {
-    UButton,
-    UDialog,
     FontSettingDialog,
-    UTabs,
-    UTabPane,
     PageSettings,
     HeaderFooterSettings,
     PagingSettings,
@@ -179,9 +178,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
     context() {
-      return this.getContext;
+      return useReportStore().getContext;
     }
   },
   watch: {
@@ -249,7 +247,7 @@ export default {
       });
 
       if (this.isPrintLineRefresh) {
-        this.$store.dispatch('report/setIsPrintLineRefresh', true);
+        useReportStore().setIsPrintLineRefresh(true);
       }
 
       this.$emit('ok');
@@ -299,14 +297,14 @@ export default {
     },
     handleFixRowsChange(value) {
       if (this.paper.pagingMode === 'fixrows' && value < 1) {
-        showAlert(this.$t('dialog.setting.fixRowsTip'));
+        showAlert(this.t('dialog.setting.fixRowsTip'));
         return;
       }
       setDirty();
     },
     handleHtmlIntervalRefreshValueChange(value) {
       if (isNaN(value) || value < 0) {
-        showAlert(this.$t('dialog.setting.secondTip'));
+        showAlert(this.t('dialog.setting.secondTip'));
         return;
       }
       setDirty();

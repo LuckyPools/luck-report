@@ -1,217 +1,229 @@
 <template>
   <div>
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="forceChecked" @change="onForceChange">
-          {{ $t('dialog.propCondition.forecolor') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <UColorPicker
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="forceChecked" @change="onForceChange">
+          {{ t('dialog.propCondition.forecolor') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <u-color-picker
             v-show="forceChecked"
-            v-model="forceColor"
-            @input="onForceColorChange"
+            v-model:value="forceColor"
+            @change="onForceColorChange"
+            show-text
+            format="hex"
         />
-      </u-col>
-      <u-col :span="8">
-        <u-select
+      </a-col>
+      <a-col :span="8">
+        <a-select
             v-show="forceChecked"
-            v-model="forceScope"
+            v-model:value="forceScope"
             style="width: 120px"
             @change="onForceScopeChange"
-        >
-          <u-option
-              v-for="option in scopeOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-    </u-row>
-
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="bgcolorChecked" @change="onBgcolorChange">
-          {{ $t('dialog.propCondition.bgcolor') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <UColorPicker
-            v-show="bgcolorChecked"
-            v-model="bgColor"
-            @input="onBgColorChange"
+            :options="scopeOptions"
         />
-      </u-col>
-      <u-col :span="8">
-        <u-select
+      </a-col>
+    </a-row>
+
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="bgcolorChecked" @change="onBgcolorChange">
+          {{ t('dialog.propCondition.bgcolor') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <u-color-picker
             v-show="bgcolorChecked"
-            v-model="bgcolorScope"
+            v-model:value="bgColor"
+            @change="onBgColorChange"
+            show-text
+            format="hex"
+        />
+      </a-col>
+      <a-col :span="8">
+        <a-select
+            v-show="bgcolorChecked"
+            v-model:value="bgcolorScope"
             style="width: 120px"
             @change="onBgcolorScopeChange"
-        >
-          <u-option
-              v-for="option in scopeOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-    </u-row>
+            :options="scopeOptions"
+        />
+      </a-col>
+    </a-row>
   </div>
 </template>
 
-<script>
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UCheckbox from '@/components/checkbox/index.vue';
-import UColorPicker from '@/components/color-picker/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
-import configOptions from '../constants/config-options.js';
-import { rgbToHex, hexToRgb } from '@/utils/color';
+<script setup lang="ts">
+/**
+ * ColorConfig 颜色条件配置（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-row/u-col/u-checkbox/u-color-picker/u-select/u-option（自定义）→ a-row/a-col/a-checkbox/u-color-picker/a-select
+ * - 颜色转换：hex ↔ rgb 字符串
+ */
+import { ref, watch, onMounted } from 'vue'
+import { rgbToHex, hexToRgb } from '@/utils/color'
+import configOptions from '../constants/config-options'
+import { useI18n } from 'vue-i18n'
+import UColorPicker from '@/components/color-picker/index.vue'
 
-export default {
-  name: 'ColorConfig',
-  components: {
-    USelect,
-    UOption,
-    UCheckbox,
-    UColorPicker,
-    URow,
-    UCol
-  },
-  props: {
-    cellStyle: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      forceChecked: false,
-      forceColor: '#000000',
-      forceScope: 'cell',
+defineOptions({ name: 'ColorConfig' })
 
-      bgcolorChecked: false,
-      bgColor: '#FFFFFF',
-      bgcolorScope: 'cell',
 
-      scopeOptions: []
-    };
-  },
-  created() {
-    this.scopeOptions = configOptions.getScopeOptions(this.$t);
-  },
-  watch: {
-    cellStyle: {
-      handler(newVal) {
-        this.loadColorProperties(newVal);
-      },
-      immediate: true,
-      deep: true
-    }
-  },
-  methods: {
-    convertColorToRgb(color) {
-      if (!color) return null;
+const { t } = useI18n()
+interface CellStyle {
+  forecolor?: string
+  forecolorScope?: string
+  bgcolor?: string
+  bgcolorScope?: string
+  [key: string]: unknown
+}
 
-      if (color.startsWith('#')) {
-        return hexToRgb(color);
-      } else if (color.length > 5 && color.startsWith('rgb')) {
-        return color.substring(4, color.length - 1);
-      }
-      return color;
-    },
-
-    convertRgbToHex(rgbString) {
-      if (!rgbString) return null;
-
-      const rgbParts = rgbString.split(',');
-      if (rgbParts.length === 3) {
-        return rgbToHex(parseInt(rgbParts[0]), parseInt(rgbParts[1]), parseInt(rgbParts[2]));
-      }
-      return null;
-    },
-
-    loadColorProperties(cellStyle) {
-      if (!cellStyle) return;
-
-      this.forceChecked = !!(cellStyle.forecolor && cellStyle.forecolor !== '');
-      if (this.forceChecked) {
-        const hexColor = this.convertRgbToHex(cellStyle.forecolor);
-        this.forceColor = hexColor || '#000000';
-      } else {
-        this.forceColor = '';
-      }
-      this.forceScope = cellStyle.forecolorScope || 'cell';
-
-      this.bgcolorChecked = !!(cellStyle.bgcolor && cellStyle.bgcolor !== '');
-      if (this.bgcolorChecked) {
-        const hexColor = this.convertRgbToHex(cellStyle.bgcolor);
-        this.bgColor = hexColor || '#FFFFFF';
-      } else {
-        this.bgColor = '';
-      }
-      this.bgcolorScope = cellStyle.bgcolorScope || 'cell';
-    },
-
-    onForceChange() {
-      this.$emit('color-change', {
-        type: 'forecolor',
-        checked: this.forceChecked,
-        value: this.forceChecked ? '0,0,0' : null,
-        scope: this.forceChecked ? 'cell' : null
-      });
-    },
-
-    onForceColorChange() {
-      const rgbColor = this.convertColorToRgb(this.forceColor);
-      this.$emit('color-change', {
-        type: 'forecolor',
-        checked: this.forceChecked,
-        value: rgbColor,
-        scope: this.forceScope
-      });
-    },
-
-    onForceScopeChange() {
-      this.$emit('color-change', {
-        type: 'forecolor',
-        checked: this.forceChecked,
-        value: this.convertColorToRgb(this.forceColor),
-        scope: this.forceScope
-      });
-    },
-
-    onBgcolorChange() {
-      this.$emit('color-change', {
-        type: 'bgcolor',
-        checked: this.bgcolorChecked,
-        value: this.bgcolorChecked ? '0,0,0' : null,
-        scope: this.bgcolorChecked ? 'cell' : null
-      });
-    },
-
-    onBgColorChange() {
-      const rgbColor = this.convertColorToRgb(this.bgColor);
-      this.$emit('color-change', {
-        type: 'bgcolor',
-        checked: this.bgcolorChecked,
-        value: rgbColor,
-        scope: this.bgcolorScope
-      });
-    },
-
-    onBgcolorScopeChange() {
-      this.$emit('color-change', {
-        type: 'bgcolor',
-        checked: this.bgcolorChecked,
-        value: this.convertColorToRgb(this.bgColor),
-        scope: this.bgcolorScope
-      });
-    }
+const props = withDefaults(
+  defineProps<{
+    cellStyle?: CellStyle | null
+  }>(),
+  {
+    cellStyle: () => ({})
   }
-};
+)
+
+const emit = defineEmits<{
+  (
+    e: 'color-change',
+    payload: {
+      type: 'forecolor' | 'bgcolor'
+      checked: boolean
+      value: string | null
+      scope: string | null
+    }
+  ): void
+}>()
+
+const forceChecked = ref<boolean>(false)
+const forceColor = ref<string>('#000000')
+const forceScope = ref<string>('cell')
+
+const bgcolorChecked = ref<boolean>(false)
+const bgColor = ref<string>('#FFFFFF')
+const bgcolorScope = ref<string>('cell')
+
+const scopeOptions = ref<{ value: string; label: string }[]>([])
+
+onMounted(() => {
+  scopeOptions.value = configOptions.getScopeOptions()
+})
+
+watch(
+  () => props.cellStyle,
+  (newVal) => {
+    loadColorProperties(newVal)
+  },
+  { immediate: true, deep: true }
+)
+
+const convertColorToRgb = (color: string): string | null => {
+  if (!color) return null
+
+  if (color.startsWith('#')) {
+    return hexToRgb(color)
+  } else if (color.length > 5 && color.startsWith('rgb')) {
+    return color.substring(4, color.length - 1)
+  }
+  return color
+}
+
+const convertRgbToHex = (rgbString: string): string | null => {
+  if (!rgbString) return null
+
+  const rgbParts = rgbString.split(',')
+  if (rgbParts.length === 3) {
+    return rgbToHex(
+      parseInt(rgbParts[0], 10),
+      parseInt(rgbParts[1], 10),
+      parseInt(rgbParts[2], 10)
+    )
+  }
+  return null
+}
+
+const loadColorProperties = (cellStyle?: CellStyle | null): void => {
+  if (!cellStyle) return
+
+  forceChecked.value = !!(cellStyle.forecolor && cellStyle.forecolor !== '')
+  if (forceChecked.value) {
+    const hexColor = convertRgbToHex(cellStyle.forecolor as string)
+    forceColor.value = hexColor || '#000000'
+  } else {
+    forceColor.value = ''
+  }
+  forceScope.value = cellStyle.forecolorScope || 'cell'
+
+  bgcolorChecked.value = !!(cellStyle.bgcolor && cellStyle.bgcolor !== '')
+  if (bgcolorChecked.value) {
+    const hexColor = convertRgbToHex(cellStyle.bgcolor as string)
+    bgColor.value = hexColor || '#FFFFFF'
+  } else {
+    bgColor.value = ''
+  }
+  bgcolorScope.value = cellStyle.bgcolorScope || 'cell'
+}
+
+const onForceChange = (): void => {
+  emit('color-change', {
+    type: 'forecolor',
+    checked: forceChecked.value,
+    value: forceChecked.value ? '0,0,0' : null,
+    scope: forceChecked.value ? 'cell' : null
+  })
+}
+
+const onForceColorChange = (): void => {
+  const rgbColor = convertColorToRgb(forceColor.value)
+  emit('color-change', {
+    type: 'forecolor',
+    checked: forceChecked.value,
+    value: rgbColor,
+    scope: forceScope.value
+  })
+}
+
+const onForceScopeChange = (): void => {
+  emit('color-change', {
+    type: 'forecolor',
+    checked: forceChecked.value,
+    value: convertColorToRgb(forceColor.value),
+    scope: forceScope.value
+  })
+}
+
+const onBgcolorChange = (): void => {
+  emit('color-change', {
+    type: 'bgcolor',
+    checked: bgcolorChecked.value,
+    value: bgcolorChecked.value ? '0,0,0' : null,
+    scope: bgcolorChecked.value ? 'cell' : null
+  })
+}
+
+const onBgColorChange = (): void => {
+  const rgbColor = convertColorToRgb(bgColor.value)
+  emit('color-change', {
+    type: 'bgcolor',
+    checked: bgcolorChecked.value,
+    value: rgbColor,
+    scope: bgcolorScope.value
+  })
+}
+
+const onBgcolorScopeChange = (): void => {
+  emit('color-change', {
+    type: 'bgcolor',
+    checked: bgcolorChecked.value,
+    value: convertColorToRgb(bgColor.value),
+    scope: bgcolorScope.value
+  })
+}
 </script>

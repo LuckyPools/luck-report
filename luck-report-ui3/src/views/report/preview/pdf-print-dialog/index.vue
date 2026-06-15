@@ -1,479 +1,432 @@
 <template>
-  <UDialog
-    :title="$t('preview.pdfPrint.title')"
-    top="20px"
-    width="1250px"
-    :visible="visible"
-    @close="handleClose"
+  <a-modal
+    :title="t('preview.pdfPrint.title')"
+    :open="visible"
+    :width="1250"
+    :footer="null"
     class="pdf-print-dialog"
+    @cancel="handleClose"
+    @update:open="handleOpenChange"
+    :styles="{ body: { paddingTop: '5px' } }"
   >
-    <div class="pdf-print-body" v-loading="loading">
-      <fieldset class="pdf-print-toolbar">
-          <legend>{{ $t('preview.pdfPrint.setup') }}</legend>
+    <div class="pdf-print-body">
+      <a-spin :spinning="loading">
+        <fieldset class="pdf-print-toolbar">
+          <legend>{{ t('preview.pdfPrint.setup') }}</legend>
 
           <!-- 纸张类型 -->
-          <u-form :label-width="100">
-            <u-row>
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.paper')">
-                  <u-select
-                    v-model="paper.paperType"
+          <a-form :label-width="100">
+            <a-row>
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.paper')">
+                  <a-select
+                    v-model:value="paper.paperType"
                     class="page-select"
                     style="width: 140px"
                     @change="handlePageTypeChange"
                   >
-                    <u-option
+                    <a-select-option
                       v-for="(option, index) in paperTypeOptions"
                       :key="index"
                       :value="option.value"
-                      :label="option.label"
                     >
                       {{ option.label }}
-                    </u-option>
-                  </u-select>
-                </u-form-item>
-              </u-col>
+                    </a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
 
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.width')">
-                  <u-input-number
-                    v-model="pageWidthMM"
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.width')">
+                  <a-input-number
+                    v-model:value="pageWidthMM"
                     :disabled="paper.paperType !== 'CUSTOM'"
                     @change="handlePageWidthChange"
                   />
-                </u-form-item>
-              </u-col>
+                </a-form-item>
+              </a-col>
 
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.height')">
-                  <u-input-number
-                    v-model="pageHeightMM"
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.height')">
+                  <a-input-number
+                    v-model:value="pageHeightMM"
                     :disabled="paper.paperType !== 'CUSTOM'"
                     @change="handlePageHeightChange"
                   />
-                </u-form-item>
-              </u-col>
+                </a-form-item>
+              </a-col>
 
-              <u-col :span="6">
-                <u-form-item class="property-label"  :label="$t('preview.pdfPrint.orientation')">
-                  <u-select
-                      v-model="paper.orientation"
-                      class="orientation-select"
-                      style="width: 140px">
-                    <u-option
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.orientation')">
+                  <a-select
+                    v-model:value="paper.orientation"
+                    class="orientation-select"
+                    style="width: 140px"
+                  >
+                    <a-select-option
                       v-for="(option, index) in orientationOptions"
                       :key="index"
                       :value="option.value"
-                      :label="option.label"
                     >
                       {{ option.label }}
-                    </u-option>
-                  </u-select>
-                </u-form-item>
-              </u-col>
-            </u-row>
+                    </a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+            </a-row>
 
-          <u-row style="margin-top: 5px;">
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.leftMargin')">
-                  <u-input-number
-                    v-model="leftMarginMM"
+            <a-row style="margin-top: 5px;">
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.leftMargin')">
+                  <a-input-number
+                    v-model:value="leftMarginMM"
                     @change="handleLeftMarginChange"
                   />
-                </u-form-item>
-              </u-col>
+                </a-form-item>
+              </a-col>
 
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.rightMargin')">
-                  <u-input-number
-                    v-model="rightMarginMM"
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.rightMargin')">
+                  <a-input-number
+                    v-model:value="rightMarginMM"
                     @change="handleRightMarginChange"
                   />
-                </u-form-item>
-              </u-col>
+                </a-form-item>
+              </a-col>
 
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.topMargin')">
-                  <u-input-number
-                    v-model="topMarginMM"
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.topMargin')">
+                  <a-input-number
+                    v-model:value="topMarginMM"
                     @change="handleTopMarginChange"
                   />
-                </u-form-item>
-              </u-col>
+                </a-form-item>
+              </a-col>
 
-              <u-col :span="6">
-                <u-form-item class="property-label" :label="$t('preview.pdfPrint.bottomMargin')">
-                  <u-input-number
-                    v-model="bottomMarginMM"
+              <a-col :span="6">
+                <a-form-item class="property-label" :label="t('preview.pdfPrint.bottomMargin')">
+                  <a-input-number
+                    v-model:value="bottomMarginMM"
                     @change="handleBottomMarginChange"
                   />
-                </u-form-item>
-              </u-col>
-            </u-row>
+                </a-form-item>
+              </a-col>
+            </a-row>
 
-            <u-row style="margin-top: 5px;">
-              <u-col :span="6" :offset="18">
-                <u-form-item class="property-label" >
-                  <u-button type="primary" @click="handleApply">
-                    {{ $t('preview.pdfPrint.apply') }}
-                  </u-button>
-
-                  <u-button type="error" style="margin-left:5px" @click="handlePrint">
-                    {{ $t('preview.pdfPrint.print') }}
-                  </u-button>
-                </u-form-item>
-              </u-col>
-            </u-row>
-          </u-form>
+            <a-row style="margin-top: 5px;">
+              <a-col :span="6" :offset="18">
+                <a-form-item class="property-label">
+                  <a-button type="primary" @click="handleApply">
+                    {{ t('preview.pdfPrint.apply') }}
+                  </a-button>
+                  <a-button type="danger" style="margin-left: 5px" @click="handlePrint">
+                    {{ t('preview.pdfPrint.print') }}
+                  </a-button>
+                </a-form-item>
+              </a-col>
+            </a-row>
+          </a-form>
         </fieldset>
 
-        <!-- PDF预览区域 -->
         <div v-show="!loading" class="pdf-preview-container">
           <iframe
-            ref="pdfFrame"
+            ref="pdfFrameRef"
             name="_iframe_for_pdf_print"
             class="pdf-preview-frame"
             frameborder="0"
           ></iframe>
         </div>
+      </a-spin>
     </div>
-  </UDialog>
+  </a-modal>
 </template>
 
-<script>
-import {buildPageSizeList, mmToPoint, pointToMM} from '@/utils/table.js';
-import {LoadingDirective} from '@/components/loading/instance.js';
-import {showAlert} from '@/utils/comnon.js';
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import {getPdfBlobUrl, loadPagePaper} from '@/api/preview';
-import UCol from "@/components/col/index.vue";
-import URow from "@/components/row/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import { mapGetters } from 'vuex';
-import {getUrlSearchParams} from "@/utils/url";
+<script setup lang="ts">
+/**
+ * PDF 打印对话框
+ *
+ * 改造要点：
+ * 1. Vue2 Options API + 自定义 u-xxx 组件 → Vue3 <script setup> + TypeScript + ant-design-vue
+ * 2. UDialog → a-modal
+ * 3. UForm/UFormItem/URow/UCol → a-form/a-form-item/a-row/a-col
+ * 4. USelect/UOption → a-select/a-select-option
+ * 5. UInputNumber → a-input-number
+ * 6. v-model 改 v-model:value
+ * 7. v-loading 自定义指令 → a-spin
+ * 8. Vuex mapGetters('report', ['getContext']) → 不再需要；本组件通过 props.parameters 接收参数
+ * 9. this.$set 改用 reactive 整体赋值或直接改属性
+ * 10. v-on="$listeners" 等移除，事件直接使用 emit
+ * 11. ant-design-vue 4.x 的 a-modal 已废弃 bodyStyle，改用 styles.body
+ */
+import { ref, reactive, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { buildPageSizeList, mmToPoint, pointToMM } from '@/utils/table'
+import { showAlert } from '@/utils/comnon'
+import { getPdfBlobUrl, loadPagePaper } from '@/api/preview'
+import { getUrlSearchParams } from '@/utils/url'
 
-export default {
-  name: 'PDFPrintDialog',
-  components: {
-      URow,
-      UCol,
-    UForm,
-    UFormItem,
-    UDialog,
-    UButton,
-    USelect,
-    UOption,
-    UInputNumber
-  },
-  directives: {
-    loading: LoadingDirective
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    parameters: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      paper: {
-        paperType: 'A4',
-        width: 0,
-        height: 0,
-        orientation: 'portrait',
-        leftMargin: 0,
-        rightMargin: 0,
-        topMargin: 0,
-        bottomMargin: 0
-      },
-      pageWidthMM: 0,
-      pageHeightMM: 0,
-      leftMarginMM: 0,
-      rightMarginMM: 0,
-      topMarginMM: 0,
-      bottomMarginMM: 0,
-      paperSizeList: buildPageSizeList(),
-      refreshIndex: 0,
-      loading: false,
-      currentBlobUrl: null
-    };
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    },
-    paperTypeOptions() {
-      const options = [];
+/** 纸张配置 */
+interface PaperConfig {
+  paperType: string
+  width: number
+  height: number
+  orientation: string
+  leftMargin: number
+  rightMargin: number
+  topMargin: number
+  bottomMargin: number
+}
 
-      // 添加 A 系列纸张
-      for (let i = 0; i <= 10; i++) {
-        options.push({
-          value: `A${i}`,
-          label: `A${i}`
-        });
-      }
+/** 选择项 */
+interface SelectOption {
+  value: string
+  label: string
+}
 
-      // 添加 B 系列纸张
-      for (let i = 0; i <= 10; i++) {
-        options.push({
-          value: `B${i}`,
-          label: `B${i}`
-        });
-      }
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    parameters?: Record<string, unknown>
+  }>(),
+  {
+    visible: false,
+    parameters: () => ({})
+  }
+)
 
-      // 添加自定义选项
-      options.push({
-        value: 'CUSTOM',
-        label: this.$t('preview.pdfPrint.custom')
-      });
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
 
-      return options;
-    },
-    orientationOptions() {
-      return [
-        {
-          value: 'portrait',
-          label: this.$t('preview.pdfPrint.portrait')
-        },
-        {
-          value: 'landscape',
-          label: this.$t('preview.pdfPrint.landscape')
-        }
-      ];
-    }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.loadPaperData();
+const { t } = useI18n()
+
+/** 纸张状态（reactive） */
+const paper = reactive<PaperConfig>({
+  paperType: 'A4',
+  width: 0,
+  height: 0,
+  orientation: 'portrait',
+  leftMargin: 0,
+  rightMargin: 0,
+  topMargin: 0,
+  bottomMargin: 0
+})
+
+const pageWidthMM = ref(0)
+const pageHeightMM = ref(0)
+const leftMarginMM = ref(0)
+const rightMarginMM = ref(0)
+const topMarginMM = ref(0)
+const bottomMarginMM = ref(0)
+
+/** 纸张尺寸列表 */
+const paperSizeList = buildPageSizeList()
+/** 刷新计数器（避免服务端缓存） */
+const refreshIndex = ref(0)
+const loading = ref(false)
+const currentBlobUrl = ref<string | null>(null)
+const pdfFrameRef = ref<HTMLIFrameElement | null>(null)
+
+/** 纸张类型下拉项 */
+const paperTypeOptions = computed<SelectOption[]>(() => {
+  const options: SelectOption[] = []
+  for (let i = 0; i <= 10; i++) {
+    options.push({ value: `A${i}`, label: `A${i}` })
+  }
+  for (let i = 0; i <= 10; i++) {
+    options.push({ value: `B${i}`, label: `B${i}` })
+  }
+  options.push({ value: 'CUSTOM', label: t('preview.pdfPrint.custom') })
+  return options
+})
+
+/** 方向下拉项 */
+const orientationOptions = computed<SelectOption[]>(() => [
+  { value: 'portrait', label: t('preview.pdfPrint.portrait') },
+  { value: 'landscape', label: t('preview.pdfPrint.landscape') }
+])
+
+/** 加载纸张配置数据 */
+async function loadPaperData(): Promise<void> {
+  loading.value = true
+  try {
+    const formData = new FormData()
+    for (const [key, value] of Object.entries(props.parameters)) {
+      if (value !== null && value !== undefined) {
+        formData.append(key, String(value))
       }
     }
-  },
-  methods: {
-    /**
-     * 加载纸张配置数据
-     * 根据传入的 parameters 请求后台获取纸张配置信息
-     */
-    async loadPaperData() {
-      this.loading = true;
 
-      try {
-        const formData = new FormData();
-        for (const [key, value] of Object.entries(this.parameters)) {
-          if (value !== null && value !== undefined) {
-            formData.append(key, value);
-          }
-        }
+    const paperData = (await loadPagePaper(formData)) as Partial<PaperConfig>
 
-        const paperData = await loadPagePaper(formData);
+    paper.paperType = paperData.paperType || 'A4'
+    paper.width = paperData.width || 0
+    paper.height = paperData.height || 0
+    paper.orientation = paperData.orientation || 'portrait'
+    paper.leftMargin = paperData.leftMargin || 0
+    paper.rightMargin = paperData.rightMargin || 0
+    paper.topMargin = paperData.topMargin || 0
+    paper.bottomMargin = paperData.bottomMargin || 0
 
-        this.$set(this.paper, 'paperType', paperData.paperType || 'A4');
-        this.$set(this.paper, 'width', paperData.width || 0);
-        this.$set(this.paper, 'height', paperData.height || 0);
-        this.$set(this.paper, 'orientation', paperData.orientation || 'portrait');
-        this.$set(this.paper, 'leftMargin', paperData.leftMargin || 0);
-        this.$set(this.paper, 'rightMargin', paperData.rightMargin || 0);
-        this.$set(this.paper, 'topMargin', paperData.topMargin || 0);
-        this.$set(this.paper, 'bottomMargin', paperData.bottomMargin || 0);
+    pageWidthMM.value = pointToMM(paper.width)
+    pageHeightMM.value = pointToMM(paper.height)
+    leftMarginMM.value = pointToMM(paper.leftMargin)
+    rightMarginMM.value = pointToMM(paper.rightMargin)
+    topMarginMM.value = pointToMM(paper.topMargin)
+    bottomMarginMM.value = pointToMM(paper.bottomMargin)
 
-        this.pageWidthMM = pointToMM(this.paper.width);
-        this.pageHeightMM = pointToMM(this.paper.height);
-        this.leftMarginMM = pointToMM(this.paper.leftMargin);
-        this.rightMarginMM = pointToMM(this.paper.rightMargin);
-        this.topMarginMM = pointToMM(this.paper.topMargin);
-        this.bottomMarginMM = pointToMM(this.paper.bottomMargin);
+    await handleApply()
+  } catch (error) {
+    console.error('获取纸张信息失败:', error)
+    const err = error as { msg?: string }
+    if (err.msg) {
+      showAlert(t('preview.error.serverError') + t('colon') + err.msg, { useHTMLString: true })
+    } else {
+      showAlert(t('preview.error.loadPaperFail'))
+    }
+  } finally {
+    loading.value = false
+  }
+}
 
-        await this.handleApply();
-      } catch (error) {
-        console.error('获取纸张信息失败:', error);
-        if (error.msg) {
-          showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
-        } else {
-          showAlert(this.$t('preview.error.loadPaperFail'));
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
+/** 关闭对话框 */
+function handleClose(): void {
+  revokeBlobUrl()
+  emit('close')
+}
 
-    /**
-     * 关闭对话框，向父组件发送 close 事件
-     */
-    handleClose() {
-      this.revokeBlobUrl();
-      this.$emit('close');
-    },
+/** 处理 ant-design-vue 模态框 open 变化 */
+function handleOpenChange(open: boolean): void {
+  if (!open) {
+    handleClose()
+  }
+}
 
-    /**
-     * 释放当前 Blob URL，避免内存泄漏
-     */
-    revokeBlobUrl() {
-      if (this.currentBlobUrl) {
-        URL.revokeObjectURL(this.currentBlobUrl);
-        this.currentBlobUrl = null;
-      }
-    },
+/** 释放 Blob URL */
+function revokeBlobUrl(): void {
+  if (currentBlobUrl.value) {
+    URL.revokeObjectURL(currentBlobUrl.value)
+    currentBlobUrl.value = null
+  }
+}
 
-    /**
-     * 纸张类型变更处理
-     * 选择预设纸张时自动更新宽高，选择自定义时允许手动编辑
-     * @param {string} value - 纸张类型标识（如 'A4', 'B5', 'CUSTOM'）
-     */
-    handlePageTypeChange(value) {
-      if (value === 'CUSTOM') {
-        // 自定义尺寸，允许编辑宽高
-        return;
-      }
+/** 纸张类型变更 */
+function handlePageTypeChange(value: string): void {
+  if (value === 'CUSTOM') {
+    return
+  }
+  // 预设尺寸，更新宽高
+  const pageSize = paperSizeList[value as keyof typeof paperSizeList] as { width: number; height: number } | undefined
+  if (pageSize) {
+    paper.width = mmToPoint(pageSize.width)
+    paper.height = mmToPoint(pageSize.height)
+    pageWidthMM.value = pageSize.width
+    pageHeightMM.value = pageSize.height
+  }
+}
 
-      // 预设尺寸，更新宽高
-      const pageSize = this.paperSizeList[value];
-      this.paper.width = mmToPoint(pageSize.width);
-      this.paper.height = mmToPoint(pageSize.height);
-      this.pageWidthMM = pageSize.width;
-      this.pageHeightMM = pageSize.height;
-    },
+/** 校验非空数字 */
+function ensureValidNumber(value: number | null | undefined): boolean {
+  if (value == null || isNaN(value)) {
+    showAlert(t('preview.pdfPrint.numberTip'))
+    return false
+  }
+  return true
+}
 
-    /**
-     * 纸张宽度变更处理
-     * 将毫米值转换为点值存储，并刷新打印线显示
-     * @param {number} value - 纸张宽度（毫米）
-     */
-    handlePageWidthChange(value) {
-      if (!value || isNaN(value)) {
-        showAlert(this.$t('preview.pdfPrint.numberTip'));
-        return;
-      }
-      this.paper.width = mmToPoint(value);
-    },
+/** 纸张宽度变更 */
+function handlePageWidthChange(value: number | null): void {
+  if (!ensureValidNumber(value)) return
+  paper.width = mmToPoint(value as number)
+}
 
-    /**
-     * 纸张高度变更处理
-     * 将毫米值转换为点值存储
-     * @param {number} value - 纸张高度（毫米）
-     */
-    handlePageHeightChange(value) {
-      if (!value || isNaN(value)) {
-        showAlert(this.$t('preview.pdfPrint.numberTip'));
-        return;
-      }
-      this.paper.height = mmToPoint(value);
-    },
+/** 纸张高度变更 */
+function handlePageHeightChange(value: number | null): void {
+  if (!ensureValidNumber(value)) return
+  paper.height = mmToPoint(value as number)
+}
 
-    /**
-     * 左边距变更处理
-     * 将毫米值转换为点值存储，并刷新打印线显示
-     * @param {number} value - 左边距（毫米）
-     */
-    handleLeftMarginChange(value) {
-      if (!value || isNaN(value)) {
-        showAlert(this.$t('preview.pdfPrint.numberTip'));
-        return;
-      }
-      this.paper.leftMargin = mmToPoint(value);
-    },
+/** 左边距变更 */
+function handleLeftMarginChange(value: number | null): void {
+  if (!ensureValidNumber(value)) return
+  paper.leftMargin = mmToPoint(value as number)
+}
 
-    /**
-     * 右边距变更处理
-     * 将毫米值转换为点值存储，并刷新打印线显示
-     * @param {number} value - 右边距（毫米）
-     */
-    handleRightMarginChange(value) {
-      if (!value || isNaN(value)) {
-        showAlert(this.$t('preview.pdfPrint.numberTip'));
-        return;
-      }
-      this.paper.rightMargin = mmToPoint(value);
-    },
+/** 右边距变更 */
+function handleRightMarginChange(value: number | null): void {
+  if (!ensureValidNumber(value)) return
+  paper.rightMargin = mmToPoint(value as number)
+}
 
-    /**
-     * 上边距变更处理
-     * 将毫米值转换为点值存储
-     * @param {number} value - 上边距（毫米）
-     */
-    handleTopMarginChange(value) {
-      if (!value || isNaN(value)) {
-        showAlert(this.$t('preview.pdfPrint.numberTip'));
-        return;
-      }
-      this.paper.topMargin = mmToPoint(value);
-    },
+/** 上边距变更 */
+function handleTopMarginChange(value: number | null): void {
+  if (!ensureValidNumber(value)) return
+  paper.topMargin = mmToPoint(value as number)
+}
 
-    /**
-     * 下边距变更处理
-     * 将毫米值转换为点值存储
-     * @param {number} value - 下边距（毫米）
-     */
-    handleBottomMarginChange(value) {
-      if (!value || isNaN(value)) {
-        showAlert(this.$t('preview.pdfPrint.numberTip'));
-        return;
-      }
-      this.paper.bottomMargin = mmToPoint(value);
-    },
+/** 下边距变更 */
+function handleBottomMarginChange(value: number | null): void {
+  if (!ensureValidNumber(value)) return
+  paper.bottomMargin = mmToPoint(value as number)
+}
 
-    /**
-     * 应用纸张设置并刷新PDF预览
-     * 将当前纸张配置通过URL参数传递给服务端，直接生成新的PDF预览
-     */
-    async handleApply() {
-      this.loading = true;
+/** 应用设置并刷新 PDF 预览 */
+async function handleApply(): Promise<void> {
+  loading.value = true
+  try {
+    const currentPaper: PaperConfig = {
+      paperType: paper.paperType,
+      width: paper.width,
+      height: paper.height,
+      orientation: paper.orientation,
+      leftMargin: paper.leftMargin,
+      rightMargin: paper.rightMargin,
+      topMargin: paper.topMargin,
+      bottomMargin: paper.bottomMargin
+    }
 
-      try {
-        const currentPaper = {
-          paperType: this.paper.paperType,
-          width: this.paper.width,
-          height: this.paper.height,
-          orientation: this.paper.orientation,
-          leftMargin: this.paper.leftMargin,
-          rightMargin: this.paper.rightMargin,
-          topMargin: this.paper.topMargin,
-          bottomMargin: this.paper.bottomMargin
-        };
+    const urlParams = getUrlSearchParams()
+    const paramObj: Record<string, string> = {}
+    for (const [key, value] of urlParams) {
+      paramObj[key] = value
+    }
+    paramObj['_r'] = String(refreshIndex.value++)
 
-        const urlParams = getUrlSearchParams();
-        const paramObj = {};
-        for (const [key, value] of urlParams) {
-          paramObj[key] = value;
-        }
-        paramObj['_r'] = this.refreshIndex++;
+    revokeBlobUrl()
+    currentBlobUrl.value = await getPdfBlobUrl(paramObj, currentPaper)
+    if (pdfFrameRef.value) {
+      pdfFrameRef.value.src = currentBlobUrl.value
+    }
+  } catch (error) {
+    console.error('Error:', error)
+    showAlert(t('preview.pdfPrint.fail'))
+  } finally {
+    loading.value = false
+  }
+}
 
-        this.revokeBlobUrl();
-        this.currentBlobUrl = await getPdfBlobUrl(paramObj, currentPaper);
-        this.$refs.pdfFrame.src = this.currentBlobUrl;
+/** 调用 PDF iframe 打印 */
+function handlePrint(): void {
+  try {
+    const frame = window.frames['_iframe_for_pdf_print'] as Window | undefined
+    if (frame) {
+      frame.focus()
+      frame.print()
+    }
+  } catch (e) {
+    console.error('Print error:', e)
+    showAlert(t('preview.pdfPrint.printError'))
+  }
+}
 
-      } catch (error) {
-
-        console.error('Error:', error);
-        showAlert(this.$t('preview.pdfPrint.fail'));
-      } finally{
-        this.loading = false;
-      }
-    },
-
-    /**
-     * 执行PDF打印
-     * 调用 PDF 预览 iframe 的浏览器打印功能
-     */
-    handlePrint() {
-      try {
-        window.frames['_iframe_for_pdf_print'].window.print();
-      } catch (e) {
-        console.error('Print error:', e);
-        showAlert(this.$t('preview.pdfPrint.printError'));
-      }
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (newVal) {
+      void loadPaperData()
     }
   }
-};
+)
 </script>
 
 <style scoped>
@@ -501,15 +454,17 @@ export default {
 
 .pdf-preview-container {
   width: 100%;
-  height: calc(100vh - 200px);
+  height: calc(100% - 200px);
   min-height: 400px;
 }
 
 .pdf-preview-frame {
   width: 100%;
   height: 100%;
-  border: solid 1px #c2c2c2;
+  border: 0;
+}
+
+.property-label {
+  margin-bottom: 0;
 }
 </style>
-
-

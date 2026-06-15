@@ -1,228 +1,229 @@
 <template>
   <div class="chart-dataset">
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form-item class="property-label" :label="t('chart.dataset')">
+        <a-select
+          v-model:value="localDatasetConfig.datasetName"
+          style="width: 250px"
+          :options="datasetOptions"
+          @change="handleDatasetChange"
+        />
+      </a-form-item>
 
-    <u-form :label-width="100" labelPosition="left">
-      <u-form-item class="property-label" :label="$t('chart.dataset')">
-        <u-select
-            v-model="localDatasetConfig.datasetName"
-            @change="handleDatasetChange"
-            style="width: 250px"
-        >
-          <u-option
-            v-for="option in datasetOptions"
+      <a-form-item class="property-label" :label="t('chart.categoryProperty')">
+        <a-select
+          v-model:value="localDatasetConfig.categoryProperty"
+          style="width: 250px"
+          :options="fieldOptions"
+          :allow-clear="true"
+          @change="handleCategoryPropertyChange"
+        />
+      </a-form-item>
+
+      <a-form-item class="property-label" :label="t('chart.valueProperty')">
+        <a-select
+          v-model:value="localDatasetConfig.valueProperty"
+          style="width: 250px"
+          :options="fieldOptions"
+          :allow-clear="true"
+          @change="handleValuePropertyChange"
+        />
+      </a-form-item>
+
+      <a-form-item class="property-label" :label="t('chart.seriesProperty')">
+        <a-radio-group v-model:value="localDatasetConfig.seriesType" @change="handleSeriesTypeChange">
+          <a-radio
+            v-for="option in seriesTypeOptions"
             :key="option.value"
             :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-
-      <u-form-item class="property-label" :label="$t('chart.categoryProperty')">
-        <u-select
-            v-model="localDatasetConfig.categoryProperty"
-            :clearable="true"
-            style="width: 250px"
-            @change="handleCategoryPropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-
-      <u-form-item class="property-label" :label="$t('chart.valueProperty')">
-        <u-select
-            v-model="localDatasetConfig.valueProperty"
-            :clearable="true"
-            style="width: 250px"
-            @change="handleValuePropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-
-      <u-form-item class="property-label" :label="$t('chart.seriesProperty')">
-        <u-radio-group v-model="localDatasetConfig.seriesType" @change="handleSeriesTypeChange">
-          <u-radio
-            v-for="option in [
-              { label: $t('chart.property'), value: 'property' },
-              { label: $t('chart.static'), value: 'text' }
-            ]"
-            :key="option.value"
-            :label="option.value"
           >
             {{ option.label }}
-          </u-radio>
-        </u-radio-group>
-      </u-form-item>
+          </a-radio>
+        </a-radio-group>
+      </a-form-item>
 
-      <u-form-item class="property-label" v-show="localDatasetConfig.seriesType === 'property'" :label="$t('chart.prop')">
-        <u-select
-            v-model="localDatasetConfig.seriesProperty"
-            :clearable="true"
-            style="width: 250px"
-            @change="handleSeriesPropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+      <a-form-item
+        class="property-label"
+        v-show="localDatasetConfig.seriesType === 'property'"
+        :label="t('chart.prop')"
+      >
+        <a-select
+          v-model:value="localDatasetConfig.seriesProperty"
+          style="width: 250px"
+          :options="fieldOptions"
+          :allow-clear="true"
+          @change="handleSeriesPropertyChange"
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" v-show="localDatasetConfig.seriesType === 'text'" :label="$t('chart.staticValue')">
-        <u-input
-            style="width: 250px;"
-            v-model="localDatasetConfig.seriesText"
-            @change="handleSeriesTextChange"
-        >
-        </u-input>
-      </u-form-item>
+      <a-form-item
+        class="property-label"
+        v-show="localDatasetConfig.seriesType === 'text'"
+        :label="t('chart.staticValue')"
+      >
+        <a-input
+          style="width: 250px;"
+          v-model:value="localDatasetConfig.seriesText"
+          @change="handleSeriesTextChange"
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('chart.aggregate')">
-        <u-select
-            v-model="localDatasetConfig.collectType"
-            :clearable="true"
-            style="width: 250px"
-            @change="handleAggregateChange"
-        >
-          <u-option
-            v-for="option in aggregateOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-    </u-form>
+      <a-form-item class="property-label" :label="t('chart.aggregate')">
+        <a-select
+          v-model:value="localDatasetConfig.collectType"
+          style="width: 250px"
+          :options="aggregateOptions"
+          :allow-clear="true"
+          @change="handleAggregateChange"
+        />
+      </a-form-item>
+    </a-form>
   </div>
 </template>
 
-<script>
-import {setDirty} from '@/utils/table';
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UInput from '@/components/input/index.vue';
-import UForm from "@/components/form/index.vue";
-import UFormItem from "@/components/form-item/index.vue";
+<script setup lang="ts">
+/**
+ * ChartDataset 图表数据集绑定子组件（vue3 + TS + ant-design-vue）
+ */
+import { ref, computed, watch } from 'vue'
+import { setDirty } from '@/utils/table'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ChartDataset',
-  components: {
-    UForm,
-    UFormItem,
-    URadioGroup,
-    URadio,
-    USelect,
-    UOption,
-    UInput
-  },
-  props: {
-    datasetConfig: {
-      type: Object,
-      required: true
-    },
-    fields: {
-      type: Array,
-      default: () => []
-    },
-    datasets: {
-      type: Array,
-      default: () => []
-    }
-  },
-  data() {
-    return {
-      localDatasetConfig: {
-        datasetName: '',
-        categoryProperty: '',
-        valueProperty: '',
-        seriesType: 'text',
-        seriesProperty: '',
-        seriesText: '',
-        collectType: '',
-        format: ''
-      }
-    };
-  },
-  computed: {
-    datasetOptions() {
-      return this.datasets.map(dataset => ({
-        value: dataset.name,
-        label: dataset.name
-      }));
-    },
-    fieldOptions() {
-      return this.fields.map(field => ({
-        value: field.name,
-        label: field.name
-      }));
-    },
-    aggregateOptions() {
-      return [
-        { value: 'select', label: this.$t('chart.select') },
-        { value: 'sum', label: this.$t('chart.sum') },
-        { value: 'count', label: this.$t('chart.count') },
-        { value: 'max', label: this.$t('chart.max') },
-        { value: 'min', label: this.$t('chart.min') },
-        { value: 'avg', label: this.$t('chart.avg') }
-      ];
-    }
-  },
-  watch: {
-    datasetConfig: {
-      handler(newVal) {
-        if (newVal) {
-          this.localDatasetConfig = { ...this.localDatasetConfig, ...newVal };
-        }
-      },
-      deep: true,
-      immediate: true
-    }
-  },
-  methods: {
-    handleDatasetChange(value) {
-      this.$emit('dataset-change', value);
-      setDirty();
-    },
-    handleCategoryPropertyChange(value) {
-      this.$emit('category-property-change', value);
-      setDirty();
-    },
-    handleValuePropertyChange(value) {
-      this.$emit('value-property-change', value);
-      setDirty();
-    },
-    handleSeriesTypeChange(value) {
-      this.$emit('series-type-change', value);
-      setDirty();
-    },
-    handleSeriesPropertyChange(value) {
-      this.$emit('series-property-change', value);
-      setDirty();
-    },
-    handleSeriesTextChange(value) {
-      this.$emit('series-text-change', value);
-      setDirty();
-    },
-    handleAggregateChange(value) {
-      this.$emit('aggregate-change', value);
-      setDirty();
-    }
+defineOptions({ name: 'ChartDataset' })
+
+
+const { t } = useI18n()
+interface DatasetConfig {
+  datasetName: string
+  categoryProperty: string
+  valueProperty: string
+  seriesType: string
+  seriesProperty: string
+  seriesText: string
+  collectType: string
+  format: string
+}
+
+interface SelectOption {
+  value: string
+  label: string
+}
+
+interface FieldItem {
+  name: string
+}
+
+interface DatasetItem {
+  name: string
+}
+
+const props = withDefaults(
+  defineProps<{
+    datasetConfig: DatasetConfig
+    fields?: FieldItem[]
+    datasets?: DatasetItem[]
+  }>(),
+  {
+    fields: () => [],
+    datasets: () => []
   }
-};
+)
+
+const emit = defineEmits<{
+  (e: 'dataset-change', value: string): void
+  (e: 'category-property-change', value: string): void
+  (e: 'value-property-change', value: string): void
+  (e: 'series-type-change', value: string): void
+  (e: 'series-property-change', value: string): void
+  (e: 'series-text-change', value: string): void
+  (e: 'aggregate-change', value: string): void
+}>()
+
+// ====== 状态 ======
+const localDatasetConfig = ref<DatasetConfig>({
+  datasetName: '',
+  categoryProperty: '',
+  valueProperty: '',
+  seriesType: 'text',
+  seriesProperty: '',
+  seriesText: '',
+  collectType: '',
+  format: ''
+})
+
+// ====== 选项 ======
+const datasetOptions = computed<SelectOption[]>(() =>
+  props.datasets.map((dataset) => ({
+    value: dataset.name,
+    label: dataset.name
+  }))
+)
+
+const fieldOptions = computed<SelectOption[]>(() =>
+  props.fields.map((field) => ({
+    value: field.name,
+    label: field.name
+  }))
+)
+
+const aggregateOptions = computed<SelectOption[]>(() => [
+  { value: 'select', label: t('chart.select') },
+  { value: 'sum', label: t('chart.sum') },
+  { value: 'count', label: t('chart.count') },
+  { value: 'max', label: t('chart.max') },
+  { value: 'min', label: t('chart.min') },
+  { value: 'avg', label: t('chart.avg') }
+])
+
+const seriesTypeOptions = computed<SelectOption[]>(() => [
+  { value: 'property', label: t('chart.property') },
+  { value: 'text', label: t('chart.static') }
+])
+
+watch(
+  () => props.datasetConfig,
+  (newVal) => {
+    if (newVal) {
+      localDatasetConfig.value = { ...localDatasetConfig.value, ...newVal }
+    }
+  },
+  { deep: true, immediate: true }
+)
+
+const handleDatasetChange = (value: string): void => {
+  emit('dataset-change', value)
+  setDirty()
+}
+
+const handleCategoryPropertyChange = (value: string): void => {
+  emit('category-property-change', value)
+  setDirty()
+}
+
+const handleValuePropertyChange = (value: string): void => {
+  emit('value-property-change', value)
+  setDirty()
+}
+
+const handleSeriesTypeChange = (value: string): void => {
+  emit('series-type-change', value)
+  setDirty()
+}
+
+const handleSeriesPropertyChange = (value: string): void => {
+  emit('series-property-change', value)
+  setDirty()
+}
+
+const handleSeriesTextChange = (): void => {
+  emit('series-text-change', localDatasetConfig.value.seriesText)
+  setDirty()
+}
+
+const handleAggregateChange = (value: string): void => {
+  emit('aggregate-change', value)
+  setDirty()
+}
 </script>
 
 <style scoped>

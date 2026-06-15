@@ -1,25 +1,24 @@
 <template>
   <div class="dataset-value-editor" ref="container">
-
-    <u-tabs v-model="activeTab" type="button">
-      <u-tab-pane :label="$t('property.dataset.datasetConfig')" index="dataset">
+    <a-tabs v-model:active-key="activeTab" type="card">
+      <a-tab-pane :key="'dataset'" :tab="t('property.dataset.datasetConfig')">
         <dataset-config
             :datasets="datasets"
             :fields="currentFields"
             :group-items="groupItems"
-            :dataset.sync="dataset"
-            :property.sync="property"
-            :aggregate.sync="aggregate"
-            :sort.sync="sort"
-            :expand.sync="expand"
-            :line-height.sync="lineHeight"
-            :wrap-compute.sync="wrapCompute"
-            :format.sync="format"
-            :fill-blank-rows.sync="fillBlankRows"
-            :multiple.sync="multiple"
-            :show-sort-options.sync="showSortOptions"
-            :show-expand-options.sync="showExpandOptions"
-            :condition-groups.sync="conditionGroups"
+            v-model:dataset="dataset"
+            v-model:property="property"
+            v-model:aggregate="aggregate"
+            v-model:sort="sort"
+            v-model:expand="expand"
+            v-model:line-height="lineHeight"
+            v-model:wrap-compute="wrapCompute"
+            v-model:format="format"
+            v-model:fill-blank-rows="fillBlankRows"
+            v-model:multiple="multiple"
+            v-model:show-sort-options="showSortOptions"
+            v-model:show-expand-options="showExpandOptions"
+            v-model:condition-groups="conditionGroups"
             @dataset-change="handleDatasetChange"
             @property-change="handlePropertyChange"
             @aggregate-change="handleAggregateChange"
@@ -33,18 +32,18 @@
             @condition-groups-change="handleConditionGroupsChange"
             @update-custom-group="handleUpdateCustomGroup"
         />
-      </u-tab-pane>
+      </a-tab-pane>
 
-      <u-tab-pane :label="$t('property.dataset.filterCondition')" index="condition">
+      <a-tab-pane :key="'condition'" :tab="t('property.dataset.filterCondition')">
         <filter-condition
           :dataset="dataset"
-          :conditions.sync="conditions"
+          v-model:conditions="conditions"
           :fields="currentFields"
           @update-filter-conditions="handleUpdateFilterConditions"
         />
-      </u-tab-pane>
+      </a-tab-pane>
 
-      <u-tab-pane :label="$t('property.dataset.mapping')" index="mapping">
+      <a-tab-pane :key="'mapping'" :tab="t('property.dataset.mapping')">
         <data-mapping
           :datasets="datasets"
           :show-mapping-options="showMappingOptions"
@@ -59,751 +58,765 @@
           @mapping-key-property-change="setMappingKeyProperty"
           @mapping-value-property-change="setMappingValueProperty"
         />
-      </u-tab-pane>
-    </u-tabs>
+      </a-tab-pane>
+    </a-tabs>
   </div>
 </template>
 
-<script>
-import { setDirty } from '@/utils/table.js';
-import { deepCopy } from '@/components/utils/index.js';
-import FilterCondition from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/filter-condition/index.vue';
-import DataMapping from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/data-mapping/index.vue';
-import DatasetConfig from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/index.vue';
-import UTabs from '@/components/tabs/index.vue';
-import UTabPane from '@/components/tabs/pane.vue';
-import { mapGetters, mapActions } from 'vuex';
-import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager';
-
-export default {
-  name: 'DatasetValueEditor',
-  components: {
-    FilterCondition,
-    DataMapping,
-    DatasetConfig,
-    UTabs,
-    UTabPane
-  },
-  props: {
-    rowIndex: {
-      type: Number,
-      default: 0
-    },
-    colIndex: {
-      type: Number,
-      default: 0
-    },
-    row2Index: {
-      type: Number,
-      default: 0
-    },
-    col2Index: {
-      type: Number,
-      default: 0
-    }
-  },
-  computed: {
-    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
-    context() {
-      return this.getContext;
-    },
-    isCellUpdate() {
-      return this.getIsCellUpdate;
-    },
-    cellPosition() {
-      return `${this.rowIndex},${this.colIndex}`;
-    }
-  },
-  data() {
-    return {
-      activeTab: 'dataset',
-      datasets: [],
-      currentFields: [],
-      initialized: false,
-
-      // 数据集配置
-      dataset: '',
-      property: '',
-      aggregate: 'select',
-      sort: 'none',
-      expand: 'None',
-      lineHeight: '',
-      wrapCompute: 'custom',
-      format: '',
-      fillBlankRows: 'custom',
-      multiple: 0,
-
-      // 过滤条件
-      conditions: [],
-
-      // 其他配置
-      showMappingOptions: false,
-      showSortOptions: true,
-      showExpandOptions: true,
-
-      // 数据映射相关属性（用于传递给子组件）
-      mappingType: 'simple',
-      mappingItems: [],
-      mappingDataset: '',
-      mappingKeyProperty: '',
-      mappingValueProperty: '',
-
-      // 条件属性项
-      conditionGroups: [],
-
-      // 自定义分组项
-      groupItems: [],
-    };
-  },
-  watch: {
-    cellPosition: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
-      }
-    },
-    isCellUpdate: {
-      handler(newVal) {
-        if (newVal) {
-          this.loadCellData();
-          this.setCellUpdate(false);
-        }
-      }
-    }
-  },
-  methods: {
-    ...mapActions('report', ['setCellUpdate']),
-    /**
-     * 加载单元格数据
-     */
-    loadCellData() {
-      this.initialized = false;
-
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-
-      this.loadDatasets();
-
-      this.loadInitialValues(cellDef);
-
-      this.$nextTick(() => {
-        this.initialized = true;
-      });
-    },
-
-    /**
-     * 加载数据集列表
-     */
-    loadDatasets() {
-      this.datasets = [];
-      const datasources = this.context.reportDef.datasources || [];
-      for (let datasource of datasources) {
-        let datasets = datasource.datasets || [];
-        for (let dataset of datasets) {
-          this.datasets.push(dataset);
-        }
-      }
-    },
-
-    /**
-     * 加载初始值
-     */
-    loadInitialValues(cellDef) {
-      // 设置换行计算
-      if (cellDef.cellStyle && cellDef.cellStyle.wrapCompute) {
-        this.wrapCompute = 'default';
-      } else {
-        this.wrapCompute = 'custom';
-      }
-
-      // 设置行高
-      if (cellDef.cellStyle && cellDef.cellStyle.lineHeight) {
-        this.lineHeight = cellDef.cellStyle.lineHeight;
-      } else {
-        this.lineHeight = '';
-      }
-
-      // 设置格式
-      if (cellDef.cellStyle && cellDef.cellStyle.format) {
-        this.format = cellDef.cellStyle.format;
-      } else {
-        this.format = '';
-      }
-
-      // 设置填充空白行
-      if (cellDef.fillBlankRows) {
-        this.fillBlankRows = 'default';
-        this.multiple = cellDef.multiple || 0;
-      } else {
-        this.fillBlankRows = 'custom';
-      }
-
-      // 设置展开方向
-      if (cellDef.expand) {
-        this.expand = cellDef.expand;
-      } else {
-        this.expand = 'None';
-      }
-
-      // 设置数据集值
-      const value = cellDef.value;
-      if (value) {
-        this.dataset = value.datasetName || '';
-        this.property = value.property || '';
-        this.aggregate = value.aggregate || 'select';
-        this.sort = value.order || 'none';
-
-        // 设置过滤条件
-        this.conditions = value.conditions || [];
-
-        // 设置数据映射
-        this.mappingType = value.mappingType || 'simple';
-        this.mappingItems = value.mappingItems || [];
-        this.mappingDataset = value.mappingDataset || '';
-        this.mappingKeyProperty = value.mappingKeyProperty || '';
-        this.mappingValueProperty = value.mappingValueProperty || '';
-      }
-
-      // 初始化条件属性项
-      if (cellDef.conditionPropertyItems) {
-        this.conditionGroups = [...cellDef.conditionPropertyItems];
-      } else {
-        this.conditionGroups = [];
-      }
-
-      // 初始化自定义分组项
-      if (cellDef.value.groupItems) {
-        this.groupItems = [...cellDef.value.groupItems];
-      } else {
-        this.groupItems = [];
-      }
-
-      // 触发数据集变化事件，加载字段
-      this.handleDatasetChange();
-
-      this.handleAggregateChange();
-    },
-
-    /**
-     * 处理数据集变化
-     */
-    handleDatasetChange() {
-      this.currentFields = [];
-
-      if (this.dataset) {
-        const datasources = this.context.reportDef.datasources || [];
-        for (let datasource of datasources) {
-          let datasets = datasource.datasets || [];
-          for (let dataset of datasets) {
-            if (dataset.name === this.dataset) {
-              this.currentFields = dataset.fields || [];
-              break;
-            }
-          }
-          if (this.currentFields.length > 0) {
-            break;
-          }
-        }
-      }
-
-      if (this.initialized) {
-        this.setDatasetName(this.dataset);
-      }
-    },
-
-    /**
-     * 处理属性变化
-     */
-    handlePropertyChange() {
-      // 更新属性，无论是否初始化状态都保存
-      this.setProperty(this.property);
-    },
-
-    /**
-     * 处理聚合类型变化
-     */
-    handleAggregateChange(params) {
-      if (params && typeof params === 'object') {
-        this.showSortOptions = params.showSortOptions;
-        this.showExpandOptions = params.showExpandOptions;
-      } else {
-        if (this.aggregate === 'sum' || this.aggregate === 'count' ||
-            this.aggregate === 'max' || this.aggregate === 'min' ||
-            this.aggregate === 'avg') {
-          this.showSortOptions = false;
-          this.showExpandOptions = false;
-        } else {
-          this.showSortOptions = true;
-          this.showExpandOptions = true;
-        }
-      }
-
-      if (this.aggregate === 'group' || this.aggregate === 'select') {
-        this.showMappingOptions = true;
-      } else {
-        this.showMappingOptions = false;
-      }
-
-      if (this.initialized) {
-        this.setAggregate(this.aggregate);
-      }
-    },
-
-    /**
-     * 处理排序变化
-     */
-    handleSortChange() {
-      // 更新排序，无论是否初始化状态都保存
-      this.setOrder(this.sort);
-    },
-
-    /**
-     * 处理展开方向变化
-     */
-    handleExpandChange() {
-      // 更新展开方向，无论是否初始化状态都保存
-      this.setExpand(this.expand);
-    },
-
-    /**
-     * 处理行高变化
-     */
-    handleLineHeightChange() {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (cellDef && cellDef.cellStyle) {
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.cellStyle.lineHeight = this.lineHeight;
-
-        const hot = TableManager.get();
-        if (hot) {
-          const td = hot.getCell(this.rowIndex, this.colIndex);
-          if (td) {
-            if (this.lineHeight === '') {
-              td.style.lineHeight = '';
-            } else {
-              td.style.lineHeight = this.lineHeight;
-            }
-            hot.render();
-          }
-        }
-
-        for (let i = this.rowIndex; i <= this.row2Index; i++) {
-          for (let j = this.colIndex; j <= this.col2Index; j++) {
-            const originalCellDef = getCell(i, j);
-            if (originalCellDef) {
-              const updatedCellDef = deepCopy(originalCellDef);
-              updatedCellDef.cellStyle.lineHeight = this.lineHeight;
-              setCell(i, j, updatedCellDef );
-            }
-          }
-        }
-
-        setDirty();
-      }
-    },
-
-    /**
-     * 处理换行计算变化
-     */
-    handleWrapComputeChange() {
-      const wrapComputeValue = this.wrapCompute === 'default';
-
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) continue;
-
-          const newCellDef = deepCopy(cellDef);
-          if (!newCellDef.cellStyle) {
-            newCellDef.cellStyle = {};
-          }
-          newCellDef.cellStyle.wrapCompute = wrapComputeValue;
-          setCell( i, j, newCellDef );
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理格式变化
-     */
-    handleFormatChange() {
-      const hot = TableManager.get();
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) continue;
-
-          const newCellDef = deepCopy(cellDef);
-          if (!newCellDef.cellStyle) {
-            newCellDef.cellStyle = {};
-          }
-          newCellDef.cellStyle.format = this.format;
-          setCell( i, j, newCellDef );
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理填充空白行变化
-     */
-    handleFillBlankRowsChange() {
-      const fillBlankRowsValue = this.fillBlankRows === 'default';
-
-      // 更新填充空白行，无论是否初始化状态都保存
-      this.setFillBlankRows(fillBlankRowsValue);
-    },
-
-    /**
-     * 处理倍数变化
-     */
-    handleMultipleChange() {
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) continue;
-
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.multiple = this.multiple;
-          setCell( i, j, newCellDef );
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理条件属性项变化
-     */
-    handleConditionGroupsChange(conditionGroups) {
-      this.conditionGroups = conditionGroups;
-
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const originalCellDef = getCell(i, j);
-          if (originalCellDef) {
-            const updatedCellDef = deepCopy(originalCellDef);
-            updatedCellDef.conditionPropertyItems = conditionGroups;
-            setCell(i, j, updatedCellDef );
-          }
-        }
-      }
-
-      setDirty();
-    },
-
-    /**
-     * 处理 cellDef 条件更新
-     */
-    handleUpdateFilterConditions(conditions) {
-      this.conditions = conditions;
-
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const originalCellDef = getCell(i, j);
-          if (originalCellDef) {
-            const updatedCellDef = deepCopy(originalCellDef);
-            updatedCellDef.value.conditions = conditions;
-            setCell(i, j, updatedCellDef );
-          }
-        }
-      }
-    },
-
-    /**
-     * 处理自定义分组更新
-     */
-    handleUpdateCustomGroup(groupItems) {
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const originalCellDef = getCell(i, j);
-          if (originalCellDef) {
-            const updatedCellDef = deepCopy(originalCellDef);
-            updatedCellDef.value.groupItems = groupItems;
-            setCell(i, j, updatedCellDef );
-          }
-        }
-      }
-      this.groupItems = [...groupItems];
-    },
-
-    /**
-     * 更新表格数据
-     */
-    updateTableData() {
-      const hot = TableManager.get();
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          const value = cellDef.value;
-          const valueType = value.type;
-          let data = '';
-          if (valueType === 'simple') {
-            data = value.value;
-          } else if (valueType === 'dataset') {
-            data = value.datasetName + "." + value.aggregate + "(" + value.property + ")";
-          } else if (valueType === 'expression') {
-            data = value.value;
-          }
-          if (hot) {
-            hot.setDataAtCell(cellDef.rowNumber - 1, cellDef.columnNumber - 1, data);
-          }
-        }
-      }
-    },
-
-    /**
-     * 设置数据集名称
-     */
-    setDatasetName(datasetName) {
-      const hot = TableManager.get();
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          const valueType = cellDef.value.type;
-          if (valueType === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.datasetName = datasetName;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      this.updateTableData();
-      setDirty();
-    },
-
-    /**
-     * 设置属性
-     */
-    setProperty(property) {
-      const hot = TableManager.get();
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          const valueType = cellDef.value.type;
-          if (valueType === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.property = property;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      this.updateTableData();
-      setDirty();
-    },
-
-    /**
-     * 设置聚合类型
-     */
-    setAggregate(aggregate) {
-      const hot = TableManager.get();
-      let none = false;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          const valueType = cellDef.value.type;
-          if (valueType === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.aggregate = aggregate;
-            if (aggregate === 'sum' || aggregate === 'count' || aggregate === 'max' ||
-                aggregate === 'min' || aggregate === 'avg') {
-              newCellDef.value.order = 'none';
-              newCellDef.expand = 'None';
-              none = true;
-            }
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      if (none) {
-        this.sort = 'none';
-        this.expand = 'None';
-      }
-      this.updateTableData();
-      if (hot) {
-        hot.render();
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置排序
-     */
-    setOrder(order) {
-      const hot = TableManager.get();
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          const valueType = cellDef.value.type;
-          if (valueType === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.order = order;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置展开方向
-     */
-    setExpand(expand) {
-      const originalCellDef = getCell(this.rowIndex, this.colIndex);
-      if (originalCellDef) {
-        const updatedCellDef = deepCopy(originalCellDef);
-        updatedCellDef.expand = expand;
-        setCell( this.rowIndex,  this.colIndex,  updatedCellDef )
-      }
-      const hot = TableManager.get();
-      if (hot) {
-        hot.render();
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置填充空白行
-     */
-    setFillBlankRows(value) {
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.fillBlankRows = value;
-          if (!newCellDef.multiple) {
-            newCellDef.multiple = 0;
-          }
-          setCell( i, j, newCellDef );
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置映射类型
-     */
-    setMappingType(mappingType) {
-      this.mappingType = mappingType;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          if (cellDef.value.type === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.mappingType = mappingType;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置映射项
-     */
-    setMappingItems(mappingItems) {
-      this.mappingItems = mappingItems;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          if (cellDef.value.type === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.mappingItems = mappingItems;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置映射数据集
-     */
-    setMappingDataset(mappingDataset) {
-      this.mappingDataset = mappingDataset;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          if (cellDef.value.type === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.mappingDataset = mappingDataset;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置映射键属性
-     */
-    setMappingKeyProperty(mappingKeyProperty) {
-      this.mappingKeyProperty = mappingKeyProperty;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          if (cellDef.value.type === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.mappingKeyProperty = mappingKeyProperty;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 设置映射值属性
-     */
-    setMappingValueProperty(mappingValueProperty) {
-      this.mappingValueProperty = mappingValueProperty;
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
-          const cellDef = getCell(i, j);
-          if (!cellDef) {
-            continue;
-          }
-          if (cellDef.value.type === 'dataset') {
-            const newCellDef = deepCopy(cellDef);
-            newCellDef.value.mappingValueProperty = mappingValueProperty;
-            setCell( i, j, newCellDef );
-          }
-        }
-      }
-      setDirty();
+<script setup lang="ts">
+/**
+ * DatasetValueEditor 数据集值编辑器（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. cellPosition 变化或 isCellUpdate=true → loadCellData 回填
+ * 2. 监听子组件的 v-model:xxx 事件 → 同步到本地 ref → 调用 setXxx 写回 cellDef
+ * 3. setXxx / setMappingXxx → 遍历 rowIndex..row2Index × colIndex..col2Index，匹配 value.type==='dataset' 的格子深拷贝写回
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-tabs/u-tab-pane → a-tabs/a-tab-pane（v-model:active-key 替代 v-model）
+ * - Vuex mapGetters/mapActions → useReportStore (Pinia)
+ * - this.$nextTick → nextTick
+ */
+import { ref, computed, watch, nextTick } from 'vue'
+import { setDirty } from '@/utils/table'
+import { deepCopy } from '@/utils/comnon'
+import { getCell, setCell } from '@/utils/contextActions'
+import TableManager from '@/views/report/designer/edit-table/manager'
+import { useReportStore } from '@/store/modules/report'
+import FilterCondition from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/filter-condition/index.vue'
+import DataMapping from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/data-mapping/index.vue'
+import DatasetConfig from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/index.vue'
+import { useI18n } from 'vue-i18n'
+
+defineOptions({ name: 'DatasetValueEditor' })
+
+
+const { t } = useI18n()
+/** 条件组结构 */
+interface ConditionGroup {
+  [key: string]: unknown
+}
+
+/** 数据集选项 */
+interface DatasetOption {
+  name: string
+  fields?: { name: string; [key: string]: unknown }[]
+  [key: string]: unknown
+}
+
+/** 字段元数据 */
+interface Field {
+  name: string
+  [key: string]: unknown
+}
+
+const props = withDefaults(
+  defineProps<{
+    rowIndex?: number
+    colIndex?: number
+    row2Index?: number
+    col2Index?: number
+  }>(),
+  {
+    rowIndex: 0,
+    colIndex: 0,
+    row2Index: 0,
+    col2Index: 0
+  }
+)
+
+const reportStore = useReportStore()
+
+// ====== 状态 ======
+const activeTab = ref<string>('dataset')
+const datasets = ref<DatasetOption[]>([])
+const currentFields = ref<Field[]>([])
+const initialized = ref<boolean>(false)
+
+// 数据集配置
+const dataset = ref<string>('')
+const property = ref<string>('')
+const aggregate = ref<string>('select')
+const sort = ref<string>('none')
+const expand = ref<string>('None')
+const lineHeight = ref<string | number>('')
+const wrapCompute = ref<string>('custom')
+const format = ref<string>('')
+const fillBlankRows = ref<string>('custom')
+const multiple = ref<number>(0)
+
+// 过滤条件
+const conditions = ref<unknown[]>([])
+
+// 其他配置
+const showMappingOptions = ref<boolean>(false)
+const showSortOptions = ref<boolean>(true)
+const showExpandOptions = ref<boolean>(true)
+
+// 数据映射相关属性（用于传递给子组件）
+const mappingType = ref<string>('simple')
+const mappingItems = ref<unknown[]>([])
+const mappingDataset = ref<string>('')
+const mappingKeyProperty = ref<string>('')
+const mappingValueProperty = ref<string>('')
+
+// 条件属性项
+const conditionGroups = ref<ConditionGroup[]>([])
+
+// 自定义分组项
+const groupItems = ref<unknown[]>([])
+
+// ====== 来自 store ======
+const context = computed(() => reportStore.getContext)
+const isCellUpdate = computed(() => reportStore.getIsCellUpdate)
+
+const cellPosition = computed<string>(() => `${props.rowIndex},${props.colIndex}`)
+
+/**
+ * 加载单元格数据
+ */
+const loadCellData = (): void => {
+  initialized.value = false
+
+  const cellDef = getCell(props.rowIndex, props.colIndex) as Record<string, any> | null
+  if (!cellDef) return
+
+  loadDatasets()
+  loadInitialValues(cellDef)
+
+  nextTick(() => {
+    initialized.value = true
+  })
+}
+
+/**
+ * 加载数据集列表
+ */
+const loadDatasets = (): void => {
+  datasets.value = []
+  const ctx = context.value
+  if (!ctx) return
+  const datasources = (ctx.reportDef?.datasources as DatasetOption[] | undefined) || []
+  for (const datasource of datasources) {
+    const dsList = (datasource.datasets as DatasetOption[] | undefined) || []
+    for (const ds of dsList) {
+      datasets.value.push(ds)
     }
   }
-};
+}
+
+/**
+ * 加载初始值
+ */
+const loadInitialValues = (cellDef: Record<string, any>): void => {
+  // 设置换行计算
+  if (cellDef.cellStyle?.wrapCompute) {
+    wrapCompute.value = 'default'
+  } else {
+    wrapCompute.value = 'custom'
+  }
+
+  // 设置行高
+  if (cellDef.cellStyle?.lineHeight) {
+    lineHeight.value = cellDef.cellStyle.lineHeight
+  } else {
+    lineHeight.value = ''
+  }
+
+  // 设置格式
+  if (cellDef.cellStyle?.format) {
+    format.value = cellDef.cellStyle.format
+  } else {
+    format.value = ''
+  }
+
+  // 设置填充空白行
+  if (cellDef.fillBlankRows) {
+    fillBlankRows.value = 'default'
+    multiple.value = cellDef.multiple || 0
+  } else {
+    fillBlankRows.value = 'custom'
+  }
+
+  // 设置展开方向
+  if (cellDef.expand) {
+    expand.value = cellDef.expand
+  } else {
+    expand.value = 'None'
+  }
+
+  // 设置数据集值
+  const value = cellDef.value
+  if (value) {
+    dataset.value = value.datasetName || ''
+    property.value = value.property || ''
+    aggregate.value = value.aggregate || 'select'
+    sort.value = value.order || 'none'
+
+    // 设置过滤条件
+    conditions.value = value.conditions || []
+
+    // 设置数据映射
+    mappingType.value = value.mappingType || 'simple'
+    mappingItems.value = value.mappingItems || []
+    mappingDataset.value = value.mappingDataset || ''
+    mappingKeyProperty.value = value.mappingKeyProperty || ''
+    mappingValueProperty.value = value.mappingValueProperty || ''
+  }
+
+  // 初始化条件属性项
+  if (cellDef.conditionPropertyItems) {
+    conditionGroups.value = [...cellDef.conditionPropertyItems]
+  } else {
+    conditionGroups.value = []
+  }
+
+  // 初始化自定义分组项
+  if (value?.groupItems) {
+    groupItems.value = [...value.groupItems]
+  } else {
+    groupItems.value = []
+  }
+
+  // 触发数据集变化事件，加载字段
+  handleDatasetChange()
+
+  handleAggregateChange()
+}
+
+/**
+ * 处理数据集变化
+ */
+const handleDatasetChange = (): void => {
+  currentFields.value = []
+
+  if (dataset.value) {
+    const ctx = context.value
+    if (!ctx) return
+    const datasources = (ctx.reportDef?.datasources as DatasetOption[] | undefined) || []
+    for (const datasource of datasources) {
+      const dsList = (datasource.datasets as DatasetOption[] | undefined) || []
+      for (const ds of dsList) {
+        if (ds.name === dataset.value) {
+          currentFields.value = (ds.fields as Field[] | undefined) || []
+          break
+        }
+      }
+      if (currentFields.value.length > 0) {
+        break
+      }
+    }
+  }
+
+  if (initialized.value) {
+    setDatasetName(dataset.value)
+  }
+}
+
+/**
+ * 处理属性变化
+ */
+const handlePropertyChange = (): void => {
+  // 更新属性，无论是否初始化状态都保存
+  setProperty(property.value)
+}
+
+/**
+ * 处理聚合类型变化
+ */
+const handleAggregateChange = (params?: { showSortOptions: boolean; showExpandOptions: boolean }): void => {
+  if (params && typeof params === 'object') {
+    showSortOptions.value = params.showSortOptions
+    showExpandOptions.value = params.showExpandOptions
+  } else {
+    if (
+      aggregate.value === 'sum' || aggregate.value === 'count' ||
+      aggregate.value === 'max' || aggregate.value === 'min' ||
+      aggregate.value === 'avg'
+    ) {
+      showSortOptions.value = false
+      showExpandOptions.value = false
+    } else {
+      showSortOptions.value = true
+      showExpandOptions.value = true
+    }
+  }
+
+  if (aggregate.value === 'group' || aggregate.value === 'select') {
+    showMappingOptions.value = true
+  } else {
+    showMappingOptions.value = false
+  }
+
+  if (initialized.value) {
+    setAggregate(aggregate.value)
+  }
+}
+
+watch(cellPosition, () => {
+  loadCellData()
+}, { immediate: true })
+
+watch(isCellUpdate, (newVal) => {
+  if (newVal) {
+    loadCellData()
+    reportStore.setCellUpdate(false)
+  }
+})
+
+/**
+ * 处理排序变化
+ */
+const handleSortChange = (): void => {
+  // 更新排序，无论是否初始化状态都保存
+  setOrder(sort.value)
+}
+
+/**
+ * 处理展开方向变化
+ */
+const handleExpandChange = (): void => {
+  // 更新展开方向，无论是否初始化状态都保存
+  setExpand(expand.value)
+}
+
+/**
+ * 处理行高变化
+ */
+const handleLineHeightChange = (): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex) as Record<string, any> | null
+  if (cellDef && cellDef.cellStyle) {
+    const hot = TableManager.get() as any
+    if (hot) {
+      const td = hot.getCell(props.rowIndex, props.colIndex)
+      if (td) {
+        if (lineHeight.value === '' || lineHeight.value === null) {
+          td.style.lineHeight = ''
+        } else {
+          td.style.lineHeight = lineHeight.value
+        }
+        hot.render()
+      }
+    }
+
+    for (let i = props.rowIndex; i <= props.row2Index; i++) {
+      for (let j = props.colIndex; j <= props.col2Index; j++) {
+        const originalCellDef = getCell(i, j) as Record<string, any> | null
+        if (originalCellDef) {
+          const updatedCellDef = deepCopy(originalCellDef)
+          if (!updatedCellDef.cellStyle) {
+            updatedCellDef.cellStyle = {}
+          }
+          updatedCellDef.cellStyle.lineHeight = lineHeight.value
+          setCell(i, j, updatedCellDef)
+        }
+      }
+    }
+
+    setDirty()
+  }
+}
+
+/**
+ * 处理换行计算变化
+ */
+const handleWrapComputeChange = (): void => {
+  const wrapComputeValue = wrapCompute.value === 'default'
+
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) continue
+
+      const newCellDef = deepCopy(cellDef)
+      if (!newCellDef.cellStyle) {
+        newCellDef.cellStyle = {}
+      }
+      newCellDef.cellStyle.wrapCompute = wrapComputeValue
+      setCell(i, j, newCellDef)
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 处理格式变化
+ */
+const handleFormatChange = (): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) continue
+
+      const newCellDef = deepCopy(cellDef)
+      if (!newCellDef.cellStyle) {
+        newCellDef.cellStyle = {}
+      }
+      newCellDef.cellStyle.format = format.value
+      setCell(i, j, newCellDef)
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 处理填充空白行变化
+ */
+const handleFillBlankRowsChange = (): void => {
+  const fillBlankRowsValue = fillBlankRows.value === 'default'
+
+  // 更新填充空白行，无论是否初始化状态都保存
+  setFillBlankRows(fillBlankRowsValue)
+}
+
+/**
+ * 处理倍数变化
+ */
+const handleMultipleChange = (): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) continue
+
+      const newCellDef = deepCopy(cellDef)
+      newCellDef.multiple = multiple.value
+      setCell(i, j, newCellDef)
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 处理条件属性项变化
+ */
+const handleConditionGroupsChange = (newConditionGroups: ConditionGroup[]): void => {
+  conditionGroups.value = newConditionGroups
+
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const originalCellDef = getCell(i, j) as Record<string, any> | null
+      if (originalCellDef) {
+        const updatedCellDef = deepCopy(originalCellDef)
+        updatedCellDef.conditionPropertyItems = newConditionGroups
+        setCell(i, j, updatedCellDef)
+      }
+    }
+  }
+
+  setDirty()
+}
+
+/**
+ * 处理 cellDef 条件更新
+ */
+const handleUpdateFilterConditions = (newConditions: unknown[]): void => {
+  conditions.value = newConditions
+
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const originalCellDef = getCell(i, j) as Record<string, any> | null
+      if (originalCellDef) {
+        const updatedCellDef = deepCopy(originalCellDef)
+        updatedCellDef.value.conditions = newConditions
+        setCell(i, j, updatedCellDef)
+      }
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 处理自定义分组更新
+ */
+const handleUpdateCustomGroup = (newGroupItems: unknown[]): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const originalCellDef = getCell(i, j) as Record<string, any> | null
+      if (originalCellDef) {
+        const updatedCellDef = deepCopy(originalCellDef)
+        updatedCellDef.value.groupItems = newGroupItems
+        setCell(i, j, updatedCellDef)
+      }
+    }
+  }
+  groupItems.value = [...newGroupItems]
+}
+
+/**
+ * 更新表格数据
+ */
+const updateTableData = (): void => {
+  const hot = TableManager.get() as any
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      const value = cellDef.value
+      const valueType = value?.type
+      let data: string = ''
+      if (valueType === 'simple') {
+        data = String(value.value ?? '')
+      } else if (valueType === 'dataset') {
+        data = `${value.datasetName ?? ''}.${value.aggregate ?? ''}(${value.property ?? ''})`
+      } else if (valueType === 'expression') {
+        data = String(value.value ?? '')
+      }
+      if (hot) {
+        hot.setDataAtCell(cellDef.rowNumber - 1, cellDef.columnNumber - 1, data)
+      }
+    }
+  }
+}
+
+/**
+ * 设置数据集名称
+ */
+const setDatasetName = (datasetName: string): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      const valueType = cellDef.value?.type
+      if (valueType === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.datasetName = datasetName
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  updateTableData()
+  setDirty()
+}
+
+/**
+ * 设置属性
+ */
+const setProperty = (newProperty: string): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      const valueType = cellDef.value?.type
+      if (valueType === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.property = newProperty
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  updateTableData()
+  setDirty()
+}
+
+/**
+ * 设置聚合类型
+ */
+const setAggregate = (newAggregate: string): void => {
+  const hot = TableManager.get() as any
+  let none = false
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      const valueType = cellDef.value?.type
+      if (valueType === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.aggregate = newAggregate
+        if (
+          newAggregate === 'sum' || newAggregate === 'count' || newAggregate === 'max' ||
+          newAggregate === 'min' || newAggregate === 'avg'
+        ) {
+          newCellDef.value.order = 'none'
+          newCellDef.expand = 'None'
+          none = true
+        }
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  if (none) {
+    sort.value = 'none'
+    expand.value = 'None'
+  }
+  updateTableData()
+  if (hot) {
+    hot.render()
+  }
+  setDirty()
+}
+
+/**
+ * 设置排序
+ */
+const setOrder = (order: string): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      const valueType = cellDef.value?.type
+      if (valueType === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.order = order
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 设置展开方向
+ */
+const setExpand = (newExpand: string): void => {
+  const originalCellDef = getCell(props.rowIndex, props.colIndex) as Record<string, any> | null
+  if (originalCellDef) {
+    const updatedCellDef = deepCopy(originalCellDef)
+    updatedCellDef.expand = newExpand
+    setCell(props.rowIndex, props.colIndex, updatedCellDef)
+  }
+  const hot = TableManager.get() as any
+  if (hot) {
+    hot.render()
+  }
+  setDirty()
+}
+
+/**
+ * 设置填充空白行
+ */
+const setFillBlankRows = (value: boolean): void => {
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      const newCellDef = deepCopy(cellDef)
+      newCellDef.fillBlankRows = value
+      if (!newCellDef.multiple) {
+        newCellDef.multiple = 0
+      }
+      setCell(i, j, newCellDef)
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 设置映射类型
+ */
+const setMappingType = (newMappingType: string): void => {
+  mappingType.value = newMappingType
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      if (cellDef.value?.type === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.mappingType = newMappingType
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 设置映射项
+ */
+const setMappingItems = (newMappingItems: unknown[]): void => {
+  mappingItems.value = newMappingItems
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      if (cellDef.value?.type === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.mappingItems = newMappingItems
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 设置映射数据集
+ */
+const setMappingDataset = (newMappingDataset: string): void => {
+  mappingDataset.value = newMappingDataset
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      if (cellDef.value?.type === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.mappingDataset = newMappingDataset
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 设置映射键属性
+ */
+const setMappingKeyProperty = (newMappingKeyProperty: string): void => {
+  mappingKeyProperty.value = newMappingKeyProperty
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      if (cellDef.value?.type === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.mappingKeyProperty = newMappingKeyProperty
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  setDirty()
+}
+
+/**
+ * 设置映射值属性
+ */
+const setMappingValueProperty = (newMappingValueProperty: string): void => {
+  mappingValueProperty.value = newMappingValueProperty
+  for (let i = props.rowIndex; i <= props.row2Index; i++) {
+    for (let j = props.colIndex; j <= props.col2Index; j++) {
+      const cellDef = getCell(i, j) as Record<string, any> | null
+      if (!cellDef) {
+        continue
+      }
+      if (cellDef.value?.type === 'dataset') {
+        const newCellDef = deepCopy(cellDef)
+        newCellDef.value.mappingValueProperty = newMappingValueProperty
+        setCell(i, j, newCellDef)
+      }
+    }
+  }
+  setDirty()
+}
 </script>
 
 <style scoped>

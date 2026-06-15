@@ -1,159 +1,177 @@
 <template>
-  <UDialog
+  <a-modal
     :title="dialogTitle"
-    width="500px"
-    :visible="visible"
+    :width="500"
+    :open="visible"
     :z-index="20000"
-    @close="handleClose"
+    :mask-closable="false"
+    @cancel="handleClose"
   >
     <div class="dialog-content">
-      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
-        <u-form-item :label="$t('dialog.groupItem.name')" prop="name">
-          <u-input
-            v-model="formData.name"
-            ref="nameInput"
-            @keyup.enter="handleOk"
-            style="width:240px;"
+      <a-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        :label-col="{ style: { width: '120px' } }"
+        :colon="false"
+      >
+        <a-form-item :label="t('dialog.groupItem.name')" name="name">
+          <a-input
+            ref="nameInputRef"
+            v-model:value="formData.name"
+            style="width: 240px;"
+            @press-enter="handleOk"
           />
-        </u-form-item>
-      </u-form>
+        </a-form-item>
+      </a-form>
     </div>
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
+      <a-button type="primary" @click="handleOk">{{ t('dialog.common.ok') }}</a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UInput from "@/components/input/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
+<script setup lang="ts">
+/**
+ * GroupItemDialog 自定义分组项弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → resetForm + initData 回填名称
+ * 2. 用户输入名称 → 「确定」→ 校验 → emit('saveAfter', { operation, groupItem })
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UForm/UFormItem/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-input/a-button
+ * - $refs.form.validate(callback) → formRef.value.validate() Promise 化
+ */
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import type { Rule } from 'ant-design-vue/es/form'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'GroupItemDialog',
-  components: {
-    UButton,
-    UDialog,
-    UInput,
-    UForm,
-    UFormItem
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    groupItem: {
-      type: Object,
-      default: null
-    },
-    operation: {
-      type: String,
-      default: 'add'
+defineOptions({ name: 'GroupItemDialog' })
+
+
+const { t } = useI18n()
+/** 分组项结构 */
+export interface GroupItem {
+  name: string
+  conditions?: unknown[]
+  [key: string]: unknown
+}
+
+/** saveAfter 事件载荷 */
+export interface GroupItemSavePayload {
+  operation: string
+  groupItem: GroupItem | null
+}
+
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    groupItem?: GroupItem | null
+    operation?: string
+  }>(),
+  {
+    visible: false,
+    groupItem: null,
+    operation: 'add'
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'saveAfter', payload: GroupItemSavePayload): void
+  (e: 'update:visible', val: boolean): void
+}>()
+
+const formRef = ref()
+const nameInputRef = ref()
+const formData = reactive({ name: '' })
+
+const rules: Record<string, Rule[]> = {
+  name: [
+    {
+      required: true,
+      message: t('dialog.groupItem.nameTip'),
+      trigger: 'blur'
     }
-  },
-  data() {
-    return {
-      formData: {
-        name: ''
-      },
-      rules: {
-        name: [{
-          required: true,
-          message: this.$t('dialog.groupItem.nameTip'),
-          trigger: 'blur'
-        }]
-      }
-    };
-  },
-  computed: {
-    dialogTitle() {
-      return this.operation === 'add'
-        ? this.$t('dialog.groupItem.addItem')
-        : this.$t('dialog.groupItem.editItem');
-    }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.resetFormData();
-        this.initData();
-      }
-    }
-  },
-  mounted() {
-    document.addEventListener('keydown', this.handleKeydown);
-  },
-  beforeDestroy() {
-    document.removeEventListener('keydown', this.handleKeydown);
-  },
-  methods: {
+  ]
+}
 
-    initData(){
-      this.formData.name = this.groupItem?.name || '';
-    },
+const dialogTitle = computed(() =>
+  props.operation === 'add'
+    ? t('dialog.groupItem.addItem')
+    : t('dialog.groupItem.editItem')
+)
 
-    /**
-     * 重置表单数据
-     */
-    resetFormData() {
-      this.$refs.form && this.$refs.form.resetFields();
-    },
-
-    /**
-     * 校验表单
-     * @returns {Promise<boolean>} 校验结果
-     */
-    validateForm() {
-      return new Promise((resolve) => {
-        this.$refs.form.validate((valid) => {
-          resolve(valid);
-        });
-      });
-    },
-
-    /**
-     * 确认操作
-     */
-    async handleOk() {
-      const valid = await this.validateForm();
-      if (!valid) {
-        return;
-      }
-
-      const updatedGroupItem = this.groupItem ? { ...this.groupItem, name: this.formData.name } : null;
-
-      this.$emit('saveAfter', {
-        operation: this.operation,
-        groupItem: updatedGroupItem
-      });
-
-      this.handleClose();
-    },
-
-    /**
-     * 关闭弹窗
-     */
-    handleClose() {
-      this.$emit('update:visible', false);
-    },
-
-    /**
-     * 键盘事件处理
-     * @param {KeyboardEvent} e - 键盘事件
-     */
-    handleKeydown(e) {
-      if (this.visible) {
-        if (e.key === 'Escape') {
-          this.handleClose();
-        }
-      }
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      resetFormData()
+      initData()
+      nextTick(() => {
+        nameInputRef.value?.focus?.()
+      })
     }
   }
-};
+)
+
+/** 回填名称 */
+const initData = (): void => {
+  formData.name = props.groupItem?.name || ''
+}
+
+/** 重置 a-form 校验态 */
+const resetFormData = (): void => {
+  formRef.value?.resetFields()
+}
+
+/** 异步校验表单 */
+const validateForm = async (): Promise<boolean> => {
+  try {
+    await formRef.value?.validate()
+    return true
+  } catch {
+    return false
+  }
+}
+
+const handleOk = async (): Promise<void> => {
+  const valid = await validateForm()
+  if (!valid) {
+    return
+  }
+
+  const updatedGroupItem: GroupItem | null = props.groupItem
+    ? { ...props.groupItem, name: formData.name }
+    : null
+
+  emit('saveAfter', {
+    operation: props.operation,
+    groupItem: updatedGroupItem
+  })
+
+  handleClose()
+}
+
+const handleClose = (): void => {
+  emit('update:visible', false)
+}
+
+const handleKeydown = (e: KeyboardEvent): void => {
+  if (props.visible && e.key === 'Escape') {
+    handleClose()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
+
 <style scoped>
 </style>

@@ -19,11 +19,11 @@
  * - props 通过 defineProps 声明，$refs → 模板 ref
  * - 渲染逻辑、API 调用保持原样
  */
-import { defineComponent, ref, onMounted, onBeforeUnmount, type Ref } from 'vue'
+import { defineComponent, ref, onMounted, onBeforeUnmount, defineExpose, type Ref } from 'vue'
 import Raphael from 'raphael'
 import saveSvgAsPng from 'save-svg-as-png'
 import { getCell, setCell } from '@/utils/contextActions'
-import { deepCopy } from '@/components/utils'
+import { deepCopy } from '@/utils/comnon'
 import TableManager from '../manager'
 import type { ReportContext, ReportCell } from '@/types/report-def'
 
@@ -371,6 +371,13 @@ export default defineComponent({
       }
     })
 
+    /**
+     * 暴露 doDraw / refreshCell 给 class.ts 调用
+     * - vue2 时代通过 vueInstance.$children[0] 访问；vue3 中改为 defineExpose
+     * - 斜线表属性面板（slash-value-editor）的"刷新"按钮依赖 doDraw() 触发 Raphael 重绘
+     */
+    defineExpose({ doDraw, refreshCell })
+
     return {
       containerRef,
       refreshCell,
@@ -379,6 +386,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style scoped>
-</style>

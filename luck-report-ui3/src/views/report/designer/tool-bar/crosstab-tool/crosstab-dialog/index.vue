@@ -1,45 +1,34 @@
 <template>
-  <UDialog
-    :title="$t('dialog.crosstab.title')"
+  <a-modal
+    :title="t('dialog.crosstab.title')"
     width="520px"
-    :visible="visible"
-    @close="handleClose"
+    :open="visible"
+    @cancel="handleClose"
+    @ok="handleOk"
   >
     <div class="dialog-content">
-      <u-form ref="form" :label-width="60">
-        <u-form-item :label="$t('dialog.crosstab.crosstab')">
-          <u-input
-            v-model="crosstabValue"
+      <a-form ref="form" :label-col="{ style: { width: '60px' } }">
+        <a-form-item :label="t('dialog.crosstab.crosstab')">
+          <a-input
+            v-model:value="crosstabValue"
             ref="input"
             style="width: 300px"
-            :placeholder="$t('dialog.crosstab.tip')"
+            :placeholder="t('dialog.crosstab.tip')"
             @keyup.enter="handleOk"
           />
-        </u-form-item>
-      </u-form>
+        </a-form-item>
+      </a-form>
     </div>
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+  </a-modal>
 </template>
 
 <script>
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UInput from "@/components/input/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'CrosstabDialog',
-  components: {
-    UButton,
-    UDialog,
-    UInput,
-    UForm,
-    UFormItem
+  setup() {
+    return { t: useI18n().t };
   },
   props: {
     visible: {
@@ -63,7 +52,7 @@ export default {
     // 添加键盘事件监听
     document.addEventListener('keydown', this.handleKeydown);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // 移除事件监听
     document.removeEventListener('keydown', this.handleKeydown);
   },

@@ -1,19 +1,19 @@
 <template>
   <div>
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="borderChecked" @change="onBorderChange">
-          {{ $t('dialog.propCondition.border') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8">
-        <u-button type="info" v-show="borderChecked" @click="configBorder">
-          <i class="iconfont icon-setting"></i> {{ $t('dialog.propCondition.borderConfig') }}
-        </u-button>
-      </u-col>
-      <u-col :span="8">
-      </u-col>
-    </u-row>
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="borderChecked" @change="onBorderChange">
+          {{ t('dialog.propCondition.border') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8">
+        <a-button v-show="borderChecked" @click="configBorder">
+          <i class="iconfont icon-setting"></i> {{ t('dialog.propCondition.borderConfig') }}
+        </a-button>
+      </a-col>
+      <a-col :span="8">
+      </a-col>
+    </a-row>
 
     <CustomBorderDialog
       :visible="customBorderDialogVisible"
@@ -25,104 +25,154 @@
   </div>
 </template>
 
-<script>
-import UCheckbox from '@/components/checkbox/index.vue';
-import UButton from '@/components/button/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
-import CustomBorderDialog from '@/views/report/designer/resource-panel/property-panel/custom-border-dialog/index.vue';
+<script setup lang="ts">
+/**
+ * BorderConfig 边框条件配置（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-row/u-col/u-checkbox/u-button（自定义）→ a-row/a-col/a-checkbox/a-button
+ * - 深拷贝 localCellStyle 以避免污染 prop
+ */
+import { ref, watch, nextTick } from 'vue'
+import { deepCopy } from '@/utils/comnon'
+import CustomBorderDialog from '@/views/report/designer/resource-panel/property-panel/custom-border-dialog/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'BorderConfig',
-  components: {
-    UCheckbox,
-    UButton,
-    URow,
-    UCol,
-    CustomBorderDialog
-  },
-  props: {
-    cellStyle: {
-      type: Object,
-      default: () => ({})
+defineOptions({ name: 'BorderConfig' })
+
+
+const { t } = useI18n()
+interface BorderSide {
+  color: string
+  style: string
+  width: number | string
+}
+
+interface CellStyle {
+  leftBorder?: BorderSide | null
+  rightBorder?: BorderSide | null
+  topBorder?: BorderSide | null
+  bottomBorder?: BorderSide | null
+  [key: string]: unknown
+}
+
+const props = withDefaults(
+  defineProps<{
+    cellStyle?: CellStyle | null
+  }>(),
+  {
+    cellStyle: () => ({})
+  }
+)
+
+const emit = defineEmits<{
+  (
+    e: 'border-change',
+    payload: {
+      checked: boolean
+      borders: {
+        leftBorder: BorderSide | null
+        rightBorder: BorderSide | null
+        topBorder: BorderSide | null
+        bottomBorder: BorderSide | null
+      }
     }
-  },
-  data() {
-    return {
-      borderChecked: false,
-      customBorderDialogVisible: false,
-      localCellStyle: {}
-    };
-  },
-  watch: {
-    cellStyle: {
-      handler(newVal) {
-        this.loadBorderProperties(newVal);
-      },
-      immediate: true,
-      deep: true
+  ): void
+  (
+    e: 'border-save',
+    payload: {
+      topBorder: BorderSide
+      bottomBorder: BorderSide
+      leftBorder: BorderSide
+      rightBorder: BorderSide
     }
+  ): void
+}>()
+
+const borderChecked = ref<boolean>(false)
+const customBorderDialogVisible = ref<boolean>(false)
+const localCellStyle = ref<Record<string, unknown>>({})
+
+watch(
+  () => props.cellStyle,
+  (newVal) => {
+    loadBorderProperties(newVal)
   },
-  methods: {
-    loadBorderProperties(cellStyle) {
-      if (!cellStyle) return;
+  { immediate: true, deep: true }
+)
 
-      this.borderChecked = !!(cellStyle.leftBorder || cellStyle.rightBorder || cellStyle.topBorder || cellStyle.bottomBorder);
-    },
+const loadBorderProperties = (cellStyle?: CellStyle | null): void => {
+  if (!cellStyle) return
 
-    onBorderChange() {
-      const defaultBorder = {
-        color: "0,0,0",
-        style: "solid",
-        width: 1
-      };
+  borderChecked.value = !!(
+    cellStyle.leftBorder ||
+    cellStyle.rightBorder ||
+    cellStyle.topBorder ||
+    cellStyle.bottomBorder
+  )
+}
 
-      this.$emit('border-change', {
-        checked: this.borderChecked,
-        borders: this.borderChecked ? {
-          leftBorder: JSON.parse(JSON.stringify(defaultBorder)),
-          rightBorder: JSON.parse(JSON.stringify(defaultBorder)),
-          topBorder: JSON.parse(JSON.stringify(defaultBorder)),
-          bottomBorder: JSON.parse(JSON.stringify(defaultBorder))
-        } : {
+const onBorderChange = (): void => {
+  const defaultBorder: BorderSide = {
+    color: '0,0,0',
+    style: 'solid',
+    width: 1
+  }
+
+  emit('border-change', {
+    checked: borderChecked.value,
+    borders: borderChecked.value
+      ? {
+          leftBorder: deepCopy(defaultBorder) as BorderSide,
+          rightBorder: deepCopy(defaultBorder) as BorderSide,
+          topBorder: deepCopy(defaultBorder) as BorderSide,
+          bottomBorder: deepCopy(defaultBorder) as BorderSide
+        }
+      : {
           leftBorder: null,
           rightBorder: null,
           topBorder: null,
           bottomBorder: null
         }
-      });
-    },
+  })
+}
 
-    configBorder() {
-      this.localCellStyle = JSON.parse(JSON.stringify(this.cellStyle));
+const configBorder = (): void => {
+  localCellStyle.value = deepCopy(props.cellStyle) as Record<string, unknown>
 
-      const defaultBorder = { color: '0,0,0', width: "1", style: 'solid' };
-      const noneBorder = { color: '0,0,0', width: "1", style: 'none' };
+  const defaultBorder: BorderSide = { color: '0,0,0', width: '1', style: 'solid' }
+  const noneBorder: BorderSide = { color: '0,0,0', width: '1', style: 'none' }
 
-      if (!this.localCellStyle.leftBorder || this.localCellStyle.leftBorder === '') {
-        this.localCellStyle.leftBorder = { ...noneBorder };
-      }
-      if (!this.localCellStyle.rightBorder || this.localCellStyle.rightBorder === '') {
-        this.localCellStyle.rightBorder = { ...noneBorder };
-      }
-      if (!this.localCellStyle.topBorder || this.localCellStyle.topBorder === '') {
-        this.localCellStyle.topBorder = { ...noneBorder };
-      }
-      if (!this.localCellStyle.bottomBorder || this.localCellStyle.bottomBorder === '') {
-        this.localCellStyle.bottomBorder = { ...noneBorder };
-      }
-
-      this.customBorderDialogVisible = true;
-    },
-
-    handleCustomBorderSave(borderData) {
-      this.$emit('border-save', {
-        topBorder: borderData.topBorder,
-        bottomBorder: borderData.bottomBorder,
-        leftBorder: borderData.leftBorder,
-        rightBorder: borderData.rightBorder
-      });
-    }
+  if (!localCellStyle.value.leftBorder || localCellStyle.value.leftBorder === '') {
+    localCellStyle.value.leftBorder = { ...noneBorder }
   }
-};
+  if (!localCellStyle.value.rightBorder || localCellStyle.value.rightBorder === '') {
+    localCellStyle.value.rightBorder = { ...noneBorder }
+  }
+  if (!localCellStyle.value.topBorder || localCellStyle.value.topBorder === '') {
+    localCellStyle.value.topBorder = { ...noneBorder }
+  }
+  if (!localCellStyle.value.bottomBorder || localCellStyle.value.bottomBorder === '') {
+    localCellStyle.value.bottomBorder = { ...noneBorder }
+  }
+
+  nextTick(() => {
+    customBorderDialogVisible.value = true
+  })
+}
+
+const handleCustomBorderSave = (borderData: {
+  topBorder: BorderSide
+  bottomBorder: BorderSide
+  leftBorder: BorderSide
+  rightBorder: BorderSide
+}): void => {
+  emit('border-save', {
+    topBorder: borderData.topBorder,
+    bottomBorder: borderData.bottomBorder,
+    leftBorder: borderData.leftBorder,
+    rightBorder: borderData.rightBorder
+  })
+}
 </script>

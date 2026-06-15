@@ -124,22 +124,3 @@ export default class ChartWidget {
     }
   }
 }
-
-/**
- * 全局 chart 颜色映射（原代码挂在 window 上，所有 chart 实例共享）
- * - 后续可考虑改为 ES Module 导出，但保持全局便于与 chart.js / raphael 等直接对接
- */
-declare global {
-  interface Window {
-    chartColors: Record<string, string>
-  }
-}
-window.chartColors = {
-  red: 'rgb(255, 99, 132)',
-  orange: 'rgb(255, 159, 64)',
-  yellow: 'rgb(255, 205, 86)',
-  green: 'rgb(75, 192, 192)',
-  blue: 'rgb(54, 162, 235)',
-  purple: 'rgb(153, 102, 255)',
-  grey: 'rgb(201, 203, 207)'
-}

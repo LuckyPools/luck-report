@@ -1,133 +1,123 @@
 <template>
-  <u-form :label-width="50" label-position="left">
-    <div class="form-desc">{{ $t('dialog.setting.hfdesc') }}</div>
+  <a-form :label-col="{ style: { width: '50px' } }">
+    <div class="form-desc">{{ t('dialog.setting.hfdesc') }}</div>
 
-    <u-row>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.header')">
-          <u-button
-            type="text"
+    <a-row>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.header')">
+          <a-button
+            type="link"
             @click="handleOpenHeaderFontDialog">
-            {{ $t('dialog.setting.fontStyleSetting') }}
-          </u-button>
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.headerMargin')" :label-width="140">
-          <u-input-number
-            v-model="localHeaderMargin"
+            {{ t('dialog.setting.fontStyleSetting') }}
+          </a-button>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.headerMargin')" :label-col="{ style: { width: '140px' } }">
+          <a-input-number
+            v-model:value="localHeaderMargin"
             @change="handleHeaderMarginChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.hfLeft')" style="align-items: flex-start;">
+    <a-row style="margin-top: 5px;">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" :label-col="{ style: { width: '80px' } }">
           <textarea
             ref="leftHeader"
             v-model="localHeader.left"
             class="form-control editor-textarea"
             @change="handleHeaderLeftChange"
           ></textarea>
-        </u-form-item>
-      </u-col>
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.hfCenter')" style="align-items: flex-start;">
+        </a-form-item>
+      </a-col>
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" :label-col="{ style: { width: '80px' } }">
           <textarea
             ref="centerHeader"
             v-model="localHeader.center"
             class="form-control editor-textarea"
             @change="handleHeaderCenterChange"
           ></textarea>
-        </u-form-item>
-      </u-col>
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.hfRight')" style="align-items: flex-start;">
+        </a-form-item>
+      </a-col>
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" :label-col="{ style: { width: '80px' } }">
           <textarea
             ref="rightHeader"
             v-model="localHeader.right"
             class="form-control editor-textarea"
             @change="handleHeaderRightChange"
           ></textarea>
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 10px;">
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.footer')">
-          <u-button
-            type="text"
+    <a-row style="margin-top: 10px;">
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.footer')">
+          <a-button
+            type="link"
             @click="handleOpenFooterFontDialog">
-            {{ $t('dialog.setting.fontStyleSetting') }}
-          </u-button>
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.footerMargin')" :label-width="140">
-          <u-input-number
-            v-model="localFooterMargin"
+            {{ t('dialog.setting.fontStyleSetting') }}
+          </a-button>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.footerMargin')" :label-col="{ style: { width: '140px' } }">
+          <a-input-number
+            v-model:value="localFooterMargin"
             @change="handleFooterMarginChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.hfLeft')" style="align-items: flex-start;">
+    <a-row style="margin-top: 5px;">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" :label-col="{ style: { width: '80px' } }">
           <textarea
             ref="leftFooter"
             v-model="localFooter.left"
             class="form-control editor-textarea"
             @change="handleFooterLeftChange"
           ></textarea>
-        </u-form-item>
-      </u-col>
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.hfCenter')" style="align-items: flex-start;">
+        </a-form-item>
+      </a-col>
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" :label-col="{ style: { width: '80px' } }">
           <textarea
             ref="centerFooter"
             v-model="localFooter.center"
             class="form-control editor-textarea"
             @change="handleFooterCenterChange"
           ></textarea>
-        </u-form-item>
-      </u-col>
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.hfRight')" style="align-items: flex-start;">
+        </a-form-item>
+      </a-col>
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" :label-col="{ style: { width: '80px' } }">
           <textarea
             ref="rightFooter"
             v-model="localFooter.right"
             class="form-control editor-textarea"
             @change="handleFooterRightChange"
           ></textarea>
-        </u-form-item>
-      </u-col>
-    </u-row>
-  </u-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script>
-import { pointToMM, mmToPoint } from '@/utils/table.js';
-import UButton from '@/components/button/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
+import { pointToMM, mmToPoint } from '@/utils/table';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'HeaderFooterSettings',
-  components: {
-    UButton,
-    UInputNumber,
-    UForm,
-    UFormItem,
-    URow,
-    UCol
+  setup() {
+    return { t: useI18n().t };
   },
   props: {
     header: {
@@ -217,37 +207,37 @@ export default {
       this.$emit('header-footer-change');
     },
     setHeaderEditorStyles() {
-      const headerEditors = [
-        this.$refs.leftHeader,
-        this.$refs.centerHeader,
-        this.$refs.rightHeader
-      ];
-
-      headerEditors.forEach(editor => {
-        if (editor) {
-          this.applyEditorStyle(editor, this.localHeader);
-        }
-      });
+      this.applyEditorStyles(this.localHeader, ['leftHeader', 'centerHeader', 'rightHeader']);
     },
     setFooterEditorStyles() {
-      const footerEditors = [
-        this.$refs.leftFooter,
-        this.$refs.centerFooter,
-        this.$refs.rightFooter
-      ];
-
-      footerEditors.forEach(editor => {
-        if (editor) {
-          this.applyEditorStyle(editor, this.localFooter);
+      this.applyEditorStyles(this.localFooter, ['leftFooter', 'centerFooter', 'rightFooter']);
+    },
+    applyEditorStyles(style, refs) {
+      if (!style) return;
+      const styles = {
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize + 'pt',
+        color: this.forecolorToCss(style.forecolor),
+        fontWeight: style.bold ? 'bold' : 'normal',
+        fontStyle: style.italic ? 'italic' : 'normal',
+        textDecoration: style.underline ? 'underline' : 'none'
+      };
+      refs.forEach(refName => {
+        const el = this.$refs[refName];
+        if (el && el.style) {
+          Object.keys(styles).forEach(key => {
+            el.style[key] = styles[key];
+          });
         }
       });
     },
-    applyEditorStyle(editor, style) {
-      editor.style.fontSize = style.fontSize + 'pt';
-      editor.style.color = `rgb(${style.forecolor})`;
-      editor.style.fontWeight = style.bold && style.bold !== 'false' ? 'bold' : 'normal';
-      editor.style.fontStyle = style.italic && style.italic !== 'false' ? 'italic' : 'normal';
-      editor.style.textDecoration = style.underline && style.underline !== 'false' ? 'underline' : 'none';
+    forecolorToCss(forecolor) {
+      if (!forecolor) return '#000000';
+      const parts = String(forecolor).split(',').map(s => parseInt(s.trim(), 10));
+      if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+        return '#' + parts.map(n => n.toString(16).padStart(2, '0')).join('');
+      }
+      return '#000000';
     }
   }
 };
@@ -259,19 +249,7 @@ export default {
   color: #999999;
   font-size: 12px;
 }
-
-.editor-textarea {
-  font-size: 10pt;
-  padding: 5px;
-  display: block;
-  width: 100%;
-  max-width: 140px;
-  height: 80px;
-  box-sizing: border-box;
-}
-
-textarea:focus {
-  outline: none;
-  border-color: #00554a;
+.property-label :deep(.ant-form-item-label) {
+  align-items: flex-start;
 }
 </style>

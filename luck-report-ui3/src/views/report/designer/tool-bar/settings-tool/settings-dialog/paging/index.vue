@@ -1,59 +1,47 @@
 <template>
-  <u-form :label-width="100" label-position="left">
-    <u-row>
-      <u-col :span="24">
-        <u-form-item class="property-label" :label="$t('dialog.setting.pagingType')">
-          <u-radio-group
-            v-model="localPaper.pagingMode"
+  <a-form :label-col="{ style: { width: '100px' } }">
+    <a-row>
+      <a-col :span="24">
+        <a-form-item class="property-label" :label="t('dialog.setting.pagingType')">
+          <a-radio-group
+            v-model:value="localPaper.pagingMode"
             @change="handlePagingModeChange"
           >
-            <u-radio
+            <a-radio
               v-for="option in pagingModeOptions"
               :key="option.value"
-              :label="option.value"
+              :value="option.value"
             >
               {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </u-form-item>
-      </u-col>
-    </u-row>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row v-show="localPaper.pagingMode === 'fixrows'" style="margin-top: 5px;">
-      <u-col :span="8">
-        <u-form-item class="property-label" :label="$t('dialog.setting.rowsPerPage')">
-          <u-input-number
+    <a-row v-show="localPaper.pagingMode === 'fixrows'" style="margin-top: 5px;">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.rowsPerPage')">
+          <a-input-number
             :value="localPaper.fixRows"
             :min="1"
             @change="handleFixRowsChange"
           />
-        </u-form-item>
-      </u-col>
-      <u-col :span="16">
-      </u-col>
-    </u-row>
-  </u-form>
+        </a-form-item>
+      </a-col>
+      <a-col :span="16">
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script>
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'PagingSettings',
-  components: {
-    URadioGroup,
-    URadio,
-    UInputNumber,
-    UForm,
-    UFormItem,
-    URow,
-    UCol
+  setup() {
+    return { t: useI18n().t };
   },
   props: {
     paper: {
@@ -69,8 +57,8 @@ export default {
   computed: {
     pagingModeOptions() {
       return [
-        { value: 'fitpage', label: this.$t('dialog.setting.auto') },
-        { value: 'fixrows', label: this.$t('dialog.setting.fixRows') }
+        { value: 'fitpage', label: this.t('dialog.setting.auto') },
+        { value: 'fixrows', label: this.t('dialog.setting.fixRows') }
       ];
     }
   },

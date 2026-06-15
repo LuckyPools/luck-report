@@ -1,236 +1,211 @@
 <template>
   <div class="chart-dataset-bob">
-
-    <u-form :label-width="100" labelPosition="left">
-      <u-form-item class="property-label" :label="$t('chart.dataset')">
-        <u-select
-          v-model="localDatasetName"
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form-item class="property-label" :label="t('chart.dataset')">
+        <a-select
+          v-model:value="localDatasetName"
+          :options="datasetOptions"
           @change="handleDatasetChange"
-        >
-          <u-option
-            v-for="option in datasetOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('chart.categoryProperty')">
-        <u-select
-          v-model="localCategoryProperty"
-          :clearable="true"
+      <a-form-item class="property-label" :label="t('chart.categoryProperty')">
+        <a-select
+          v-model:value="localCategoryProperty"
+          :options="fieldOptions"
+          :allow-clear="true"
           @change="handleCategoryPropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('chart.xProperty')">
-        <u-select
-          v-model="localXProperty"
+      <a-form-item class="property-label" :label="t('chart.xProperty')">
+        <a-select
+          v-model:value="localXProperty"
+          :options="fieldOptions"
           @change="handleXPropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('chart.yProperty')">
-        <u-select
-          v-model="localYProperty"
+      <a-form-item class="property-label" :label="t('chart.yProperty')">
+        <a-select
+          v-model:value="localYProperty"
+          :options="fieldOptions"
           @change="handleYPropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+        />
+      </a-form-item>
 
-      <u-form-item class="property-label" v-if="showRProperty" :label="$t('chart.rProperty')">
-        <u-select
-          v-model="localRProperty"
+      <a-form-item v-if="showRProperty" class="property-label" :label="t('chart.rProperty')">
+        <a-select
+          v-model:value="localRProperty"
+          :options="fieldOptions"
           @change="handleRPropertyChange"
-        >
-          <u-option
-            v-for="option in fieldOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-    </u-form>
+        />
+      </a-form-item>
+    </a-form>
   </div>
 </template>
 
-<script>
-import {setDirty} from '@/utils/table.js';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UFormItem from "@/components/form-item/index.vue";
-import UForm from "@/components/form/index.vue";
+<script setup lang="ts">
+/**
+ * ChartDataConfig 图表数据集配置（用于气泡/散点图，vue3 + TS + ant-design-vue）
+ */
+import { ref, computed, watch } from 'vue'
+import { setDirty } from '@/utils/table'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ChartDataConfig',
-  components: {
-    UForm,
-    UFormItem,
-    USelect,
-    UOption
-  },
-  props: {
-    datasetName: {
-      type: String,
-      default: ''
-    },
-    categoryProperty: {
-      type: String,
-      default: ''
-    },
-    xProperty: {
-      type: String,
-      default: ''
-    },
-    yProperty: {
-      type: String,
-      default: ''
-    },
-    rProperty: {
-      type: String,
-      default: ''
-    },
-    showRProperty: {
-      type: Boolean,
-      default: true
-    },
-    datasets: {
-      type: Array,
-      default: () => []
-    },
-    fields: {
-      type: Array,
-      default: () => []
-    }
-  },
-  data() {
-    return {
-      localDatasetName: '',
-      localCategoryProperty: '',
-      localXProperty: '',
-      localYProperty: '',
-      localRProperty: ''
-    };
-  },
-  computed: {
-    datasetOptions() {
-      return this.datasets.map(dataset => ({
-        value: dataset.name,
-        label: dataset.name
-      }));
-    },
-    fieldOptions() {
-      return this.fields.map(field => ({
-        value: field.name,
-        label: field.name
-      }));
-    }
-  },
-  watch: {
-    datasetName: {
-      handler(newVal) {
-        this.localDatasetName = newVal || '';
-      },
-      immediate: true
-    },
-    categoryProperty: {
-      handler(newVal) {
-        this.localCategoryProperty = newVal || '';
-      },
-      immediate: true
-    },
-    xProperty: {
-      handler(newVal) {
-        this.localXProperty = newVal || '';
-      },
-      immediate: true
-    },
-    yProperty: {
-      handler(newVal) {
-        this.localYProperty = newVal || '';
-      },
-      immediate: true
-    },
-    rProperty: {
-      handler(newVal) {
-        this.localRProperty = newVal || '';
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    // 处理数据集变化
-    handleDatasetChange() {
+defineOptions({ name: 'ChartDataConfig' })
 
-      // 清空属性选择
-      this.localCategoryProperty = '';
-      this.localXProperty = '';
-      this.localYProperty = '';
-      this.localRProperty = '';
 
-      // 通知父组件更新配置
-      this.$emit('update-dataset', {
-        datasetName: this.localDatasetName,
-        categoryProperty: '',
-        xProperty: '',
-        yProperty: '',
-        rProperty: ''
-      });
+const { t } = useI18n()
+interface SelectOption {
+  value: string
+  label: string
+}
 
-      setDirty();
-    },
+interface FieldItem {
+  name: string
+}
 
-    // 处理类别属性变化
-    handleCategoryPropertyChange() {
-      this.$emit('update-dataset', { categoryProperty: this.localCategoryProperty });
-      setDirty();
-    },
+interface DatasetItem {
+  name: string
+}
 
-    // 处理X属性变化
-    handleXPropertyChange() {
-      this.$emit('update-dataset', { xProperty: this.localXProperty });
-      setDirty();
-    },
-
-    // 处理Y属性变化
-    handleYPropertyChange() {
-      this.$emit('update-dataset', { yProperty: this.localYProperty });
-      setDirty();
-    },
-
-    // 处理R属性变化
-    handleRPropertyChange() {
-      this.$emit('update-dataset', { rProperty: this.localRProperty });
-      setDirty();
-    }
+const props = withDefaults(
+  defineProps<{
+    datasetName?: string
+    categoryProperty?: string
+    xProperty?: string
+    yProperty?: string
+    rProperty?: string
+    showRProperty?: boolean
+    datasets?: DatasetItem[]
+    fields?: FieldItem[]
+  }>(),
+  {
+    datasetName: '',
+    categoryProperty: '',
+    xProperty: '',
+    yProperty: '',
+    rProperty: '',
+    showRProperty: true,
+    datasets: () => [],
+    fields: () => []
   }
-};
+)
+
+const emit = defineEmits<{
+  (e: 'update-dataset', payload: Record<string, string>): void
+}>()
+
+// ====== 状态 ======
+const localDatasetName = ref<string>('')
+const localCategoryProperty = ref<string>('')
+const localXProperty = ref<string>('')
+const localYProperty = ref<string>('')
+const localRProperty = ref<string>('')
+
+// ====== 选项 ======
+const datasetOptions = computed<SelectOption[]>(() =>
+  props.datasets.map((dataset) => ({
+    value: dataset.name,
+    label: dataset.name
+  }))
+)
+
+const fieldOptions = computed<SelectOption[]>(() =>
+  props.fields.map((field) => ({
+    value: field.name,
+    label: field.name
+  }))
+)
+
+watch(
+  () => props.datasetName,
+  (newVal) => {
+    localDatasetName.value = newVal || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.categoryProperty,
+  (newVal) => {
+    localCategoryProperty.value = newVal || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.xProperty,
+  (newVal) => {
+    localXProperty.value = newVal || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.yProperty,
+  (newVal) => {
+    localYProperty.value = newVal || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.rProperty,
+  (newVal) => {
+    localRProperty.value = newVal || ''
+  },
+  { immediate: true }
+)
+
+// 处理数据集变化
+const handleDatasetChange = (): void => {
+  // 清空属性选择
+  localCategoryProperty.value = ''
+  localXProperty.value = ''
+  localYProperty.value = ''
+  localRProperty.value = ''
+
+  // 通知父组件更新配置
+  emit('update-dataset', {
+    datasetName: localDatasetName.value,
+    categoryProperty: '',
+    xProperty: '',
+    yProperty: '',
+    rProperty: ''
+  })
+
+  setDirty()
+}
+
+// 处理类别属性变化
+const handleCategoryPropertyChange = (): void => {
+  emit('update-dataset', { categoryProperty: localCategoryProperty.value })
+  setDirty()
+}
+
+// 处理X属性变化
+const handleXPropertyChange = (): void => {
+  emit('update-dataset', { xProperty: localXProperty.value })
+  setDirty()
+}
+
+// 处理Y属性变化
+const handleYPropertyChange = (): void => {
+  emit('update-dataset', { yProperty: localYProperty.value })
+  setDirty()
+}
+
+// 处理R属性变化
+const handleRPropertyChange = (): void => {
+  emit('update-dataset', { rProperty: localRProperty.value })
+  setDirty()
+}
 </script>
 
 <style scoped>
-.chart-dataset-bob{
+.chart-dataset-bob {
   margin-top: 10px;
 }
 </style>

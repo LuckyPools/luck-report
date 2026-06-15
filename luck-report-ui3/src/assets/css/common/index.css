@@ -1,3 +1,9 @@
+/* ===== 全局主题 CSS 变量（与 App.vue ConfigProvider 的 colorPrimary 保持同步） ===== */
+:root {
+  --color-primary: #00554a;
+  --color-primary-rgb: 0, 85, 74;
+}
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -99,7 +105,7 @@ label {
     flex-wrap: wrap;
 }
 .path-segment {
-    color: #00554a;
+    color: var(--color-primary);
     cursor: pointer;
     font-family: monospace;
 }

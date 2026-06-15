@@ -19,9 +19,9 @@ import Handsontable from 'handsontable';
 import type { HandsontableInstance } from '@/types/handsontable';
 import { buildNewCellDef, resetTableData, setDirty, undoManager } from '@/utils/table';
 import { showAlert } from '@/utils/comnon';
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import { addCell, getCell, getCellsMap, removeCell } from '@/utils/contextActions';
-import { deepCopy } from '@/components/utils';
+import { deepCopy } from '@/utils/comnon';
 
 /** 插入列操作的返回结构（用于 undo/redo） */
 export interface InsertColResult {
@@ -94,7 +94,7 @@ export function insertCol(table: HandsontableInstance, position: number, number 
 export function doInsertCol(this: HandsontableInstance, left: boolean, number = 1): void {
   const selected = this.getSelected()
   if (!selected) {
-    showAlert($t('table.colTip'))
+    showAlert(i18n.global.t('table.colTip'))
     return
   }
   const range = selected[0]

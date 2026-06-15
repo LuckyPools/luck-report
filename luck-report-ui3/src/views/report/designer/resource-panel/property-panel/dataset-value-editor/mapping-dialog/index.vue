@@ -1,151 +1,160 @@
 <template>
-  <UDialog
+  <a-modal
     :title="dialogTitle"
-    width="500px"
-    :visible="visible"
+    :width="500"
+    :open="visible"
     :z-index="10000"
-    @close="handleClose"
+    :mask-closable="false"
+    @cancel="handleClose"
   >
     <div class="dialog-content">
-      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
-        <u-form-item :label="$t('dialog.mapping.key')" prop="value">
-          <u-input
-            v-model="formData.value"
-            :placeholder="$t('dialog.mapping.keyPlaceholder')"
+      <a-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        :label-col="{ style: { width: '120px' } }"
+        :colon="false"
+      >
+        <a-form-item :label="t('dialog.mapping.key')" name="value">
+          <a-input
+            v-model:value="formData.value"
+            :placeholder="t('dialog.mapping.keyPlaceholder')"
           />
-        </u-form-item>
-        <u-form-item :label="$t('dialog.mapping.value')" prop="label">
-          <u-input
-            v-model="formData.label"
-            :placeholder="$t('dialog.mapping.valuePlaceholder')"
+        </a-form-item>
+        <a-form-item :label="t('dialog.mapping.value')" name="label">
+          <a-input
+            v-model:value="formData.label"
+            :placeholder="t('dialog.mapping.valuePlaceholder')"
           />
-        </u-form-item>
-      </u-form>
+        </a-form-item>
+      </a-form>
     </div>
 
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleSave">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
+      <a-button type="primary" @click="handleSave">{{ t('dialog.common.ok') }}</a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UInput from "@/components/input/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
+<script setup lang="ts">
+/**
+ * MappingDialog 数据映射项弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → resetForm + initData 回填 value/label
+ * 2. 用户编辑 → 「确定」→ 校验 → emit('save', { value, label })
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UForm/UFormItem/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-input/a-button
+ * - $refs.form.validate(callback) → formRef.value.validate() Promise 化
+ */
+import { ref, reactive, computed, watch } from 'vue'
+import type { Rule } from 'ant-design-vue/es/form'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'MappingDialog',
-  components: {
-    UButton,
-    UDialog,
-    UInput,
-    UForm,
-    UFormItem
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    mappingItem: {
-      type: Object,
-      default: () => ({
-        value: '',
-        label: ''
-      })
-    },
-    operation: {
-      type: String,
-      default: 'add'
+defineOptions({ name: 'MappingDialog' })
+
+
+const { t } = useI18n()
+/** 映射项结构（key=实际值 value=显示值） */
+export interface MappingItem {
+  value: string
+  label: string
+}
+
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    mappingItem?: MappingItem
+    operation?: string
+  }>(),
+  {
+    visible: false,
+    mappingItem: () => ({ value: '', label: '' }),
+    operation: 'add'
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'save', payload: { value: string; label: string }): void
+  (e: 'update:visible', val: boolean): void
+}>()
+
+const formRef = ref()
+const formData = reactive<MappingItem>({ value: '', label: '' })
+
+const rules: Record<string, Rule[]> = {
+  value: [
+    {
+      required: true,
+      message: t('dialog.mapping.keyPlaceholder'),
+      trigger: 'blur'
     }
-  },
-  data() {
-    return {
-      formData: {
-        value: '',
-        label: ''
-      },
-      rules: {
-        value: [{
-          required: true,
-          message: this.$t('dialog.mapping.keyPlaceholder'),
-          trigger: 'blur'
-        }],
-        label: [{
-          required: true,
-          message: this.$t('dialog.mapping.valuePlaceholder'),
-          trigger: 'blur'
-        }]
-      }
-    };
-  },
-  computed: {
-    dialogTitle() {
-      return this.operation === 'add' ? this.$t('dialog.mapping.add') : this.$t('dialog.mapping.edit');
+  ],
+  label: [
+    {
+      required: true,
+      message: t('dialog.mapping.valuePlaceholder'),
+      trigger: 'blur'
     }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.resetForm();
-        this.initData();
-      }
-    }
-  },
-  methods: {
+  ]
+}
 
-    initData() {
-      this.formData = {
-        value: this.mappingItem?.value || '',
-        label: this.mappingItem?.label || ''
-      };
-    },
+const dialogTitle = computed(() =>
+  props.operation === 'add' ? t('dialog.mapping.add') : t('dialog.mapping.edit')
+)
 
-    resetForm() {
-      this.$refs.form && this.$refs.form.resetFields();
-    },
-
-    /**
-     * 校验表单
-     * @returns {Promise<boolean>} 校验结果
-     */
-    validateForm() {
-      return new Promise((resolve) => {
-        this.$refs.form.validate((valid) => {
-          resolve(valid);
-        });
-      });
-    },
-
-    /**
-     * 保存映射项
-     */
-    async handleSave() {
-      const valid = await this.validateForm();
-      if (!valid) {
-        return;
-      }
-
-      this.$emit('save', {
-        value: this.formData.value,
-        label: this.formData.label
-      });
-
-      this.handleClose();
-    },
-
-    /**
-     * 关闭弹窗
-     */
-    handleClose() {
-      this.$emit('update:visible', false);
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      resetForm()
+      initData()
     }
   }
-};
+)
+
+/** 回填 value/label */
+const initData = (): void => {
+  formData.value = props.mappingItem?.value ?? ''
+  formData.label = props.mappingItem?.label ?? ''
+}
+
+/** 重置 a-form 校验态 */
+const resetForm = (): void => {
+  formRef.value?.resetFields()
+}
+
+/** 异步校验表单 */
+const validateForm = async (): Promise<boolean> => {
+  try {
+    await formRef.value?.validate()
+    return true
+  } catch {
+    return false
+  }
+}
+
+const handleSave = async (): Promise<void> => {
+  const valid = await validateForm()
+  if (!valid) {
+    return
+  }
+
+  emit('save', {
+    value: formData.value,
+    label: formData.label
+  })
+
+  handleClose()
+}
+
+const handleClose = (): void => {
+  emit('update:visible', false)
+}
 </script>
+
 <style scoped>
 </style>

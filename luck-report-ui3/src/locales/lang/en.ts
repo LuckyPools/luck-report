@@ -496,7 +496,7 @@ const en = {
             tableName: 'Table Name',
             type: 'Type',
             datasetName: 'Dataset Name',
-            desc: 'SQL support expression，like：${expr...}',
+            desc: 'SQL support expression, like: {syntax}',
             syntaxCheckError: 'Syntax check failed!',
             searchParam: 'Search Parameters',
             paramDesc: '(Please define parameters in the below table)',
@@ -567,8 +567,8 @@ const en = {
             renderBean: 'Render Bean',
             selectBean: 'Select Bean',
             none: 'None',
-            urlExpressionExample: 'For Example:$# == \'1\' ? \'a.html\' : \'b.html\'}',
-            urlExpressionSupport: 'Support expressions, expressions defined in ${...}',
+            urlExpressionExample: "For example: {example}",
+            urlExpressionSupport: 'Support expressions, expressions defined in {wrapper}',
             linkUrl: 'Link Url'
         },
         base: {

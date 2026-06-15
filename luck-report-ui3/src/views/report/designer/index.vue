@@ -3,8 +3,7 @@
     <div class="u-designer">
       <!-- 左侧区域：顶部工具和内容表格 -->
       <div class="left-part">
-        <!-- TODO: TopToolBar 子组件 vue3 迁移完成后回挂 -->
-        <!-- <TopToolBar ref="topToolBar" :selectedCells="selectedCells" /> -->
+        <TopToolBar ref="topToolBar" :selected-cells="selectedCells" />
         <ContentTable
           ref="contentTableRef"
           :reportPath="localReportPath"
@@ -17,9 +16,8 @@
       </div>
       <!-- 右侧区域：侧边栏 -->
       <div class="right-part">
-        <!-- TODO: ResourcePanel / AiIframe 子组件 vue3 迁移完成后回挂 -->
-        <!-- <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" /> -->
-        <!-- <AiIframe :defaultVisible="true" ref="aiIframe" /> -->
+        <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" />
+        <AiIframe :defaultVisible="true" ref="aiIframe" />
       </div>
     </div>
   </div>
@@ -35,10 +33,9 @@
  * 3. 将顶层工具条 / 表格 / 资源面板 / AI 对话框的事件向上抛
  *
  * 迁移说明：
- * - 子组件（TopToolBar / ContentTable / ResourcePanel / AiIframe）暂未迁移到 vue3，
- *   当前先注释掉 import 和 template 引用，待各子组件完成 vue3 改造后再回挂
- * - 第三方样式（handsontable / codemirror / designer/tree.css）随子组件一起暂注释，
- *   待相关子组件回挂后再放开
+ * - 子组件（TopToolBar / ContentTable / ResourcePanel / AiIframe）已完成 vue3 迁移，
+ *   全部回挂并启用
+ * - 第三方样式（handsontable / codemirror / designer/tree.css）随子组件一起放开
  *
  * 类型说明：
  * - 保留 lang="ts" 以便后续接入完整 TS 类型检查
@@ -50,24 +47,22 @@
  * 调用方：src/router/index.ts（/report/designer 路由）
  */
 import { ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-// 第三方样式与子组件引用：随子组件 vue3 迁移完成后再放开
-// import 'handsontable/dist/handsontable.min.css'
-// import 'codemirror/lib/codemirror.css'
-// import 'codemirror/addon/hint/show-hint.css'
-// import 'codemirror/addon/lint/lint.css'
-// import '../../../assets/css/designer/tree.css'
-// import 'codemirror/mode/javascript/javascript.js'
-
-// ContentTable 已在阶段 3 完成 vue3 迁移，解开引用
+// 第三方样式
 import 'handsontable/dist/handsontable.min.css'
+import 'codemirror/lib/codemirror.css'
+import 'codemirror/addon/hint/show-hint.css'
+import 'codemirror/addon/lint/lint.css'
+import '../../../assets/css/designer/tree.css'
+import 'codemirror/mode/javascript/javascript.js'
+
+// 子组件
 import ContentTable from '@/views/report/designer/edit-table/index.vue'
-// PrintLine 打印线组件：根据 store 中 showPrintLine / isPrintLineRefresh 控制显隐与位置
 import PrintLine from '@/views/report/designer/print-line/index.vue'
-// import ResourcePanel from '@/views/report/designer/resource-panel/index.vue'
-// import TopToolBar from '@/views/report/designer/tool-bar/index.vue'
-// import AiIframe from '@/views/report/designer/ai-iframe/index.vue'
-import { createNavigator } from '@/utils/navigator'
+import ResourcePanel from '@/views/report/designer/resource-panel/index.vue'
+import TopToolBar from '@/views/report/designer/tool-bar/index.vue'
+import AiIframe from '@/views/report/designer/ai-iframe/index.vue'
 import { getUrlSearchParams } from '@/utils/url'
 import { setLocale } from '@/locales'
 
@@ -115,6 +110,18 @@ const localReportPath = ref(props.reportPath)
 
 /** ContentTable 组件引用（用于调用暴露的 getReportData / saveReport） */
 const contentTableRef = ref(null)
+
+/** TopToolBar 组件引用（用于调用工具组暴露的方法） */
+const topToolBar = ref(null)
+
+/** ResourcePanel 组件引用（右侧资源侧边栏） */
+const sidePanel = ref(null)
+
+/** AiIframe 组件引用（AI 对话框） */
+const aiIframe = ref(null)
+
+/** vue-router 实例（供 navigateTo 使用） */
+const router = useRouter()
 
 // 监听 props.reportPath 变化同步到本地
 watch(
@@ -206,18 +213,15 @@ function saveReport() {
 }
 
 /**
- * 通用跳转（待 router 注入后实现）
+ * 通用跳转（基于 vue-router）
  * @param {string} target 目标路由 name
  * @param {Record<string, *>=} params 附加到 url query 的参数，可选
  * @param {boolean} [openInNewTab=true] 是否在新标签页打开
  * @returns {void}
  */
 function navigateTo(target, params, openInNewTab = true) {
-  // TODO: 接入 vue-router 后改为 useRouter() / useRoute()，此处保留接口签名
-  createNavigator({
-    $router: undefined,
-    $route: undefined
-  }).navigate({ target, params, openInNewTab })
+  const routeData = router.resolve({ name: target, query: params })
+  window.open(routeData.href, openInNewTab ? '_blank' : '_self')
 }
 
 /**

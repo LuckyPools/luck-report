@@ -61,12 +61,3 @@ declare global {
 
 export {}
 
-declare module '@/components/utils' {
-  export function debounce(func: () => void, wait: number, name: string): void
-  export function oneOf(value: any, validList: any[]): boolean
-  export function isVNode(node: any): boolean
-  export function deepCopy<T = any>(data: T, hash?: WeakMap<any, any>): T
-  export function findComponentUpward(context: any, componentName: string | string[], componentNames?: string[]): any
-  export function findBrothersComponents(context: any, componentName: string, exceptMe?: boolean): any[]
-  export function findComponentDownward(context: any, componentName: string): any
-}

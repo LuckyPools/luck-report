@@ -1,201 +1,191 @@
 <template>
   <div>
-    <u-row class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-        <u-checkbox v-model="linkChecked" @change="onLinkChange">
-          {{ $t('dialog.propCondition.link') }}
-        </u-checkbox>
-      </u-col>
-      <u-col :span="8" v-show="linkChecked">
-        <u-select
-            v-model="localLinkTargetWindow"
+    <a-row class="condition-config-row" align="middle">
+      <a-col :span="8">
+        <a-checkbox v-model:checked="linkChecked" @change="onLinkChange">
+          {{ t('dialog.propCondition.link') }}
+        </a-checkbox>
+      </a-col>
+      <a-col :span="8" v-show="linkChecked">
+        <a-select
+            v-model:value="localLinkTargetWindow"
             style="width: 120px"
             @change="onLinkTargetChange"
-        >
-          <u-option
-              v-for="option in linkTargetOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-col>
-      <u-col :span="8" v-show="linkChecked">
-        <u-button type="info" @click="configLinkParameter">
-          {{ $t('dialog.propCondition.urlParameter') }}
-        </u-button>
-      </u-col>
-    </u-row>
+            :options="linkTargetOptions"
+        />
+      </a-col>
+      <a-col :span="8" v-show="linkChecked">
+        <a-button @click="configLinkParameter">
+          {{ t('dialog.propCondition.urlParameter') }}
+        </a-button>
+      </a-col>
+    </a-row>
 
-    <u-row v-show="linkChecked" class="condition-config-row" type="flex" align="middle">
-      <u-col :span="8">
-      </u-col>
-      <u-col :span="8">
-        <u-input
+    <a-row v-show="linkChecked" class="condition-config-row" align="middle">
+      <a-col :span="8">
+      </a-col>
+      <a-col :span="8">
+        <a-input
             v-show="linkChecked"
-            v-model="localLinkUrl"
+            v-model:value="localLinkUrl"
             style="width: 250px"
-            :placeholder="$t('dialog.propCondition.linkUrlPlaceholder')"
+            :placeholder="t('dialog.propCondition.linkUrlPlaceholder')"
             @change="onLinkUrlChange" />
-      </u-col>
-    </u-row>
+      </a-col>
+    </a-row>
 
     <URLParameterDialog
-      :visible="urlParameterDialogVisible"
-      :parameters="linkParameters || []"
-      @update:visible="handleUrlParameterDialogClose"
-      @saveAfter="handleUrlParameterSaveAfter"
-      @parameters-change="onLinkParametersChange"
+      v-model:visible="urlParameterDialogVisible"
+      :parameters="localLinkParameters"
+      @parameters-change="handleUrlParameterChange"
     />
   </div>
 </template>
 
-<script>
-import UInput from '@/components/input/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UCheckbox from '@/components/checkbox/index.vue';
-import UButton from '@/components/button/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
-import URLParameterDialog from '../../../url-parameter-dialog/index.vue';
-import { showAlert } from '@/utils/comnon.js';
-import configOptions from '../constants/config-options.js';
+<script setup lang="ts">
+/**
+ * LinkConfig 链接条件配置（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-row/u-col/u-checkbox/u-input/u-button/u-select/u-option（自定义）→ a-row/a-col/a-checkbox/a-input/a-button/a-select
+ * - v-model 全部迁移到 v-model:value
+ * - 子弹窗 URLParameterDialog 的 saveAfter → save
+ */
+import { ref, watch, onMounted } from 'vue'
+import { showAlert } from '@/utils/comnon'
+import configOptions from '../constants/config-options'
+import URLParameterDialog, { type UrlParameterItem } from '@/views/report/designer/resource-panel/property-panel/url-parameter-dialog/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'LinkConfig',
-  components: {
-    UInput,
-    USelect,
-    UOption,
-    UCheckbox,
-    UButton,
-    URow,
-    UCol,
-    URLParameterDialog
-  },
-  props: {
-    linkUrl: {
-      type: String,
-      default: ''
-    },
-    linkTargetWindow: {
-      type: String,
-      default: ''
-    },
-    linkParameters: {
-      type: Array,
-      default: () => []
-    }
-  },
-  data() {
-    return {
-      linkChecked: false,
-      localLinkUrl: '',
-      localLinkTargetWindow: '',
-      localLinkParameters: [],
+defineOptions({ name: 'LinkConfig' })
 
-      urlParameterDialogVisible: false,
-      linkTargetOptions: []
-    };
-  },
-  created() {
-    this.linkTargetOptions = configOptions.getLinkTargetOptions(this.$t);
-  },
-  watch: {
-    linkUrl: {
-      handler(newVal) {
-        this.loadLinkProperties();
-      },
-      immediate: true
-    },
-    linkTargetWindow: {
-      handler(newVal) {
-        this.loadLinkProperties();
-      },
-      immediate: true
-    },
-    linkParameters: {
-      handler(newVal) {
-        this.localLinkParameters = newVal || [];
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    loadLinkProperties() {
-      this.linkChecked = this.linkUrl != null;
-      if (this.linkChecked) {
-        this.localLinkUrl = this.linkUrl || '';
-        this.localLinkTargetWindow = this.linkTargetWindow || '';
-      } else {
-        this.localLinkUrl = '';
-        this.localLinkTargetWindow = '';
-      }
-    },
 
-    onLinkChange() {
-      this.$emit('link-change', {
-        checked: this.linkChecked,
-        linkUrl: this.linkChecked ? this.localLinkUrl : null,
-        linkTargetWindow: this.linkChecked ? this.localLinkTargetWindow : null,
-        linkParameters: this.linkChecked ? this.localLinkParameters : null
-      });
-    },
-
-    onLinkUrlChange() {
-      if (this.linkChecked) {
-        this.$emit('link-change', {
-          checked: true,
-          linkUrl: this.localLinkUrl,
-          linkTargetWindow: this.localLinkTargetWindow,
-          linkParameters: this.localLinkParameters
-        });
-      }
-    },
-
-    onLinkTargetChange() {
-      if (this.linkChecked) {
-        this.$emit('link-change', {
-          checked: true,
-          linkUrl: this.localLinkUrl,
-          linkTargetWindow: this.localLinkTargetWindow,
-          linkParameters: this.localLinkParameters
-        });
-      }
-    },
-
-    onLinkParametersChange(parameters) {
-      this.localLinkParameters = parameters;
-      if (this.linkChecked) {
-        this.$emit('link-change', {
-          checked: true,
-          linkUrl: this.localLinkUrl,
-          linkTargetWindow: this.localLinkTargetWindow,
-          linkParameters: this.localLinkParameters
-        });
-      }
-    },
-
-    configLinkParameter() {
-      if (!this.localLinkUrl) {
-        showAlert(this.$t('dialog.propCondition.linkUrl'));
-        return;
-      }
-
-      if (!this.localLinkParameters) {
-        this.localLinkParameters = [];
-      }
-
-      this.urlParameterDialogVisible = true;
-    },
-
-    handleUrlParameterDialogClose() {
-      this.urlParameterDialogVisible = false;
-    },
-
-    handleUrlParameterSaveAfter({ paramItem, operation }) {
-    }
+const { t } = useI18n()
+const props = withDefaults(
+  defineProps<{
+    linkUrl?: string
+    linkTargetWindow?: string
+    linkParameters?: UrlParameterItem[]
+  }>(),
+  {
+    linkUrl: '',
+    linkTargetWindow: '',
+    linkParameters: () => []
   }
-};
+)
+
+const emit = defineEmits<{
+  (
+    e: 'link-change',
+    payload: {
+      checked: boolean
+      linkUrl: string | null
+      linkTargetWindow: string | null
+      linkParameters: UrlParameterItem[] | null
+    }
+  ): void
+}>()
+
+const linkChecked = ref<boolean>(false)
+const localLinkUrl = ref<string>('')
+const localLinkTargetWindow = ref<string>('')
+const localLinkParameters = ref<UrlParameterItem[]>([])
+
+const urlParameterDialogVisible = ref<boolean>(false)
+const linkTargetOptions = ref<{ value: string; label: string }[]>([])
+
+onMounted(() => {
+  linkTargetOptions.value = configOptions.getLinkTargetOptions()
+})
+
+watch(
+  () => props.linkUrl,
+  () => {
+    loadLinkProperties()
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.linkTargetWindow,
+  () => {
+    loadLinkProperties()
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.linkParameters,
+  (newVal) => {
+    localLinkParameters.value = newVal || []
+  },
+  { immediate: true }
+)
+
+const loadLinkProperties = (): void => {
+  linkChecked.value = props.linkUrl != null
+  if (linkChecked.value) {
+    localLinkUrl.value = props.linkUrl || ''
+    localLinkTargetWindow.value = props.linkTargetWindow || ''
+  } else {
+    localLinkUrl.value = ''
+    localLinkTargetWindow.value = ''
+  }
+}
+
+const onLinkChange = (): void => {
+  emit('link-change', {
+    checked: linkChecked.value,
+    linkUrl: linkChecked.value ? localLinkUrl.value : null,
+    linkTargetWindow: linkChecked.value ? localLinkTargetWindow.value : null,
+    linkParameters: linkChecked.value ? localLinkParameters.value : null
+  })
+}
+
+const onLinkUrlChange = (): void => {
+  if (linkChecked.value) {
+    emit('link-change', {
+      checked: true,
+      linkUrl: localLinkUrl.value,
+      linkTargetWindow: localLinkTargetWindow.value,
+      linkParameters: localLinkParameters.value
+    })
+  }
+}
+
+const onLinkTargetChange = (): void => {
+  if (linkChecked.value) {
+    emit('link-change', {
+      checked: true,
+      linkUrl: localLinkUrl.value,
+      linkTargetWindow: localLinkTargetWindow.value,
+      linkParameters: localLinkParameters.value
+    })
+  }
+}
+
+const configLinkParameter = (): void => {
+  if (!localLinkUrl.value) {
+    showAlert(t('dialog.propCondition.linkUrl'))
+    return
+  }
+
+  if (!localLinkParameters.value) {
+    localLinkParameters.value = []
+  }
+
+  urlParameterDialogVisible.value = true
+}
+
+const handleUrlParameterChange = (parameters: UrlParameterItem[]): void => {
+  // 子弹窗回传 url 参数项，触发 link-change 让上层写入
+  localLinkParameters.value = parameters || []
+  emit('link-change', {
+    checked: linkChecked.value,
+    linkUrl: linkChecked.value ? localLinkUrl.value : null,
+    linkTargetWindow: linkChecked.value ? localLinkTargetWindow.value : null,
+    linkParameters: linkChecked.value ? localLinkParameters.value : null
+  })
+}
 </script>

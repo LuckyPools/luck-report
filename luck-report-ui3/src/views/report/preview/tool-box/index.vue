@@ -1,154 +1,188 @@
 <template>
-  <div v-if="reportData && reportData.tools && reportData.tools.show"
-       class="tools-content">
-    <u-row type="flex" align="middle" class="tools-row">
-      <u-col :span="11" class="tools-left">
+  <div
+    v-if="reportData && reportData.tools && reportData.tools.show"
+    class="tools-content"
+  >
+    <a-row type="flex" align="middle" class="tools-row">
+      <a-col :span="11" class="tools-left">
         <div class="pagination-group">
-          <ButtonGroup
-              v-if="reportData.tools.paging"
-              :buttonText="pageEnable ? $t('preview.paging.pagingPreview') : $t('preview.paging.preview')"
-              :showText="true"
-              :buttonStyle="{ border: 'none', color: '#5e6d82' }"
-              :menuItems="pagingMenuItems"
-              customClass="pagination-dropdown-btn"
-          />
+          <a-dropdown v-if="reportData.tools.paging" trigger="click">
+            <a-button class="pagination-dropdown-btn" :bordered="false">
+              <span class="button-text">{{
+                pageEnable ? t('preview.paging.pagingPreview') : t('preview.paging.preview')
+              }}</span>
+              <DownOutlined />
+            </a-button>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item key="preview" @click="changePageEnable(false)">
+                  <span>{{ t('preview.paging.preview') }}</span>
+                </a-menu-item>
+                <a-menu-item key="paging" @click="changePageEnable(true)">
+                  <span>{{ t('preview.paging.pagingPreview') }}</span>
+                </a-menu-item>
+                <a-menu-divider />
+                <a-menu-item
+                  v-for="(item, index) in pageMenuItems"
+                  :key="'page-' + index"
+                  @click="item.action()"
+                >
+                  <span>{{ item.text }}</span>
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
           <span v-if="reportData.tools.paging && pageEnable" class="pagination-divider"></span>
           <template v-if="reportData.tools.paging && pageEnable">
-            <u-button
-                type="text"
-                size="mini"
-                class="pagination-btn"
-                :disabled="currentPage <= 1"
-                :title="$t('preview.buttons.firstPage')"
-                @click="goToFirstPage">
-              <i class="iconfont icon-page-first"></i>
-              <span class="pagination-btn-text">{{ $t('preview.buttons.firstPage') }}</span>
-            </u-button>
+            <a-button
+              type="text"
+              size="small"
+              class="pagination-btn"
+              :disabled="currentPage <= 1"
+              :title="t('preview.buttons.firstPage')"
+              @click="goToFirstPage"
+            >
+              <StepBackwardOutlined />
+              <span class="pagination-btn-text">{{ t('preview.buttons.firstPage') }}</span>
+            </a-button>
             <span class="pagination-divider"></span>
-            <u-button
-                type="text"
-                size="mini"
-                class="pagination-btn"
-                :disabled="currentPage <= 1"
-                :title="$t('preview.buttons.prevPage')"
-                @click="goToPrevPage">
-              <i class="iconfont icon-left"></i>
-              <span class="pagination-btn-text">{{ $t('preview.buttons.prevPage') }}</span>
-            </u-button>
+            <a-button
+              type="text"
+              size="small"
+              class="pagination-btn"
+              :disabled="currentPage <= 1"
+              :title="t('preview.buttons.prevPage')"
+              @click="goToPrevPage"
+            >
+              <LeftOutlined />
+              <span class="pagination-btn-text">{{ t('preview.buttons.prevPage') }}</span>
+            </a-button>
             <span class="pagination-divider"></span>
             <div class="pagination-input-group">
               <input
-                  v-model.number="inputPage"
-                  type="text"
-                  class="pagination-input"
-                  @keyup.enter="handleInputPageChange"
-                  @blur="handleInputPageChange"
+                v-model="inputPage"
+                type="text"
+                class="pagination-input"
+                @keyup.enter="handleInputPageChange"
+                @blur="handleInputPageChange"
               />
               <span class="pagination-total">/ {{ reportData.totalPageWithCol }}</span>
             </div>
             <span class="pagination-divider"></span>
-            <u-button
-                type="text"
-                size="mini"
-                class="pagination-btn"
-                :disabled="currentPage >= reportData.totalPageWithCol"
-                :title="$t('preview.buttons.nextPage')"
-                @click="goToNextPage">
-              <span class="pagination-btn-text">{{ $t('preview.buttons.nextPage') }}</span>
-              <i class="iconfont icon-right"></i>
-            </u-button>
+            <a-button
+              type="text"
+              size="small"
+              class="pagination-btn"
+              :disabled="currentPage >= reportData.totalPageWithCol"
+              :title="t('preview.buttons.nextPage')"
+              @click="goToNextPage"
+            >
+              <span class="pagination-btn-text">{{ t('preview.buttons.nextPage') }}</span>
+              <RightOutlined />
+            </a-button>
             <span class="pagination-divider"></span>
-            <u-button
-                type="text"
-                size="mini"
-                class="pagination-btn"
-                :disabled="currentPage >= reportData.totalPageWithCol"
-                :title="$t('preview.buttons.lastPage')"
-                @click="goToLastPage">
-              <span class="pagination-btn-text">{{ $t('preview.buttons.lastPage') }}</span>
-              <i class="iconfont icon-page-last"></i>
-            </u-button>
+            <a-button
+              type="text"
+              size="small"
+              class="pagination-btn"
+              :disabled="currentPage >= reportData.totalPageWithCol"
+              :title="t('preview.buttons.lastPage')"
+              @click="goToLastPage"
+            >
+              <span class="pagination-btn-text">{{ t('preview.buttons.lastPage') }}</span>
+              <StepForwardOutlined />
+            </a-button>
           </template>
         </div>
-      </u-col>
+      </a-col>
 
-      <u-col :span="2" class="tools-center">
+      <a-col :span="2" class="tools-center">
         <span class="report-name">{{ displayReportName }}</span>
-      </u-col>
+      </a-col>
 
-      <u-col :span="11" class="tools-right">
-        <u-button v-if="reportData.tools.print"
-                  type="info"
-                  :title="$t('preview.buttons.print')"
-                  class="p-button"
-                  @click="print"
+      <a-col :span="11" class="tools-right">
+        <a-tooltip
+          v-if="reportData.tools.print"
+          :title="t('preview.buttons.print')"
         >
-          <img src="@/assets/icons/print.svg" width="20px" height="20px">
-        </u-button>
+          <a-button class="p-button" @click="print">
+            <img src="@/assets/icons/print.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
 
-        <u-button v-if="reportData.tools.pdfPrint"
-                  type="info"
-                  :title="$t('preview.buttons.pdfDirectPrint')"
-                  class="p-button"
-                  @click="printDirectPdf">
-          <img src="@/assets/icons/pdf-direct-print.svg" width="20px" height="20px">
-        </u-button>
-
-        <u-button v-if="reportData.tools.pdfPreviewPrint"
-                  type="info"
-                  :title="$t('preview.buttons.pdfPreviewPrint')"
-                  class="p-button"
-                  @click="printPdf">
-          <img src="@/assets/icons/pdf-print.svg" width="20px" height="20px">
-        </u-button>
-
-        <u-button v-if="reportData.tools.pdf"
-                  type="info"
-                  :title="$t('preview.buttons.exportPdf')"
-                  class="p-button"
-                  @click="exportPdf">
-          <img src="@/assets/icons/pdf.svg" width="20px" height="20px">
-        </u-button>
-
-        <u-button v-if="reportData.tools.word"
-                  type="info"
-                  :title="$t('preview.buttons.exportWord')"
-                  class="p-button"
-                  @click="exportWord">
-          <img src="@/assets/icons/word.svg" width="20px" height="20px">
-        </u-button>
-
-        <u-button v-if="reportData.tools.excel"
-                  type="info"
-                  :title="$t('preview.buttons.exportExcel')"
-                  class="p-button"
-                  @click="exportExcel">
-          <img src="@/assets/icons/excel.svg" width="20px" height="20px">
-        </u-button>
-
-        <u-button v-if="reportData.tools.pagingExcel"
-                  type="info"
-                  :title="$t('preview.buttons.exportExcelPaging')"
-                  class="p-button"
-                  @click="exportExcelPaging">
-          <img src="@/assets/icons/excel-paging.svg" width="20px" height="20px">
-        </u-button>
-
-        <u-button v-if="reportData.tools.sheetPagingExcel"
-                  type="info"
-                  class="p-button"
-                  :title="$t('preview.buttons.exportExcelSheetPaging')"
-                  @click="exportExcelPagingSheet"
+        <a-tooltip
+          v-if="reportData.tools.pdfPrint"
+          :title="t('preview.buttons.pdfDirectPrint')"
         >
-          <img src="@/assets/icons/excel-with-paging-sheet.svg" width="20px" height="20px">
-        </u-button>
-      </u-col>
-    </u-row>
+          <a-button class="p-button" @click="printDirectPdf">
+            <img src="@/assets/icons/pdf-direct-print.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip
+          v-if="reportData.tools.pdfPreviewPrint"
+          :title="t('preview.buttons.pdfPreviewPrint')"
+        >
+          <a-button class="p-button" @click="printPdf">
+            <img src="@/assets/icons/pdf-print.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip
+          v-if="reportData.tools.pdf"
+          :title="t('preview.buttons.exportPdf')"
+        >
+          <a-button class="p-button" @click="exportPdf">
+            <img src="@/assets/icons/pdf.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip
+          v-if="reportData.tools.word"
+          :title="t('preview.buttons.exportWord')"
+        >
+          <a-button class="p-button" @click="exportWord">
+            <img src="@/assets/icons/word.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip
+          v-if="reportData.tools.excel"
+          :title="t('preview.buttons.exportExcel')"
+        >
+          <a-button class="p-button" @click="exportExcel">
+            <img src="@/assets/icons/excel.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip
+          v-if="reportData.tools.pagingExcel"
+          :title="t('preview.buttons.exportExcelPaging')"
+        >
+          <a-button class="p-button" @click="exportExcelPaging">
+            <img src="@/assets/icons/excel-paging.svg" width="20" height="20" />
+          </a-button>
+        </a-tooltip>
+
+        <a-tooltip
+          v-if="reportData.tools.sheetPagingExcel"
+          :title="t('preview.buttons.exportExcelSheetPaging')"
+        >
+          <a-button class="p-button" @click="exportExcelPagingSheet">
+            <img
+              src="@/assets/icons/excel-with-paging-sheet.svg"
+              width="20"
+              height="20"
+            />
+          </a-button>
+        </a-tooltip>
+      </a-col>
+    </a-row>
 
     <PDFPrintDialog
-        :visible="pdfPrintDialogVisible"
-        :parameters="pdfPrintParameters"
-        @close="handlePdfPrintDialogClose"
+      :visible="pdfPrintDialogVisible"
+      :parameters="pdfPrintParameters"
+      @close="handlePdfPrintDialogClose"
     />
 
     <iframe name="print_frame" width="0" height="0" frameborder="0" src="about:blank"></iframe>
@@ -156,7 +190,26 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+/**
+ * 报表预览工具栏
+ *
+ * 改造要点：
+ * 1. Vue2 Options API → Vue3 <script setup> + TypeScript
+ * 2. 自定义 u-button / u-row / u-col / ButtonGroup 改为 ant-design-vue 的 a-button / a-row / a-col / a-dropdown
+ * 3. iconfont 图标改为 @ant-design/icons-vue 中的线性图标
+ * 4. $t / $emit / $refs 等 Vue2 实例属性统一改用 vue-i18n + defineEmits + ref
+ * 5. 自定义 Loading 实例沿用 @/utils/loading
+ */
+import { ref, computed, watch } from 'vue'
+import {
+  DownOutlined,
+  LeftOutlined,
+  RightOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined
+} from '@ant-design/icons-vue'
+import { useI18n } from 'vue-i18n'
 import {
   loadPrintPages,
   exportPdfBlob,
@@ -164,459 +217,392 @@ import {
   exportExcelBlob,
   exportExcelPagingBlob,
   exportExcelSheetPagingBlob,
-  getPdfPrintBlob, loadPagePaper
+  getPdfPrintBlob,
+  loadPagePaper
 } from '@/api/preview'
+import { pointToMM } from '@/utils/table'
+import showLoading from '@/utils/loading'
+import { showAlert } from '@/utils/comnon'
+import PDFPrintDialog from '@/views/report/preview/pdf-print-dialog/index.vue'
+import { buildLocationSearchParameters } from '@/views/report/preview/utils/render'
 
-import {pointToMM} from '@/utils/table.js';
-import showLoading from '@/components/loading/instance.js';
-import {showAlert} from '@/utils/comnon.js';
-import PDFPrintDialog from '@/views/report/preview/pdf-print-dialog/index.vue';
-import ButtonGroup from "@/components/button-group/index.vue";
-import UButton from "@/components/button/index.vue";
-import URow from "@/components/row/index.vue";
-import UCol from "@/components/col/index.vue";
-import {buildLocationSearchParameters} from '@/views/report/preview/utils/render.js';
+/** 报表工具可见性配置 */
+interface ReportTools {
+  show: boolean
+  print: boolean
+  pdfPrint: boolean
+  pdfPreviewPrint: boolean
+  pdf: boolean
+  word: boolean
+  excel: boolean
+  pagingExcel: boolean
+  sheetPagingExcel: boolean
+  paging: boolean
+}
 
-export default {
-  name: 'ToolBox',
-  components: {
-    UButton,
-    ButtonGroup,
-    URow,
-    UCol,
-    PDFPrintDialog
-  },
-  props: {
-    reportData: {
-      type: Object,
-      default: () => null
-    },
-    reportName: {
-      type: String,
-      default: ''
-    },
-    currentPage: {
-      type: Number,
-      default: 1
-    },
-    pageEnable: {
-      type: Boolean,
-      default: false
-    },
-    searchFormParameters: {
-      type: Object,
-      default: () => ({})
+/** 报表数据 */
+interface ReportData {
+  totalPageWithCol?: number
+  pageIndex?: number
+  tools: ReportTools
+  [key: string]: unknown
+}
+
+/** 纸张配置 */
+interface PaperConfig {
+  paperType: string
+  width: number
+  height: number
+  orientation: string
+  leftMargin: number
+  rightMargin: number
+  topMargin: number
+  bottomMargin: number
+}
+
+const props = withDefaults(
+  defineProps<{
+    reportData: ReportData | null
+    reportName?: string
+    currentPage?: number
+    pageEnable?: boolean
+    searchFormParameters?: Record<string, unknown>
+  }>(),
+  {
+    reportData: null,
+    reportName: '',
+    currentPage: 1,
+    pageEnable: false,
+    searchFormParameters: () => ({})
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'page-change', pageIndex: number | null): void
+  (e: 'page-enable-change', pageEnable: boolean): void
+}>()
+
+const { t } = useI18n()
+
+/** 报表打印菜单项（每页一项） */
+interface PageMenuItem {
+  text: string
+  action: () => void
+}
+
+const pageMenuItems = ref<PageMenuItem[]>([])
+const pdfPrintDialogVisible = ref(false)
+const printIndex = ref(0)
+const inputPage = ref<string>(String(props.currentPage))
+
+/** 显示的报表名称（去掉文件名前缀和 .ureport.xml 后缀） */
+const displayReportName = computed(() => {
+  if (!props.reportName) {
+    return ''
+  }
+  let name = props.reportName
+  const colonIndex = name.indexOf(':')
+  if (colonIndex > -1) {
+    name = name.substring(colonIndex + 1)
+  }
+  if (name.endsWith('.ureport.xml')) {
+    name = name.replace('.ureport.xml', '')
+  }
+  return name
+})
+
+/** PDF 打印对话框所需的合并参数对象 */
+const pdfPrintParameters = computed(() => {
+  const urlParameters = buildLocationSearchParameters(props.searchFormParameters)
+  const params = new URLSearchParams(urlParameters)
+  const paramObj: Record<string, string> = {}
+  for (const [key, value] of params.entries()) {
+    paramObj[key] = value
+  }
+  return paramObj
+})
+
+/**
+ * 构建打印样式字符串
+ * 根据纸张配置生成 @page 和 @media print 的 CSS 样式
+ * @param paper 纸张配置
+ * @returns CSS 样式字符串
+ */
+function buildPrintStyle(paper: PaperConfig): string {
+  const marginLeft = pointToMM(paper.leftMargin)
+  const marginTop = pointToMM(paper.topMargin)
+  const marginRight = pointToMM(paper.rightMargin)
+  const marginBottom = pointToMM(paper.bottomMargin)
+  let page: string = paper.paperType
+  if (paper.paperType === 'CUSTOM') {
+    page = `${pointToMM(paper.width)}mm ${pointToMM(paper.height)}mm`
+  }
+  return `
+    @media print {
+        .page-break{
+            display: block;
+            page-break-before: always;
+        }
     }
-  },
-  data() {
-    return {
-      pageMenuItems: [],
-      pdfPrintDialogVisible: false,
-      printIndex: 0,
-      inputPage: 1
+    @page {
+      size: ${page} ${paper.orientation};
+      margin-left: ${marginLeft}mm;
+      margin-top: ${marginTop}mm;
+      margin-right:${marginRight}mm;
+      margin-bottom:${marginBottom}mm;
     }
-  },
-  computed: {
-    /**
-     * 显示的报表名称
-     * 去掉文件名前缀（如 "file:"、"db:" 等）和后缀（.ureport.xml）
-     */
-    displayReportName() {
-      if (!this.reportName) {
-        return '';
-      }
-      let name = this.reportName;
-      const colonIndex = name.indexOf(':');
-      if (colonIndex > -1) {
-        name = name.substring(colonIndex + 1);
-      }
-      if (name.endsWith('.ureport.xml')) {
-        name = name.replace('.ureport.xml', '');
-      }
-      return name;
-    },
-    pdfPrintParameters() {
-      const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
-      const params = new URLSearchParams(urlParameters);
-      const paramObj = {};
-      for (const [key, value] of params.entries()) {
-        paramObj[key] = value;
-      }
-      return paramObj;
-    },
-    pagingMenuItems() {
-      return [
-        {
-          text: this.$t('preview.paging.preview'),
-          icon: 'iconfont icon-preview',
-          action: () => this.changePageEnable(false)
-        },
-        {
-          text: this.$t('preview.paging.pagingPreview'),
-          icon: 'iconfont icon-view-page',
-          action: () => this.changePageEnable(true)
-        }
-      ];
+  `
+}
+
+/** 获取导出接口的请求参数 */
+function getExportParams(): Record<string, string> {
+  const urlParameters = buildLocationSearchParameters(props.searchFormParameters)
+  const params = new URLSearchParams(urlParameters)
+  const paramObj: Record<string, string> = {}
+  for (const [key, value] of params.entries()) {
+    paramObj[key] = value
+  }
+  return paramObj
+}
+
+/** 浏览器直接打印 */
+async function print(): Promise<void> {
+  let loadingInstance: { close: () => void } | null = null
+  try {
+    const urlParameters = buildLocationSearchParameters(props.searchFormParameters)
+    const params = new URLSearchParams(urlParameters)
+    const formData = new FormData()
+    for (const [key, value] of params.entries()) {
+      formData.append(key, value)
     }
-  },
-  watch: {
-    reportData: {
-      handler() {
-        this.initPageMenuItems();
-      },
-      deep: true,
-      immediate: true
-    },
-    currentPage: {
-      handler(newVal) {
-        this.inputPage = String(newVal);
-      },
-      immediate: true
+    loadingInstance = showLoading({ text: t('preview.loading.default') })
+    const result = await loadPrintPages(formData)
+    const paper = (await loadPagePaper(formData)) as PaperConfig
+    loadingInstance.close()
+    loadingInstance = null
+
+    const html = result.html
+    const iFrame = window.frames['print_frame']
+    let styles = `<style type="text/css">`
+    styles += buildPrintStyle(paper)
+    const styleElement = document.getElementById('report-table-style')
+    styles += styleElement ? styleElement.textContent : ''
+    styles += `</style>`
+
+    iFrame.document.body.innerHTML = styles + html
+    iFrame.window.focus()
+    iFrame.window.print()
+  } catch (error) {
+    if (loadingInstance) {
+      loadingInstance.close()
     }
-  },
-  methods: {
-    /**
-     * 构建打印样式字符串
-     * 根据纸张配置生成 @page 和 @media print 的 CSS 样式，
-     * 包括纸张大小、方向和四边边距
-     * @param {Object} paper - 纸张配置对象，包含 paperType、width、height、orientation 及四边边距
-     * @returns {string} CSS 样式字符串
-     */
-    buildPrintStyle(paper) {
-      const marginLeft = pointToMM(paper.leftMargin);
-      const marginTop = pointToMM(paper.topMargin);
-      const marginRight = pointToMM(paper.rightMargin);
-      const marginBottom = pointToMM(paper.bottomMargin);
-      const paperType = paper.paperType;
-      let page = paperType;
-      if (paperType === 'CUSTOM') {
-        page = pointToMM(paper.width) + 'mm ' + pointToMM(paper.height) + 'mm';
-      }
-      const style = `
-        @media print {
-            .page-break{
-                display: block;
-                page-break-before: always;
-            }
-        }
-        @page {
-          size: ${page} ${paper.orientation};
-          margin-left: ${marginLeft}mm;
-          margin-top: ${marginTop}mm;
-          margin-right:${marginRight}mm;
-          margin-bottom:${marginBottom}mm;
-        }
-    `;
-      return style;
-    },
-
-    /**
-     * 浏览器直接打印
-     * 加载打印页面内容和纸张配置，将内容注入隐藏 iframe 中调用浏览器打印功能
-     */
-    async print() {
-      let loadingInstance = null;
-      try {
-        const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
-        const params = new URLSearchParams(urlParameters);
-        const formData = new FormData();
-        for (const [key, value] of params.entries()) {
-          formData.append(key, value);
-        }
-
-        loadingInstance = showLoading({
-          text: this.$t('preview.loading.default'),
-        });
-
-        const result = await loadPrintPages(formData);
-        const paper = await loadPagePaper(formData);
-
-        loadingInstance.close();
-
-        const html = result.html;
-        const iFrame = window.frames['print_frame'];
-        let styles = `<style type="text/css">`;
-        styles += this.buildPrintStyle(paper);
-        const styleElement = document.getElementById('report-table-style');
-        styles += styleElement ? styleElement.textContent : '';
-        styles += `</style>`;
-
-        iFrame.document.body.innerHTML = styles + html;
-        iFrame.window.focus();
-        iFrame.window.print();
-      } catch (error) {
-        if (loadingInstance) {
-          loadingInstance.close();
-        }
-        console.error('打印失败:', error);
-        if (error.msg) {
-          showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
-        } else {
-          showAlert(this.$t('preview.error.serverErrorSimple'));
-        }
-      }
-    },
-
-    /**
-     * PDF预览打印
-     * 打开 PDF 打印对话框，对话框内部会加载纸张配置信息
-     */
-    printPdf() {
-      this.pdfPrintDialogVisible = true;
-    },
-
-    /**
-     * 关闭PDF打印对话框
-     */
-    handlePdfPrintDialogClose() {
-      this.pdfPrintDialogVisible = false;
-    },
-
-    /**
-     * PDF直接打印
-     * 通过 axios 获取 PDF blob，加载到 iframe 后调用浏览器打印
-     */
-    async printDirectPdf() {
-      const loadingInstance = showLoading({
-        text: this.$t('preview.loading.default'),
-      });
-
-      try {
-        const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
-        const params = new URLSearchParams(urlParameters);
-        const paramObj = {};
-
-        for (const [key, value] of params.entries()) {
-          paramObj[key] = value;
-        }
-        paramObj['_i'] = this.printIndex++;
-
-        const { blobUrl, revoke } = await getPdfPrintBlob(paramObj);
-
-        const iframe = window.frames['print_pdf_frame'];
-        const pdfFrame = document.querySelector("iframe[name='print_pdf_frame']");
-
-        if (pdfFrame) {
-          const handleLoad = () => {
-            loadingInstance.close();
-            try {
-              iframe.window.focus();
-              iframe.window.print();
-            } catch (error) {
-              console.error('打印失败:', error);
-            } finally {
-              setTimeout(revoke, 1000);
-            }
-          };
-
-          const handleError = () => {
-            loadingInstance.close();
-            revoke();
-            console.error('PDF加载失败');
-            showAlert(this.$t('preview.error.loadPdfFail'));
-          };
-
-          pdfFrame.addEventListener('load', handleLoad, { once: true });
-          pdfFrame.addEventListener('error', handleError, { once: true });
-        }
-
-        iframe.location.href = blobUrl;
-      } catch (error) {
-        loadingInstance.close();
-        console.error('PDF直接打印失败:', error);
-        showAlert(this.$t('preview.error.loadPdfFail'));
-      }
-    },
-
-    /**
-     * 获取导出接口的公共请求参数
-     * 将搜索表单参数转换为 URL 查询参数对象
-     * @returns {Object} 导出请求参数对象
-     */
-    getExportParams() {
-      const urlParameters = buildLocationSearchParameters(this.searchFormParameters);
-      const params = new URLSearchParams(urlParameters);
-      const paramObj = {};
-      for (const [key, value] of params.entries()) {
-        paramObj[key] = value;
-      }
-      return paramObj;
-    },
-
-    /**
-     * 导出为PDF文件
-     */
-    async exportPdf() {
-      const paramObj = this.getExportParams();
-      try {
-        await exportPdfBlob(paramObj);
-      } catch (error) {
-        console.error('导出PDF失败:', error);
-        showAlert(this.$t('preview.error.exportFail'));
-      }
-    },
-
-    /**
-     * 导出为Word文件
-     */
-    async exportWord() {
-      const paramObj = this.getExportParams();
-      try {
-        await exportWordBlob(paramObj);
-      } catch (error) {
-        console.error('导出Word失败:', error);
-        showAlert(this.$t('preview.error.exportFail'));
-      }
-    },
-
-    /**
-     * 导出为分页Sheet的Excel文件（每页一个Sheet）
-     */
-    async exportExcelPagingSheet() {
-      const paramObj = this.getExportParams();
-      try {
-        await exportExcelSheetPagingBlob(paramObj);
-      } catch (error) {
-        console.error('导出Excel失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
-      }
-    },
-
-    /**
-     * 导出为分页Excel文件
-     */
-    async exportExcelPaging() {
-      const paramObj = this.getExportParams();
-      try {
-        await exportExcelPagingBlob(paramObj);
-      } catch (error) {
-        console.error('导出Excel失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
-      }
-    },
-
-    /**
-     * 导出为Excel文件
-     */
-    async exportExcel() {
-      const paramObj = this.getExportParams();
-      try {
-        await exportExcelBlob(paramObj);
-      } catch (error) {
-        console.error('导出Excel失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
-      }
-    },
-
-    /**
-     * 跳转到首页
-     * 当前页大于1时触发页码变更事件
-     */
-    goToFirstPage() {
-      if (this.currentPage > 1) {
-        this.$emit('page-change', 1);
-      }
-    },
-
-    /**
-     * 跳转到末页
-     * 当前页小于总页数时触发页码变更事件
-     */
-    goToLastPage() {
-      if (this.currentPage < this.reportData.totalPageWithCol) {
-        this.$emit('page-change', this.reportData.totalPageWithCol);
-      }
-    },
-
-    /**
-     * 跳转到上一页
-     * 当前页大于1时触发页码变更事件
-     */
-    goToPrevPage() {
-      if (this.currentPage > 1) {
-        this.$emit('page-change', this.currentPage - 1);
-      }
-    },
-
-    /**
-     * 跳转到下一页
-     * 当前页小于总页数时触发页码变更事件
-     */
-    goToNextPage() {
-      if (this.currentPage < this.reportData.totalPageWithCol) {
-        this.$emit('page-change', this.currentPage + 1);
-      }
-    },
-
-    /**
-     * 处理输入框页码跳转
-     * 验证输入页码的合法性后触发页码变更事件
-     * 非数字输入会还原为1
-     */
-    handleInputPageChange() {
-      const page = Number(this.inputPage);
-      const totalPages = this.reportData.totalPageWithCol;
-
-      if (isNaN(page) || page < 1) {
-        this.inputPage = '1';
-        this.$emit('page-change', 1);
-        return;
-      }
-
-      if (page > totalPages) {
-        this.inputPage = String(totalPages);
-        this.$emit('page-change', totalPages);
-        return;
-      }
-
-      if (page !== this.currentPage) {
-        this.$emit('page-change', page);
-      } else {
-        this.inputPage = String(this.currentPage);
-      }
-    },
-
-    /**
-     * 跳转到指定页码
-     * @param {number} pageIndex - 目标页码
-     */
-    handlePageChange(pageIndex) {
-      this.$emit('page-change', pageIndex);
-    },
-
-    /**
-     * 切换分页启用状态
-     * @param {boolean} pageEnable - true 启用分页，false 禁用分页
-     */
-    changePageEnable(pageEnable) {
-      this.$emit('page-enable-change', pageEnable);
-    },
-
-    /**
-     * 初始化页码下拉菜单项
-     * 根据报表总页数生成每页对应的菜单项，点击后跳转到对应页码
-     */
-    initPageMenuItems() {
-      if (!this.reportData || !this.reportData.totalPageWithCol) {
-        return;
-      }
-
-      const menuItems = [];
-
-      for (let i = 1; i <= this.reportData.totalPageWithCol; i++) {
-        const pageIndex = i;
-        menuItems.push({
-          text: this.$t('preview.paging.pageX', { x: i }),
-          action: () => {
-            this.handlePageChange(pageIndex);
-          }
-        });
-      }
-
-      this.pageMenuItems = menuItems;
+    console.error('打印失败:', error)
+    const err = error as { msg?: string }
+    if (err.msg) {
+      showAlert(t('preview.error.serverError') + t('colon') + err.msg, { useHTMLString: true })
+    } else {
+      showAlert(t('preview.error.serverErrorSimple'))
     }
   }
 }
+
+/** 打开 PDF 打印对话框 */
+function printPdf(): void {
+  pdfPrintDialogVisible.value = true
+}
+
+/** 关闭 PDF 打印对话框 */
+function handlePdfPrintDialogClose(): void {
+  pdfPrintDialogVisible.value = false
+}
+
+/** PDF 直接打印（通过 blob iframe） */
+async function printDirectPdf(): Promise<void> {
+  const loadingInstance = showLoading({ text: t('preview.loading.default') })
+  try {
+    const paramObj = getExportParams()
+    paramObj['_i'] = String(printIndex.value++)
+    const { blobUrl, revoke } = await getPdfPrintBlob(paramObj)
+    const iframe = window.frames['print_pdf_frame']
+    const pdfFrame = document.querySelector("iframe[name='print_pdf_frame']")
+    if (pdfFrame) {
+      const handleLoad = () => {
+        loadingInstance.close()
+        try {
+          iframe.window.focus()
+          iframe.window.print()
+        } catch (error) {
+          console.error('打印失败:', error)
+        } finally {
+          setTimeout(revoke, 1000)
+        }
+      }
+      const handleError = () => {
+        loadingInstance.close()
+        revoke()
+        console.error('PDF加载失败')
+        showAlert(t('preview.error.loadPdfFail'))
+      }
+      pdfFrame.addEventListener('load', handleLoad, { once: true })
+      pdfFrame.addEventListener('error', handleError, { once: true })
+    }
+    iframe.location.href = blobUrl
+  } catch (error) {
+    loadingInstance.close()
+    console.error('PDF直接打印失败:', error)
+    showAlert(t('preview.error.loadPdfFail'))
+  }
+}
+
+/** 导出 PDF */
+async function exportPdf(): Promise<void> {
+  try {
+    await exportPdfBlob(getExportParams())
+  } catch (error) {
+    console.error('导出PDF失败:', error)
+    showAlert(t('preview.error.exportFail'))
+  }
+}
+
+/** 导出 Word */
+async function exportWord(): Promise<void> {
+  try {
+    await exportWordBlob(getExportParams())
+  } catch (error) {
+    console.error('导出Word失败:', error)
+    showAlert(t('preview.error.exportFail'))
+  }
+}
+
+/** 导出分页 Sheet 的 Excel（每页一个 Sheet） */
+async function exportExcelPagingSheet(): Promise<void> {
+  try {
+    await exportExcelSheetPagingBlob(getExportParams())
+  } catch (error) {
+    console.error('导出Excel失败:', error)
+    showAlert(t('preview.error.exportFail') || '导出失败')
+  }
+}
+
+/** 导出分页 Excel */
+async function exportExcelPaging(): Promise<void> {
+  try {
+    await exportExcelPagingBlob(getExportParams())
+  } catch (error) {
+    console.error('导出Excel失败:', error)
+    showAlert(t('preview.error.exportFail') || '导出失败')
+  }
+}
+
+/** 导出 Excel */
+async function exportExcel(): Promise<void> {
+  try {
+    await exportExcelBlob(getExportParams())
+  } catch (error) {
+    console.error('导出Excel失败:', error)
+    showAlert(t('preview.error.exportFail') || '导出失败')
+  }
+}
+
+/** 跳到首页 */
+function goToFirstPage(): void {
+  if (props.currentPage > 1) {
+    emit('page-change', 1)
+  }
+}
+
+/** 跳到末页 */
+function goToLastPage(): void {
+  const total = props.reportData?.totalPageWithCol ?? 0
+  if (props.currentPage < total) {
+    emit('page-change', total)
+  }
+}
+
+/** 跳到上一页 */
+function goToPrevPage(): void {
+  if (props.currentPage > 1) {
+    emit('page-change', props.currentPage - 1)
+  }
+}
+
+/** 跳到下一页 */
+function goToNextPage(): void {
+  const total = props.reportData?.totalPageWithCol ?? 0
+  if (props.currentPage < total) {
+    emit('page-change', props.currentPage + 1)
+  }
+}
+
+/**
+ * 处理输入框页码跳转
+ * - 非数字 / <1：回退到 1
+ * - 超过总页：跳到末页
+ * - 等于当前页：仅同步 inputPage 文本
+ */
+function handleInputPageChange(): void {
+  const page = Number(inputPage.value)
+  const totalPages = props.reportData?.totalPageWithCol ?? 0
+
+  if (isNaN(page) || page < 1) {
+    inputPage.value = '1'
+    emit('page-change', 1)
+    return
+  }
+  if (page > totalPages) {
+    inputPage.value = String(totalPages)
+    emit('page-change', totalPages)
+    return
+  }
+  if (page !== props.currentPage) {
+    emit('page-change', page)
+  } else {
+    inputPage.value = String(props.currentPage)
+  }
+}
+
+/** 跳转到指定页 */
+function handlePageChange(pageIndex: number): void {
+  emit('page-change', pageIndex)
+}
+
+/** 切换分页启用状态 */
+function changePageEnable(pageEnable: boolean): void {
+  emit('page-enable-change', pageEnable)
+}
+
+/** 初始化页码下拉菜单项（每页一项） */
+function initPageMenuItems(): void {
+  const total = props.reportData?.totalPageWithCol ?? 0
+  if (!total) {
+    return
+  }
+  const menuItems: PageMenuItem[] = []
+  for (let i = 1; i <= total; i++) {
+    const pageIndex = i
+    menuItems.push({
+      text: t('preview.paging.pageX', { x: i }),
+      action: () => handlePageChange(pageIndex)
+    })
+  }
+  pageMenuItems.value = menuItems
+}
+
+watch(
+  () => props.reportData,
+  () => {
+    initPageMenuItems()
+  },
+  { deep: true, immediate: true }
+)
+
+watch(
+  () => props.currentPage,
+  (newVal) => {
+    inputPage.value = String(newVal)
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
@@ -627,7 +613,7 @@ export default {
   width: 100%;
   box-sizing: border-box;
   padding: 0 10px;
-  box-shadow: 0 2px 6px 0 rgba(0,0,0,.2);
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.2);
 }
 
 .tools-row {
@@ -668,178 +654,78 @@ export default {
 .pagination-dropdown-btn {
   display: inline-flex;
   align-items: center;
-}
-
-.pagination-dropdown-btn ::v-deep .u-button {
-  background-color: transparent;
-  border: none;
+  border: none !important;
   color: #5e6d82;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  white-space: nowrap;
+  background-color: transparent;
   padding: 0 8px;
   height: 28px;
   font-size: 13px;
-  line-height: normal !important;
 }
 
-.pagination-dropdown-btn ::v-deep .u-button:hover {
-  background-color: rgba(0, 85, 74, 0.1);
-  color: #00554a;
+.pagination-dropdown-btn:hover {
+  background-color: rgba(var(--color-primary-rgb), 0.1) !important;
+  color: var(--color-primary) !important;
 }
 
-.pagination-dropdown-btn ::v-deep .button-text {
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.pagination-dropdown-btn ::v-deep .caret {
-  display: inline-block !important;
-  margin-left: 6px;
-  vertical-align: middle;
-  border-top: 4px solid #5e6d82;
-  border-right: 4px solid transparent;
-  border-left: 4px solid transparent;
-  line-height: 28px;
-}
-
-.pagination-dropdown-btn ::v-deep .u-button:hover .caret {
-  border-top-color: #00554a;
-}
-
-/* 工具栏按钮 */
-.p-button {
-  border: none;
-}
-
-.p-button img {
-  vertical-align: middle;
-}
-
-::v-deep .p-button.u-button {
-  background-color: transparent;
-  border: none;
-  color: #5e6d82;
-}
-
-::v-deep .p-button.u-button:hover {
-  background-color: rgba(0, 85, 74, 0.1);
-  border-color: transparent;
-  color: #00554a;
-}
-
-/* 分页按钮组 */
-.pagination-group {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* 分页按钮 */
-.pagination-group ::v-deep .pagination-btn.u-button {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center;
-  gap: 2px;
-  height: 28px;
+.pagination-btn {
   padding: 0 8px;
+  height: 28px;
   font-size: 13px;
-  line-height: normal !important;
-  border-radius: 1px;
-  background-color: transparent;
-  border: none;
-  color: #5e6d82;
-}
-
-.pagination-group ::v-deep .pagination-btn.u-button .iconfont {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 13px;
-  line-height: 1;
-  height: 1em;
-}
-
-.pagination-group ::v-deep .pagination-btn.u-button .iconfont::before {
-  display: block;
-  line-height: 1;
-}
-
-.pagination-group ::v-deep .pagination-btn.u-button:hover:not(.u-button-text-disabled) {
-  background-color: rgba(0, 85, 74, 0.1);
-  border-radius: 3px;
-  color: #00554a;
-}
-
-.pagination-group ::v-deep .pagination-btn.u-button:active:not(.u-button-text-disabled) {
-  background-color: rgba(0, 85, 74, 0.2);
-  border-radius: 3px;
-  color: #00554a;
-}
-
-.pagination-group ::v-deep .pagination-btn.u-button.u-button-text-disabled {
-  cursor: not-allowed;
-  background-color: transparent;
-  color: #c0c4cc;
-}
-
-.pagination-group ::v-deep .pagination-btn.u-button.u-button-text-disabled:hover {
-  background-color: transparent;
-  color: #c0c4cc;
 }
 
 .pagination-btn-text {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 2px;
-  line-height: 1;
-}
-
-/* 分页分隔线 */
-.pagination-divider {
-  display: inline-block;
-  width: 0.5px;
-  height: 20px;
-  background-color: #ddd;
   margin: 0 4px;
 }
 
-/* 页码输入框容器 */
+.pagination-divider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background-color: #ddd;
+  margin: 0 4px;
+  vertical-align: middle;
+}
+
 .pagination-input-group {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
-  height: 28px;
+  margin: 0 4px;
 }
 
-/* 页码输入框 */
 .pagination-input {
-  width: 36px;
-  height: 22px;
-  padding: 2px 4px;
-  font-size: 13px;
+  width: 40px;
+  height: 24px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
   text-align: center;
-  border: 1px solid #dcdfe6;
-  border-radius: 3px;
-  outline: none;
-  transition: border-color 0.2s ease;
-  line-height: normal;
+  font-size: 13px;
+  padding: 0 4px;
 }
 
 .pagination-input:focus {
-  border-color: #00554a;
-  box-shadow: 0 0 4px rgba(0, 85, 74, 0.3);
+  outline: none;
+  border-color: var(--color-primary);
 }
 
-/* 总页数文本 */
 .pagination-total {
   font-size: 13px;
   color: #5e6d82;
-  line-height: 16px;
-  white-space: nowrap;
+}
+
+.p-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 6px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.p-button:hover {
+  background-color: rgba(0, 85, 74, 0.1) !important;
 }
 </style>

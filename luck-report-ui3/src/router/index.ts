@@ -27,13 +27,12 @@ const routes: RouteRecordRaw[] = [
     path: rootPath + '/designer',
     name: 'Designer',
     component: () => import('@/views/report/designer/index.vue')
+  },
+  {
+    path: rootPath + '/preview',
+    name: 'Preview',
+    component: () => import('@/views/report/preview/index.vue')
   }
-  // 后续阶段将原 views 下的页面按 vue-router 4 写法回填：
-  // {
-  //   path: rootPath + '/preview',
-  //   name: 'Preview',
-  //   component: () => import('@/views/report/preview/index.vue')
-  // }
 ]
 
 const router = createRouter({

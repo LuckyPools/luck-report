@@ -18,158 +18,164 @@
     </div>
     <div class="ud-toolbar-content">
       <div class="toolbar-box">
-        <MergeTool ref="mergeTool" :selectedCells="selectedCells" />
-        <AlignLeftTool ref="alignLeftTool" :selectedCells="selectedCells" />
-        <AlignTopTool ref="alignTool" :selectedCells="selectedCells" />
-        <BorderTool ref="borderTool" :selectedCells="selectedCells" />
-        <FontFamilyTool ref="fontFamilyTool" :selectedCells="selectedCells" />
-        <FontSizeTool ref="fontSizeTool" :selectedCells="selectedCells" />
-        <BoldTool ref="boldTool" :selectedCells="selectedCells" />
-        <ItalicTool ref="italicTool" :selectedCells="selectedCells" />
-        <UnderlineTool ref="underlineTool" :selectedCells="selectedCells" />
-        <FontColorTool ref="fontColorTool" :selectedCells="selectedCells" />
-        <BgColorTool ref="bgColorTool" :selectedCells="selectedCells" />
-        <CrosstabTool ref="crosstabTool" :selectedCells="selectedCells" />
-        <ImageTool ref="imageTool" :selectedCells="selectedCells" />
-        <ChartTool ref="chartTool" :selectedCells="selectedCells" />
-        <ZxingTool ref="zxingTool" :selectedCells="selectedCells" />
+        <MergeTool ref="mergeTool" :selected-cells="selectedCells" />
+        <AlignLeftTool ref="alignLeftTool" :selected-cells="selectedCells" />
+        <AlignTopTool ref="alignTool" :selected-cells="selectedCells" />
+        <BorderTool ref="borderTool" :selected-cells="selectedCells" />
+        <FontFamilyTool ref="fontFamilyTool" :selected-cells="selectedCells" />
+        <FontSizeTool ref="fontSizeTool" :selected-cells="selectedCells" />
+        <BoldTool ref="boldTool" :selected-cells="selectedCells" />
+        <ItalicTool ref="italicTool" :selected-cells="selectedCells" />
+        <UnderlineTool ref="underlineTool" :selected-cells="selectedCells" />
+        <FontColorTool ref="fontColorTool" :selected-cells="selectedCells" />
+        <BgColorTool ref="bgColorTool" :selected-cells="selectedCells" />
+        <CrosstabTool ref="crosstabTool" :selected-cells="selectedCells" />
+        <ImageTool ref="imageTool" :selected-cells="selectedCells" />
+        <ChartTool ref="chartTool" :selected-cells="selectedCells" />
+        <ZxingTool ref="zxingTool" :selected-cells="selectedCells" />
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import ImportTool from '@/views/report/designer/tool-bar/import-tool/index.vue';
-import SaveTool from '@/views/report/designer/tool-bar/save-tool/index.vue';
-import SaveAsTool from '@/views/report/designer/tool-bar/save-as-tool/index.vue';
-import PreviewTool from '@/views/report/designer/tool-bar/preview-tool/index.vue';
-import PreviewPageTool from '@/views/report/designer/tool-bar/preview-page-tool/index.vue';
-import OpenTool from '@/views/report/designer/tool-bar/open-tool/index.vue';
-import UndoTool from '@/views/report/designer/tool-bar/undo-tool/index.vue';
-import RedoTool from '@/views/report/designer/tool-bar/redo-tool/index.vue';
-import PrintLineTool from '@/views/report/designer/tool-bar/print-line-tool/index.vue';
-import AlignLeftTool from '@/views/report/designer/tool-bar/align-left-tool/index.vue';
-import AlignTopTool from '@/views/report/designer/tool-bar/align-tool/index.vue';
-import MergeTool from '@/views/report/designer/tool-bar/merge-tool/index.vue';
-import FontFamilyTool from '@/views/report/designer/tool-bar/font-family-tool/index.vue';
-import FontSizeTool from '@/views/report/designer/tool-bar/font-size-tool/index.vue';
-import BoldTool from '@/views/report/designer/tool-bar/bold-tool/index.vue';
-import ItalicTool from '@/views/report/designer/tool-bar/italic-tool/index.vue';
-import UnderlineTool from '@/views/report/designer/tool-bar/underline-tool/index.vue';
-import BgColorTool from '@/views/report/designer/tool-bar/bg-color-tool/index.vue';
-import FontColorTool from '@/views/report/designer/tool-bar/font-color-tool/index.vue';
-import CrosstabTool from '@/views/report/designer/tool-bar/crosstab-tool/index.vue';
-import ImageTool from '@/views/report/designer/tool-bar/image-tool/index.vue';
-import ChartTool from '@/views/report/designer/tool-bar/chart-tool/index.vue';
-import ZxingTool from '@/views/report/designer/tool-bar/zxing-tool/index.vue';
-import SearchFormSwitchTool from '@/views/report/designer/tool-bar/search-form-switch-tool/index.vue';
-import SettingsTool from '@/views/report/designer/tool-bar/settings-tool/index.vue';
-import BorderTool from "@/views/report/designer/tool-bar/border-tool/index.vue";
+<script setup lang="ts">
+/**
+ * TopToolBar 报表设计器顶部工具条容器（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. 接收父级传入的 selectedCells，向下传递给需要响应选中区变化的子工具
+ * 2. 从 store 读取 fileName 显示在标题栏，并同步到 document.title
+ * 3. 渲染分组工具：标题栏（预览/保存/撤销重做/查询表单/设置） + 内容栏（合并/对齐/字体/边框/图表等）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup> + 显式 type 标注
+ * - components 选项 + 字符串模板 ref → 局部 import + 函数名引用
+ * - 自定义 U* 工具组件：除本次新增的 5 个工具外，其他子工具仍为 Vue2 Options API；
+ *   本组件向下绑定时使用 kebab-case（:selected-cells）以兼容子组件 props 命名
+ * - data()/computed/watch → ref/computed/watch
+ * - $store.getters['report/X'] → useReportStore().X
+ *
+ * 注意事项：
+ * - 各子工具的 template ref 暂未在本组件内消费，仅保留以便后续接入工具组联动；
+ *   子组件在 <script setup> 下需自行 defineExpose 才能被父级访问
+ */
+import { ref, computed, watch, onMounted } from 'vue'
+import { useReportStore } from '@/store/modules/report'
 
-export default {
-  name: 'TopToolBar',
-  components: {
-    BorderTool,
-    ImportTool,
-    SaveTool,
-    SaveAsTool,
-    PreviewTool,
-    PreviewPageTool,
-    OpenTool,
-    UndoTool,
-    RedoTool,
-    PrintLineTool,
-    AlignLeftTool,
-    AlignTopTool,
-    MergeTool,
-    FontFamilyTool,
-    FontSizeTool,
-    BoldTool,
-    ItalicTool,
-    UnderlineTool,
-    FontColorTool,
-    BgColorTool,
-    CrosstabTool,
-    ImageTool,
-    ChartTool,
-    ZxingTool,
-    SearchFormSwitchTool,
-    SettingsTool
-  },
-  props: {
-    selectedCells: {
-      type: Object,
-      default: () => ({
-        rowIndex: null,
-        colIndex: null,
-        row2Index: null,
-        col2Index: null
-      })
-    }
-  },
-  computed: {
-    /**
-     * 获取context
-     */
-    context: function() {
-      return this.$store.getters['report/getContext'] || {}
-    },
+import ImportTool from '@/views/report/designer/tool-bar/import-tool/index.vue'
+import SaveTool from '@/views/report/designer/tool-bar/save-tool/index.vue'
+import SaveAsTool from '@/views/report/designer/tool-bar/save-as-tool/index.vue'
+import PreviewTool from '@/views/report/designer/tool-bar/preview-tool/index.vue'
+import PreviewPageTool from '@/views/report/designer/tool-bar/preview-page-tool/index.vue'
+import OpenTool from '@/views/report/designer/tool-bar/open-tool/index.vue'
+import UndoTool from '@/views/report/designer/tool-bar/undo-tool/index.vue'
+import RedoTool from '@/views/report/designer/tool-bar/redo-tool/index.vue'
+import PrintLineTool from '@/views/report/designer/tool-bar/print-line-tool/index.vue'
+import AlignLeftTool from '@/views/report/designer/tool-bar/align-left-tool/index.vue'
+import AlignTopTool from '@/views/report/designer/tool-bar/align-tool/index.vue'
+import MergeTool from '@/views/report/designer/tool-bar/merge-tool/index.vue'
+import FontFamilyTool from '@/views/report/designer/tool-bar/font-family-tool/index.vue'
+import FontSizeTool from '@/views/report/designer/tool-bar/font-size-tool/index.vue'
+import BoldTool from '@/views/report/designer/tool-bar/bold-tool/index.vue'
+import ItalicTool from '@/views/report/designer/tool-bar/italic-tool/index.vue'
+import UnderlineTool from '@/views/report/designer/tool-bar/underline-tool/index.vue'
+import BgColorTool from '@/views/report/designer/tool-bar/bg-color-tool/index.vue'
+import FontColorTool from '@/views/report/designer/tool-bar/font-color-tool/index.vue'
+import CrosstabTool from '@/views/report/designer/tool-bar/crosstab-tool/index.vue'
+import ImageTool from '@/views/report/designer/tool-bar/image-tool/index.vue'
+import ChartTool from '@/views/report/designer/tool-bar/chart-tool/index.vue'
+import ZxingTool from '@/views/report/designer/tool-bar/zxing-tool/index.vue'
+import SearchFormSwitchTool from '@/views/report/designer/tool-bar/search-form-switch-tool/index.vue'
+import SettingsTool from '@/views/report/designer/tool-bar/settings-tool/index.vue'
+import BorderTool from '@/views/report/designer/tool-bar/border-tool/index.vue'
 
-    /**
-     * 获取fileName
-     */
-    fileName: function() {
-      const fileName = this.$store.getters['report/getFileName']
-      if(fileName){
-        return decodeURIComponent(fileName);
-      }else{
-        return 'Blank';
-      }
-    }
-  },
-  watch: {
-    fileName: {
-      handler(val) {
-        document.title = val;
-      },
-      immediate: true
-    }
-  },
-  data() {
-    return {
-      toolbarStyle: {
-        position: 'relative',
-      }
-    };
-  },
-  methods: {
+defineOptions({ name: 'TopToolBar' })
+
+/** 入参：当前选中单元格坐标（行/列均为 0-based，null 表示未选） */
+interface SelectedCells {
+  rowIndex: number | null
+  colIndex: number | null
+  row2Index: number | null
+  col2Index: number | null
+}
+
+const props = withDefaults(
+  defineProps<{ selectedCells: SelectedCells }>(),
+  {
+    selectedCells: () => ({
+      rowIndex: null,
+      colIndex: null,
+      row2Index: null,
+      col2Index: null
+    })
   }
-};
+)
+
+// 暂未使用 props，保留以维持子组件 prop 流
+void props
+
+const report = useReportStore()
+
+/** 工具条根容器样式 */
+const toolbarStyle = ref<{ position: string }>({
+  position: 'relative'
+})
+
+/** 工具条根容器 DOM 引用（保留以便后续布局计算） */
+const toolbar = ref<HTMLDivElement | null>(null)
+
+/**
+ * 当前文件名（来自 store，空值时显示 Blank）
+ * - 对原版 `decodeURIComponent` 行为保持一致
+ */
+const fileName = computed<string>(() => {
+  const name = report.getFileName
+  if (name) {
+    return decodeURIComponent(name)
+  }
+  return 'Blank'
+})
+
+// 同步文件名到 document.title（与 Vue2 行为一致）
+watch(
+  fileName,
+  (val) => {
+    if (typeof document !== 'undefined') {
+      document.title = val
+    }
+  },
+  { immediate: true }
+)
+
+// 触发初始 mount 钩子，保留扩展点
+onMounted(() => {
+  // 当前无需在挂载时执行副作用；保留以维持与原组件相同的生命周期形状
+})
 </script>
 
 <style scoped>
-.ud-toolbar{
+.ud-toolbar {
   width: 100%;
   z-index: 10000;
 }
 
-.ud-toolbar-title{
+.ud-toolbar-title {
   width: 100%;
   height: 50px;
-  background-color: #00554a;
+  background-color: var(--color-primary);
   color: white;
 }
 
-.ud-toolbar-content{
+.ud-toolbar-content {
   background-color: #f3f5f7;
 }
 
-.toolbar-box{
+.toolbar-box {
   background-color: white;
-  box-shadow: 0 2px 6px 0 rgba(0,0,0,.2);
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.2);
 }
 
-.file-info{
+.file-info {
   position: absolute;
   text-align: center;
   width: 100%;
@@ -177,19 +183,30 @@ export default {
   font-size: 14px;
 }
 
-.tool-button{
+/* 标题栏按钮：透明底色 + 白色图标 + 悬停灰色覆盖 */
+.ud-toolbar-title :deep(.tool-button) {
   font-size: 16px;
   margin: 7px 0;
+  color: white;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
-.tool-button:hover {
-  background-color: rgb(0 119 103 / 70%) !important
+.ud-toolbar-title :deep(.tool-button:hover),
+.ud-toolbar-title :deep(.tool-button:focus) {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-.info-button{
+.ud-toolbar-title :deep(.tool-button:active) {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.info-button {
   font-size: 16px;
   margin: 2px 0;
   border: none;
 }
-
 </style>

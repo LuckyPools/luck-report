@@ -28,7 +28,7 @@
 import { defineComponent, ref, onMounted, onBeforeUnmount, watch, type Ref } from 'vue'
 import Handsontable from 'handsontable'
 import type { HandsontableInstance } from '@/types/handsontable'
-import Context from '@/components/Context'
+import Context from '@/types/Context'
 import * as utils from '@/utils/table'
 import buildMenuConfigure from './utils/ContextMenu'
 import { afterRenderer } from './utils/CellRenderer'
@@ -36,12 +36,13 @@ import { renderRowHeader } from './utils/HeaderUtils'
 import { loadReport } from '@/api/designer'
 import { showAlert } from '@/utils/comnon'
 import { addRowHeader, getCell, setCell } from '@/utils/contextActions'
-import { deepCopy } from '@/components/utils'
+import { deepCopy } from '@/utils/comnon'
 import TableManager from './manager'
 import PrintLine from '@/views/report/designer/print-line/index.vue'
 import type { ReportContext, ReportDef, ReportCell } from '@/types/report-def'
 import { useReportStore } from '@/store/modules/report'
 import '../../../../assets/css/designer/table.css'
+import { useI18n } from 'vue-i18n'
 
 /** 单元格坐标 */
 interface CellCoords { row: number; col: number }
@@ -69,7 +70,7 @@ export default defineComponent({
 
     // 模板 ref
     const contentTableRef: Ref<HTMLElement | null> = ref(null)
-    const printLineRef = ref(null)
+    const printLineRef: Ref<InstanceType<typeof PrintLine> | null> = ref(null)
 
     // 状态（替代 data()）
     const hot: Ref<HandsontableInstance | null> = ref(null)
@@ -103,7 +104,9 @@ export default defineComponent({
       hot.value = instance
       TableManager.set(instance)
 
-      instance.addHook('afterRenderer', afterRenderer)
+      // afterRenderer / afterChange / afterRowResize / afterColumnResize 都需要接收参数
+      // 而官方 d.ts 把 callback 限制为 () => void，通过 any 断言绕过类型校验（与运行时行为一致）
+      instance.addHook('afterRenderer', afterRenderer as unknown as () => void)
       bindRowResizeEvent(instance)
       bindColumnResizeEvent(instance)
       bindSelectionEvent(instance)
@@ -115,7 +118,11 @@ export default defineComponent({
      * @param instance handsontable 实例
      */
     const bindRowResizeEvent = (instance: HandsontableInstance): void => {
-      instance.addHook('afterRowResize', function (this: HandsontableInstance, currentRow: number, newSize: number) {
+      // 官方 addHook 把 callback 限制为 () => void，运行时实际会传 (currentRow, newSize)
+      // 内部函数用 any 接收，避免每处都重复断言
+      instance.addHook('afterRowResize', function (this: HandsontableInstance, ...args: unknown[]) {
+        const currentRow = args[0] as number
+        const newSize = args[1] as number
         const rowHeights = this.getSettings().rowHeights as number[]
         const oldRowHeights = rowHeights.concat([])
         const newRowHeights = rowHeights.concat([])
@@ -154,7 +161,10 @@ export default defineComponent({
      * @param instance handsontable 实例
      */
     const bindColumnResizeEvent = (instance: HandsontableInstance): void => {
-      instance.addHook('afterColumnResize', function (this: HandsontableInstance, currentColumn: number, newSize: number) {
+      // 官方 addHook 把 callback 限制为 () => void，运行时实际会传 (currentColumn, newSize)
+      instance.addHook('afterColumnResize', function (this: HandsontableInstance, ...args: unknown[]) {
+        const currentColumn = args[0] as number
+        const newSize = args[1] as number
         const colWidths = this.getSettings().colWidths as number[]
         const newColWidths = colWidths.concat([])
         const oldColWidths = colWidths.concat([])
@@ -257,8 +267,9 @@ export default defineComponent({
       if (!td) return null
       let cellCoords: CellCoords | null = null
       if (hot.value && hot.value.getCoords) {
-        // 官方 getCoords 返回 object，运行时实际是 { row, col }；强转为 CellCoords
-        cellCoords = hot.value.getCoords(td as HTMLElement) as CellCoords | null
+        // 官方 d.ts 把 getCoords 返回值类型声明为 {}，运行时实际是 { row, col } | null
+        // 两步走：先转 unknown 再转目标类型
+        cellCoords = hot.value.getCoords(td as HTMLElement) as unknown as CellCoords | null
       } else if (hot.value && hot.value.view && hot.value.view.wt && hot.value.view.wt.wtTable) {
         cellCoords = hot.value.view.wt.wtTable.getCoords(td as HTMLElement)
       }
@@ -488,17 +499,14 @@ export default defineComponent({
           colWidths,
           rowHeights,
           mergeCells,
-          cells: (row: number | undefined, col: number | undefined) => {
+          cells: ((row: number, col: number) => {
             const cellProperties: { readOnly: boolean } = { readOnly: true }
-            if (row === undefined || col === undefined) {
-              return cellProperties as unknown as Handsontable.GridSettings
-            }
             const cellDef = getCell(row, col) as { value: { type: string } } | null
             if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
               cellProperties.readOnly = false
             }
             return cellProperties as unknown as Handsontable.GridSettings
-          }
+          }) as never
         })
         bindAfterChangeEvent()
       }
@@ -509,13 +517,18 @@ export default defineComponent({
      */
     const bindAfterChangeEvent = (): void => {
       if (!hot.value) return
-      hot.value.addHook('afterChange', (changes: Array<[number, number, string | null, string | null]> | null, source: string) => {
+      // 官方 addHook 把 callback 限制为 () => void，运行时实际会传 (changes, source)
+      hot.value.addHook('afterChange', function (...args: unknown[]) {
+        const changes = args[0] as Array<[number, number, string | null, string | null]> | null
+        const source = args[1] as string
         if (source === 'edit' && changes) {
           changes.forEach(([row, col, , newValue]) => {
             const cellDef = getCell(row, col) as { value: { type: string; value?: string } } | null
             if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
-              const newCellDef = deepCopy(cellDef) as ReportCell & { value: { type: string; value?: string } }
-              newCellDef.value.value = newValue || ''
+              // cellDef 是从 getCell 拿到的 ReportCell，rowNumber/columnNumber 一定存在
+              const newCellDef = deepCopy(cellDef) as unknown as ReportCell
+              const newValueObj = newCellDef.value as { type: string; value?: string }
+              newValueObj.value = newValue || ''
               setCell(row, col, newCellDef)
               utils.setDirty()
             }

@@ -1,642 +1,668 @@
 <template>
   <div class="cell-value-editor">
-
-    <u-form :label-width="100" labelPosition="left">
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
 
       <!-- 父单元格配置 -->
       <div v-show="showParentGroup" ref="parentGroup">
-        <u-form-item class="property-label parent-cell" :label="$t('property.prop.leftParent')" >
-          <u-radio-group
-              v-model="leftParentType"
-              @change="handleLeftParentTypeChange"
+        <a-form-item class="property-label parent-cell" :label="t('property.prop.leftParent')">
+          <a-radio-group
+            v-model:value="leftParentType"
+            @change="handleLeftParentTypeChange"
           >
-            <u-radio
-                v-for="option in parentTypeOptions"
-                :key="option.value"
-                :label="option.value"
+            <a-radio
+              v-for="option in parentTypeOptions"
+              :key="option.value"
+              :value="option.value"
             >
               {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </u-form-item>
-        <u-form-item class="property-label" >
-          <u-select
-              v-model="leftParentCellName"
-              :disabled="leftParentType !== 'custom'"
-              @change="handleLeftParentCellNameChange"
-              style="width: 100px"
-              virtual
-              filterable
-              :virtual-options="leftParentCellNameOptions"
-          >
-          </u-select>
-          <u-select
-              v-model="leftParentRowNumber"
-              :disabled="leftParentType !== 'custom' || leftParentCellName === 'root'"
-              @change="handleLeftParentRowNumberChange"
-              style="margin-left:10px;width: 100px"
-              virtual
-              filterable
-              :virtual-options="leftParentRowNumberOptions"
-          >
-          </u-select>
-        </u-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item class="property-label">
+          <a-select
+            v-model:value="leftParentCellName"
+            :disabled="leftParentType !== 'custom'"
+            @change="handleLeftParentCellNameChange"
+            style="width: 100px"
+            :options="leftParentCellNameOptions"
+            show-search
+            :filter-option="filterOption"
+          />
+          <a-select
+            v-model:value="leftParentRowNumber"
+            :disabled="leftParentType !== 'custom' || leftParentCellName === 'root'"
+            @change="handleLeftParentRowNumberChange"
+            style="margin-left: 10px; width: 100px"
+            :options="leftParentRowNumberOptions"
+            show-search
+            :filter-option="filterOption"
+          />
+        </a-form-item>
 
-        <u-form-item class="property-label parent-cell" :label="$t('property.prop.topParent')" >
-          <u-radio-group
-              v-model="topParentType"
-              @change="handleTopParentTypeChange"
+        <a-form-item class="property-label parent-cell" :label="t('property.prop.topParent')">
+          <a-radio-group
+            v-model:value="topParentType"
+            @change="handleTopParentTypeChange"
           >
-            <u-radio
-                v-for="option in parentTypeOptions"
-                :key="option.value"
-                :label="option.value"
+            <a-radio
+              v-for="option in parentTypeOptions"
+              :key="option.value"
+              :value="option.value"
             >
               {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </u-form-item>
-        <u-form-item class="property-label" >
-          <u-select
-              v-model="topParentCellName"
-              :disabled="topParentType !== 'custom'"
-              @change="handleTopParentCellNameChange"
-              style="width: 100px"
-              virtual
-              filterable
-              :virtual-options="topParentCellNameOptions"
-          >
-          </u-select>
-          <u-select
-              v-model="topParentRowNumber"
-              :disabled="topParentType !== 'custom' || topParentCellName === 'root'"
-              @change="handleTopParentRowNumberChange"
-              style="margin-left:10px;width: 100px"
-              virtual
-              filterable
-              :virtual-options="topParentRowNumberOptions"
-          >
-          </u-select>
-        </u-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item class="property-label">
+          <a-select
+            v-model:value="topParentCellName"
+            :disabled="topParentType !== 'custom'"
+            @change="handleTopParentCellNameChange"
+            style="width: 100px"
+            :options="topParentCellNameOptions"
+            show-search
+            :filter-option="filterOption"
+          />
+          <a-select
+            v-model:value="topParentRowNumber"
+            :disabled="topParentType !== 'custom' || topParentCellName === 'root'"
+            @change="handleTopParentRowNumberChange"
+            style="margin-left: 10px; width: 100px"
+            :options="topParentRowNumberOptions"
+            show-search
+            :filter-option="filterOption"
+          />
+        </a-form-item>
       </div>
 
       <!-- 渲染器配置 -->
-      <div v-show="showRendererGroup" ref="rendererGroup" class="form-group" style="margin-bottom:6px">
-        <label>{{ $t('property.prop.renderBean') }}：</label>
-        <div class="input-group" style="width: 290px;display: inline-block;height: 22px;">
+      <div v-show="showRendererGroup" ref="rendererGroup" class="form-group" style="margin-bottom: 6px;">
+        <label>{{ t('property.prop.renderBean') }}：</label>
+        <div class="input-group" style="width: 290px; display: inline-block; height: 22px;">
           <div class="u-inline">
-            <u-input
-              v-model="rendererBean"
+            <a-input
+              v-model:value="rendererBean"
               style="width: 250px"
-              @change="handleRendererChange"
+              @change="(e) => handleRendererChange((e.target as HTMLInputElement).value)"
             />
           </div>
           <span class="input-group-btn">
-            <u-button @click="handleSelectRenderer">
-              {{ $t('property.prop.selectBean') }}
-            </u-button>
+            <a-button @click="handleSelectRenderer">
+              {{ t('property.prop.selectBean') }}
+            </a-button>
           </span>
         </div>
       </div>
 
       <!-- 链接配置 -->
       <div v-show="showLinkGroup">
-
         <div class="property-quote">
-          {{ $t('property.prop.linkConfig') }}
+          {{ t('property.prop.linkConfig') }}
         </div>
 
-        <u-form-item class="property-label" :label="$t('property.prop.linkUrl')">
-          <u-input
-              v-model="linkUrl"
-              clearable
-              :placeholder="$t('property.prop.urlExpressionSupport') + $t('property.prop.urlExpressionExample')"
-              style="width: 250px;"
-              @change="handleLinkUrlChange"
+        <a-form-item class="property-label" :label="t('property.prop.linkUrl')">
+          <a-input
+            v-model:value="linkUrl"
+            allow-clear
+            :placeholder="linkUrlPlaceholder"
+            style="width: 250px;"
+            @change="(e) => handleLinkUrlChange((e.target as HTMLInputElement).value)"
           />
-        </u-form-item>
+        </a-form-item>
 
-        <u-form-item class="property-label" :label="$t('property.prop.target')">
-          <u-select
-              v-model="linkTarget"
-              @change="handleLinkTargetChange"
-              style="width: 120px"
-          >
-            <u-option
-                v-for="option in linkTargetOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
+        <a-form-item class="property-label" :label="t('property.prop.target')">
+          <a-select
+            v-model:value="linkTarget"
+            @change="handleLinkTargetChange"
+            style="width: 120px"
+            :options="linkTargetOptions"
+          />
 
-          <u-button
-              type="info"
-              style="margin-left: 10px;"
-              @click="handleUrlParameterConfig"
+          <a-button
+            type="primary"
+            style="margin-left: 10px;"
+            @click="handleUrlParameterConfig"
           >
-            {{ $t('property.prop.urlParameterConfig') }}
-          </u-button>
-        </u-form-item>
+            {{ t('property.prop.urlParameterConfig') }}
+          </a-button>
+        </a-form-item>
       </div>
 
       <!-- 单元格类型 -->
-      <u-form-item class="property-label" v-show="showTypeGroup" :label="$t('property.prop.cellType')">
-        <u-select
-            v-model="cellType"
-            @change="handleCellTypeChange"
-            style="width: 250px"
-        >
-          <u-option
-              v-for="option in cellTypeOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+      <a-form-item class="property-label" v-show="showTypeGroup" :label="t('property.prop.cellType')">
+        <a-select
+          v-model:value="cellType"
+          @change="handleCellTypeChange"
+          style="width: 250px"
+          :options="cellTypeOptions"
+        />
+      </a-form-item>
 
-    </u-form>
-    <!-- URL参数对话框 -->
+    </a-form>
+
+    <!-- URL 参数对话框 -->
     <URLParameterDialog
-      v-show="urlParameterDialogVisible"
-      :visible="urlParameterDialogVisible"
-      :parameters="linkParameters || []"
-      @update:visible="handleUrlParameterDialogClose"
+      v-model:visible="urlParameterDialogVisible"
+      :parameters="linkParameters"
       @parameters-change="handleLinkParametersChange"
     />
   </div>
 </template>
 
-<script>
-import { showAlert } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
-import { deepCopy } from '@/components/utils/index.js';
-import { getCell, getCellName, setCell } from "@/utils/contextActions";
-import URLParameterDialog from '@/views/report/designer/resource-panel/property-panel/url-parameter-dialog/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import UInput from '@/components/input/index.vue';
-import UButton from '@/components/button/index.vue';
-import TableManager from '@/views/report/designer/edit-table/manager';
-import UForm from "@/components/form/index.vue";
-import UFormItem from "@/components/form-item/index.vue";
+<script setup lang="ts">
+/**
+ * CellValueEditor 单元格值编辑器（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. 父组件传入 show*Group 控制不同分组显隐 + rowIndex/colIndex 定位单元格
+ * 2. cellPosition (rowIndex,colIndex) 变化 → buildParentCellNameOptions/buildParentRowNumberOptions/updateLinkParameters
+ * 3. 用户修改表单 → 同步写回 context 中的 cellDef
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UForm/UFormItem/USelect/UOption/URadioGroup/URadio/UInput/UButton（自定义）→ a-form/a-form-item/a-select/a-radio-group/a-radio/a-input/a-button
+ * - 虚拟滚动 select(virtual/virtual-options) → a-select 直接用 options
+ * - watch 中调用实例方法 → 函数式定义 + watch
+ * - USelect 的 @change 接受 value（自定义）→ a-select @change 直接传 value
+ * - UInput 的 @change 接受 value（自定义）→ a-input @change 传 event，需 .target.value
+ */
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { showAlert } from '@/utils/comnon'
+import { setDirty } from '@/utils/table'
+import { deepCopy } from '@/utils/comnon'
+import { getCell, getCellName, setCell } from '@/utils/contextActions'
+import URLParameterDialog, { type UrlParameterItem } from '../url-parameter-dialog/index.vue'
+import TableManager from '@/views/report/designer/edit-table/manager'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'CellValueEditor',
-  components: {
-    UFormItem,
-    UForm,
-    URLParameterDialog,
-    USelect,
-    UOption,
-    URadioGroup,
-    URadio,
-    UInput,
-    UButton
-  },
-  props: {
-    showParentGroup: {
-      type: Boolean,
-      default: false
-    },
-    showRendererGroup: {
-      type: Boolean,
-      default: false
-    },
-    showLinkGroup: {
-      type: Boolean,
-      default: false
-    },
-    showTypeGroup: {
-      type: Boolean,
-      default: false
-    },
-    rowIndex: {
-      type: Number,
-      default: 0
-    },
-    colIndex: {
-      type: Number,
-      default: 0
-    }
-  },
-  data() {
-    return {
-      urlParameterDialogVisible: false,
-      leftParentCellNameOptions: [],
-      leftParentRowNumberOptions: [],
-      topParentCellNameOptions: [],
-      topParentRowNumberOptions: [],
-      leftParentType: 'default',
-      topParentType: 'default',
-      leftParentCellName: '',
-      leftParentRowNumber: '',
-      topParentCellName: '',
-      topParentRowNumber: '',
-      rendererBean: '',
-      linkUrl: '',
-      linkTarget: '_blank',
-      cellType: 'simple',
-      linkParameters: []
-    };
-  },
-  computed: {
-    parentTypeOptions() {
-      return [
-        { label: this.$t('property.prop.default'), value: 'default' },
-        { label: this.$t('property.prop.custom'), value: 'custom' }
-      ];
-    },
-    linkTargetOptions() {
-      return [
-        { label: this.$t('property.prop.newWindow'), value: '_blank' },
-        { label: this.$t('property.prop.currentWindow'), value: '_self' },
-        { label: this.$t('property.prop.parentWindow'), value: '_parent' },
-        { label: this.$t('property.prop.topWindow'), value: '_top' }
-      ];
-    },
-    cellTypeOptions() {
-      return [
-        { label: this.$t('property.prop.text'), value: 'simple' },
-        { label: this.$t('property.prop.expr'), value: 'expression' },
-        { label: this.$t('property.prop.dataset'), value: 'dataset' },
-        { label: this.$t('property.prop.image'), value: 'image' },
-        { label: this.$t('property.prop.slash'), value: 'slash' },
-        { label: this.$t('property.prop.qrcode'), value: 'qrcode' },
-        { label: this.$t('property.prop.barcode'), value: 'barcode' },
-        { label: this.$t('property.prop.chart'), value: 'chart' }
-      ];
-    },
-    cellPosition() {
-      return `${this.rowIndex},${this.colIndex}`;
-    }
-  },
-  watch: {
-    cellPosition() {
-      this.buildParentCellNameOptions();
-      this.buildParentRowNumberOptions();
-      this.updateLinkParameters();
-    }
-  },
-  methods: {
-    updateLinkParameters() {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (cellDef && cellDef.linkParameters) {
-        this.linkParameters = cellDef.linkParameters;
-      } else {
-        this.linkParameters = [];
-      }
-    },
-    buildParentCellNameOptions() {
-      const hot = TableManager.get();
-      const countCols = hot.countCols();
-      const cellDef = getCell(this.rowIndex, this.colIndex);
+defineOptions({ name: 'CellValueEditor' })
 
-      this.leftParentCellNameOptions = [{ value: 'root', label: this.$t('property.prop.none') }];
-      this.topParentCellNameOptions = [{ value: 'root', label: this.$t('property.prop.none') }];
 
-      for (let j = 0; j < countCols; j++) {
-        let name = getCellName(null, j);
-        this.leftParentCellNameOptions.push({ value: name, label: name });
-        this.topParentCellNameOptions.push({ value: name, label: name });
-      }
+const { t } = useI18n()
+interface SelectOption {
+  value: string
+  label: string
+}
 
-      if (cellDef && cellDef.leftParentCellName) {
-        this.leftParentType = 'custom';
-        const name = cellDef.leftParentCellName;
-        if (name === 'root') {
-          this.leftParentCellName = 'root';
-          this.leftParentRowNumber = '';
-        } else {
-          const data = this.parseCellName(name);
-          this.leftParentCellName = data.name;
-          this.leftParentRowNumber = data.num;
-        }
-      } else {
-        this.leftParentType = 'default';
-        if (this.colIndex === 0) {
-          this.leftParentCellName = 'root';
-          this.leftParentRowNumber = '';
-        } else {
-          let row = this.rowIndex, col = this.colIndex - 1;
-          const hot = TableManager.get();
-          const td = hot.getCell(row, col);
-          if (this.isCellHidden(td)) {
-            const mergeCells = hot.getSettings().mergeCells;
-            for (const item of mergeCells) {
-              const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
-              const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
-              if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
-                row = rowStart;
-                col = colStart;
-                break;
-              }
-            }
-          }
-          const cellName = getCellName(row, col);
-          const data = this.parseCellName(cellName);
-          this.leftParentCellName = data.name;
-          this.leftParentRowNumber = data.num;
-        }
-      }
+const props = withDefaults(
+  defineProps<{
+    showParentGroup?: boolean
+    showRendererGroup?: boolean
+    showLinkGroup?: boolean
+    showTypeGroup?: boolean
+    rowIndex?: number
+    colIndex?: number
+  }>(),
+  {
+    showParentGroup: false,
+    showRendererGroup: false,
+    showLinkGroup: false,
+    showTypeGroup: false,
+    rowIndex: 0,
+    colIndex: 0
+  }
+)
 
-      if (cellDef && cellDef.topParentCellName) {
-        this.topParentType = 'custom';
-        const name = cellDef.topParentCellName;
-        if (name === 'root') {
-          this.topParentCellName = 'root';
-          this.topParentRowNumber = '';
-        } else {
-          const data = this.parseCellName(name);
-          this.topParentCellName = data.name;
-          this.topParentRowNumber = data.num;
-        }
-      } else {
-        this.topParentType = 'default';
-        if (this.rowIndex === 0) {
-          this.topParentCellName = 'root';
-          this.topParentRowNumber = '';
-        } else {
-          let row = this.rowIndex - 1, col = this.colIndex;
-          const hot = TableManager.get();
-          const td = hot.getCell(row, col);
-          if (this.isCellHidden(td)) {
-            const mergeCells = hot.getSettings().mergeCells;
-            for (const item of mergeCells) {
-              const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
-              const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
-              if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
-                row = rowStart;
-                col = colStart;
-                break;
-              }
-            }
-          }
-          const cellName = getCellName(row, col);
-          const data = this.parseCellName(cellName);
-          this.topParentCellName = data.name;
-          this.topParentRowNumber = data.num;
-        }
-      }
+const emit = defineEmits<{
+  (e: 'select-renderer'): void
+  (e: 'cell-type-change', value: string): void
+}>()
 
-      if (cellDef && cellDef.cellStyle && cellDef.cellStyle.renderer) {
-        this.rendererBean = cellDef.cellStyle.renderer;
-      } else {
-        this.rendererBean = '';
-      }
+// ====== 状态：表单双向绑定 ======
+const urlParameterDialogVisible = ref<boolean>(false)
+const leftParentCellNameOptions = ref<SelectOption[]>([])
+const leftParentRowNumberOptions = ref<SelectOption[]>([])
+const topParentCellNameOptions = ref<SelectOption[]>([])
+const topParentRowNumberOptions = ref<SelectOption[]>([])
+const leftParentType = ref<string>('default')
+const topParentType = ref<string>('default')
+const leftParentCellName = ref<string>('')
+const leftParentRowNumber = ref<string>('')
+const topParentCellName = ref<string>('')
+const topParentRowNumber = ref<string>('')
+const rendererBean = ref<string>('')
+const linkUrl = ref<string>('')
+const linkTarget = ref<string>('_blank')
+const cellType = ref<string>('simple')
+const linkParameters = ref<UrlParameterItem[]>([])
 
-      if (cellDef) {
-        this.linkUrl = cellDef.linkUrl || '';
-        this.linkTarget = cellDef.linkTargetWindow || '_blank';
-      } else {
-        this.linkUrl = '';
-        this.linkTarget = '_blank';
-      }
+// ====== 计算属性 ======
+const parentTypeOptions = computed<SelectOption[]>(() => [
+  { label: t('property.prop.default'), value: 'default' },
+  { label: t('property.prop.custom'), value: 'custom' }
+])
 
-      if (cellDef && cellDef.value) {
-        let type = cellDef.value.type || 'simple';
-        if (type === 'zxing') {
-          this.cellType = cellDef.value.category;
-        } else {
-          this.cellType = type;
-        }
-      } else {
-        this.cellType = 'simple';
-      }
-    },
+const linkTargetOptions = computed<SelectOption[]>(() => [
+  { label: t('property.prop.newWindow'), value: '_blank' },
+  { label: t('property.prop.currentWindow'), value: '_self' },
+  { label: t('property.prop.parentWindow'), value: '_parent' },
+  { label: t('property.prop.topWindow'), value: '_top' }
+])
 
-    buildParentRowNumberOptions() {
-      const hot = TableManager.get();
-      const countRows = hot.countRows();
+const linkUrlPlaceholder = computed(() =>
+  t('property.prop.urlExpressionSupport', { wrapper: '${...}' })
+  + t('property.prop.urlExpressionExample', { example: "${# == '1' ? 'a.html' : 'b.html'}" })
+)
 
-      this.leftParentRowNumberOptions = [];
-      this.topParentRowNumberOptions = [];
-      for (let j = 0; j < countRows; j++) {
-        this.leftParentRowNumberOptions.push({ label: j + 1, value: String(j + 1) });
-        this.topParentRowNumberOptions.push({ label: j + 1, value: String(j + 1) });
-      }
-    },
+const cellTypeOptions = computed<SelectOption[]>(() => [
+  { label: t('property.prop.text'), value: 'simple' },
+  { label: t('property.prop.expr'), value: 'expression' },
+  { label: t('property.prop.dataset'), value: 'dataset' },
+  { label: t('property.prop.image'), value: 'image' },
+  { label: t('property.prop.slash'), value: 'slash' },
+  { label: t('property.prop.qrcode'), value: 'qrcode' },
+  { label: t('property.prop.barcode'), value: 'barcode' },
+  { label: t('property.prop.chart'), value: 'chart' }
+])
 
-    handleLeftParentTypeChange(value) {
-      if (value === 'default') {
-        this.setParentCell(null, true);
-        this.updateLeftParentToDefault();
-      }
-    },
+const cellPosition = computed<string>(() => `${props.rowIndex},${props.colIndex}`)
 
-    updateLeftParentToDefault() {
-      if (this.colIndex === 0) {
-        this.leftParentCellName = 'root';
-        this.leftParentRowNumber = '';
-      } else {
-        let row = this.rowIndex, col = this.colIndex - 1;
-        const hot = TableManager.get();
-        const td = hot.getCell(row, col);
-        if (this.isCellHidden(td)) {
-          const mergeCells = hot.getSettings().mergeCells;
-          for (const item of mergeCells) {
-            const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
-            const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
-            if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
-              row = rowStart;
-              col = colStart;
-              break;
-            }
-          }
-        }
-        const cellName = getCellName(row, col);
-        const data = this.parseCellName(cellName);
-        this.leftParentCellName = data.name;
-        this.leftParentRowNumber = data.num;
-      }
-    },
+// ====== a-select 搜索过滤 ======
+const filterOption = (input: string, option: SelectOption | undefined): boolean => {
+  if (!option) return false
+  return option.label.toString().toLowerCase().includes(input.toLowerCase())
+}
 
-    handleLeftParentCellNameChange(value) {
-      if (value === 'root') {
-        this.leftParentRowNumber = '';
-        this.setParentCell('root', true);
-      } else {
-        const num = this.leftParentRowNumber;
-        if (value !== '' && num !== '') {
-          this.setParentCell(value + num.toString(), true);
-        }
-      }
-    },
+// ====== 监听：cellPosition 变化时重建选项 ======
+watch(cellPosition, () => {
+  buildParentCellNameOptions()
+  buildParentRowNumberOptions()
+  updateLinkParameters()
+})
 
-    handleLeftParentRowNumberChange(value) {
-      const name = this.leftParentCellName;
-      if (name === 'root') {
-        this.setParentCell('root', true);
-      } else {
-        if (name !== '' && value !== '' && value !== null) {
-          this.setParentCell(name + value.toString(), true);
-        }
-      }
-    },
+onMounted(() => {
+  buildParentCellNameOptions()
+  buildParentRowNumberOptions()
+  updateLinkParameters()
+})
 
-    handleTopParentTypeChange(value) {
-      if (value === 'default') {
-        this.setParentCell(null, false);
-        this.updateTopParentToDefault();
-      }
-    },
+onBeforeUnmount(() => {
+  // 无需卸载额外资源
+})
 
-    updateTopParentToDefault() {
-      if (this.rowIndex === 0) {
-        this.topParentCellName = 'root';
-        this.topParentRowNumber = '';
-      } else {
-        let row = this.rowIndex - 1, col = this.colIndex;
-        const hot = TableManager.get();
-        const td = hot.getCell(row, col);
-        if (this.isCellHidden(td)) {
-          const mergeCells = hot.getSettings().mergeCells;
-          for (const item of mergeCells) {
-            const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
-            const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
-            if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
-              row = rowStart;
-              col = colStart;
-              break;
-            }
-          }
-        }
-        const cellName = getCellName(row, col);
-        const data = this.parseCellName(cellName);
-        this.topParentCellName = data.name;
-        this.topParentRowNumber = data.num;
-      }
-    },
-
-    handleTopParentCellNameChange(value) {
-      if (value === 'root') {
-        this.topParentRowNumber = '';
-        this.setParentCell('root', false);
-      } else {
-        const num = this.topParentRowNumber;
-        if (value !== '' && num !== '') {
-          this.setParentCell(value + num.toString(), false);
-        }
-      }
-    },
-
-    handleTopParentRowNumberChange(value) {
-      const name = this.topParentCellName;
-      if (name === 'root') {
-        this.setParentCell('root', false);
-      } else {
-        if (name !== '' && value !== '' && value !== null) {
-          this.setParentCell(name + value.toString(), false);
-        }
-      }
-    },
-
-    setParentCell(parentCellName, isLeft) {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) {
-        return;
-      }
-      const newCellDef = deepCopy(cellDef);
-      if (isLeft) {
-        newCellDef.leftParentCellName = parentCellName;
-      } else {
-        newCellDef.topParentCellName = parentCellName;
-      }
-      setCell(this.rowIndex, this.colIndex, newCellDef);
-      setDirty();
-    },
-
-    isCellHidden(td) {
-      return td && td.style && td.style.display === 'none';
-    },
-
-    parseCellName(cellName) {
-      let pos = -1;
-      for (let i = 0; i < cellName.length; i++) {
-        const char = cellName.charAt(i);
-        const num = parseInt(char);
-        if (!isNaN(num)) {
-          pos = i;
-          break;
-        }
-      }
-      const name = cellName.substring(0, pos);
-      const num = cellName.substring(pos, cellName.length);
-      return { name, num: num.toString() };
-    },
-
-    handleRendererChange(value) {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) {
-        return;
-      }
-      const newCellDef = deepCopy(cellDef);
-      if (!newCellDef.cellStyle) {
-        newCellDef.cellStyle = {};
-      }
-      newCellDef.cellStyle.renderer = value;
-      setCell(this.rowIndex, this.colIndex, newCellDef);
-      setDirty();
-    },
-
-    handleSelectRenderer() {
-      this.$emit('select-renderer');
-    },
-
-    handleLinkUrlChange(value) {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) {
-        return;
-      }
-      const newCellDef = deepCopy(cellDef);
-      newCellDef.linkUrl = value;
-      setCell(this.rowIndex, this.colIndex, newCellDef);
-      setDirty();
-    },
-
-    handleLinkTargetChange(value) {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) {
-        return;
-      }
-      const newCellDef = deepCopy(cellDef);
-      newCellDef.linkTargetWindow = value;
-      setCell(this.rowIndex, this.colIndex, newCellDef);
-      setDirty();
-    },
-
-    handleUrlParameterConfig() {
-      if (!this.linkUrl || this.linkUrl === '') {
-        showAlert(this.$t('property.prop.urlTip'));
-        return;
-      }
-      this.urlParameterDialogVisible = true;
-    },
-
-    handleUrlParameterDialogClose() {
-      this.urlParameterDialogVisible = false;
-    },
-
-    handleLinkParametersChange(value) {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) {
-        return;
-      }
-      const newCellDef = deepCopy(cellDef);
-      newCellDef.linkParameters = value || [];
-      setCell(this.rowIndex, this.colIndex, newCellDef);
-      setDirty();
-      this.linkParameters = value || [];
-    },
-
-    handleCellTypeChange(value) {
-      this.$emit('cell-type-change', value);
+// ====== 工具：解析单元格名（如 A1 → { name: 'A', num: '1' }） ======
+const parseCellName = (cellName: string): { name: string; num: string } => {
+  let pos = -1
+  for (let i = 0; i < cellName.length; i++) {
+    const char = cellName.charAt(i)
+    const num = parseInt(char)
+    if (!isNaN(num)) {
+      pos = i
+      break
     }
   }
-};
+  if (pos === -1) {
+    return { name: cellName, num: '' }
+  }
+  const name = cellName.substring(0, pos)
+  const num = cellName.substring(pos, cellName.length)
+  return { name, num: num.toString() }
+}
+
+interface TableCell {
+  style?: {
+    display?: string
+    [key: string]: string | undefined
+  }
+  [key: string]: unknown
+}
+
+const isCellHidden = (td: unknown): boolean => {
+  if (!td || typeof td !== 'object') return false
+  const cell = td as TableCell
+  return Boolean(cell.style && cell.style.display === 'none')
+}
+
+const updateLinkParameters = (): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.linkParameters) {
+    linkParameters.value = cellDef.linkParameters
+  } else {
+    linkParameters.value = []
+  }
+}
+
+const buildParentCellNameOptions = (): void => {
+  const hot = TableManager.get()
+  if (!hot) return
+  const countCols = hot.countCols()
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+
+  const leftOptions: SelectOption[] = [{ value: 'root', label: t('property.prop.none') }]
+  const topOptions: SelectOption[] = [{ value: 'root', label: t('property.prop.none') }]
+
+  for (let j = 0; j < countCols; j++) {
+    const name = getCellName(null, j)
+    leftOptions.push({ value: name, label: name })
+    topOptions.push({ value: name, label: name })
+  }
+  leftParentCellNameOptions.value = leftOptions
+  topParentCellNameOptions.value = topOptions
+
+  // 左父单元格
+  if (cellDef && cellDef.leftParentCellName) {
+    leftParentType.value = 'custom'
+    const name = cellDef.leftParentCellName
+    if (name === 'root') {
+      leftParentCellName.value = 'root'
+      leftParentRowNumber.value = ''
+    } else {
+      const data = parseCellName(name)
+      leftParentCellName.value = data.name
+      leftParentRowNumber.value = data.num
+    }
+  } else {
+    leftParentType.value = 'default'
+    if (props.colIndex === 0) {
+      leftParentCellName.value = 'root'
+      leftParentRowNumber.value = ''
+    } else {
+      let row = props.rowIndex
+      let col = props.colIndex - 1
+      const td = hot.getCell(row, col)
+      if (isCellHidden(td)) {
+        const mergeCells = hot.getSettings().mergeCells
+        for (const item of mergeCells) {
+          const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan
+          const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1
+          if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+            row = rowStart
+            col = colStart
+            break
+          }
+        }
+      }
+      const cellName = getCellName(row, col)
+      const data = parseCellName(cellName)
+      leftParentCellName.value = data.name
+      leftParentRowNumber.value = data.num
+    }
+  }
+
+  // 父上单元格
+  if (cellDef && cellDef.topParentCellName) {
+    topParentType.value = 'custom'
+    const name = cellDef.topParentCellName
+    if (name === 'root') {
+      topParentCellName.value = 'root'
+      topParentRowNumber.value = ''
+    } else {
+      const data = parseCellName(name)
+      topParentCellName.value = data.name
+      topParentRowNumber.value = data.num
+    }
+  } else {
+    topParentType.value = 'default'
+    if (props.rowIndex === 0) {
+      topParentCellName.value = 'root'
+      topParentRowNumber.value = ''
+    } else {
+      let row = props.rowIndex - 1
+      let col = props.colIndex
+      const td = hot.getCell(row, col)
+      if (isCellHidden(td)) {
+        const mergeCells = hot.getSettings().mergeCells
+        for (const item of mergeCells) {
+          const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan
+          const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1
+          if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+            row = rowStart
+            col = colStart
+            break
+          }
+        }
+      }
+      const cellName = getCellName(row, col)
+      const data = parseCellName(cellName)
+      topParentCellName.value = data.name
+      topParentRowNumber.value = data.num
+    }
+  }
+
+  // 渲染器
+  if (cellDef && cellDef.cellStyle && cellDef.cellStyle.renderer) {
+    rendererBean.value = cellDef.cellStyle.renderer
+  } else {
+    rendererBean.value = ''
+  }
+
+  // 链接
+  if (cellDef) {
+    linkUrl.value = cellDef.linkUrl || ''
+    linkTarget.value = cellDef.linkTargetWindow || '_blank'
+  } else {
+    linkUrl.value = ''
+    linkTarget.value = '_blank'
+  }
+
+  // 单元格类型
+  if (cellDef && cellDef.value) {
+    const type = cellDef.value.type || 'simple'
+    if (type === 'zxing') {
+      cellType.value = cellDef.value.category
+    } else {
+      cellType.value = type
+    }
+  } else {
+    cellType.value = 'simple'
+  }
+}
+
+const buildParentRowNumberOptions = (): void => {
+  const hot = TableManager.get()
+  if (!hot) return
+  const countRows = hot.countRows()
+  const leftOptions: SelectOption[] = []
+  const topOptions: SelectOption[] = []
+  for (let j = 0; j < countRows; j++) {
+    leftOptions.push({ label: j + 1, value: String(j + 1) })
+    topOptions.push({ label: j + 1, value: String(j + 1) })
+  }
+  leftParentRowNumberOptions.value = leftOptions
+  topParentRowNumberOptions.value = topOptions
+}
+
+// ====== 父单元格：左 ======
+const handleLeftParentTypeChange = (value: string): void => {
+  if (value === 'default') {
+    setParentCell(null, true)
+    updateLeftParentToDefault()
+  }
+}
+
+const updateLeftParentToDefault = (): void => {
+  const hot = TableManager.get()
+  if (!hot) return
+  if (props.colIndex === 0) {
+    leftParentCellName.value = 'root'
+    leftParentRowNumber.value = ''
+    return
+  }
+  let row = props.rowIndex
+  let col = props.colIndex - 1
+  const td = hot.getCell(row, col)
+  if (isCellHidden(td)) {
+    const mergeCells = hot.getSettings().mergeCells
+    for (const item of mergeCells) {
+      const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan
+      const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1
+      if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+        row = rowStart
+        col = colStart
+        break
+      }
+    }
+  }
+  const cellName = getCellName(row, col)
+  const data = parseCellName(cellName)
+  leftParentCellName.value = data.name
+  leftParentRowNumber.value = data.num
+}
+
+const handleLeftParentCellNameChange = (value: string): void => {
+  if (value === 'root') {
+    leftParentRowNumber.value = ''
+    setParentCell('root', true)
+  } else {
+    const num = leftParentRowNumber.value
+    if (value !== '' && num !== '') {
+      setParentCell(value + num.toString(), true)
+    }
+  }
+}
+
+const handleLeftParentRowNumberChange = (value: string): void => {
+  const name = leftParentCellName.value
+  if (name === 'root') {
+    setParentCell('root', true)
+  } else {
+    if (name !== '' && value !== '' && value !== null) {
+      setParentCell(name + value.toString(), true)
+    }
+  }
+}
+
+// ====== 父单元格：上 ======
+const handleTopParentTypeChange = (value: string): void => {
+  if (value === 'default') {
+    setParentCell(null, false)
+    updateTopParentToDefault()
+  }
+}
+
+const updateTopParentToDefault = (): void => {
+  const hot = TableManager.get()
+  if (!hot) return
+  if (props.rowIndex === 0) {
+    topParentCellName.value = 'root'
+    topParentRowNumber.value = ''
+    return
+  }
+  let row = props.rowIndex - 1
+  let col = props.colIndex
+  const td = hot.getCell(row, col)
+  if (isCellHidden(td)) {
+    const mergeCells = hot.getSettings().mergeCells
+    for (const item of mergeCells) {
+      const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan
+      const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1
+      if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+        row = rowStart
+        col = colStart
+        break
+      }
+    }
+  }
+  const cellName = getCellName(row, col)
+  const data = parseCellName(cellName)
+  topParentCellName.value = data.name
+  topParentRowNumber.value = data.num
+}
+
+const handleTopParentCellNameChange = (value: string): void => {
+  if (value === 'root') {
+    topParentRowNumber.value = ''
+    setParentCell('root', false)
+  } else {
+    const num = topParentRowNumber.value
+    if (value !== '' && num !== '') {
+      setParentCell(value + num.toString(), false)
+    }
+  }
+}
+
+const handleTopParentRowNumberChange = (value: string): void => {
+  const name = topParentCellName.value
+  if (name === 'root') {
+    setParentCell('root', false)
+  } else {
+    if (name !== '' && value !== '' && value !== null) {
+      setParentCell(name + value.toString(), false)
+    }
+  }
+}
+
+const setParentCell = (parentCellName: string | null, isLeft: boolean): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (!cellDef) {
+    return
+  }
+  const newCellDef = deepCopy(cellDef)
+  if (isLeft) {
+    newCellDef.leftParentCellName = parentCellName
+  } else {
+    newCellDef.topParentCellName = parentCellName
+  }
+  setCell(props.rowIndex, props.colIndex, newCellDef)
+  setDirty()
+}
+
+// ====== 渲染器 ======
+const handleRendererChange = (value: string): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (!cellDef) {
+    return
+  }
+  const newCellDef = deepCopy(cellDef)
+  if (!newCellDef.cellStyle) {
+    newCellDef.cellStyle = {}
+  }
+  newCellDef.cellStyle.renderer = value
+  setCell(props.rowIndex, props.colIndex, newCellDef)
+  setDirty()
+}
+
+const handleSelectRenderer = (): void => {
+  emit('select-renderer')
+}
+
+// ====== 链接 ======
+const handleLinkUrlChange = (value: string): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (!cellDef) {
+    return
+  }
+  const newCellDef = deepCopy(cellDef)
+  newCellDef.linkUrl = value
+  setCell(props.rowIndex, props.colIndex, newCellDef)
+  setDirty()
+}
+
+const handleLinkTargetChange = (value: string): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (!cellDef) {
+    return
+  }
+  const newCellDef = deepCopy(cellDef)
+  newCellDef.linkTargetWindow = value
+  setCell(props.rowIndex, props.colIndex, newCellDef)
+  setDirty()
+}
+
+const handleUrlParameterConfig = (): void => {
+  if (!linkUrl.value || linkUrl.value === '') {
+    showAlert(t('property.prop.urlTip'))
+    return
+  }
+  urlParameterDialogVisible.value = true
+}
+
+const handleLinkParametersChange = (value: UrlParameterItem[]): void => {
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (!cellDef) {
+    return
+  }
+  const newCellDef = deepCopy(cellDef)
+  newCellDef.linkParameters = value || []
+  setCell(props.rowIndex, props.colIndex, newCellDef)
+  setDirty()
+  linkParameters.value = value || []
+}
+
+// ====== 单元格类型 ======
+const handleCellTypeChange = (value: string): void => {
+  emit('cell-type-change', value)
+}
 </script>
 
 <style scoped>
@@ -644,7 +670,7 @@ export default {
   width: 100%;
 }
 
-.parent-cell{
+.parent-cell {
   margin-bottom: 0 !important;
 }
 </style>

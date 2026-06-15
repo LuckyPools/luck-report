@@ -52,7 +52,7 @@ export default i18n
  * @param {Record<string, unknown>} [values] 插值参数对象
  * @returns {string} 翻译结果
  */
-export function $t(key: string, values?: Record<string, unknown>): string {
+export function t(key: string, values?: Record<string, unknown>): string {
     // vue-i18n 9 的 t 在 legacy 模式下支持多参数；values 用 unknown 转发以避免泛型误判
     return i18n.global.t(key, values as never) as string
 }

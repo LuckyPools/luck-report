@@ -19,7 +19,7 @@ import Handsontable from 'handsontable';
 import type { HandsontableInstance } from '@/types/handsontable';
 import { buildNewCellDef, resetTableData, setDirty, undoManager } from '@/utils/table';
 import { renderRowHeader } from '@/views/report/designer/edit-table/utils/HeaderUtils';
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import { showAlert } from '@/utils/comnon';
 import {
   addCell,
@@ -29,7 +29,7 @@ import {
   getContext,
   removeCell
 } from '@/utils/contextActions';
-import { deepCopy } from '@/components/utils';
+import { deepCopy } from '@/utils/comnon';
 
 /** 插入行操作的返回结构（用于 undo/redo） */
 export interface InsertRowResult {
@@ -117,7 +117,7 @@ function buildNewRowCells(hot: HandsontableInstance, position: number, number: n
 export function doInsertRow(this: HandsontableInstance, above: boolean, number = 1): void {
   const selected = this.getSelected()
   if (!selected) {
-    showAlert($t('table.rowTip')).then(() => { /* 取消无操作 */ })
+    showAlert(i18n.global.t('table.rowTip')).then(() => { /* 取消无操作 */ })
     return
   }
   const range = selected[0]

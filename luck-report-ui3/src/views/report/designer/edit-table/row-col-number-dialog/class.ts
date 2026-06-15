@@ -13,7 +13,8 @@
  *
  * 迁移说明：
  * - Vue2 `Vue.extend(Comp).$mount()` 改为 vue3 `createApp(Comp).mount(el)`（通过 createDialogApp 工具）
- * - 不再需要单独传 i18n（vue3 createApp 时全局 i18n 已通过 main.ts app.use(i18n) 注入）
+ * - 子 app 由 createDialogApp 内部 app.use(i18n) / app.use(Antd) 注入依赖；
+ *   vue3 createApp 是独立的，与 main.ts 主 app 不共享 plugin 状态
  * - 组件内部仍然叫 show(callback, isRow)，保持 API 兼容
  */
 // 组件需要同时作为值（createApp 挂载）和类型（泛型推断）使用，所以用普通 import

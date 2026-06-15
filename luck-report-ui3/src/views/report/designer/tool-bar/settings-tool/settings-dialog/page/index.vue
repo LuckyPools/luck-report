@@ -1,166 +1,155 @@
 <template>
-  <u-form :label-width="100" label-position="left">
-    <u-row>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.paperType')">
-          <u-select
-            v-model="localPaper.paperType"
+  <a-form :label-col="{ style: { width: '100px' } }">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.paperType')">
+          <a-select
+            v-model:value="localPaper.paperType"
             style="width: 140px"
             @change="handlePaperTypeChange"
           >
-            <u-option
+            <a-select-option
               v-for="option in paperTypeOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.orientation')">
-          <u-select
-              v-model="localPaper.orientation"
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.orientation')">
+          <a-select
+              v-model:value="localPaper.orientation"
               @change="handleOrientationChange"
               style="width: 140px"
           >
-            <u-option
+            <a-select-option
                 v-for="option in orientationOptions"
                 :key="option.value"
                 :value="option.value"
-                :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
-      </u-col>
-    </u-row>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.paperWidth')">
-          <u-input-number
-              v-model="localPageWidth"
+    <a-row style="margin-top: 5px;">
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.paperWidth')">
+          <a-input-number
+              v-model:value="localPageWidth"
               :disabled="localPaper.paperType !== 'CUSTOM'"
               @change="handlePageWidthChange"
           />
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.paperHeight')">
-          <u-input-number
-              v-model="localPageHeight"
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.paperHeight')">
+          <a-input-number
+              v-model:value="localPageHeight"
               :disabled="localPaper.paperType !== 'CUSTOM'"
               @change="handlePageHeightChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.leftMargin')">
-          <u-input-number
-            v-model="localLeftMargin"
+    <a-row style="margin-top: 5px;">
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.leftMargin')">
+          <a-input-number
+            v-model:value="localLeftMargin"
             @change="handleLeftMarginChange"
           />
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.rightMargin')">
-          <u-input-number
-            v-model="localRightMargin"
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.rightMargin')">
+          <a-input-number
+            v-model:value="localRightMargin"
             @change="handleRightMarginChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.topMargin')">
-          <u-input-number
-            v-model="localTopMargin"
+    <a-row style="margin-top: 5px;">
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.topMargin')">
+          <a-input-number
+            v-model:value="localTopMargin"
             @change="handleTopMarginChange"
           />
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.bottomMargin')">
-          <u-input-number
-            v-model="localBottomMargin"
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.bottomMargin')">
+          <a-input-number
+            v-model:value="localBottomMargin"
             @change="handleBottomMarginChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.htmlAlign')">
-          <u-select
-            v-model="localPaper.htmlReportAlign"
+    <a-row style="margin-top: 5px;">
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.htmlAlign')">
+          <a-select
+            v-model:value="localPaper.htmlReportAlign"
             style="width: 140px"
             @change="handleHtmlAlignChange"
           >
-            <u-option
+            <a-select-option
               v-for="option in htmlAlignOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
-      </u-col>
-      <u-col :span="12">
-        <u-form-item class="property-label" :label="$t('dialog.setting.refreshSecond')">
-          <u-input-number
-            v-model="localPaper.htmlIntervalRefreshValue"
-            :placeholder="$t('dialog.setting.tip1')"
-            :title="$t('dialog.setting.tip2')"
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item class="property-label" :label="t('dialog.setting.refreshSecond')">
+          <a-input-number
+            v-model:value="localPaper.htmlIntervalRefreshValue"
+            :placeholder="t('dialog.setting.tip1')"
+            :title="t('dialog.setting.tip2')"
             :min="0"
             @change="handleHtmlIntervalRefreshValueChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="24">
-        <u-form-item class="property-label" :label="$t('dialog.setting.bg')">
-          <u-input
-            v-model="localPaper.bgImage"
+    <a-row style="margin-top: 5px;">
+      <a-col :span="24">
+        <a-form-item class="property-label" :label="t('dialog.setting.bg')">
+          <a-input
+            v-model:value="localPaper.bgImage"
             style="width: 470px;"
-            :placeholder="$t('dialog.setting.bgTip')"
+            :placeholder="t('dialog.setting.bgTip')"
             @blur="handleBgImageChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
-  </u-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script>
-import { pointToMM, mmToPoint, buildPageSizeList } from '@/utils/table.js';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import UInput from '@/components/input/index.vue';
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
+import { pointToMM, mmToPoint, buildPageSizeList } from '@/utils/table';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'PageSettings',
-  components: {
-    USelect,
-    UOption,
-    UInputNumber,
-    UInput,
-    UForm,
-    UFormItem,
-    URow,
-    UCol
+  setup() {
+    return { t: useI18n().t };
   },
   props: {
     paper: {
@@ -191,21 +180,21 @@ export default {
       }
       options.push({
         value: 'CUSTOM',
-        label: this.$t('dialog.setting.custom')
+        label: this.t('dialog.setting.custom')
       });
       return options;
     },
     orientationOptions() {
       return [
-        { value: 'portrait', label: this.$t('dialog.setting.portrait') },
-        { value: 'landscape', label: this.$t('dialog.setting.landscape') }
+        { value: 'portrait', label: this.t('dialog.setting.portrait') },
+        { value: 'landscape', label: this.t('dialog.setting.landscape') }
       ];
     },
     htmlAlignOptions() {
       return [
-        { value: 'left', label: this.$t('dialog.setting.left') },
-        { value: 'center', label: this.$t('dialog.setting.center') },
-        { value: 'right', label: this.$t('dialog.setting.right') }
+        { value: 'left', label: this.t('dialog.setting.left') },
+        { value: 'center', label: this.t('dialog.setting.center') },
+        { value: 'right', label: this.t('dialog.setting.right') }
       ];
     }
   },

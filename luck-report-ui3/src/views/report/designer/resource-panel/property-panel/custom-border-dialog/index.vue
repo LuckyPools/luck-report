@@ -1,30 +1,31 @@
 <template>
-  <UDialog
-    :title="$t('tools.border.customBorderLine')"
-    width="600px"
-    :visible="visible"
+  <a-modal
+    :title="t('tools.border.customBorderLine')"
+    :width="600"
+    :open="visible"
     :z-index="zIndex"
-    @close="handleClose"
+    :mask-closable="false"
+    @cancel="handleClose"
   >
     <div class="border-config-container">
       <div class="preset-section">
         <label class="preset-label">
-          {{ $t('tools.border.preset') }}：
+          {{ t('tools.border.preset') }}：
         </label>
-        <u-button
+        <a-button
           type="text"
-          :title="$t('tools.border.allLine')"
+          :title="t('tools.border.allLine')"
           @click="applyAllBorder"
         >
           <i class="iconfont icon-full-border"></i>
-        </u-button>
-        <u-button
+        </a-button>
+        <a-button
           type="text"
-          :title="$t('tools.border.noBorder')"
+          :title="t('tools.border.noBorder')"
           @click="applyNoBorder"
         >
           <i class="iconfont icon-no-border"></i>
-        </u-button>
+        </a-button>
       </div>
 
       <div class="main-content">
@@ -35,7 +36,7 @@
                 class="inner-box"
                 :style="innerBoxStyle"
               >
-                <span class="preview-text">{{ $t('tools.border.text') }}</span>
+                <span class="preview-text">{{ t('tools.border.text') }}</span>
                 <div
                   v-for="border in borders"
                   :key="border.position"
@@ -48,287 +49,308 @@
         </div>
 
         <div class="property-section">
-          <u-form ref="form" :label-width="80">
-            <u-form-item :label="$t('tools.border.lineStyle')">
-              <u-select v-model="currentBorderStyle.style">
-                <u-option
+          <a-form :label-col="{ style: { width: '80px' } }" :colon="false">
+            <a-form-item :label="t('tools.border.lineStyle')">
+              <a-select v-model:value="currentBorderStyle.style">
+                <a-select-option
                   v-for="option in lineStyleOptions"
                   :key="option.value"
                   :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.size')">
-              <u-select v-model="currentBorderStyle.width">
-                <u-option
+                >
+                  {{ option.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item :label="t('tools.border.size')">
+              <a-select v-model:value="currentBorderStyle.width">
+                <a-select-option
                   v-for="option in lineWidthOptions"
                   :key="option.value"
                   :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.color')">
-              <UColorPicker v-model="currentBorderStyle.color" />
-            </u-form-item>
-          </u-form>
+                >
+                  {{ option.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item :label="t('tools.border.color')">
+              <u-color-picker
+                v-model:value="currentBorderStyle.color"
+                format="hex"
+                show-text
+              />
+            </a-form-item>
+          </a-form>
         </div>
       </div>
     </div>
 
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
+      <a-button type="primary" @click="handleOk">{{ t('dialog.common.ok') }}</a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import UDialog from '@/components/dialog/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UButton from "@/components/button/index.vue";
-import UColorPicker from "@/components/color-picker/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import { rgbToHex, hexToRgb } from '@/utils/color';
+<script setup lang="ts">
+/**
+ * CustomBorderDialog 自定义单元格边框弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → loadBorderData 从 cellStyle 或 4 个独立 prop 中加载数据
+ * 2. 用户点击边框区域（top/right/bottom/left）→ activeBorder 切换
+ * 3. 右侧表单修改当前激活边框的 style/width/color
+ * 4. 「确定」→ 把本地边框值（color 转 rgb）通过 emit('save') 上抛
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UForm/UFormItem/USelect/UOption/UButton/UColorPicker（自定义）→ a-modal/a-form/a-form-item/a-select/a-select-option/a-button/u-color-picker
+ * - slot="footer" → #footer
+ * - 计算属性 currentBorderStyle 的 get/set → 拆成 ref + watch 双向同步
+ * - mounted/beforeDestroy 绑定的 keydown → onMounted/onBeforeUnmount
+ */
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { rgbToHex, hexToRgb } from '@/utils/color'
+import { useI18n } from 'vue-i18n'
+import UColorPicker from '@/components/color-picker/index.vue'
 
-export default {
-  name: 'CustomBorderDialog',
-  components: {
-    UColorPicker,
-    UButton,
-    UDialog,
-    USelect,
-    UOption,
-    UForm,
-    UFormItem
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    cellStyle: {
-      type: Object,
-      default: null
-    },
-    topBorder: {
-      type: Object,
-      default: () => ({
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      })
-    },
-    bottomBorder: {
-      type: Object,
-      default: () => ({
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      })
-    },
-    leftBorder: {
-      type: Object,
-      default: () => ({
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      })
-    },
-    rightBorder: {
-      type: Object,
-      default: () => ({
-        style: 'solid',
-        width: 1,
-        color: '#000000'
-      })
-    },
-    zIndex: {
-      type: Number,
-      default: 20000
+defineOptions({ name: 'CustomBorderDialog' })
+
+
+const { t } = useI18n()
+/** 边框位置 */
+type BorderPosition = 'top' | 'right' | 'bottom' | 'left'
+
+/** 单条边框样式 */
+interface BorderStyle {
+  style: string
+  width: number
+  color: string
+}
+
+/** save emit 载荷（cellStyle 模式） */
+interface CellStyleSavePayload {
+  topBorder: BorderStyle
+  bottomBorder: BorderStyle
+  leftBorder: BorderStyle
+  rightBorder: BorderStyle
+}
+
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    cellStyle?: Record<string, BorderStyle> | null
+    topBorder?: BorderStyle
+    bottomBorder?: BorderStyle
+    leftBorder?: BorderStyle
+    rightBorder?: BorderStyle
+    zIndex?: number
+  }>(),
+  {
+    visible: false,
+    cellStyle: null,
+    topBorder: () => ({ style: 'solid', width: 1, color: '#000000' }),
+    bottomBorder: () => ({ style: 'solid', width: 1, color: '#000000' }),
+    leftBorder: () => ({ style: 'solid', width: 1, color: '#000000' }),
+    rightBorder: () => ({ style: 'solid', width: 1, color: '#000000' }),
+    zIndex: 20000
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'update:visible', val: boolean): void
+  (e: 'save', payload: CellStyleSavePayload): void
+}>()
+
+const defaultBorder: BorderStyle = { style: 'none', width: 1, color: '#000000' }
+const solidBorder: BorderStyle = { style: 'solid', width: 1, color: '#000000' }
+const noBorder: BorderStyle = { style: 'none', width: 1, color: '#000000' }
+
+const activeBorder = ref<BorderPosition>('left')
+const localTopBorder = ref<BorderStyle>({ ...defaultBorder })
+const localBottomBorder = ref<BorderStyle>({ ...defaultBorder })
+const localLeftBorder = ref<BorderStyle>({ ...defaultBorder })
+const localRightBorder = ref<BorderStyle>({ ...defaultBorder })
+const borders: { position: BorderPosition }[] = [
+  { position: 'top' },
+  { position: 'right' },
+  { position: 'bottom' },
+  { position: 'left' }
+]
+
+/** 当前激活边框的引用（写入时同步到对应 local* 变量） */
+const currentBorderStyle = computed<BorderStyle>({
+  get(): BorderStyle {
+    const map: Record<BorderPosition, BorderStyle> = {
+      top: localTopBorder.value,
+      right: localRightBorder.value,
+      bottom: localBottomBorder.value,
+      left: localLeftBorder.value
     }
+    return map[activeBorder.value] ?? localRightBorder.value
   },
-  data() {
-    return {
-      activeBorder: 'left',
-      localTopBorder: { style: 'none', width: 1, color: '#000000' },
-      localBottomBorder: { style: 'none', width: 1, color: '#000000' },
-      localLeftBorder: { style: 'none', width: 1, color: '#000000' },
-      localRightBorder: { style: 'none', width: 1, color: '#000000' },
-      borders: [
-        { position: 'top' },
-        { position: 'right' },
-        { position: 'bottom' },
-        { position: 'left' }
-      ]
-    };
-  },
-  computed: {
-    lineStyleOptions() {
-      return [
-        { value: 'solid', label: this.$t('tools.border.solidLine') },
-        { value: 'dashed', label: this.$t('tools.border.dashed') },
-        { value: 'none', label: this.$t('tools.border.none') }
-      ];
-    },
-    lineWidthOptions() {
-      return Array.from({ length: 10 }, (_, i) => ({
-        value: i + 1,
-        label: (i + 1).toString()
-      }));
-    },
-    currentBorderStyle: {
-      get() {
-        const borderMap = {
-          top: this.localTopBorder,
-          bottom: this.localBottomBorder,
-          left: this.localLeftBorder,
-          right: this.localRightBorder
-        };
-        return borderMap[this.activeBorder] || this.localRightBorder;
-      },
-      set(val) {
-        const borderMap = {
-          top: 'localTopBorder',
-          bottom: 'localBottomBorder',
-          left: 'localLeftBorder',
-          right: 'localRightBorder'
-        };
-        this[borderMap[this.activeBorder]] = { ...val };
-      }
-    },
-    innerBoxStyle() {
-      const getBorderStyle = (border) => {
-        if (!border || border.style === 'none') {
-          return 'none';
-        }
-        const width = border.width || 1;
-        const color = border.color || '#000000';
-        return `${border.style} ${width}px ${color}`;
-      };
-
-      return {
-        borderTop: getBorderStyle(this.localTopBorder),
-        borderRight: getBorderStyle(this.localRightBorder),
-        borderBottom: getBorderStyle(this.localBottomBorder),
-        borderLeft: getBorderStyle(this.localLeftBorder)
-      };
-    },
-    outerBoxClass() {
-      return {
-        'active-top': this.activeBorder === 'top',
-        'active-right': this.activeBorder === 'right',
-        'active-bottom': this.activeBorder === 'bottom',
-        'active-left': this.activeBorder === 'left'
-      };
+  set(val: BorderStyle) {
+    const map: Record<BorderPosition, BorderStyle> = {
+      top: localTopBorder.value,
+      right: localRightBorder.value,
+      bottom: localBottomBorder.value,
+      left: localLeftBorder.value
     }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.loadBorderData();
-      }
-    }
-  },
-  methods: {
-    loadBorderData() {
-      const defaultBorder = { style: 'none', width: 1, color: '#000000' };
+    map[activeBorder.value] = { ...val }
+  }
+})
 
-      if (this.cellStyle) {
-        this.localTopBorder = this.cellStyle.topBorder
-          ? { ...this.cellStyle.topBorder, color: this.rgbToHexIfNeeded(this.cellStyle.topBorder.color) }
-          : { ...defaultBorder };
-        this.localBottomBorder = this.cellStyle.bottomBorder
-          ? { ...this.cellStyle.bottomBorder, color: this.rgbToHexIfNeeded(this.cellStyle.bottomBorder.color) }
-          : { ...defaultBorder };
-        this.localLeftBorder = this.cellStyle.leftBorder
-          ? { ...this.cellStyle.leftBorder, color: this.rgbToHexIfNeeded(this.cellStyle.leftBorder.color) }
-          : { ...defaultBorder };
-        this.localRightBorder = this.cellStyle.rightBorder
-          ? { ...this.cellStyle.rightBorder, color: this.rgbToHexIfNeeded(this.cellStyle.rightBorder.color) }
-          : { ...defaultBorder };
-      } else {
-        this.localTopBorder = { ...this.topBorder };
-        this.localBottomBorder = { ...this.bottomBorder };
-        this.localLeftBorder = { ...this.leftBorder };
-        this.localRightBorder = { ...this.rightBorder };
-      }
-    },
-    rgbToHexIfNeeded(color) {
-      if (typeof color === 'string' && color.includes(',')) {
-        return rgbToHex(color);
-      }
-      return color;
-    },
-    selectBorder(position) {
-      this.activeBorder = position;
-    },
-    handleOuterBoxClick(event) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+const lineStyleOptions = computed(() => [
+  { value: 'solid', label: t('tools.border.solidLine') },
+  { value: 'dashed', label: t('tools.border.dashed') },
+  { value: 'none', label: t('tools.border.none') }
+])
 
-      const outerSize = 140;
-      const innerSize = 100;
-      const margin = (outerSize - innerSize) / 2;
+const lineWidthOptions = Array.from({ length: 10 }, (_, i) => ({
+  value: i + 1,
+  label: (i + 1).toString()
+}))
 
-      if (y < margin) {
-        this.selectBorder('top');
-      } else if (y > outerSize - margin) {
-        this.selectBorder('bottom');
-      } else if (x < margin) {
-        this.selectBorder('left');
-      } else if (x > outerSize - margin) {
-        this.selectBorder('right');
-      }
-    },
-    applyAllBorder() {
-      const defaultBorder = { style: 'solid', width: 1, color: '#000000' };
-      this.localTopBorder = { ...defaultBorder };
-      this.localBottomBorder = { ...defaultBorder };
-      this.localLeftBorder = { ...defaultBorder };
-      this.localRightBorder = { ...defaultBorder };
-    },
-    applyNoBorder() {
-      const noBorder = { style: 'none', width: 1, color: '#000000' };
-      this.localTopBorder = { ...noBorder };
-      this.localBottomBorder = { ...noBorder };
-      this.localLeftBorder = { ...noBorder };
-      this.localRightBorder = { ...noBorder };
-    },
-    handleClose() {
-      this.$emit('close');
-      this.$emit('update:visible', false);
-    },
-    handleOk() {
-      const topBorder = { ...this.localTopBorder };
-      const bottomBorder = { ...this.localBottomBorder };
-      const leftBorder = { ...this.localLeftBorder };
-      const rightBorder = { ...this.localRightBorder };
+const getBorderCss = (border: BorderStyle): string => {
+  if (!border || border.style === 'none') {
+    return 'none'
+  }
+  const width = border.width || 1
+  const color = border.color || '#000000'
+  return `${border.style} ${width}px ${color}`
+}
 
-      topBorder.color = hexToRgb(this.localTopBorder.color);
-      bottomBorder.color = hexToRgb(this.localBottomBorder.color);
-      leftBorder.color = hexToRgb(this.localLeftBorder.color);
-      rightBorder.color = hexToRgb(this.localRightBorder.color);
+const innerBoxStyle = computed(() => ({
+  borderTop: getBorderCss(localTopBorder.value),
+  borderRight: getBorderCss(localRightBorder.value),
+  borderBottom: getBorderCss(localBottomBorder.value),
+  borderLeft: getBorderCss(localLeftBorder.value)
+}))
 
-      if (this.cellStyle) {
-        this.$emit('save', {
-          topBorder,
-          bottomBorder,
-          leftBorder,
-          rightBorder
-        });
-      } else {
-        this.$emit('save', topBorder, bottomBorder, leftBorder, rightBorder);
-      }
-      this.$emit('close');
-      this.$emit('update:visible', false);
+const outerBoxClass = computed(() => ({
+  'active-top': activeBorder.value === 'top',
+  'active-right': activeBorder.value === 'right',
+  'active-bottom': activeBorder.value === 'bottom',
+  'active-left': activeBorder.value === 'left'
+}))
+
+/** 把 rgb(...) 字符串或 rgb 数字数组统一转为 hex */
+const rgbToHexIfNeeded = (color: string | undefined): string => {
+  if (typeof color === 'string' && color.includes(',')) {
+    return rgbToHex(color)
+  }
+  return color ?? '#000000'
+}
+
+/** 加载初始边框数据：优先 cellStyle，否则取 4 个独立 prop */
+const loadBorderData = (): void => {
+  if (props.cellStyle) {
+    localTopBorder.value = props.cellStyle.topBorder
+      ? { ...props.cellStyle.topBorder, color: rgbToHexIfNeeded(props.cellStyle.topBorder.color) }
+      : { ...defaultBorder }
+    localBottomBorder.value = props.cellStyle.bottomBorder
+      ? { ...props.cellStyle.bottomBorder, color: rgbToHexIfNeeded(props.cellStyle.bottomBorder.color) }
+      : { ...defaultBorder }
+    localLeftBorder.value = props.cellStyle.leftBorder
+      ? { ...props.cellStyle.leftBorder, color: rgbToHexIfNeeded(props.cellStyle.leftBorder.color) }
+      : { ...defaultBorder }
+    localRightBorder.value = props.cellStyle.rightBorder
+      ? { ...props.cellStyle.rightBorder, color: rgbToHexIfNeeded(props.cellStyle.rightBorder.color) }
+      : { ...defaultBorder }
+  } else {
+    localTopBorder.value = { ...props.topBorder }
+    localBottomBorder.value = { ...props.bottomBorder }
+    localLeftBorder.value = { ...props.leftBorder }
+    localRightBorder.value = { ...props.rightBorder }
+  }
+}
+
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      loadBorderData()
     }
   }
-};
+)
+
+const selectBorder = (position: BorderPosition): void => {
+  activeBorder.value = position
+}
+
+const handleOuterBoxClick = (event: MouseEvent): void => {
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+
+  const outerSize = 140
+  const innerSize = 100
+  const margin = (outerSize - innerSize) / 2
+
+  if (y < margin) {
+    selectBorder('top')
+  } else if (y > outerSize - margin) {
+    selectBorder('bottom')
+  } else if (x < margin) {
+    selectBorder('left')
+  } else if (x > outerSize - margin) {
+    selectBorder('right')
+  }
+}
+
+const applyAllBorder = (): void => {
+  localTopBorder.value = { ...solidBorder }
+  localBottomBorder.value = { ...solidBorder }
+  localLeftBorder.value = { ...solidBorder }
+  localRightBorder.value = { ...solidBorder }
+}
+
+const applyNoBorder = (): void => {
+  localTopBorder.value = { ...noBorder }
+  localBottomBorder.value = { ...noBorder }
+  localLeftBorder.value = { ...noBorder }
+  localRightBorder.value = { ...noBorder }
+}
+
+const handleClose = (): void => {
+  emit('close')
+  emit('update:visible', false)
+}
+
+const handleOk = (): void => {
+  const topBorder: BorderStyle = { ...localTopBorder.value }
+  const bottomBorder: BorderStyle = { ...localBottomBorder.value }
+  const leftBorder: BorderStyle = { ...localLeftBorder.value }
+  const rightBorder: BorderStyle = { ...localRightBorder.value }
+
+  topBorder.color = hexToRgb(localTopBorder.value.color)
+  bottomBorder.color = hexToRgb(localBottomBorder.value.color)
+  leftBorder.color = hexToRgb(localLeftBorder.value.color)
+  rightBorder.color = hexToRgb(localRightBorder.value.color)
+
+  emit('save', {
+    topBorder,
+    bottomBorder,
+    leftBorder,
+    rightBorder
+  })
+  emit('close')
+  emit('update:visible', false)
+}
+
+const handleKeydown = (e: KeyboardEvent): void => {
+  if (props.visible && e.key === 'Escape') {
+    handleClose()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <style scoped>
@@ -460,7 +482,7 @@ export default {
   flex: 1;
 }
 
-.property-section .u-form {
+.property-section :deep(.ant-form) {
   padding-top: 20px;
 }
 </style>

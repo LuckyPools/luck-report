@@ -1,116 +1,111 @@
 <template>
-  <UDialog
-    :title="$t('dialog.fontSetting.title')"
+  <a-modal
+    :title="t('dialog.fontSetting.title')"
     width="400px"
-    :visible="visible"
+    :open="visible"
     :z-index="20000"
-    @close="handleClose"
+    @cancel="handleClose"
+    @ok="handleOk"
   >
     <div class="dialog-content">
-      <u-form :label-width="60">
+      <a-form :label-col="{ style: { width: '60px' } }">
         <!-- 字体选择 -->
-        <u-form-item :label="$t('dialog.fontSetting.font')">
-          <u-select
-            v-model="localStyle.fontFamily"
+        <a-form-item :label="t('dialog.fontSetting.font')">
+          <a-select
+            v-model:value="localStyle.fontFamily"
           >
-            <u-option
+            <a-select-option
               v-for="option in fontFamilyOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
         <!-- 颜色选择 -->
-        <u-form-item :label="$t('dialog.fontSetting.color')">
-          <UColorPicker v-model="localColor" />
-        </u-form-item>
+        <a-form-item :label="t('dialog.fontSetting.color')">
+          <u-color-picker v-model:value="localColor" />
+        </a-form-item>
 
         <!-- 字体大小 -->
-        <u-form-item :label="$t('dialog.fontSetting.size')">
-          <u-select
-            v-model="localStyle.fontSize"
+        <a-form-item :label="t('dialog.fontSetting.size')">
+          <a-select
+            v-model:value="localStyle.fontSize"
           >
-            <u-option
+            <a-select-option
               v-for="option in fontSizeOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
         <!-- 粗体 -->
-        <u-form-item :label="$t('dialog.fontSetting.bold')">
-          <u-select
-            v-model="localStyle.bold"
+        <a-form-item :label="t('dialog.fontSetting.bold')">
+          <a-select
+            v-model:value="localStyle.bold"
           >
-            <u-option
+            <a-select-option
               v-for="option in booleanOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
         <!-- 斜体 -->
-        <u-form-item :label="$t('dialog.fontSetting.italic')">
-          <u-select
-            v-model="localStyle.italic"
+        <a-form-item :label="t('dialog.fontSetting.italic')">
+          <a-select
+            v-model:value="localStyle.italic"
           >
-            <u-option
+            <a-select-option
               v-for="option in booleanOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
         <!-- 下划线 -->
-        <u-form-item :label="$t('dialog.fontSetting.underline')">
-          <u-select
-            v-model="localStyle.underline"
+        <a-form-item :label="t('dialog.fontSetting.underline')">
+          <a-select
+            v-model:value="localStyle.underline"
           >
-            <u-option
+            <a-select-option
               v-for="option in booleanOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
-      </u-form>
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
     </div>
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+  </a-modal>
 </template>
 
 <script>
-import UDialog from '@/components/dialog/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UButton from "@/components/button/index.vue";
-import UColorPicker from "@/components/color-picker/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
 import { rgbToHex, hexToRgb } from '@/utils/color';
+import { useI18n } from 'vue-i18n';
+import UColorPicker from '@/components/color-picker/index.vue';
 
+// 模板里用 t(...)，方法里用 this.t(...)，由 setup() 从 useI18n 注入
 export default {
   name: 'FontSettingDialog',
   components: {
-    UColorPicker,
-    UButton,
-    UDialog,
-    USelect,
-    UOption,
-    UForm,
-    UFormItem
+    UColorPicker
+  },
+  setup() {
+    return { t: useI18n().t };
   },
   props: {
     visible: {
@@ -162,8 +157,8 @@ export default {
     },
     booleanOptions() {
       return [
-        { value: 'true', label: this.$t('dialog.fontSetting.yes') },
-        { value: 'false', label: this.$t('dialog.fontSetting.no') }
+        { value: 'true', label: this.t('dialog.fontSetting.yes') },
+        { value: 'false', label: this.t('dialog.fontSetting.no') }
       ];
     }
   },

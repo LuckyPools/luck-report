@@ -2,7 +2,7 @@
   <div
     v-show="showPrintLine"
     ref="printLine"
-    :title="$t('tools.printLine.title')"
+    :title="t('tools.printLine.title')"
     class="right-hr-for-print"
     :style="lineStyle"
   ></div>
@@ -40,14 +40,16 @@ import {
   watch,
   onMounted,
   onBeforeUnmount,
-  defineOptions,
   type CSSProperties
 } from 'vue'
 import { useReportStore } from '@/store/modules/report'
 import type { ReportContext } from '@/types/report-def'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'PrintLine' })
 
+
+const { t } = useI18n()
 /** paper 上读取打印线位置需要用到的字段（domain 扩展字段，单独抽接口） */
 interface PaperFields {
   orientation?: string

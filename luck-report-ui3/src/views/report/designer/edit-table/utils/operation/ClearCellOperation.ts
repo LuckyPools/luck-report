@@ -18,7 +18,7 @@
 import Handsontable from 'handsontable';
 import type { HandsontableInstance } from '@/types/handsontable';
 import { setDirty, undoManager } from '@/utils/table';
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import { showAlert } from '@/utils/comnon';
 import { addCell, getCell, removeCell } from '@/utils/contextActions';
 import TableManager from '../../manager';
@@ -180,7 +180,7 @@ export function undoCleanCells(
       if (type === 'content') {
         const orgValue = removeCellsMap.get(key)
         if (!orgValue) {
-          showAlert($t('table.contextMenu.cancelConetntFail'))
+          showAlert(i18n.global.t('table.contextMenu.cancelConetntFail'))
           return
         }
         cell.value = orgValue
@@ -194,7 +194,7 @@ export function undoCleanCells(
       } else if (type === 'style') {
         const orgStyle = removeCellsMap.get(key)
         if (!orgStyle) {
-          showAlert($t('table.contextMenu.cancelStyleFail'))
+          showAlert(i18n.global.t('table.contextMenu.cancelStyleFail'))
           return
         }
         cell.cellStyle = orgStyle as typeof cell.cellStyle
@@ -202,7 +202,7 @@ export function undoCleanCells(
         removeCell(cell)
         const orgCell = removeCellsMap.get(key) as typeof cell | null
         if (!orgCell) {
-          showAlert($t('table.contextMenu.cancelClearFail'))
+          showAlert(i18n.global.t('table.contextMenu.cancelClearFail'))
           return
         }
         addCell(orgCell)

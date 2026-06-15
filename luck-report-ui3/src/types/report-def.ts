@@ -88,3 +88,9 @@ export interface ReportContext {
   rowHeaders: ReportRowHeader[]
   [key: string]: unknown
 }
+
+/**
+ * handsontable getSelected() 单个选区
+ * 形如 [startRow, startCol, endRow, endCol]
+ */
+export type HandsontableSelectionRange = [number, number, number, number]

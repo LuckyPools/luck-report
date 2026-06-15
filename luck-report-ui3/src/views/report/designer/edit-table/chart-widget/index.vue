@@ -24,11 +24,13 @@
 import { defineComponent, ref, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
 import { Chart, registerables, type ChartData, type ChartOptions, type ChartTypeRegistry } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
+import { useI18n } from 'vue-i18n'
 import { showAlert } from '@/utils/comnon'
 import { getCell } from '@/utils/contextActions'
 import TableManager from '../manager'
-import { $t } from '@/locales'
 import type { ReportContext } from '@/types/report-def'
+// 引入此模块以注入 window.chartColors 全局副作用
+import './colors'
 
 Chart.register(...registerables, ChartDataLabels)
 
@@ -54,6 +56,7 @@ export default defineComponent({
     colIndex: { type: Number, required: true }
   },
   setup(props) {
+    const { t } = useI18n()
     const chartContainerRef: Ref<HTMLElement | null> = ref(null)
     const chartCanvasRef: Ref<HTMLCanvasElement | null> = ref(null)
     const chart: Ref<ChartJsInstance | null> = ref(null)
@@ -411,7 +414,7 @@ export default defineComponent({
           }
           break
         default:
-          showAlert($t('tools.chart.unknownChartType') + $t('colon') + type)
+          showAlert(t('tools.chart.unknownChartType') + t('colon') + type)
           return
       }
 

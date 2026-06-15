@@ -1,337 +1,359 @@
 <template>
   <div class="chart-option-editor">
     <div class="property-quote">
-      {{ $t('chart.titleConfig') }}
+      {{ t('chart.titleConfig') }}
     </div>
-    <u-form :label-width="100" labelPosition="left">
-      <u-form-item class="property-label" :label="$t('chart.display')">
-        <u-radio-group
-            v-model="localChartConfig.title.display"
-            @change="handleTitleDisplayChange"
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form-item class="property-label" :label="t('chart.display')">
+        <a-radio-group
+          v-model:value="localChartConfig.title.display"
+          @change="handleTitleDisplayChange"
         >
-          <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
-                  :key="option.value"
-                  :label="option.value">
-            {{ option.label }}
-          </u-radio>
-        </u-radio-group>
-      </u-form-item>
-
-      <u-form-item class="property-label" v-show="titleDisplay" :label="$t('chart.position')">
-        <u-select
-          v-model="localChartConfig.title.position"
-          @change="handleTitlePositionChange"
-        >
-          <u-option
-            v-for="option in positionOptions"
-            :key="option.value"
+          <a-radio
+            v-for="option in displayOptions"
+            :key="String(option.value)"
             :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
+          >
+            {{ option.label }}
+          </a-radio>
+        </a-radio-group>
+      </a-form-item>
 
-      <u-form-item class="property-label" v-show="titleDisplay" :label="$t('chart.titleContent')">
-        <u-input
-            style="width: 250px;"
-            v-model="localChartConfig.title.text"
-            @change="handleTitleTextChange"
-        >
-        </u-input>
-      </u-form-item>
-    </u-form>
+      <a-form-item class="property-label" v-show="titleDisplay" :label="t('chart.position')">
+        <a-select
+          v-model:value="localChartConfig.title.position"
+          :options="positionOptions"
+          @change="handleTitlePositionChange"
+        />
+      </a-form-item>
+
+      <a-form-item class="property-label" v-show="titleDisplay" :label="t('chart.titleContent')">
+        <a-input
+          style="width: 250px;"
+          v-model:value="localChartConfig.title.text"
+          @change="handleTitleTextChange"
+        />
+      </a-form-item>
+    </a-form>
 
     <div class="property-quote">
-      {{ $t('chart.legendConfig') }}
+      {{ t('chart.legendConfig') }}
     </div>
-    <u-form :label-width="100" labelPosition="left">
-      <u-form-item class="property-label" :label="$t('chart.display')">
-        <u-radio-group
-            v-model="localChartConfig.legend.display"
-            @change="handleLegendDisplayChange"
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form-item class="property-label" :label="t('chart.display')">
+        <a-radio-group
+          v-model:value="localChartConfig.legend.display"
+          @change="handleLegendDisplayChange"
         >
-          <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
-                  :key="option.value"
-                  :label="option.value">
-            {{ option.label }}
-          </u-radio>
-        </u-radio-group>
-      </u-form-item>
-
-      <u-form-item class="property-label" v-show="legendDisplay" :label="$t('chart.position')">
-        <u-select
-          v-model="localChartConfig.legend.position"
-          @change="handleLegendPositionChange"
-        >
-          <u-option
-            v-for="option in positionOptions"
-            :key="option.value"
+          <a-radio
+            v-for="option in displayOptions"
+            :key="String(option.value)"
             :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-    </u-form>
+          >
+            {{ option.label }}
+          </a-radio>
+        </a-radio-group>
+      </a-form-item>
+
+      <a-form-item class="property-label" v-show="legendDisplay" :label="t('chart.position')">
+        <a-select
+          v-model:value="localChartConfig.legend.position"
+          :options="positionOptions"
+          @change="handleLegendPositionChange"
+        />
+      </a-form-item>
+    </a-form>
 
     <template v-if="showDataLabel">
       <div class="property-quote">
-        {{ $t('chart.dataLabelConfig') }}
+        {{ t('chart.dataLabelConfig') }}
       </div>
-      <u-form :label-width="100" labelPosition="left">
-        <u-form-item class="property-label" :label="$t('chart.display')">
-          <u-radio-group
-              v-model="localChartConfig.dataLabels.display"
-              @change="handleDataLabelsDisplayChange"
+      <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+        <a-form-item class="property-label" :label="t('chart.display')">
+          <a-radio-group
+            v-model:value="localChartConfig.dataLabels.display"
+            @change="handleDataLabelsDisplayChange"
           >
-            <u-radio v-for="option in [{ label: $t('chart.yes'), value: true }, { label: $t('chart.no'), value: false }]"
-                    :key="option.value"
-                    :label="option.value">
+            <a-radio
+              v-for="option in displayOptions"
+              :key="String(option.value)"
+              :value="option.value"
+            >
               {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </u-form-item>
-      </u-form>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-form>
     </template>
 
     <div class="property-quote">
-      {{ $t('chart.motionConfig') }}
+      {{ t('chart.motionConfig') }}
     </div>
-    <u-form :label-width="100" labelPosition="left">
-      <u-form-item class="property-label" :label="$t('chart.motionDelay')">
-        <u-input-number
-            v-model="localChartConfig.animation.duration"
-            @change="handleAnimationDurationChange"
-            :min="0"
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form-item class="property-label" :label="t('chart.motionDelay')">
+        <a-input-number
+          v-model:value="localChartConfig.animation.duration"
+          @change="handleAnimationDurationChange"
+          :min="0"
         />
-      </u-form-item>
+      </a-form-item>
 
-      <u-form-item class="property-label" :label="$t('chart.effect')">
-        <u-select
-          v-model="localChartConfig.animation.easing"
+      <a-form-item class="property-label" :label="t('chart.effect')">
+        <a-select
+          v-model:value="localChartConfig.animation.easing"
+          :options="animationEasingOptions"
           @change="handleAnimationEasingChange"
-        >
-          <u-option
-            v-for="option in animationEasingOptions"
-            :key="option.value"
-            :value="option.value"
-            :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
-    </u-form>
+        />
+      </a-form-item>
+    </a-form>
 
     <template v-if="false">
       <div class="property-quote">
-        {{ $t('chart.layout') }}
+        {{ t('chart.layout') }}
       </div>
-      <u-form :label-width="100" labelPosition="left">
-        <u-form-item class="property-label" :label="$t('chart.up')">
-          <u-input-number
-              v-model="localChartConfig.layout.top"
-              @change="handleLayoutChange"
+      <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+        <a-form-item class="property-label" :label="t('chart.up')">
+          <a-input-number
+            v-model:value="localChartConfig.layout.top"
+            @change="handleLayoutChange"
           />
-        </u-form-item>
-        <u-form-item class="property-label" :label="$t('chart.down')">
-          <u-input-number
-              v-model="localChartConfig.layout.bottom"
-              @change="handleLayoutChange"
+        </a-form-item>
+        <a-form-item class="property-label" :label="t('chart.down')">
+          <a-input-number
+            v-model:value="localChartConfig.layout.bottom"
+            @change="handleLayoutChange"
           />
-        </u-form-item>
-        <u-form-item class="property-label" :label="$t('chart.left')">
-          <u-input-number
-              v-model="localChartConfig.layout.left"
-              @change="handleLayoutChange"
+        </a-form-item>
+        <a-form-item class="property-label" :label="t('chart.left')">
+          <a-input-number
+            v-model:value="localChartConfig.layout.left"
+            @change="handleLayoutChange"
           />
-        </u-form-item>
-        <u-form-item class="property-label" :label="$t('chart.right')">
-          <u-input-number
-              v-model="localChartConfig.layout.right"
-              @change="handleLayoutChange"
+        </a-form-item>
+        <a-form-item class="property-label" :label="t('chart.right')">
+          <a-input-number
+            v-model:value="localChartConfig.layout.right"
+            @change="handleLayoutChange"
           />
-        </u-form-item>
-      </u-form>
+        </a-form-item>
+      </a-form>
     </template>
   </div>
 </template>
-<script>
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import UInput from '@/components/input/index.vue';
-import UForm from "@/components/form/index.vue";
-import UFormItem from "@/components/form-item/index.vue";
 
-export default {
-  name: 'ChartOption',
-  components: {
-    UForm,
-    UFormItem,
-    URadioGroup,
-    URadio,
-    USelect,
-    UOption,
-    UInputNumber,
-    UInput
-  },
-  props: {
-    chartConfig: {
-      type: Object,
-      required: true
-    },
-    showDataLabel: {
-      type: Boolean,
-      default: true
-    }
-  },
-  data() {
-    return {
-      localChartConfig: {
-        title: {
-          display: true,
-          position: 'top',
-          text: ''
-        },
-        legend: {
-          display: true,
-          position: 'bottom'
-        },
-        dataLabels: {
-          display: false
-        },
-        animation: {
-          duration: 1000,
-          easing: 'linear'
-        },
-        layout: {
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: 0
-        }
-      }
-    };
-  },
-  watch: {
-    chartConfig: {
-      handler(newVal) {
-        if (newVal) {
-          this.localChartConfig = {
-            title: { display: true, position: 'top', text: '', ...(newVal.title || {}) },
-            legend: { display: true, position: 'bottom', ...(newVal.legend || {}) },
-            dataLabels: { display: false, ...(newVal.dataLabels || {}) },
-            animation: { duration: 1000, easing: 'linear', ...(newVal.animation || {}) },
-            layout: { top: 0, bottom: 0, left: 0, right: 0, ...(newVal.layout || {}) }
-          };
-        }
-      },
-      deep: true,
-      immediate: true
-    }
-  },
-  computed: {
-      positionOptions() {
-          return [
-              { value: 'top', label: this.$t('chart.up') },
-              { value: 'bottom', label: this.$t('chart.down') },
-              { value: 'left', label: this.$t('chart.left') },
-              { value: 'right', label: this.$t('chart.right') }
-          ];
-      },
-      animationEasingOptions() {
-          return [
-              { value: 'linear', label: 'linear' },
-              { value: 'easeInQuad', label: 'easeInQuad' },
-              { value: 'easeOutQuad', label: 'easeOutQuad' },
-              { value: 'easeInOutQuad', label: 'easeInOutQuad' },
-              { value: 'easeInCubic', label: 'easeInCubic' },
-              { value: 'easeOutCubic', label: 'easeOutCubic' },
-              { value: 'easeInOutCubic', label: 'easeInOutCubic' },
-              { value: 'easeInQuart', label: 'easeInQuart' },
-              { value: 'easeOutQuart', label: 'easeOutQuart' },
-              { value: 'easeInOutQuart', label: 'easeInOutQuart' },
-              { value: 'easeInQuint', label: 'easeInQuint' },
-              { value: 'easeOutQuint', label: 'easeOutQuint' },
-              { value: 'easeInOutQuint', label: 'easeInOutQuint' },
-              { value: 'easeInSine', label: 'easeInSine' },
-              { value: 'easeOutSine', label: 'easeOutSine' },
-              { value: 'easeInOutSine', label: 'easeInOutSine' },
-              { value: 'easeInExpo', label: 'easeInExpo' },
-              { value: 'easeOutExpo', label: 'easeOutExpo' },
-              { value: 'easeInOutExpo', label: 'easeInOutExpo' },
-              { value: 'easeInCirc', label: 'easeInCirc' },
-              { value: 'easeOutCirc', label: 'easeOutCirc' },
-              { value: 'easeInOutCirc', label: 'easeInOutCirc' },
-              { value: 'easeInElastic', label: 'easeInElastic' },
-              { value: 'easeOutElastic', label: 'easeOutElastic' },
-              { value: 'easeInOutElastic', label: 'easeInOutElastic' },
-              { value: 'easeInBack', label: 'easeInBack' },
-              { value: 'easeOutBack', label: 'easeOutBack' },
-              { value: 'easeInOutBack', label: 'easeInOutBack' },
-              { value: 'easeInBounce', label: 'easeInBounce' },
-              { value: 'easeOutBounce', label: 'easeOutBounce' },
-              { value: 'easeInOutBounce', label: 'easeInOutBounce' }
-          ];
-      },
-      titleDisplay() {
-          return this.localChartConfig.title.display === 'true' ? true :
-              this.localChartConfig.title.display === 'false' ? false :
-                  this.localChartConfig.title.display;
-      },
-      legendDisplay() {
-          return this.localChartConfig.legend.display === 'true' ? true :
-              this.localChartConfig.legend.display === 'false' ? false :
-                  this.localChartConfig.legend.display;
-      },
-      dataLabelsDisplay() {
-          return this.localChartConfig.dataLabels.display === 'true' ? true :
-              this.localChartConfig.dataLabels.display === 'false' ? false :
-                  this.localChartConfig.dataLabels.display;
-      },
-  },
-  methods: {
-    handleTitleDisplayChange() {
-      this.updateChartOption('title', this.localChartConfig.title);
-    },
+<script setup lang="ts">
+/**
+ * ChartOption 图表标题/图例/数据标签/动效配置子组件（vue3 + TS + ant-design-vue）
+ */
+import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-    handleTitlePositionChange() {
-      this.updateChartOption('title', this.localChartConfig.title);
-    },
+defineOptions({ name: 'ChartOption' })
 
-    handleTitleTextChange() {
-      this.updateChartOption('title', this.localChartConfig.title);
-    },
 
-    handleLegendDisplayChange() {
-      this.updateChartOption('legend', this.localChartConfig.legend);
-    },
+const { t } = useI18n()
+interface ChartTitle {
+  display: boolean | string
+  position: string
+  text: string
+}
 
-    handleLegendPositionChange() {
-      this.updateChartOption('legend', this.localChartConfig.legend);
-    },
+interface ChartLegend {
+  display: boolean | string
+  position: string
+}
 
-    handleDataLabelsDisplayChange() {
-      this.$emit('data-labels-change', this.localChartConfig.dataLabels);
-    },
+interface ChartDataLabels {
+  display: boolean | string
+}
 
-    handleAnimationDurationChange() {
-      this.updateChartOption('animation', this.localChartConfig.animation);
-    },
+interface ChartAnimation {
+  duration: number | null
+  easing: string
+}
 
-    handleAnimationEasingChange() {
-      this.updateChartOption('animation', this.localChartConfig.animation);
-    },
+interface ChartLayout {
+  top: number | null
+  bottom: number | null
+  left: number | null
+  right: number | null
+}
 
-    handleLayoutChange() {
-      this.updateChartOption('layout', { layout: this.localChartConfig.layout });
-    },
+interface ChartConfig {
+  title: ChartTitle
+  legend: ChartLegend
+  dataLabels: ChartDataLabels
+  animation: ChartAnimation
+  layout: ChartLayout
+}
 
-    updateChartOption(type, option) {
-      this.$emit('chart-option-change', { type, option });
-    },
+interface SelectOption {
+  value: string
+  label: string
+}
+
+interface DisplayOption {
+  value: boolean
+  label: string
+}
+
+const props = withDefaults(
+  defineProps<{
+    chartConfig: ChartConfig
+    showDataLabel?: boolean
+  }>(),
+  {
+    showDataLabel: true
   }
-};
+)
+
+const emit = defineEmits<{
+  (e: 'chart-option-change', payload: { type: string; option: any }): void
+  (e: 'data-labels-change', dataLabels: ChartDataLabels): void
+}>()
+
+// ====== 状态 ======
+const localChartConfig = ref<ChartConfig>({
+  title: {
+    display: true,
+    position: 'top',
+    text: ''
+  },
+  legend: {
+    display: true,
+    position: 'bottom'
+  },
+  dataLabels: {
+    display: false
+  },
+  animation: {
+    duration: 1000,
+    easing: 'linear'
+  },
+  layout: {
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0
+  }
+})
+
+// ====== 选项 ======
+const positionOptions = computed<SelectOption[]>(() => [
+  { value: 'top', label: t('chart.up') },
+  { value: 'bottom', label: t('chart.down') },
+  { value: 'left', label: t('chart.left') },
+  { value: 'right', label: t('chart.right') }
+])
+
+const animationEasingOptions = computed<SelectOption[]>(() => [
+  { value: 'linear', label: 'linear' },
+  { value: 'easeInQuad', label: 'easeInQuad' },
+  { value: 'easeOutQuad', label: 'easeOutQuad' },
+  { value: 'easeInOutQuad', label: 'easeInOutQuad' },
+  { value: 'easeInCubic', label: 'easeInCubic' },
+  { value: 'easeOutCubic', label: 'easeOutCubic' },
+  { value: 'easeInOutCubic', label: 'easeInOutCubic' },
+  { value: 'easeInQuart', label: 'easeInQuart' },
+  { value: 'easeOutQuart', label: 'easeOutQuart' },
+  { value: 'easeInOutQuart', label: 'easeInOutQuart' },
+  { value: 'easeInQuint', label: 'easeInQuint' },
+  { value: 'easeOutQuint', label: 'easeOutQuint' },
+  { value: 'easeInOutQuint', label: 'easeInOutQuint' },
+  { value: 'easeInSine', label: 'easeInSine' },
+  { value: 'easeOutSine', label: 'easeOutSine' },
+  { value: 'easeInOutSine', label: 'easeInOutSine' },
+  { value: 'easeInExpo', label: 'easeInExpo' },
+  { value: 'easeOutExpo', label: 'easeOutExpo' },
+  { value: 'easeInOutExpo', label: 'easeInOutExpo' },
+  { value: 'easeInCirc', label: 'easeInCirc' },
+  { value: 'easeOutCirc', label: 'easeOutCirc' },
+  { value: 'easeInOutCirc', label: 'easeInOutCirc' },
+  { value: 'easeInElastic', label: 'easeInElastic' },
+  { value: 'easeOutElastic', label: 'easeOutElastic' },
+  { value: 'easeInOutElastic', label: 'easeInOutElastic' },
+  { value: 'easeInBack', label: 'easeInBack' },
+  { value: 'easeOutBack', label: 'easeOutBack' },
+  { value: 'easeInOutBack', label: 'easeInOutBack' },
+  { value: 'easeInBounce', label: 'easeInBounce' },
+  { value: 'easeOutBounce', label: 'easeOutBounce' },
+  { value: 'easeInOutBounce', label: 'easeInOutBounce' }
+])
+
+const displayOptions = computed<DisplayOption[]>(() => [
+  { value: true, label: t('chart.yes') },
+  { value: false, label: t('chart.no') }
+])
+
+const titleDisplay = computed<boolean>(() => {
+  const v = localChartConfig.value.title.display
+  if (v === 'true') return true
+  if (v === 'false') return false
+  return !!v
+})
+
+const legendDisplay = computed<boolean>(() => {
+  const v = localChartConfig.value.legend.display
+  if (v === 'true') return true
+  if (v === 'false') return false
+  return !!v
+})
+
+watch(
+  () => props.chartConfig,
+  (newVal) => {
+    if (newVal) {
+      localChartConfig.value = {
+        title: { display: true, position: 'top', text: '', ...(newVal.title || {}) },
+        legend: { display: true, position: 'bottom', ...(newVal.legend || {}) },
+        dataLabels: { display: false, ...(newVal.dataLabels || {}) },
+        animation: { duration: 1000, easing: 'linear', ...(newVal.animation || {}) },
+        layout: { top: 0, bottom: 0, left: 0, right: 0, ...(newVal.layout || {}) }
+      }
+    }
+  },
+  { deep: true, immediate: true }
+)
+
+const updateChartOption = (type: string, option: any): void => {
+  emit('chart-option-change', { type, option })
+}
+
+const handleTitleDisplayChange = (): void => {
+  updateChartOption('title', localChartConfig.value.title)
+}
+
+const handleTitlePositionChange = (): void => {
+  updateChartOption('title', localChartConfig.value.title)
+}
+
+const handleTitleTextChange = (): void => {
+  updateChartOption('title', localChartConfig.value.title)
+}
+
+const handleLegendDisplayChange = (): void => {
+  updateChartOption('legend', localChartConfig.value.legend)
+}
+
+const handleLegendPositionChange = (): void => {
+  updateChartOption('legend', localChartConfig.value.legend)
+}
+
+const handleDataLabelsDisplayChange = (): void => {
+  emit('data-labels-change', localChartConfig.value.dataLabels)
+}
+
+const handleAnimationDurationChange = (): void => {
+  updateChartOption('animation', localChartConfig.value.animation)
+}
+
+const handleAnimationEasingChange = (): void => {
+  updateChartOption('animation', localChartConfig.value.animation)
+}
+
+const handleLayoutChange = (): void => {
+  updateChartOption('layout', { layout: localChartConfig.value.layout })
+}
 </script>
 
 <style scoped>

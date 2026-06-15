@@ -1,81 +1,66 @@
 <template>
-  <u-form :label-width="100" label-position="left">
-    <div class="form-desc">{{ $t('dialog.setting.colDesc') }}</div>
+  <a-form :label-col="{ style: { width: '100px' } }">
+    <div class="form-desc">{{ t('dialog.setting.colDesc') }}</div>
 
-    <u-row>
-      <u-col :span="24">
-        <u-form-item class="property-label" :label="$t('dialog.setting.column')">
-          <u-radio-group
-            v-model="localPaper.columnEnabled"
+    <a-row>
+      <a-col :span="24">
+        <a-form-item class="property-label" :label="t('dialog.setting.column')">
+          <a-radio-group
+            v-model:value="localPaper.columnEnabled"
             @change="handleColumnEnabledChange"
           >
-            <u-radio
+            <a-radio
               v-for="option in columnEnabledOptions"
               :key="option.value"
-              :label="option.value"
+              :value="option.value"
             >
               {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </u-form-item>
-      </u-col>
-    </u-row>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <u-row style="margin-top: 5px;">
-      <u-col :span="10">
-        <u-form-item class="property-label" :label="$t('dialog.setting.columnCount')">
-          <u-select
-            v-model="localPaper.columnCount"
+    <a-row style="margin-top: 5px;">
+      <a-col :span="10">
+        <a-form-item class="property-label" :label="t('dialog.setting.columnCount')">
+          <a-select
+            v-model:value="localPaper.columnCount"
             :disabled="!localPaper.columnEnabled"
             @change="handleColumnCountChange"
             style="width: 140px"
           >
-            <u-option
+            <a-select-option
               v-for="option in columnCountOptions"
               :key="option.value"
               :value="option.value"
-              :label="option.label"
-            />
-          </u-select>
-        </u-form-item>
-      </u-col>
-      <u-col :span="10">
-        <u-form-item class="property-label" :label="$t('dialog.setting.columnMargin')">
-          <u-input-number
-            v-model="localColumnMargin"
+            >
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-col>
+      <a-col :span="10">
+        <a-form-item class="property-label" :label="t('dialog.setting.columnMargin')">
+          <a-input-number
+            v-model:value="localColumnMargin"
             :disabled="!localPaper.columnEnabled"
             @change="handleColumnMarginChange"
           />
-        </u-form-item>
-      </u-col>
-    </u-row>
-  </u-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script>
-import { pointToMM, mmToPoint } from '@/utils/table.js';
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import UInputNumber from '@/components/input-number/index.vue';
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import URow from '@/components/row/index.vue';
-import UCol from '@/components/col/index.vue';
+import { pointToMM, mmToPoint } from '@/utils/table';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'ColumnSettings',
-  components: {
-    URadioGroup,
-    URadio,
-    USelect,
-    UOption,
-    UInputNumber,
-    UForm,
-    UFormItem,
-    URow,
-    UCol
+  setup() {
+    return { t: useI18n().t };
   },
   props: {
     paper: {
@@ -95,15 +80,15 @@ export default {
       for (let i = 1; i <= 9; i++) {
         options.push({
           value: i + 1,
-          label: `${i + 1}${this.$t('dialog.setting.columnUnit')}`
+          label: `${i + 1}${this.t('dialog.setting.columnUnit')}`
         });
       }
       return options;
     },
     columnEnabledOptions() {
       return [
-        { value: false, label: this.$t('dialog.setting.disable') },
-        { value: true, label: this.$t('dialog.setting.enable') }
+        { value: false, label: this.t('dialog.setting.disable') },
+        { value: true, label: this.t('dialog.setting.enable') }
       ];
     }
   },

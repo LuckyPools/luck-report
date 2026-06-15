@@ -2,24 +2,22 @@
   <div class="parameter-editor">
     <div class="header-row">
       <div class="text-section">
-        {{ $t('dialog.sql.searchParam') }}
-        <span class="text-info">{{ $t('dialog.sql.paramDesc') }}</span>
+        {{ t('dialog.sql.searchParam') }}
+        <span class="text-info">{{ t('dialog.sql.paramDesc') }}</span>
       </div>
-      <u-button
-          icon="icon-plus-circle"
-          @click="addParameter"
-      >
-        {{ $t('dialog.paramTable.addParam') }}
-      </u-button>
+      <a-button @click="addParameter">
+        <template #icon><i class="iconfont icon-plus-circle"></i></template>
+        {{ t('dialog.paramTable.addParam') }}
+      </a-button>
     </div>
     <div class="table-wrapper" style="margin-top: 5px">
       <table class="table-container">
         <thead>
         <tr>
-          <th><span>{{ $t('dialog.paramTable.paramName') }}</span></th>
-          <th><span>{{ $t('dialog.paramTable.paramDatatype') }}</span></th>
-          <th><span>{{ $t('dialog.paramTable.defaultValue') }}</span></th>
-          <th style="width: 80px;"><span>{{ $t('dialog.paramTable.operator') }}</span></th>
+          <th><span>{{ t('dialog.paramTable.paramName') }}</span></th>
+          <th><span>{{ t('dialog.paramTable.paramDatatype') }}</span></th>
+          <th><span>{{ t('dialog.paramTable.defaultValue') }}</span></th>
+          <th style="width: 80px;"><span>{{ t('dialog.paramTable.operator') }}</span></th>
         </tr>
         </thead>
         <tbody>
@@ -32,20 +30,21 @@
           <td><span>{{ param.type }}</span></td>
           <td><span>{{ param.defaultValue }}</span></td>
           <td>
-            <u-button
-                type="info"
-                icon="icon-edit"
-                :title="$t('dialog.paramTable.editParam')"
+            <a-button
+                type="text"
+                :title="t('dialog.paramTable.editParam')"
                 @click.prevent="editParameter(param, index)"
-                style="border: none">
-            </u-button>
-            <u-button
-                type="info"
-                icon="icon-delete"
-                :title="$t('dialog.paramTable.delParam')"
+            >
+              <template #icon><i class="iconfont icon-edit"></i></template>
+            </a-button>
+            <a-button
+                type="text"
+                danger
+                :title="t('dialog.paramTable.delParam')"
                 @click.prevent="removeParameter(param, index)"
-                style="border: none;color: red">
-            </u-button>
+            >
+              <template #icon><i class="iconfont icon-delete"></i></template>
+            </a-button>
           </td>
         </tr>
         </tbody>
@@ -62,51 +61,73 @@
   </div>
 </template>
 
-<script>
-import ParameterDialog from '../parameter-dialog/index.vue';
-import UButton from "@/components/button/index.vue";
+<script setup lang="ts">
+/**
+ * ParameterEditor SQL 数据集参数编辑器（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UButton（自定义）→ a-button
+ * - this.$emit → defineEmits
+ * - props.parameters 保留数组类型，由父组件传入
+ */
+import { ref } from 'vue'
+import ParameterDialog from '../parameter-dialog/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ParameterEditor',
-  components: {UButton, ParameterDialog},
-  props: {
-    parameters: {
-      type: Array,
-      default: () => []
-    }
-  },
-  data() {
-    return {
-      currentEditData: null,
-      currentIndex: -1,
-      parameterDialogVisible: false
-    };
-  },
-  methods: {
-    handleDialogSave(name, type, defaultValue) {
-      if (this.currentIndex === -1) {
-        this.$emit('add-parameter', { name, type, defaultValue });
-      } else {
-        this.$emit('edit-parameter', this.currentIndex, { name, type, defaultValue });
-      }
-      this.$emit('update');
-    },
-    addParameter() {
-      this.currentIndex = -1;
-      this.currentEditData = null;
-      this.parameterDialogVisible = true;
-    },
-    editParameter(param, index) {
-      this.currentIndex = index;
-      this.currentEditData = param;
-      this.parameterDialogVisible = true;
-    },
-    removeParameter(param, index) {
-      this.$emit('remove-parameter', index);
-      this.$emit('update');
-    }
+defineOptions({ name: 'ParameterEditor' })
+
+
+const { t } = useI18n()
+interface ParameterItem {
+  name: string
+  type: string
+  defaultValue: string
+}
+
+withDefaults(
+  defineProps<{
+    parameters?: ParameterItem[]
+  }>(),
+  { parameters: () => [] }
+)
+
+const emit = defineEmits<{
+  (e: 'add-parameter', payload: ParameterItem): void
+  (e: 'edit-parameter', index: number, payload: ParameterItem): void
+  (e: 'remove-parameter', index: number): void
+  (e: 'update'): void
+}>()
+
+const currentEditData = ref<ParameterItem | null>(null)
+const currentIndex = ref<number>(-1)
+const parameterDialogVisible = ref<boolean>(false)
+
+function handleDialogSave(name: string, type: string, defaultValue: string): void {
+  if (currentIndex.value === -1) {
+    emit('add-parameter', { name, type, defaultValue })
+  } else {
+    emit('edit-parameter', currentIndex.value, { name, type, defaultValue })
   }
-};
+  emit('update')
+}
+
+function addParameter(): void {
+  currentIndex.value = -1
+  currentEditData.value = null
+  parameterDialogVisible.value = true
+}
+
+function editParameter(param: ParameterItem, index: number): void {
+  currentIndex.value = index
+  currentEditData.value = param
+  parameterDialogVisible.value = true
+}
+
+function removeParameter(_param: ParameterItem, index: number): void {
+  emit('remove-parameter', index)
+  emit('update')
+}
 </script>
 
 <style scoped>

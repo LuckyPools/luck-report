@@ -1,173 +1,191 @@
 <template>
-  <UDialog
+  <a-modal
     :title="title"
-    width="500px"
-    :visible="visible"
+    :width="500"
+    :open="visible"
     :z-index="20010"
-    @close="handleClose"
+    :mask-closable="false"
+    @cancel="handleClose"
   >
-    <div class="dialog-content">
-      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
-        <u-form-item :label="$t('dialog.paramItem.name')" prop="name">
-          <u-input
-            v-model="formData.name"
-            ref="nameInput"
-            @keyup.enter="handleOk"
-          />
-        </u-form-item>
+    <a-form
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      :label-col="{ style: { width: '120px' } }"
+      :colon="false"
+    >
+      <a-form-item :label="t('dialog.paramItem.name')" name="name">
+        <a-input
+          v-model:value="formData.name"
+          ref="nameInput"
+          @keyup.enter="handleOk"
+        />
+      </a-form-item>
 
-        <u-form-item :label="$t('dialog.paramItem.expr')" prop="value">
-          <u-input
-            v-model="formData.value"
-            ref="valueInput"
-            @keyup.enter="handleOk"
-          />
-        </u-form-item>
-      </u-form>
-    </div>
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+      <a-form-item :label="t('dialog.paramItem.expr')" name="value">
+        <a-input
+          v-model:value="formData.value"
+          ref="valueInput"
+          @keyup.enter="handleOk"
+        />
+      </a-form-item>
+    </a-form>
+
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
+      <a-button type="primary" @click="handleOk">{{ t('dialog.common.ok') }}</a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UInput from "@/components/input/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
+<script setup lang="ts">
+/**
+ * URLParameterItemDialog URL 参数项弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → resetFormData + initData
+ * 2. 用户编辑 → 「确定」→ 校验 → emit('saveAfter', { paramItem, operation })
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UForm/UFormItem/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-input/a-button
+ * - $refs.form.validate(callback) → formRef.value.validate() Promise 化
+ * - keydown 监听从 mounted/beforeDestroy 迁移到 onMounted/onBeforeUnmount
+ */
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import type { Rule } from 'ant-design-vue/es/form'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'URLParameterItemDialog',
-  components: {
-    UButton,
-    UDialog,
-    UInput,
-    UForm,
-    UFormItem
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    paramItem: {
-      type: Object,
-      default: null
-    },
-    operation: {
-      type: String,
-      default: 'add'
+defineOptions({ name: 'URLParameterItemDialog' })
+
+
+const { t } = useI18n()
+/** url 参数项结构 */
+export interface UrlParameterItem {
+  name: string
+  value: string
+}
+
+type OperationType = 'add' | 'edit'
+
+interface SaveAfterPayload {
+  paramItem: UrlParameterItem
+  operation: OperationType
+}
+
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    paramItem?: UrlParameterItem | null
+    operation?: OperationType
+  }>(),
+  {
+    visible: false,
+    paramItem: null,
+    operation: 'add'
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'saveAfter', payload: SaveAfterPayload): void
+  (e: 'update:visible', val: boolean): void
+}>()
+
+/** 弹窗标题：新增 / 编辑 */
+const title = computed<string>(() => {
+  return props.operation === 'add'
+    ? t('dialog.paramItem.add')
+    : t('dialog.paramItem.edit')
+})
+
+const formRef = ref()
+const formData = reactive<UrlParameterItem>({ name: '', value: '' })
+
+const rules: Record<string, Rule[]> = {
+  name: [
+    {
+      required: true,
+      message: t('dialog.paramItem.nameRequired'),
+      trigger: 'blur'
     }
-  },
-  emits: ['saveAfter', 'update:visible'],
-  data() {
-    return {
-      formData: {
-        name: '',
-        value: ''
-      },
-      rules: {
-        name: [{
-          required: true,
-          message: this.$t('dialog.paramItem.nameRequired'),
-          trigger: 'blur'
-        }],
-        value: [{
-          required: true,
-          message: this.$t('dialog.paramItem.valueRequired'),
-          trigger: 'blur'
-        }]
-      }
-    };
-  },
-  computed: {
-    title() {
-      return this.operation === 'add' ? this.$t('dialog.paramItem.add') : this.$t('dialog.paramItem.edit');
+  ],
+  value: [
+    {
+      required: true,
+      message: t('dialog.paramItem.valueRequired'),
+      trigger: 'blur'
     }
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.resetFormData();
-        this.initData();
-      }
-    }
-  },
-  mounted() {
-    document.addEventListener('keydown', this.handleKeydown);
-  },
-  beforeDestroy() {
-    document.removeEventListener('keydown', this.handleKeydown);
-  },
-  methods: {
+  ]
+}
 
-    initData(){
-      this.formData.name = this.paramItem?.name || '';
-      this.formData.value = this.paramItem?.value || '';
-    },
-
-    /**
-     * 重置表单数据
-     */
-    resetFormData() {
-      this.$refs.form && this.$refs.form.resetFields();
-    },
-
-    /**
-     * 校验表单
-     * @returns {Promise<boolean>} 校验结果
-     */
-    validateForm() {
-      return new Promise((resolve) => {
-        this.$refs.form.validate((valid) => {
-          resolve(valid);
-        });
-      });
-    },
-
-    /**
-     * 确认按钮点击处理
-     */
-    async handleOk() {
-      const valid = await this.validateForm();
-      if (!valid) {
-        return;
-      }
-
-      const paramItem = { name: this.formData.name, value: this.formData.value };
-
-      this.$emit('saveAfter', {
-        paramItem: paramItem,
-        operation: this.operation
-      });
-
-      this.handleClose();
-    },
-
-    /**
-     * 关闭弹窗
-     */
-    handleClose() {
-      this.resetFormData();
-      this.$emit('update:visible', false);
-    },
-
-    /**
-     * 键盘事件处理
-     * @param {KeyboardEvent} e 键盘事件对象
-     */
-    handleKeydown(e) {
-      if (this.visible) {
-        if (e.key === 'Escape') {
-          this.handleClose();
-        }
-      }
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      resetFormData()
+      initData()
     }
   }
-};
+)
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
+/** 回填名称/值 */
+const initData = (): void => {
+  formData.name = props.paramItem?.name ?? ''
+  formData.value = props.paramItem?.value ?? ''
+}
+
+/** 重置 a-form 校验态 */
+const resetFormData = (): void => {
+  formRef.value?.resetFields()
+}
+
+/** 异步校验表单 */
+const validateForm = async (): Promise<boolean> => {
+  try {
+    await formRef.value?.validate()
+    return true
+  } catch {
+    return false
+  }
+}
+
+const handleOk = async (): Promise<void> => {
+  const valid = await validateForm()
+  if (!valid) {
+    return
+  }
+
+  const paramItem: UrlParameterItem = {
+    name: formData.name,
+    value: formData.value
+  }
+
+  emit('saveAfter', {
+    paramItem,
+    operation: props.operation
+  })
+
+  handleClose()
+}
+
+const handleClose = (): void => {
+  emit('update:visible', false)
+}
+
+/** 键盘事件：ESC 关闭弹窗 */
+const handleKeydown = (e: KeyboardEvent): void => {
+  if (props.visible && e.key === 'Escape') {
+    handleClose()
+  }
+}
 </script>
 
 <style scoped>

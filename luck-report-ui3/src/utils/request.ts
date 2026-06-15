@@ -1,5 +1,5 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import {$t} from "@/locales";
+import {t, i18n} from "@/locales";
 
 /** 默认实例的 axios 配置 */
 const defaultRequest: AxiosInstance = axios.create({
@@ -24,8 +24,8 @@ interface BizError {
 function dealError(error: any): Promise<never> {
     console.log(error)
     if (error && error.auxCode && error.msg) {
-        const clickToCopyText = $t('preview.error.clickToCopy')
-        const errorCodeText = $t('preview.error.errorCode')
+        const clickToCopyText = i18n.global.t('preview.error.clickToCopy')
+        const errorCodeText = i18n.global.t('preview.error.errorCode')
         const auxCodeHtml = `<span class="aux-code">${error.auxCode}</span><i class="iconfont icon-copy" style="cursor: pointer; margin-left: 4px; color: #409eff;" title="${clickToCopyText}" onclick="navigator.clipboard.writeText('${error.auxCode}').then(() => { this.style.color = '#67c23a'; setTimeout(() => { this.style.color = '#409eff'; }, 1000); })"></i>`
         error.msg = error.msg + "<br/>" + errorCodeText + "：" + auxCodeHtml
     }
@@ -41,7 +41,7 @@ defaultRequest.interceptors.response.use(
     response => {
         if (response.status !== 200) {
             dealError({ response: response })
-            throw new Error($t('preview.error.requestError'))
+            throw new Error(i18n.global.t('preview.error.requestError'))
         }
         return response
     },

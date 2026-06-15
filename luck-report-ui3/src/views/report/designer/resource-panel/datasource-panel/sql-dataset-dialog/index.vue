@@ -1,274 +1,288 @@
 <template>
   <div>
-    <UDialog
-      :title="$t('dialog.sql.title')"
-      width="1000px"
-      top="10vh"
-      :visible="visible"
-      :z-index="20000"
-      @close="closeDialog"
+    <a-modal
+      :title="t('dialog.sql.title')"
+      :width="1000"
+      :open="visible"
+      :style="{ top: '10vh' }"
+      :zIndex="20000"
+      :mask-closable="false"
+      :footer="null"
+      @cancel="closeDialog"
     >
       <div class="dialog-content">
         <div class="content-layout">
-          <!-- 左侧容器：搜索表格 -->
+          <!-- 左侧：搜索表格（非弹窗组件，后续单独改造） -->
           <div class="left-panel">
             <SearchTable
-                :datasourceData="datasourceData"
-                :trigger-load="triggerLoadSearchTable"
-                @add="handleAddSql"
-                @load-complete="handleSearchTableLoadComplete"
+              :datasourceData="datasourceData"
+              :trigger-load="triggerLoadSearchTable"
+              @add="handleAddSql"
+              @load-complete="handleSearchTableLoadComplete"
             />
           </div>
 
-          <!-- 右侧容器：SQL 编辑器和参数编辑器 -->
+          <!-- 右侧：SQL 编辑器 + 参数编辑器 -->
           <div class="right-panel">
             <SqlEditor
-                :name="datasetName"
-                :sql="sql"
-                @sql-change="handleSqlChange"
-                @dataset-name-change="handleDatasetNameChange"
+              :name="datasetName"
+              :sql="sql"
+              @sql-change="handleSqlChange"
+              @dataset-name-change="handleDatasetNameChange"
             />
             <ParameterEditor
-                :parameters="parameters"
-                @add-parameter="handleAddParameter"
-                @edit-parameter="handleEditParameter"
-                @remove-parameter="handleRemoveParameter"
+              :parameters="parameters"
+              @add-parameter="handleAddParameter"
+              @edit-parameter="handleEditParameter"
+              @remove-parameter="handleRemoveParameter"
             />
           </div>
         </div>
       </div>
 
-      <div slot="footer" style="text-align: right">
-        <u-button @click="handlePreview" type="info" style="margin-right: 10px;">{{ $t('dialog.sql.preview') }}</u-button>
-        <u-button @click="handleConfirm">{{ $t('dialog.sql.ok') }}</u-button>
-      </div>
-    </UDialog>
+      <template #footer>
+        <a-button @click="handlePreview" style="margin-right: 10px;">
+          {{ t('dialog.sql.preview') }}
+        </a-button>
+        <a-button type="primary" @click="handleConfirm">
+          {{ t('dialog.sql.ok') }}
+        </a-button>
+      </template>
+    </a-modal>
+
     <PreviewDataDialog
-      :visible="previewDialogVisible"
+      v-model:visible="previewDialogVisible"
       :parameters="previewParameters"
-      @close="closePreviewDialog"
     />
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+/**
+ * SqlDatasetDialog SQL 数据集配置弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → initData（清空 / 回填）
+ * 2. 内部组件 SearchTable / SqlEditor / ParameterEditor 交互
+ * 3. 「预览数据」→ 组装 parameters → 打开 PreviewDataDialog
+ * 4. 「确定」→ 校验 + 查重 → emit('save', name, oldName, sql, parameters)
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UButton（自定义）→ a-modal/a-button
+ * - mapGetters('report', ['getContext']) / Vuex → useReportStore
+ * - this.$emit → defineEmits
+ * - $set / 数组 reactive 操作 → push / 直接赋值（vue3 响应式自动追踪）
+ */
+import { ref, watch, nextTick } from 'vue'
+import { showAlert } from '@/utils/comnon'
+import { setDirty } from '@/utils/table'
+import { deepCopy } from '@/utils/comnon'
+import { useReportStore } from '@/store/modules/report'
+import SearchTable from './search-table/index.vue'
+import SqlEditor from './sql-editor/index.vue'
+import ParameterEditor from './parameter-editor/index.vue'
+import PreviewDataDialog from '@/views/report/designer/resource-panel/datasource-panel/preview-data-dialog/index.vue'
+import type { ReportDatasource, ReportContext, ReportDataset } from '@/types/report-def'
+import { useI18n } from 'vue-i18n'
 
-import { setDirty } from '@/utils/table.js';
-import SearchTable from './search-table/index.vue';
-import SqlEditor from './sql-editor/index.vue';
-import ParameterEditor from './parameter-editor/index.vue';
-import PreviewDataDialog from '@/views/report/designer/resource-panel/datasource-panel/preview-data-dialog/index.vue';
-import UDialog from '@/components/dialog/index.vue';
-import UButton from '@/components/button/index.vue';
-import {showAlert} from "@/utils/comnon";
-import { mapGetters } from 'vuex';
-import {deepCopy} from "@/components/utils";
+defineOptions({ name: 'SqlDatasetDialog' })
 
-export default {
-  name: 'SqlDatasetDialog',
-  components: {
-    SearchTable,
-    SqlEditor,
-    ParameterEditor,
-    PreviewDataDialog,
-    UDialog,
-    UButton
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    datasourceData: {
-      type: Object,
-      default: null
-    },
-    datasetData: {
-      type: Object,
-      default: null
-    }
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    }
-  },
-  data() {
-    return {
-      datasetName: '',
-      sql: '',
-      parameters: [],
-      oldName: '',
-      currentData: {},
-      previewDialogVisible: false,
-      previewParameters: null,
-      triggerLoadSearchTable: false
-    };
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.initData();
-      }
-    }
-  },
-  methods: {
-    initData() {
-      this.currentData = {};
-      this.datasetName = '';
-      this.sql = '';
-      this.parameters = [];
-      this.oldName = '';
 
-      if (this.datasetData) {
-        this.currentData = { ...this.datasetData };
-        this.datasetName = this.datasetData.name || '';
-        this.sql = this.datasetData.sql || '';
-        this.parameters = Array.isArray(this.datasetData.parameters) ? [...this.datasetData.parameters] : [];
-        this.oldName = this.datasetData.name || '';
-      }
+const { t } = useI18n()
+/** SQL 参数项结构 */
+interface SqlParam {
+  name: string
+  type: string
+  defaultValue: string
+  [key: string]: unknown
+}
 
-      this.$nextTick(() => {
-        this.triggerLoadSearchTable = true;
-      });
-    },
+/** 数据集入参（来自父组件） */
+interface DatasetData {
+  name?: string
+  sql?: string
+  parameters?: SqlParam[]
+  [key: string]: unknown
+}
 
-    handleSearchTableLoadComplete() {
-      this.triggerLoadSearchTable = false;
-    },
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    datasourceData: ReportDatasource | null
+    datasetData?: DatasetData | null
+  }>(),
+  {
+    visible: false,
+    datasourceData: null,
+    datasetData: null
+  }
+)
 
-    /**
-     * 处理SQL内容变化
-     */
-    handleSqlChange(newSql) {
-      this.sql = newSql || '';
-    },
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'save', name: string, oldName: string, sql: string, parameters: SqlParam[]): void
+}>()
 
-    /**
-     * 处理数据集名称变化
-     */
-    handleDatasetNameChange(newName) {
-      this.datasetName = newName || '';
-    },
+const report = useReportStore()
+const context = report.getContext
 
-    /**
-     * 处理添加 SQL
-     */
-    handleAddSql(sql) {
-      this.sql = sql || '';
-    },
+const datasetName = ref<string>('')
+const sql = ref<string>('')
+const parameters = ref<SqlParam[]>([])
+const oldName = ref<string>('')
 
-    /**
-     * 处理添加参数
-     */
-    handleAddParameter(newParam) {
-      this.parameters.push(newParam);
-      this.currentData.parameters = [...this.parameters];
-    },
+const previewDialogVisible = ref<boolean>(false)
+const previewParameters = ref<Record<string, unknown> | null>(null)
+const triggerLoadSearchTable = ref<boolean>(false)
 
-    /**
-     * 处理编辑参数
-     */
-    handleEditParameter(index, updatedParam) {
-      if (this.parameters && this.parameters[index]) {
-        this.$set(this.parameters, index, { ...updatedParam });
-        this.currentData.parameters = [...this.parameters];
-      }
-    },
-
-    /**
-     * 处理删除参数
-     */
-    handleRemoveParameter(index) {
-      if (this.parameters) {
-        this.parameters.splice(index, 1);
-        this.currentData.parameters = [...this.parameters];
-      }
-    },
-
-    /**
-     * 预览数据
-     */
-    handlePreview() {
-      const sql = this.sql || '';
-      if (!sql || sql === '') {
-        showAlert(this.$t('dialog.sql.sqlTip'));
-        return;
-      }
-
-      const type = this.datasourceData.type;
-      const parameters = {
-        sql,
-        type,
-        parameters: deepCopy(this.currentData.parameters)
-      };
-
-      if (type === 'jdbc') {
-        parameters.username = this.datasourceData.username;
-        parameters.password = this.datasourceData.password;
-        parameters.driver = this.datasourceData.driver;
-        parameters.url = this.datasourceData.url;
-      } else if (type === 'buildin') {
-        parameters.name = this.datasourceData.name;
-      }
-
-      this.previewParameters = parameters;
-      this.previewDialogVisible = true;
-    },
-
-    handleConfirm() {
-      const name = this.datasetName || '';
-      const sql = this.sql || '';
-
-      if (!name || name === '') {
-        showAlert(this.$t('dialog.sql.nameTip'));
-        return;
-      }
-
-      if (!sql || sql === '') {
-        showAlert(this.$t('dialog.sql.sqlTip'));
-        return;
-      }
-
-      // 检查数据集名称是否重复
-      let check = false;
-      if (!this.oldName || name !== this.oldName) {
-        check = true;
-      }
-
-      if (check) {
-        for (let datasource of this.context.reportDef.datasources) {
-          let datasets = datasource.datasets;
-          if (!datasets || !Array.isArray(datasets)) {
-            continue;
-          }
-
-          for (let dataset of datasets) {
-            if (dataset.name === name) {
-              showAlert(`${this.$t('dialog.sql.ds')}[${name}]${this.$t('dialog.sql.exist')}`);
-              return;
-            }
-          }
-        }
-      }
-
-      this.$emit('save', name, this.oldName, sql, this.currentData.parameters);
-      setDirty();
-      this.closeDialog();
-    },
-
-    /**
-     * 关闭对话框
-     */
-    closeDialog() {
-      this.$emit('close');
-    },
-    closePreviewDialog() {
-      this.previewDialogVisible = false;
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      initData()
     }
   }
-};
+)
+
+/** 初始化数据（清空 / 回填） */
+function initData(): void {
+  datasetName.value = ''
+  sql.value = ''
+  parameters.value = []
+  oldName.value = ''
+
+  if (props.datasetData) {
+    datasetName.value = props.datasetData.name || ''
+    sql.value = props.datasetData.sql || ''
+    parameters.value = Array.isArray(props.datasetData.parameters)
+      ? [...props.datasetData.parameters]
+      : []
+    oldName.value = props.datasetData.name || ''
+  }
+
+  nextTick(() => {
+    triggerLoadSearchTable.value = true
+  })
+}
+
+function handleSearchTableLoadComplete(): void {
+  triggerLoadSearchTable.value = false
+}
+
+function handleSqlChange(newSql: string): void {
+  sql.value = newSql || ''
+}
+
+function handleDatasetNameChange(newName: string): void {
+  datasetName.value = newName || ''
+}
+
+function handleAddSql(sqlText: string): void {
+  sql.value = sqlText || ''
+}
+
+function handleAddParameter(newParam: SqlParam): void {
+  parameters.value = [...parameters.value, newParam]
+}
+
+function handleEditParameter(index: number, updatedParam: SqlParam): void {
+  if (parameters.value[index]) {
+    parameters.value[index] = { ...updatedParam }
+  }
+}
+
+function handleRemoveParameter(index: number): void {
+  if (parameters.value && index >= 0 && index < parameters.value.length) {
+    parameters.value.splice(index, 1)
+  }
+}
+
+/** 关闭弹窗 */
+function closeDialog(): void {
+  emit('close')
+}
+
+/** 关闭预览子弹窗 */
+function closePreviewDialog(): void {
+  previewDialogVisible.value = false
+}
+
+/**
+ * 预览数据：组装 parameters 调用 PreviewDataDialog
+ * - jdbc 类型：补全 username/password/driver/url
+ * - buildin 类型：补全 name
+ */
+function handlePreview(): void {
+  const sqlText = sql.value || ''
+  if (!sqlText) {
+    showAlert(t('dialog.sql.sqlTip'))
+    return
+  }
+
+  const ds = props.datasourceData
+  if (!ds) {
+    showAlert(t('dialog.sql.sqlTip'))
+    return
+  }
+  const type = (ds as any).type
+  const parametersData: Record<string, unknown> = {
+    sql: sqlText,
+    type,
+    parameters: deepCopy(parameters.value)
+  }
+
+  if (type === 'jdbc') {
+    parametersData.username = (ds as any).username
+    parametersData.password = (ds as any).password
+    parametersData.driver = (ds as any).driver
+    parametersData.url = (ds as any).url
+  } else if (type === 'buildin') {
+    parametersData.name = ds.name
+  }
+
+  previewParameters.value = parametersData
+  previewDialogVisible.value = true
+}
+
+/** 校验 + 查重 → emit('save') */
+function handleConfirm(): void {
+  const name = datasetName.value || ''
+  const sqlText = sql.value || ''
+
+  if (!name) {
+    showAlert(t('dialog.sql.nameTip'))
+    return
+  }
+  if (!sqlText) {
+    showAlert(t('dialog.sql.sqlTip'))
+    return
+  }
+
+  // 校验重名
+  let needCheck = false
+  if (!oldName.value || name !== oldName.value) {
+    needCheck = true
+  }
+
+  if (needCheck && context.value) {
+    const datasources = (context.value as ReportContext).reportDef?.datasources || []
+    for (const datasource of datasources as ReportDatasource[]) {
+      const datasets: ReportDataset[] | undefined = datasource.datasets
+      if (!datasets || !Array.isArray(datasets)) continue
+      for (const dataset of datasets) {
+        if (dataset.name === name) {
+          showAlert(`${t('dialog.sql.ds')}[${name}]${t('dialog.sql.exist')}`)
+          return
+        }
+      }
+    }
+  }
+
+  emit('save', name, oldName.value, sqlText, parameters.value)
+  setDirty()
+  closeDialog()
+}
 </script>
 
 <style scoped>

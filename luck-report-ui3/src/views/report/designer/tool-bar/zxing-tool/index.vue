@@ -1,213 +1,252 @@
 <template>
-  <div class="u-inline">
-    <ButtonGroup
-      iconClass="iconfont icon-qrcode"
-      :title="$t('tools.zxing.title')"
-      :customClass="'zxing-tool-dropdown'"
-      :menuItems="menuItems"
-    />
-  </div>
+  <a-dropdown trigger="click">
+    <a-button :title="t('tools.zxing.title')" type="text" class="info-button">
+      <i class="iconfont icon-qrcode"></i>
+    </a-button>
+    <template #overlay>
+      <a-menu @click="handleMenuClick">
+        <a-menu-item v-for="item in menuItems" :key="item.key">
+          <i :class="item.icon" style="margin-right: 8px"></i>
+          <span>{{ item.text }}</span>
+        </a-menu-item>
+      </a-menu>
+    </template>
+  </a-dropdown>
 </template>
 
-<script>
-import { undoManager, setDirty } from '@/utils/table.js';
-import { showAlert } from '@/utils/comnon.js';
-import { deepCopy } from '@/components/utils/index.js';
-import Handsontable from 'handsontable';
-import ButtonGroup from '@/components/button-group/index.vue';
-import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager';
+<script setup lang="ts">
+/**
+ * ZxingTool 二维码 / 条形码工具（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. 下拉菜单选择 qrcode/barcode → 写入 type=zxing 单元格 value
+ * 2. 推 undo/redo，支持 afterSelectionEnd 重新触发
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup> + 显式 type 标注
+ * - 自定义 ButtonGroup 下拉按钮 → a-dropdown + a-button + a-menu
+ * - @/utils/table.js → @/utils/table
+ * - data()/methods → ref + 普通函数
+ * - 移除 $emit，本组件无对外事件
+ *
+ * 注意事项：
+ * - zxing 单元格 value 结构为 { type, category, source, data, [format], width, height }
+ * - undo/redo 链路与原 Vue2 保持一致：先缓存旧 cellDef / cellData，再重做/回滚
+ */
+import Handsontable from 'handsontable'
+import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
+import { undoManager, setDirty } from '@/utils/table'
+import { showAlert } from '@/utils/comnon'
+import { deepCopy } from '@/utils/comnon'
+import { getCell, setCell } from '@/utils/contextActions'
+import TableManager from '@/views/report/designer/edit-table/manager'
+import type { HandsontableInstance } from '@/types/handsontable'
+import type { ReportCell, HandsontableSelectionRange } from '@/types/report-def'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ZxingTool',
-  components: {
-    ButtonGroup
+defineOptions({ name: 'ZxingTool' })
+
+
+const { t } = useI18n()
+/** zxing 单元格 value 类型 */
+interface ZxingCellValue {
+  width: number
+  height: number
+  type: 'zxing'
+  category: 'qrcode' | 'barcode'
+  source: string
+  data: string
+  format?: string
+}
+
+/** 菜单项 */
+type ZxingCategory = 'qrcode' | 'barcode'
+
+interface MenuItem {
+  key: ZxingCategory
+  text: string
+  icon: string
+  category: ZxingCategory
+}
+
+const menuItems: MenuItem[] = [
+  {
+    key: 'qrcode',
+    text: 'tools.zxing.qrcode',
+    icon: 'iconfont icon-qrcode',
+    category: 'qrcode'
   },
-  data() {
-    return {
-      menuItems: [
-        {
-          text: this.$t('tools.zxing.qrcode'),
-          icon: 'iconfont icon-qrcode',
-          action: () => this.insertQRCode()
-        },
-        {
-          text: this.$t('tools.zxing.barcode'),
-          icon: 'iconfont icon-barcode',
-          action: () => this.insertBarCode()
-        }
-      ]
-    };
-  },
-  methods: {
+  {
+    key: 'barcode',
+    text: 'tools.zxing.barcode',
+    icon: 'iconfont icon-barcode',
+    category: 'barcode'
+  }
+]
 
-    // 检查是否有选中的单元格
-    checkSelection() {
-      const hot = TableManager.get();
-      const selected = hot.getSelected();
-      if (!selected || selected.length === 0) {
-        showAlert(this.$t('selectTargetCellFirst'));
-        return false;
-      }
-      return true;
-    },
-    // 插入二维码
-    insertQRCode() {
-      if (!this.checkSelection()) {
-        return;
-      }
-
-      const hot = TableManager.get();
-      const selected = hot.getSelected();
-      const [startRow, startCol, endRow, endCol] = selected[0];
-      let cellDef = getCell(startRow, startCol);
-      let oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
-
-      hot.setDataAtCell(startRow, startCol, '');
-      let td = hot.getCell(startRow, startCol);
-      let width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
-
-      const newCellDef = deepCopy(cellDef);
-      newCellDef.value = {
-        width,
-        height,
-        type: 'zxing',
-        category: 'qrcode',
-        source: 'text',
-        data: ''
-      };
-      setCell( startRow, startCol, newCellDef );
-
-      hot.render();
-      setDirty();
-      Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
-
-      undoManager.add({
-        redo: () => {
-          cellDef = getCell(startRow, startCol);
-          oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
-          hot.setDataAtCell(startRow, startCol, '');
-          td = hot.getCell(startRow, startCol);
-          width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.value = {
-            width,
-            height,
-            type: 'zxing',
-            category: 'qrcode',
-            source: 'text',
-            data: ''
-          };
-          setCell( startRow, startCol,  newCellDef );
-          hot.render();
-          setDirty();
-          Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
-        },
-        undo: () => {
-          cellDef = getCell(startRow, startCol);
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.value = oldValue;
-          setCell(startRow,startCol,newCellDef );
-          hot.setDataAtCell(startRow, startCol, oldCellData);
-          hot.render();
-          setDirty();
-          Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
-        }
-      });
-    },
-    // 插入条形码
-    insertBarCode() {
-      if (!this.checkSelection()) {
-        return;
-      }
-
-      const hot = TableManager.get();
-      const selected = hot.getSelected();
-      const [startRow, startCol, endRow, endCol] = selected[0];
-      let cellDef = getCell(startRow, startCol);
-      let oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
-
-      hot.setDataAtCell(startRow, startCol, '');
-      let td = hot.getCell(startRow, startCol);
-      let width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
-
-      const newCellDef = deepCopy(cellDef);
-      newCellDef.value = {
-        width,
-        height,
-        type: 'zxing',
-        category: 'barcode',
-        source: 'text',
-        format: 'CODE_128',
-        data: ''
-      };
-      setCell(startRow,startCol, newCellDef );
-
-      hot.render();
-      setDirty();
-      Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
-
-      undoManager.add({
-        redo: () => {
-          cellDef = getCell(startRow, startCol);
-          oldValue = deepCopy(cellDef.value), oldCellData = hot.getDataAtCell(startRow, startCol);
-          hot.setDataAtCell(startRow, startCol, '');
-          td = hot.getCell(startRow, startCol);
-          width = this._buildWidth(startCol, td.colSpan, hot), height = this._buildHeight(startRow, td.rowSpan, hot);
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.value = {
-            width,
-            height,
-            type: 'zxing',
-            category: 'barcode',
-            source: 'text',
-            format: 'CODE_128',
-            data: ''
-          };
-          setCell(startRow, startCol,  newCellDef );
-          hot.render();
-          setDirty();
-          Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
-        },
-        undo: () => {
-          cellDef = getCell(startRow, startCol);
-          const newCellDef = deepCopy(cellDef);
-          newCellDef.value = oldValue;
-          setCell(startRow, startCol, newCellDef );
-          hot.setDataAtCell(startRow, startCol, oldCellData);
-          hot.render();
-          setDirty();
-          Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol);
-        }
-      });
-    },
-    // 构建宽度
-    _buildWidth(colIndex, colspan, hot) {
-      let width = hot.getColWidth(colIndex) - 3;
-      if (!colspan || colspan < 2) {
-        return width;
-      }
-      let start = colIndex + 1, end = colIndex + colspan;
-      for (let i = start; i < end; i++) {
-        width += hot.getColWidth(i);
-      }
-      return width;
-    },
-    // 构建高度
-    _buildHeight(rowIndex, rowspan, hot) {
-      let height = hot.getRowHeight(rowIndex) - 3;
-      if (!rowspan || rowspan < 2) {
-        return height;
-      }
-      let start = rowIndex + 1, end = rowIndex + rowspan;
-      for (let i = start; i < end; i++) {
-        height += hot.getRowHeight(i);
-      }
-      return height;
+/** a-menu 点击入口（按 key 分发到具体动作） */
+function handleMenuClick(info: MenuInfo): void {
+  const target = menuItems.find((it) => it.key === info.key)
+  if (target) {
+    if (target.category === 'qrcode') {
+      insertQRCode()
+    } else if (target.category === 'barcode') {
+      insertBarCode()
     }
   }
-};
+}
+
+/**
+ * 检查是否有选中的单元格
+ * @returns true=有选择；false=无选择且已弹提示
+ */
+function checkSelection(): boolean {
+  const hot = TableManager.get()
+  const selected = hot?.getSelected()
+  if (!selected || selected.length === 0) {
+    showAlert((window as { $t?: (k: string) => string }).$t?.('selectTargetCellFirst') ?? 'selectTargetCellFirst')
+    return false
+  }
+  return true
+}
+
+/**
+ * 提取并归一化选中区域
+ * @returns [startRow, startCol, endRow, endCol]
+ */
+function pickRange(): [number, number, number, number] {
+  const hot = TableManager.get()
+  const selected = hot?.getSelected() as HandsontableSelectionRange[] | undefined
+  if (!hot || !selected || selected.length === 0) {
+    return [0, 0, 0, 0]
+  }
+  return selected[0]
+}
+
+/**
+ * 计算单元格合并宽度（用于 zxing 图片的 width）
+ */
+function buildWidth(colIndex: number, colspan: number | undefined, hot: HandsontableInstance): number {
+  const colWidth = hot.getColWidth(colIndex) - 3
+  if (!colspan || colspan < 2) return colWidth
+  let width = colWidth
+  for (let i = colIndex + 1; i < colIndex + colspan; i++) {
+    width += hot.getColWidth(i)
+  }
+  return width
+}
+
+/**
+ * 计算单元格合并高度（用于 zxing 图片的 height）
+ */
+function buildHeight(rowIndex: number, rowspan: number | undefined, hot: HandsontableInstance): number {
+  const rowHeight = hot.getRowHeight(rowIndex) - 3
+  if (!rowspan || rowspan < 2) return rowHeight
+  let height = rowHeight
+  for (let i = rowIndex + 1; i < rowIndex + rowspan; i++) {
+    height += hot.getRowHeight(i)
+  }
+  return height
+}
+
+/**
+ * 在选中起始单元格写入二维码 value
+ */
+function insertQRCode(): void {
+  insertZxing('qrcode')
+}
+
+/**
+ * 在选中起始单元格写入条形码 value
+ */
+function insertBarCode(): void {
+  insertZxing('barcode')
+}
+
+/**
+ * 写入 zxing 单元格 value 的通用实现
+ * @param category 二维码 / 条形码
+ */
+function insertZxing(category: ZxingCategory): void {
+  if (!checkSelection()) return
+
+  const hot = TableManager.get()
+  if (!hot) return
+  const [startRow, startCol, endRow, endCol] = pickRange()
+
+  const cellDef = getCell(startRow, startCol) as ReportCell | null
+  if (!cellDef) return
+
+  // 缓存旧值用于 undo
+  const oldCellDefCopy = deepCopy(cellDef) as ReportCell
+  const oldCellData = hot.getDataAtCell(startRow, startCol)
+
+  hot.setDataAtCell(startRow, startCol, '')
+  const td = hot.getCell(startRow, startCol) as (HTMLElement & { colSpan?: number; rowSpan?: number }) | null
+  const width = buildWidth(startCol, td?.colSpan, hot)
+  const height = buildHeight(startRow, td?.rowSpan, hot)
+
+  const newCellDef = deepCopy(cellDef) as ReportCell
+  const zxingValue: ZxingCellValue = {
+    width,
+    height,
+    type: 'zxing',
+    category,
+    source: 'text',
+    data: ''
+  }
+  if (category === 'barcode') {
+    zxingValue.format = 'CODE_128'
+  }
+  newCellDef.value = zxingValue as unknown as ReportCell['value']
+  setCell(startRow, startCol, newCellDef)
+
+  hot.render()
+  setDirty()
+  Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol)
+
+  undoManager.add({
+    redo: () => {
+      const currentCellDef = getCell(startRow, startCol) as ReportCell | null
+      if (!currentCellDef) return
+      const redoNewCellDef = deepCopy(currentCellDef) as ReportCell
+      hot.setDataAtCell(startRow, startCol, '')
+      const redoTd = hot.getCell(startRow, startCol) as (HTMLElement & { colSpan?: number; rowSpan?: number }) | null
+      const redoWidth = buildWidth(startCol, redoTd?.colSpan, hot)
+      const redoHeight = buildHeight(startRow, redoTd?.rowSpan, hot)
+      const redoValue: ZxingCellValue = {
+        width: redoWidth,
+        height: redoHeight,
+        type: 'zxing',
+        category,
+        source: 'text',
+        data: ''
+      }
+      if (category === 'barcode') {
+        redoValue.format = 'CODE_128'
+      }
+      redoNewCellDef.value = redoValue as unknown as ReportCell['value']
+      setCell(startRow, startCol, redoNewCellDef)
+      hot.render()
+      setDirty()
+      Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol)
+    },
+    undo: () => {
+      const undoNewCellDef = deepCopy(oldCellDefCopy) as ReportCell
+      setCell(startRow, startCol, undoNewCellDef)
+      hot.setDataAtCell(startRow, startCol, oldCellData)
+      hot.render()
+      setDirty()
+      Handsontable.hooks.run(hot, 'afterSelectionEnd', startRow, startCol, endRow, endCol)
+    }
+  })
+}
 </script>
 
 <style scoped>
+.info-button {
+  font-size: 16px;
+  margin: 2px 0;
+  border: none;
+}
 </style>

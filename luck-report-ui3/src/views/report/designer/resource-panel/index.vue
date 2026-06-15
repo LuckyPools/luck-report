@@ -1,9 +1,9 @@
 <template>
   <div ref="sidePanel" class="ud-panel">
-      <u-tabs v-model="activeTab" type="card" class="resource-tabs" @tab-change="handleTabChange">
-          <u-tab-pane :label="$t('panel.property')" index="property" />
-          <u-tab-pane :label="$t('panel.datasource')" index="datasource" />
-      </u-tabs>
+      <a-tabs v-model:active-key="activeTab" type="card" class="resource-tabs" @tab-change="handleTabChange">
+          <a-tab-pane :key="'property'" :tab="t('panel.property')" />
+          <a-tab-pane :key="'datasource'" :tab="t('panel.datasource')" />
+      </a-tabs>
       <div class="tab-content" ref="tabContent">
           <PropertyPanel v-show="activeTab === 'property'" ref="propertyPanel" :row-index="rowIndex" :col-index="colIndex" :row2-index="row2Index" :col2-index="col2Index" :refresh-trigger="refreshTrigger" @refresh="handlePropertyPanelRefresh" />
           <DatasourcePanel v-show="activeTab === 'datasource'" />
@@ -11,81 +11,101 @@
   </div>
 </template>
 
-<script>
-import DatasourcePanel from './datasource-panel/index.vue';
-import PropertyPanel from '@/views/report/designer/resource-panel/property-panel/index.vue';
-import UTabs from '@/components/tabs/index.vue';
-import UTabPane from '@/components/tabs/pane.vue';
-import {mapGetters} from "vuex";
+<script setup lang="ts">
+/**
+ * ResourcePanel 资源侧边栏（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. 通过 a-tabs 在「属性面板 / 数据源面板」之间切换
+ * 2. 监听父组件传入的 selectedCells，更新当前选区索引并触发 PropertyPanel 刷新
+ * 3. PropertyPanel 内部 emit('refresh') 时同步自增 refreshTrigger
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-tabs（自定义）→ a-tabs + a-tab-pane（ant-design-vue）
+ * - mapGetters / Vuex → useReportStore
+ * - 移除未使用的 context 计算属性（原 vuex 版 getContext 派生但模板未引用）
+ */
+import { ref, watch } from 'vue'
+import DatasourcePanel from './datasource-panel/index.vue'
+import PropertyPanel from '@/views/report/designer/resource-panel/property-panel/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'SidePanel',
-  components: {DatasourcePanel, PropertyPanel, UTabs, UTabPane},
-  props: {
-    selectedCells: {
-      type: Object,
-      default: () => ({
-        rowIndex: null,
-        colIndex: null,
-        row2Index: null,
-        col2Index: null
-      })
-    }
-  },
-  data() {
-    return {
-      activeTab: 'property',
-      rowIndex: 0,
-      colIndex: 0,
-      row2Index: 0,
-      col2Index: 0,
-      refreshTrigger: 0
-    };
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext || {};
-    },
-  },
-  watch: {
-    selectedCells: {
-      deep: true,
-      handler(newVal) {
-        if (newVal.rowIndex !== null && newVal.colIndex !== null) {
-          this.refreshPropertyPanel(newVal.rowIndex, newVal.colIndex, newVal.row2Index, newVal.col2Index);
-        }
-      }
-    }
-  },
-  beforeUnmount() {
+defineOptions({ name: 'ResourcePanel' })
 
-  },
-  methods: {
 
-    /**
-     * 刷新属性面板
-     */
-    refreshPropertyPanel(rowIndex, colIndex, row2Index, col2Index) {
-      this.rowIndex = rowIndex;
-      this.colIndex = colIndex;
-      this.row2Index = row2Index;
-      this.col2Index = col2Index;
-      this.activeTab = this.activeTab ? this.activeTab : 'property';
-      this.refreshTrigger++;
-    },
+const { t } = useI18n()
+/**
+ * 组件 props
+ * @type {{ selectedCells: { rowIndex: number|null, colIndex: number|null, row2Index: number|null, col2Index: number|null } }}
+ */
+const props = defineProps({
+  selectedCells: {
+    type: Object,
+    default: () => ({
+      rowIndex: null,
+      colIndex: null,
+      row2Index: null,
+      col2Index: null
+    })
+  }
+})
 
-    handleTabChange(){
-      if(this.activeTab === 'property'){
-        this.refreshTrigger++;
-      }
-    },
+/** 当前激活的 tab key */
+const activeTab = ref<string>('property')
 
-    handlePropertyPanelRefresh(){
-      this.refreshTrigger++;
-    }
+/** 选区起止行/列索引 */
+const rowIndex = ref<number>(0)
+const colIndex = ref<number>(0)
+const row2Index = ref<number>(0)
+const col2Index = ref<number>(0)
+
+/** PropertyPanel 刷新触发器（值变化即触发子组件 watch 重新加载） */
+const refreshTrigger = ref<number>(0)
+
+/**
+ * 刷新属性面板
+ * @param r 起始行
+ * @param c 起始列
+ * @param r2 结束行
+ * @param c2 结束列
+ */
+function refreshPropertyPanel(r: number, c: number, r2: number, c2: number): void {
+  rowIndex.value = r
+  colIndex.value = c
+  row2Index.value = r2
+  col2Index.value = c2
+  activeTab.value = activeTab.value ? activeTab.value : 'property'
+  refreshTrigger.value++
+}
+
+/** tab 切换：切回 property 时触发刷新 */
+function handleTabChange(): void {
+  if (activeTab.value === 'property') {
+    refreshTrigger.value++
   }
 }
+
+/** PropertyPanel 内部请求刷新 */
+function handlePropertyPanelRefresh(): void {
+  refreshTrigger.value++
+}
+
+// 监听父组件传入的 selectedCells 变化，同步选区索引
+watch(
+  () => props.selectedCells,
+  (newVal) => {
+    if (newVal.rowIndex !== null && newVal.colIndex !== null) {
+      refreshPropertyPanel(
+        newVal.rowIndex,
+        newVal.colIndex,
+        newVal.row2Index,
+        newVal.col2Index
+      )
+    }
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
@@ -114,7 +134,7 @@ export default {
 
 .resource-tabs /deep/ .nav{
   height: 50px;
-  background: #00554a !important;
+  background: var(--color-primary) !important;
 }
 
 .resource-tabs /deep/ .nav li{
@@ -130,7 +150,7 @@ export default {
 }
 
 .resource-tabs /deep/ .nav li:active {
-  color: #00554a !important;
+  color: var(--color-primary) !important;
 }
 
 </style>

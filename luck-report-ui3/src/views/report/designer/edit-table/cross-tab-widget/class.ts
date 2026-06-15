@@ -15,11 +15,20 @@
  * - vueInstance.$destroy() 改为 app.unmount()
  * - doDraw() 兼容旧调用：保留但内部取子组件的 doDraw() 改用 defineExpose
  */
-import { createApp, type App } from 'vue'
+import { createApp, type App, type ComponentPublicInstance } from 'vue'
 import CrossTabWidgetVue from './index.vue'
 import TableManager from '../manager'
 import type { HandsontableInstance } from '@/types/handsontable'
 import type { ReportContext } from '@/types/report-def'
+
+/**
+ * CrossTabWidgetVue 子组件暴露的最小接口
+ * - 通过 defineExpose 暴露的 doDraw / refreshCell
+ */
+interface ExposedCrossTabWidget extends ComponentPublicInstance {
+  doDraw: () => void
+  refreshCell: () => void
+}
 
 /**
  * CrossTabWidgetVue 组件 props 抽象
@@ -50,6 +59,8 @@ export default class CrossTabWidget {
   vueInstance: App | null
   /** 挂载容器 DOM */
   container: HTMLElement | null
+  /** 子组件对外暴露的方法句柄（vue2 时代用 $children[0]，vue3 改为 mount 返回值） */
+  exposed: ExposedCrossTabWidget | null
 
   /**
    * 构造方法：立即触发首次渲染
@@ -66,6 +77,7 @@ export default class CrossTabWidget {
     this.value = value
     this.vueInstance = null
     this.container = null
+    this.exposed = null
 
     this.refreshCell()
   }
@@ -79,6 +91,7 @@ export default class CrossTabWidget {
       this.vueInstance.unmount()
       this.vueInstance = null
     }
+    this.exposed = null
 
     if (this.container && this.container.parentNode) {
       this.container.parentNode.removeChild(this.container)
@@ -111,18 +124,19 @@ export default class CrossTabWidget {
       colIndex: this.colIndex,
       value: this.value
     } as CrossTabWidgetProps)
-    this.vueInstance.mount(this.container)
+    // mount() 返回组件代理，defineExpose 暴露的方法挂载在代理上
+    this.exposed = this.vueInstance.mount(this.container) as unknown as ExposedCrossTabWidget
   }
 
   /**
    * 触发子组件重绘
    * - vue3 中通过 defineExpose 暴露的 doDraw() 间接调用
-   * - vueInstance.$children 在 vue3 中不再可用，改为通过 provide/inject 或 ref
-   * - 此方法为兼容旧调用保留，TS 阶段再考虑收敛
+   * - mount() 返回的组件代理上挂载了 defineExpose 暴露的 doDraw
    */
   doDraw(): void {
-    // vue3 不再支持 vueInstance.$children，等待 index.vue 迁移到 setup + defineExpose
-    // 此处保留空实现，避免破坏旧调用方
+    if (this.exposed && typeof this.exposed.doDraw === 'function') {
+      this.exposed.doDraw()
+    }
   }
 
   /**
@@ -135,6 +149,7 @@ export default class CrossTabWidget {
       this.vueInstance.unmount()
       this.vueInstance = null
     }
+    this.exposed = null
     if (this.container && this.container.parentNode) {
       this.container.parentNode.removeChild(this.container)
       this.container = null

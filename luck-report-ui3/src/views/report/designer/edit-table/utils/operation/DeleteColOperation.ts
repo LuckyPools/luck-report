@@ -18,9 +18,9 @@ import Handsontable from 'handsontable';
 import type { HandsontableInstance } from '@/types/handsontable';
 import { resetTableData, setDirty, undoManager } from '@/utils/table';
 import { showAlert } from '@/utils/comnon';
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import { addCell, getCell, getContext, removeCell } from '@/utils/contextActions';
-import { deepCopy } from '@/components/utils';
+import { deepCopy } from '@/utils/comnon';
 import type { ReportCell } from '@/types/report-def';
 
 /** 合并单元格定义（项目用到的最小子集） */
@@ -144,7 +144,7 @@ export function doDeleteCol(this: HandsontableInstance): void {
   const selected = this.getSelected()
   const context = getContext()
   if (!selected) {
-    showAlert($t('table.colTip'))
+    showAlert(i18n.global.t('table.colTip'))
     return
   }
   let [, startCol, , endCol] = selected[0]

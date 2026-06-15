@@ -1,14 +1,14 @@
 <template>
-  <UDialog
-    :title="$t('dialog.propCondition.title')"
-    width="1020px"
-    top="50px"
-    :visible="visible"
-    @close="handleClose"
+  <a-modal
+    :title="t('dialog.propCondition.title')"
+    :width="1020"
+    :style="{ top: '50px' }"
+    :open="visible"
+    @cancel="handleClose"
   >
     <div class="condition-body-container">
       <fieldset class="fieldset-small">
-        <legend class="legend-style">{{ $t('dialog.propCondition.config') }}</legend>
+        <legend class="legend-style">{{ t('dialog.propCondition.config') }}</legend>
         <condition-group
             :condition-groups="localConditionGroups"
             :selected-group-index="selectedGroupIndex"
@@ -21,7 +21,7 @@
       </fieldset>
 
       <fieldset class="fieldset-medium">
-        <legend class="legend-style">{{ $t('dialog.propCondition.conditionConfig') }}</legend>
+        <legend class="legend-style">{{ t('dialog.propCondition.conditionConfig') }}</legend>
         <condition-item
           :selected-group="selectedGroup"
           :fields="fields"
@@ -34,209 +34,243 @@
       </fieldset>
 
       <fieldset class="fieldset-large" v-show="showPropertyGroup">
-        <legend class="legend-style">{{ $t('dialog.propCondition.propConfig') }}</legend>
+        <legend class="legend-style">{{ t('dialog.propCondition.propConfig') }}</legend>
         <condition-config
           :selected-group="selectedGroup"
           @property-changed="onPropertyChanged"
         />
       </fieldset>
     </div>
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <template #footer>
+      <div style="text-align: right">
+        <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
+        <a-button type="primary" @click="handleOk">{{ t('dialog.common.ok') }}</a-button>
+      </div>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import { setDirty } from '@/utils/table.js';
-import ConditionGroup from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-group/index.vue';
-import ConditionItem from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item/index.vue';
-import ConditionConfig from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-config/index.vue';
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import { mapGetters } from 'vuex';
-import {deepClone} from "@/views/report/designer/search-form/utils";
+<script setup lang="ts">
+/**
+ * PropertyConditionDialog 条件属性弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → 深拷贝 conditionGroups + 默认选中第 0 组
+ * 2. 用户增删改条件组 / 条件项 / 属性配置
+ * 3. 「确定」→ emit('saveAfter', conditionGroups) + 关闭
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UButton（自定义）→ a-modal/a-button
+ * - 移除 Vuex，状态全部本地化
+ * - 移除 this.$set / this.$nextTick，使用 ref + watch + nextTick
+ */
+import { ref, watch, nextTick } from 'vue'
+import { setDirty } from '@/utils/table'
+import { deepCopy } from '@/utils/comnon'
+import ConditionGroup from './condition-group/index.vue'
+import ConditionItem from './condition-item/index.vue'
+import ConditionConfig, { type SelectedGroup } from './condition-config/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ConditionBody',
-  components: {
-    UButton,
-    ConditionGroup,
-    ConditionItem,
-    ConditionConfig,
-    UDialog
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    fields: {
-      type: Array,
-      default: () => []
-    },
-    conditionGroups: {
-      type: Array,
-      default: () => []
-    }
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    }
-  },
-  data() {
-    return {
-      selectedGroup: null,
-      selectedGroupIndex: -1,
-      showPropertyGroup: false,
-      localConditionGroups: [],
-      currentConditions: [],
-      resetConditionSelection: true
-    };
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        const conditionGroups = this.conditionGroups;
-        this.localConditionGroups = Array.isArray(conditionGroups) ? deepClone(conditionGroups) : [];
-        if (this.localConditionGroups.length > 0) {
-          this.selectFirstGroup();
-        } else {
-          this.clearSelection();
-        }
+defineOptions({ name: 'PropertyConditionDialog' })
+
+
+const { t } = useI18n()
+interface Field {
+  name: string
+  [key: string]: unknown
+}
+
+interface Condition {
+  type?: string
+  left?: string
+  operation?: string
+  right?: string
+  join?: string | null
+  id?: string
+  [key: string]: unknown
+}
+
+interface ConditionGroup {
+  id?: string
+  name?: string
+  conditions?: Condition[]
+  cellStyle?: SelectedGroup['cellStyle']
+  rowHeight?: number | null
+  colWidth?: number | null
+  newValue?: string | null
+  linkUrl?: string | null
+  linkTargetWindow?: string | null
+  linkParameters?: SelectedGroup['linkParameters']
+  paging?: SelectedGroup['paging']
+  [key: string]: unknown
+}
+
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    fields?: Field[]
+    conditionGroups?: ConditionGroup[]
+  }>(),
+  {
+    visible: false,
+    fields: () => [],
+    conditionGroups: () => []
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'update:visible', val: boolean): void
+  (e: 'saveAfter', conditionGroups: ConditionGroup[]): void
+}>()
+
+const selectedGroup = ref<SelectedGroup | null>(null)
+const selectedGroupIndex = ref<number>(-1)
+const showPropertyGroup = ref<boolean>(false)
+const localConditionGroups = ref<ConditionGroup[]>([])
+const currentConditions = ref<Condition[]>([])
+const resetConditionSelection = ref<boolean>(true)
+
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (newVal) {
+      const conditionGroups = props.conditionGroups
+      localConditionGroups.value = Array.isArray(conditionGroups)
+        ? (deepCopy(conditionGroups) as ConditionGroup[])
+        : []
+      if (localConditionGroups.value.length > 0) {
+        selectFirstGroup()
+      } else {
+        clearSelection()
       }
-    }
-  },
-  methods: {
-
-    onGroupAdded(newGroup) {
-      this.localConditionGroups.push(newGroup);
-      setDirty();
-    },
-
-    onGroupUpdated(index, group) {
-      if (index >= 0 && index < this.localConditionGroups.length) {
-        this.$set(this.localConditionGroups, index, group);
-      }
-      setDirty();
-    },
-
-    onGroupDeleted(index) {
-      if (index >= 0 && index < this.localConditionGroups.length) {
-        this.localConditionGroups.splice(index, 1);
-
-        if (this.selectedGroupIndex === index) {
-          if (this.localConditionGroups.length > 0) {
-            this.$nextTick(() => {
-              this.selectedGroupIndex = 0;
-            });
-          } else {
-            this.selectedGroup = null;
-            this.selectedGroupIndex = -1;
-            this.showPropertyGroup = false;
-            this.currentConditions = [];
-            this.resetConditionSelection = true;
-          }
-        }
-
-        setDirty();
-      }
-    },
-
-    onGroupSelected(group) {
-      this.selectedGroup = group;
-
-      if (!group) {
-        this.showPropertyGroup = false;
-        this.currentConditions = [];
-        this.resetConditionSelection = true;
-        return;
-      }
-      this.showPropertyGroup = true;
-
-      if (!group.conditions) {
-        group.conditions = [];
-      }
-      this.currentConditions = [...group.conditions];
-      this.resetConditionSelection = false;
-      setDirty();
-    },
-
-    onPropertyChanged(updatedGroup) {
-      if (updatedGroup && this.selectedGroup) {
-        Object.keys(updatedGroup).forEach(key => {
-          if (key !== 'conditions' && key !== 'id') {
-            this.$set(this.selectedGroup, key, updatedGroup[key]);
-          }
-        });
-      }
-      setDirty();
-    },
-
-    onConditionAdded(newCondition) {
-      if (this.selectedGroup) {
-        if (!this.selectedGroup.conditions) {
-          this.selectedGroup.conditions = [];
-        }
-        this.selectedGroup.conditions.push(newCondition);
-        this.currentConditions = [...this.selectedGroup.conditions];
-      }
-      setDirty();
-    },
-
-    onConditionUpdated(index, updatedCondition) {
-      if (this.selectedGroup && this.selectedGroup.conditions) {
-        if (index >= 0 && index < this.selectedGroup.conditions.length) {
-          this.selectedGroup.conditions.splice(index, 1, updatedCondition);
-          this.currentConditions = [...this.selectedGroup.conditions];
-        }
-      }
-      setDirty();
-    },
-
-    onConditionDeleted(index) {
-      if (this.selectedGroup && this.selectedGroup.conditions) {
-        if (index >= 0 && index < this.selectedGroup.conditions.length) {
-          this.selectedGroup.conditions.splice(index, 1);
-          this.currentConditions = [...this.selectedGroup.conditions];
-        }
-      }
-      setDirty();
-    },
-
-    onGroupIndexChanged(index) {
-      this.selectedGroupIndex = index;
-    },
-
-    selectFirstGroup() {
-      if (this.localConditionGroups.length > 0) {
-        this.selectedGroupIndex = 0;
-      }
-    },
-
-    clearSelection() {
-      this.selectedGroup = null;
-      this.selectedGroupIndex = -1;
-      this.showPropertyGroup = false;
-      this.currentConditions = [];
-      this.resetConditionSelection = true;
-    },
-
-    // 对话框控制方法
-    handleClose() {
-      this.$emit('update:visible', false);
-    },
-
-    handleOk() {
-      this.$emit('update:visible', false);
-      const conditionGroups = deepClone(this.localConditionGroups);
-      this.$emit('saveAfter', conditionGroups);
     }
   }
-};
+)
+
+const onGroupAdded = (newGroup: ConditionGroup): void => {
+  localConditionGroups.value.push(newGroup)
+  setDirty()
+}
+
+const onGroupUpdated = (index: number, group: ConditionGroup): void => {
+  if (index >= 0 && index < localConditionGroups.value.length) {
+    localConditionGroups.value[index] = group
+  }
+  setDirty()
+}
+
+const onGroupDeleted = (index: number): void => {
+  if (index >= 0 && index < localConditionGroups.value.length) {
+    localConditionGroups.value.splice(index, 1)
+
+    if (selectedGroupIndex.value === index) {
+      if (localConditionGroups.value.length > 0) {
+        nextTick(() => {
+          selectedGroupIndex.value = 0
+        })
+      } else {
+        clearSelection()
+      }
+    }
+
+    setDirty()
+  }
+}
+
+const onGroupSelected = (group: SelectedGroup | null): void => {
+  selectedGroup.value = group
+
+  if (!group) {
+    showPropertyGroup.value = false
+    currentConditions.value = []
+    resetConditionSelection.value = true
+    return
+  }
+  showPropertyGroup.value = true
+
+  if (!group.conditions) {
+    group.conditions = []
+  }
+  currentConditions.value = [...(group.conditions as Condition[])]
+  resetConditionSelection.value = false
+  setDirty()
+}
+
+const onPropertyChanged = (updatedGroup: SelectedGroup): void => {
+  if (updatedGroup && selectedGroup.value) {
+    Object.keys(updatedGroup).forEach((key) => {
+      if (key !== 'conditions' && key !== 'id') {
+        ;(selectedGroup.value as Record<string, unknown>)[key] = (
+          updatedGroup as Record<string, unknown>
+        )[key]
+      }
+    })
+  }
+  setDirty()
+}
+
+const onConditionAdded = (newCondition: Condition): void => {
+  if (selectedGroup.value) {
+    if (!selectedGroup.value.conditions) {
+      selectedGroup.value.conditions = []
+    }
+    ;(selectedGroup.value.conditions as Condition[]).push(newCondition)
+    currentConditions.value = [...(selectedGroup.value.conditions as Condition[])]
+  }
+  setDirty()
+}
+
+const onConditionUpdated = (index: number, updatedCondition: Condition): void => {
+  if (selectedGroup.value && selectedGroup.value.conditions) {
+    const conds = selectedGroup.value.conditions as Condition[]
+    if (index >= 0 && index < conds.length) {
+      conds.splice(index, 1, updatedCondition)
+      currentConditions.value = [...conds]
+    }
+  }
+  setDirty()
+}
+
+const onConditionDeleted = (index: number): void => {
+  if (selectedGroup.value && selectedGroup.value.conditions) {
+    const conds = selectedGroup.value.conditions as Condition[]
+    if (index >= 0 && index < conds.length) {
+      conds.splice(index, 1)
+      currentConditions.value = [...conds]
+    }
+  }
+  setDirty()
+}
+
+const onGroupIndexChanged = (index: number): void => {
+  selectedGroupIndex.value = index
+}
+
+const selectFirstGroup = (): void => {
+  if (localConditionGroups.value.length > 0) {
+    selectedGroupIndex.value = 0
+  }
+}
+
+const clearSelection = (): void => {
+  selectedGroup.value = null
+  selectedGroupIndex.value = -1
+  showPropertyGroup.value = false
+  currentConditions.value = []
+  resetConditionSelection.value = true
+}
+
+const handleClose = (): void => {
+  emit('update:visible', false)
+}
+
+const handleOk = (): void => {
+  emit('update:visible', false)
+  const conditionGroups = deepCopy(localConditionGroups.value) as ConditionGroup[]
+  emit('saveAfter', conditionGroups)
+}
 </script>
 
 <style scoped>

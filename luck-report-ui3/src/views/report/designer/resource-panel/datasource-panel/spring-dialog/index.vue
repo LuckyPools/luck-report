@@ -1,160 +1,176 @@
 <template>
-    <UDialog
-      :title="$t('dialog.springDS.title')"
-      width="500px"
-      :visible="visible"
-      :z-index="20000"
-      @close="closeDialog"
+  <a-modal
+    :title="t('dialog.springDS.title')"
+    :width="500"
+    :open="visible"
+    :zIndex="20000"
+    @cancel="closeDialog"
+  >
+    <a-form
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      :label-col="{ style: { width: '120px' } }"
+      :colon="false"
     >
-        <u-form ref="form" :model="formData" :rules="rules">
-            <u-form-item :label="$t('dialog.springDS.name')" :label-width="120" prop="name">
-                <u-input v-model="formData.name" />
-            </u-form-item>
-            <u-form-item :label="$t('dialog.springDS.bean')" :label-width="120" prop="beanId">
-                <u-input v-model="formData.beanId" />
-            </u-form-item>
-        </u-form>
-        <div slot="footer" style="text-align: right">
-            <u-button @click="closeDialog" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-            <u-button @click="saveData">{{ $t('dialog.common.ok') }}</u-button>
-        </div>
-    </UDialog>
+      <a-form-item :label="t('dialog.springDS.name')" name="name">
+        <a-input v-model:value="formData.name" />
+      </a-form-item>
+      <a-form-item :label="t('dialog.springDS.bean')" name="beanId">
+        <a-input v-model:value="formData.beanId" />
+      </a-form-item>
+    </a-form>
+
+    <template #footer>
+      <a-button @click="closeDialog" style="margin-right: 10px;">
+        {{ t('dialog.common.cancel') }}
+      </a-button>
+      <a-button type="primary" @click="saveData">
+        {{ t('dialog.common.ok') }}
+      </a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import { showAlert } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UInput from '@/components/input/index.vue';
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
+<script setup lang="ts">
+/**
+ * SpringDialog SpringBean 数据源配置弹窗（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. visible=true → resetForm / initData
+ * 2. 「确定」→ 校验 → 查重 → emit('save', { name, beanId, type: 'spring', ... })
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - UDialog/UForm/UFormItem/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-input/a-button
+ * - $refs.form.validate → formRef.value.validate()
+ * - this.$emit → defineEmits
+ */
+import { ref, reactive, watch } from 'vue'
+import type { Rule } from 'ant-design-vue/es/form'
+import { showAlert } from '@/utils/comnon'
+import { setDirty } from '@/utils/table'
+import type { ReportDatasource } from '@/types/report-def'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'SpringDialog',
-  components: {
-    UButton,
-    UDialog,
-    UInput,
-    UForm,
-    UFormItem
-  },
-  props: {
-    datasources: {
-      type: Array,
-      default: () => []
-    },
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    datasource: {
-      type: Object,
-      default: null
-    }
-  },
-  data() {
-    return {
-      formData: {
-        name: '',
-        beanId: ''
-      },
-      oldName: null,
-      rules: {
-        name: [{
-          required: true,
-          message: this.$t('dialog.springDS.nameTip'),
-          trigger: 'blur'
-        }],
-        beanId: [{
-          required: true,
-          message: this.$t('dialog.springDS.beanTip'),
-          trigger: 'blur'
-        }]
-      }
-    };
-  },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.resetForm();
-        this.initData();
-      }
-    }
-  },
-  methods: {
-    /**
-     * 校验表单
-     * @returns {Promise<boolean>} 校验结果
-     */
-    validateForm() {
-      return new Promise((resolve) => {
-        this.$refs.form.validate((valid) => {
-          resolve(valid);
-        });
-      });
-    },
+defineOptions({ name: 'SpringDialog' })
 
-    /**
-     * 重置表单数据
-     */
-    resetForm() {
-      this.formData.name = '';
-      this.formData.beanId = '';
-      this.oldName = null;
-    },
 
-    /**
-     * 填充表单数据
-     */
-    initData() {
-      this.oldName = this.datasource?.name ?? null;
-      this.formData.name = this.datasource?.name ?? '';
-      this.formData.beanId = this.datasource?.beanId ?? '';
-    },
+const { t } = useI18n()
+/** 表单数据结构 */
+interface SpringForm {
+  name: string
+  beanId: string
+}
 
-    /**
-     * 保存数据
-     */
-    async saveData() {
-      const valid = await this.validateForm();
-      if (!valid) {
-        return;
-      }
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    datasources?: ReportDatasource[]
+    datasource?: ReportDatasource | null
+  }>(),
+  {
+    visible: false,
+    datasources: () => [],
+    datasource: null
+  }
+)
 
-      let check = false;
-      if (!this.oldName || this.formData.name !== this.oldName) {
-        check = true;
-      }
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'save', payload: {
+    name: string
+    beanId: string
+    type: 'spring'
+    datasets: ReportDatasource['datasets']
+    oldName: string | null
+  }): void
+}>()
 
-      if (check) {
-        for (let source of this.datasources) {
-          if (source.name === this.formData.name) {
-            showAlert(`${this.$t('dialog.springDS.ds')}[${this.formData.name}]${this.$t('dialog.springDS.exist')}`);
-            return;
-          }
-        }
-      }
+const formRef = ref()
+const oldName = ref<string | null>(null)
+const formData = reactive<SpringForm>({ name: '', beanId: '' })
 
-      this.$emit('save', {
-        name: this.formData.name,
-        beanId: this.formData.beanId,
-        type: 'spring',
-        datasets: [],
-        oldName: this.oldName
-      });
-      this.closeDialog();
-      setDirty();
-    },
+const rules: Record<string, Rule[]> = {
+  name: [
+    { required: true, message: t('dialog.springDS.nameTip'), trigger: 'blur' }
+  ],
+  beanId: [
+    { required: true, message: t('dialog.springDS.beanTip'), trigger: 'blur' }
+  ]
+}
 
-    /**
-     * 关闭弹窗
-     */
-    closeDialog() {
-      this.$emit('close');
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      resetForm()
+      initData()
     }
   }
-};
+)
+
+/** 重置表单 */
+function resetForm(): void {
+  formData.name = ''
+  formData.beanId = ''
+  oldName.value = null
+}
+
+/** 回填表单 */
+function initData(): void {
+  const d = props.datasource
+  oldName.value = d?.name ?? null
+  formData.name = d?.name ?? ''
+  formData.beanId = (d as any)?.beanId ?? ''
+}
+
+/** 关闭弹窗 */
+function closeDialog(): void {
+  emit('close')
+}
+
+/** 校验表单 */
+async function validateForm(): Promise<boolean> {
+  try {
+    await formRef.value?.validate()
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 校验重名（排除当前编辑项） */
+function checkDuplicate(): boolean {
+  if (!oldName.value || formData.name !== oldName.value) {
+    for (const source of props.datasources || []) {
+      if (source.name === formData.name) {
+        showAlert(
+          `${t('dialog.springDS.ds')}[${formData.name}]${t('dialog.springDS.exist')}`
+        )
+        return false
+      }
+    }
+  }
+  return true
+}
+
+/** 保存 */
+async function saveData(): Promise<void> {
+  const valid = await validateForm()
+  if (!valid) return
+  if (!checkDuplicate()) return
+
+  emit('save', {
+    name: formData.name,
+    beanId: formData.beanId,
+    type: 'spring',
+    datasets: [],
+    oldName: oldName.value
+  })
+  closeDialog()
+  setDirty()
+}
 </script>
 
 <style scoped>

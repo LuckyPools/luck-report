@@ -1,498 +1,330 @@
 <template>
-  <div class="bar-chart-value-editor" ref="container">
+  <div class="chart-value-editor" ref="container">
 
-    <u-tabs v-model="activeTab" type="button">
-      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset" >
+    <a-tabs v-model:active-key="activeTab" type="line">
+      <a-tab-pane :key="'dataset'" :tab="t('chart.datasetBind')">
         <!-- 数据集绑定选项卡 -->
         <ChartDataset
-            :datasetConfig="datasetConfig"
-            :fields="currentFields"
-            :datasets="currentDatasets"
-            @dataset-change="handleDatasetChange"
-            @category-property-change="handleCategoryPropertyChange"
-            @value-property-change="handleValuePropertyChange"
-            @series-type-change="handleSeriesTypeChange"
-            @series-property-change="handleSeriesPropertyChange"
-            @series-text-change="handleSeriesTextChange"
-            @aggregate-change="handleAggregateChange"
+          :dataset-config="datasetConfig"
+          :fields="currentFields"
+          :datasets="currentDatasets"
+          @dataset-change="handleDatasetChange"
+          @category-property-change="handleCategoryPropertyChange"
+          @value-property-change="handleValuePropertyChange"
+          @series-type-change="handleSeriesTypeChange"
+          @series-property-change="handleSeriesPropertyChange"
+          @series-text-change="handleSeriesTextChange"
+          @aggregate-change="handleAggregateChange"
         />
-      </u-tab-pane>
+      </a-tab-pane>
 
-      <u-tab-pane :label="$t('chart.option')" index="option" >
+      <a-tab-pane :key="'option'" :tab="t('chart.option')">
         <!-- 选项选项卡 -->
         <ChartOption
-            :chartConfig="chartConfig"
-            @chart-option-change="handleChartOptionChange"
-            @data-labels-change="handleDataLabelsChange"
+          :chart-config="chartConfig"
+          @chart-option-change="onChartOptionChange"
+          @data-labels-change="onDataLabelsChange"
         />
-      </u-tab-pane>
+      </a-tab-pane>
 
-      <u-tab-pane v-if="showAxis" :label="$t('chart.axisConfig')" index="axis" >
+      <a-tab-pane v-if="showAxis" :key="'axis'" :tab="t('chart.axisConfig')">
         <!-- 轴配置选项卡 -->
         <ChartAxis
-            v-show="activeTab === 'axis'"
-            :xAxesConfig.sync="xAxesConfig"
-            :yAxesConfig.sync="yAxesConfig"
-            :format.sync="datasetConfig.format"
-            @axis-change="handleAxisChange"
+          v-show="activeTab === 'axis'"
+          v-model:x-axes-config="xAxesConfig"
+          v-model:y-axes-config="yAxesConfig"
+          v-model:format="datasetConfig.format"
+          @axis-change="onAxisChange"
         />
-      </u-tab-pane>
-    </u-tabs>
+      </a-tab-pane>
+    </a-tabs>
   </div>
 </template>
 
-<script>
-import { setDirty } from '@/utils/table';
-import { deepCopy } from '@/components/utils/index.js';
-import { getCell, setCell } from '@/utils/contextActions';
-import chartWidgetManager from '@/views/report/designer/edit-table/chart-widget/manager';
-import ChartDataset from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-dataset/index.vue';
-import ChartAxis from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-axis/index.vue';
-import ChartOption from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-option/index.vue';
-import UTabs from '@/components/tabs/index.vue';
-import UTabPane from '@/components/tabs/pane.vue';
-import { mapGetters, mapActions } from 'vuex';
+<script setup lang="ts">
+/**
+ * ChartValueEditor 图表值编辑器（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. cellPosition 变化或 isCellUpdate=true → loadChartConfig 回填
+ * 2. 通过 ChartDataset / ChartOption / ChartAxis 子组件交互
+ * 3. 写回 cellDef.value.chart（公共逻辑由 useChartConfig 接管）
+ */
+import { ref, reactive, computed } from 'vue'
+import { useChartConfig } from './useChartConfig'
+import ChartDataset from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-dataset/index.vue'
+import ChartAxis from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-axis/index.vue'
+import ChartOption from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-option/index.vue'
+import type {
+  ChartDataLabels,
+  ChartTitle,
+  ChartLegend,
+  ChartAnimation,
+  ChartLayout
+} from './useChartConfig'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ChartValueEditor',
-  components: {
-    ChartDataset,
-    ChartAxis,
-    ChartOption,
-    UTabs,
-    UTabPane
-  },
-  props: {
-    id: {
-      type: String,
-      default: 'bar'
-    },
-    showAxis: {
-      type: Boolean,
-      default: true
-    },
-    rowIndex: {
-      type: Number,
-      default: 0
-    },
-    colIndex: {
-      type: Number,
-      default: 0
-    },
-    row2Index: {
-      type: Number,
-      default: 0
-    },
-    col2Index: {
-      type: Number,
-      default: 0
-    }
-  },
-  data() {
-    return {
-      activeTab: 'dataset',
-      datasetConfig: {
-        datasetName: '',
-        categoryProperty: '',
-        valueProperty: '',
-        seriesType: 'text',
-        seriesProperty: '',
-        seriesText: '',
-        collectType: '',
-        format: ''
-      },
+defineOptions({ name: 'ChartValueEditor' })
 
-      // 图表配置
-      chartConfig: {
-        title: {
-          display: false,
-          position: 'top',
-          text: ''
-        },
-        legend: {
-          display: true,
-          position: 'top'
-        },
-        dataLabels: {
-          display: false
-        },
-        animation: {
-          duration: 1000,
-          easing: 'easeOutQuad'
-        },
-        layout: {
-          top: 10,
-          bottom: 10,
-          left: 10,
-          right: 10
-        }
-      },
 
-      // X轴配置
-      xAxesConfig: {
-        rotation: 0,
-        scaleLabel: {
-          display: false,
-          labelString: ''
-        }
-      },
+const { t } = useI18n()
+interface ChartDatasetConfig {
+  datasetName: string
+  categoryProperty: string
+  valueProperty: string
+  seriesType: string
+  seriesProperty: string
+  seriesText: string
+  collectType: string
+  format: string
+}
 
-      // Y轴配置
-      yAxesConfig: {
-        rotation: 0,
-        scaleLabel: {
-          display: false,
-          labelString: ''
-        }
+interface ChartConfig {
+  title: ChartTitle
+  legend: ChartLegend
+  dataLabels: ChartDataLabels
+  animation: ChartAnimation
+  layout: ChartLayout
+}
+
+interface FieldItem {
+  name: string
+}
+
+interface DatasetItem {
+  name: string
+}
+
+const props = withDefaults(
+  defineProps<{
+    id?: string
+    showAxis?: boolean
+    rowIndex?: number
+    colIndex?: number
+    row2Index?: number
+    col2Index?: number
+  }>(),
+  {
+    id: 'bar',
+    showAxis: true,
+    rowIndex: 0,
+    colIndex: 0,
+    row2Index: 0,
+    col2Index: 0
+  }
+)
+
+const {
+  context,
+  readChartConfig,
+  handleChartOptionChange,
+  handleDataLabelsChange,
+  handleAxisChange,
+  updateDatasetConfig,
+  bindWatchers
+} = useChartConfig({
+  rowIndex: () => props.rowIndex,
+  colIndex: () => props.colIndex
+})
+
+// ====== 状态 ======
+const activeTab = ref<string>('dataset')
+
+const datasetConfig = reactive<ChartDatasetConfig>({
+  datasetName: '',
+  categoryProperty: '',
+  valueProperty: '',
+  seriesType: 'text',
+  seriesProperty: '',
+  seriesText: '',
+  collectType: '',
+  format: ''
+})
+
+const chartConfig = reactive<ChartConfig>({
+  title: { display: false, position: 'top', text: '' },
+  legend: { display: true, position: 'top' },
+  dataLabels: { display: false },
+  animation: { duration: 1000, easing: 'easeOutQuad' },
+  layout: { top: 10, bottom: 10, left: 10, right: 10 }
+})
+
+// xaxes/yaxes 仍需本地 ref（ChartAxis 子组件通过 v-model:x-axes-config 双向绑定）
+// 因为子组件不能直接访问 reactive 内的整个 xAxesConfig（受限于子组件实现）
+// 这里仅用于 v-model 绑定；真实值由 useChartConfig 读写 cellDef
+const xAxesConfig = reactive<{ rotation: number; scaleLabel: { display: boolean; labelString: string } }>({
+  rotation: 0,
+  scaleLabel: { display: false, labelString: '' }
+})
+
+const yAxesConfig = reactive<{ rotation: number; scaleLabel: { display: boolean; labelString: string } }>({
+  rotation: 0,
+  scaleLabel: { display: false, labelString: '' }
+})
+
+const cellPosition = computed<string>(() => `${props.rowIndex},${props.colIndex}`)
+
+/** 根据 datasetConfig.datasetName 拿到该数据集的字段列表 */
+const currentFields = computed<FieldItem[]>(() => {
+  const datasetName = datasetConfig.datasetName
+  if (!datasetName) return []
+  const datasources = context.value?.reportDef?.datasources || []
+  for (const datasource of datasources) {
+    const datasets = datasource.datasets || []
+    for (const dataset of datasets) {
+      if (dataset.name === datasetName) {
+        return dataset.fields || []
       }
-    };
-  },
-  computed: {
-      ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
-      context() {
-          return this.getContext;
-      },
-      isCellUpdate() {
-        return this.getIsCellUpdate;
-      },
-      cellPosition() {
-        return `${this.rowIndex},${this.colIndex}`;
-      },
-      /**
-       * 根据当前 datasetName 获取对应数据集的字段列表
-       * @return {Array} 字段数组，未选择数据集时返回空数组
-       */
-      currentFields() {
-        const datasetName = this.datasetConfig.datasetName;
-        if (!datasetName) return [];
-        for (let datasource of this.context.reportDef.datasources) {
-          let datasets = datasource.datasets || [];
-          for (let dataset of datasets) {
-            if (dataset.name === datasetName) {
-              return dataset.fields || [];
-            }
-          }
-        }
-        return [];
-      },
-      /**
-       * 获取所有可用数据集列表
-       * @return {Array} 数据集数组
-       */
-      currentDatasets() {
-        if (!this.context?.reportDef?.datasources) return [];
-        const result = [];
-        for (let datasource of this.context.reportDef.datasources) {
-          let datasets = datasource.datasets || [];
-          for (let dataset of datasets) {
-            result.push(dataset);
-          }
-        }
-        return result;
-      }
-  },
-  watch: {
-    cellPosition: {
-      immediate: true,
-      handler() {
-        this.loadChartConfig();
-      }
-    },
-    isCellUpdate: {
-      handler(newVal) {
-        if (newVal) {
-          this.loadChartConfig();
-          this.setCellUpdate(false);
-        }
-      }
-    }
-  },
-  methods: {
-    ...mapActions('report', ['setCellUpdate']),
-    getCell,
-    /**
-     * 加载图表配置
-     */
-    loadChartConfig() {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef || !cellDef.value || !cellDef.value.chart) {
-        return;
-      }
-      const chart = cellDef.value.chart;
-
-      if (chart.dataset) {
-        this.datasetConfig = { ...this.datasetConfig, ...chart.dataset };
-      }
-
-      if (chart.xaxes) {
-        this.xAxesConfig = { ...this.xAxesConfig, ...chart.xaxes };
-      }
-
-      if (chart.yaxes) {
-        this.yAxesConfig = { ...this.yAxesConfig, ...chart.yaxes };
-      }
-
-      if (chart.options && Array.isArray(chart.options)) {
-        for (let option of chart.options) {
-          switch (option.type) {
-            case "title":
-              this.chartConfig.title = { ...this.chartConfig.title, ...option };
-              break;
-            case "legend":
-              this.chartConfig.legend = { ...this.chartConfig.legend, ...option };
-              break;
-            case "animation":
-              this.chartConfig.animation = { ...this.chartConfig.animation, ...option };
-              break;
-            case "layout":
-              this.chartConfig.layout = { ...this.chartConfig.layout, ...option.layout };
-              break;
-          }
-        }
-      }
-
-      if (chart.plugins && Array.isArray(chart.plugins)) {
-        for (let plugin of chart.plugins) {
-          if (plugin.name === 'data-labels') {
-            this.chartConfig.dataLabels.display = plugin.display;
-          }
-        }
-      }
-    },
-
-    /**
-     * 处理数据集变化
-     */
-    handleDatasetChange(value) {
-      this.datasetConfig.datasetName = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.datasetName = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      console.log(JSON.stringify(cell))
-      setDirty();
-    },
-
-    /**
-     * 处理分类属性变化
-     */
-    handleCategoryPropertyChange(value) {
-      this.datasetConfig.categoryProperty = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.categoryProperty = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理值属性变化
-     */
-    handleValuePropertyChange(value) {
-      this.datasetConfig.valueProperty = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.valueProperty = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理系列类型变化
-     */
-    handleSeriesTypeChange(value) {
-      this.datasetConfig.seriesType = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.seriesType = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理系列属性变化
-     */
-    handleSeriesPropertyChange(value) {
-      this.datasetConfig.seriesProperty = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.seriesProperty = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理系列文本变化
-     */
-    handleSeriesTextChange(value) {
-      this.datasetConfig.seriesText = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.seriesText = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理聚合方式变化
-     */
-    handleAggregateChange(value) {
-      this.datasetConfig.collectType = value;
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (cell && cell.value && cell.value.chart && cell.value.chart.dataset) {
-        cell.value.chart.dataset.collectType = value;
-        setCell(this.rowIndex, this.colIndex, cell);
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理图表选项变化
-     */
-    handleChartOptionChange({ type, option }) {
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (!cell || !cell.value || !cell.value.chart) {
-        return;
-      }
-
-      const chart = cell.value.chart;
-      if (!chart.options) {
-        chart.options = [];
-      }
-
-      let existingOption = chart.options.find(opt => opt.type === type);
-      if (existingOption) {
-        Object.assign(existingOption, option);
-      } else {
-        chart.options.push({ type, ...option });
-      }
-
-      setCell(this.rowIndex, this.colIndex, cell);
-      this.updateChart();
-      setDirty();
-    },
-
-    /**
-     * 处理数据标签显示变化
-     */
-    handleDataLabelsChange(dataLabels) {
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (!cell || !cell.value || !cell.value.chart) {
-        return;
-      }
-
-      const chart = cell.value.chart;
-      if (!chart.plugins) {
-        chart.plugins = [];
-      }
-
-      let dataLabelPlugin = chart.plugins.find(p => p.name === 'data-labels');
-      if (dataLabelPlugin) {
-        dataLabelPlugin.display = dataLabels.display;
-      } else {
-        chart.plugins.push({
-          name: 'data-labels',
-          display: dataLabels.display
-        });
-      }
-
-      setCell(this.rowIndex, this.colIndex, cell);
-      this.updateChart();
-      setDirty();
-    },
-
-    /**
-     * 更新图表
-     */
-    updateChart() {
-      const widgetKey = `${this.rowIndex}_${this.colIndex}`;
-      const chartWidget = chartWidgetManager.get(widgetKey);
-      if (chartWidget) {
-        chartWidget.refresh(this.context);
-      }
-    },
-
-    /**
-     * 处理轴配置变化
-     */
-    handleAxisChange({ type, value }) {
-      const cell = deepCopy(getCell(this.rowIndex, this.colIndex));
-      if (!cell || !cell.value || !cell.value.chart) {
-        return;
-      }
-
-      const chart = cell.value.chart;
-
-      switch (type) {
-        case 'x-rotation':
-          if (!chart.xaxes) {
-            chart.xaxes = {};
-          }
-          chart.xaxes.rotation = value;
-          break;
-        case 'x-title-display':
-          if (!chart.xaxes) {
-            chart.xaxes = {};
-          }
-          if (!chart.xaxes.scaleLabel) {
-            chart.xaxes.scaleLabel = {};
-          }
-          chart.xaxes.scaleLabel.display = value;
-          break;
-        case 'x-title-text':
-          if (!chart.xaxes) {
-            chart.xaxes = {};
-          }
-          if (!chart.xaxes.scaleLabel) {
-            chart.xaxes.scaleLabel = {};
-          }
-          chart.xaxes.scaleLabel.labelString = value;
-          break;
-        case 'y-rotation':
-          if (!chart.yaxes) {
-            chart.yaxes = {};
-          }
-          chart.yaxes.rotation = value;
-          break;
-        case 'y-title-display':
-          if (!chart.yaxes) {
-            chart.yaxes = {};
-          }
-          if (!chart.yaxes.scaleLabel) {
-            chart.yaxes.scaleLabel = {};
-          }
-          chart.yaxes.scaleLabel.display = value;
-          break;
-        case 'y-title-text':
-          if (!chart.yaxes) {
-            chart.yaxes = {};
-          }
-          if (!chart.yaxes.scaleLabel) {
-            chart.yaxes.scaleLabel = {};
-          }
-          chart.yaxes.scaleLabel.labelString = value;
-          break;
-        case 'format':
-          if (!chart.dataset) {
-            chart.dataset = {};
-          }
-          chart.dataset.format = value;
-          break;
-      }
-
-      setCell(this.rowIndex, this.colIndex, cell);
-      this.updateChart();
-      setDirty();
     }
   }
-};
+  return []
+})
+
+/** 获取所有可用数据集 */
+const currentDatasets = computed<DatasetItem[]>(() => {
+  const datasources = context.value?.reportDef?.datasources || []
+  const result: DatasetItem[] = []
+  for (const datasource of datasources) {
+    const datasets = datasource.datasets || []
+    for (const dataset of datasets) {
+      result.push(dataset)
+    }
+  }
+  return result
+})
+
+/** 加载图表配置：从 cellDef.value.chart 回填到本地 state */
+const loadChartConfig = (): void => {
+  const config = readChartConfig()
+  if (!config) {
+    return
+  }
+
+  // 防止 undefined 把默认的 rotation 覆盖为 undefined
+  if (config.xaxes) {
+    if (config.xaxes.rotation !== undefined) xAxesConfig.rotation = config.xaxes.rotation
+    if (config.xaxes.scaleLabel) {
+      xAxesConfig.scaleLabel.display = config.xaxes.scaleLabel.display
+      xAxesConfig.scaleLabel.labelString = config.xaxes.scaleLabel.labelString
+    }
+  }
+  if (config.yaxes) {
+    if (config.yaxes.rotation !== undefined) yAxesConfig.rotation = config.yaxes.rotation
+    if (config.yaxes.scaleLabel) {
+      yAxesConfig.scaleLabel.display = config.yaxes.scaleLabel.display
+      yAxesConfig.scaleLabel.labelString = config.yaxes.scaleLabel.labelString
+    }
+  }
+  if (config.dataset && typeof config.dataset === 'object') {
+    Object.assign(datasetConfig, config.dataset)
+  }
+  if (Array.isArray(config.options)) {
+    for (const option of config.options) {
+      switch (option.type) {
+        case 'title':
+          Object.assign(chartConfig.title, option)
+          break
+        case 'legend':
+          Object.assign(chartConfig.legend, option)
+          break
+        case 'animation':
+          Object.assign(chartConfig.animation, option)
+          break
+        case 'layout':
+          if (option.layout) {
+            Object.assign(chartConfig.layout, option.layout as ChartLayout)
+          }
+          break
+      }
+    }
+  }
+  if (Array.isArray(config.plugins)) {
+    for (const plugin of config.plugins) {
+      if (plugin.name === 'data-labels') {
+        chartConfig.dataLabels.display = Boolean(plugin.display)
+      }
+    }
+  }
+}
+
+bindWatchers(cellPosition, loadChartConfig)
+
+/** 通用：写入 dataset 字段（避免 7 个 handleXxxChange 重复） */
+const updateDatasetField = (
+  field: keyof ChartDatasetConfig,
+  value: string
+): void => {
+  datasetConfig[field] = value
+  updateDatasetConfig({ [field]: value })
+}
+
+const handleDatasetChange = (value: string): void => updateDatasetField('datasetName', value)
+const handleCategoryPropertyChange = (value: string): void => updateDatasetField('categoryProperty', value)
+const handleValuePropertyChange = (value: string): void => updateDatasetField('valueProperty', value)
+const handleSeriesTypeChange = (value: string): void => updateDatasetField('seriesType', value)
+const handleSeriesPropertyChange = (value: string): void => updateDatasetField('seriesProperty', value)
+const handleSeriesTextChange = (value: string): void => updateDatasetField('seriesText', value)
+const handleAggregateChange = (value: string): void => updateDatasetField('collectType', value)
+
+/** chart options 变更 */
+const onChartOptionChange = (payload: { type: string; option: Record<string, unknown> }): void => {
+  handleChartOptionChange(payload)
+  // 本地 state 同步
+  switch (payload.type) {
+    case 'title':
+      Object.assign(chartConfig.title, payload.option)
+      break
+    case 'legend':
+      Object.assign(chartConfig.legend, payload.option)
+      break
+    case 'animation':
+      Object.assign(chartConfig.animation, payload.option)
+      break
+    case 'layout':
+      if (payload.option.layout) {
+        Object.assign(chartConfig.layout, payload.option.layout as ChartLayout)
+      }
+      break
+  }
+}
+
+/** data-labels 显隐 */
+const onDataLabelsChange = (dataLabels: ChartDataLabels): void => {
+  handleDataLabelsChange(dataLabels)
+  chartConfig.dataLabels.display = dataLabels.display
+}
+
+/** x/y 轴变化 */
+const onAxisChange = (payload: { type: string; value: unknown }): void => {
+  handleAxisChange(payload)
+  switch (payload.type) {
+    case 'x-rotation':
+      if (typeof payload.value === 'number') xAxesConfig.rotation = payload.value
+      break
+    case 'x-title-display':
+      xAxesConfig.scaleLabel.display = Boolean(payload.value)
+      break
+    case 'x-title-text':
+      xAxesConfig.scaleLabel.labelString = String(payload.value ?? '')
+      break
+    case 'y-rotation':
+      if (typeof payload.value === 'number') yAxesConfig.rotation = payload.value
+      break
+    case 'y-title-display':
+      yAxesConfig.scaleLabel.display = Boolean(payload.value)
+      break
+    case 'y-title-text':
+      yAxesConfig.scaleLabel.labelString = String(payload.value ?? '')
+      break
+    case 'format':
+      datasetConfig.format = String(payload.value ?? '')
+      break
+  }
+}
 </script>
 
 <style scoped>
+.chart-value-editor {
+  width: 100%;
+}
 </style>

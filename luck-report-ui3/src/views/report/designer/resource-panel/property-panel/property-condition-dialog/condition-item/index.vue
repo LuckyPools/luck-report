@@ -1,237 +1,267 @@
 <template>
   <div>
     <div class="top-button">
-      <u-button
-        type="info"
-        icon="icon-plus-circle"
-        :title="$t('dialog.propCondition.addValue')"
+      <a-button
+        type="primary"
+        :title="t('dialog.propCondition.addValue')"
         @click="addCondition"
       >
-      </u-button>
-      <u-button
-        type="info"
-        icon="icon-edit"
-        :title="$t('dialog.propCondition.editConditionItem')"
+        <template #icon><i class="iconfont icon-plus-circle"></i></template>
+      </a-button>
+      <a-button
+        type="primary"
+        :title="t('dialog.propCondition.editConditionItem')"
         @click="editCondition"
       >
-      </u-button>
-      <u-button
-        type="info"
-        icon="icon-delete"
-        :title="$t('dialog.propCondition.delCondition')"
+        <template #icon><i class="iconfont icon-edit"></i></template>
+      </a-button>
+      <a-button
+        type="primary"
+        :title="t('dialog.propCondition.delCondition')"
         @click="deleteCondition"
       >
-      </u-button>
+        <template #icon><i class="iconfont icon-delete"></i></template>
+      </a-button>
     </div>
 
     <div style="margin-top: 10px;">
-      <select
-          ref="conditionList"
-          class="form-control condition-select"
-          size="100"
-          v-model="selectedConditionIndex"
-          @change="onConditionSelectChange"
-      >
-        <option
-            v-for="(condition, index) in conditions"
-            :key="index"
-            :value="index"
-        >
-          {{ getConditionText(condition) }}
-        </option>
-      </select>
+      <a-select
+          v-model:value="selectedConditionIndex"
+          class="condition-select"
+          :options="conditionOptions"
+          :field-names="{ label: 'label', value: 'value' }"
+          style="width: 100%"
+      />
     </div>
 
-    <condition-item-dialog
-      :visible="dialogVisible"
+    <ConditionItemDialog
+      v-model:visible="dialogVisible"
       :fields="fields"
-      :condition="condition"
+      :condition-item="editingCondition"
       :conditions="localConditions"
       @saveAfter="handleSaveAfter"
-      @close="dialogVisible = false"
     />
   </div>
 </template>
 
-<script>
-import { mapGetters } from 'vuex';
-import { showAlert } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
-import { v1 as uuid } from 'uuid';
-import ConditionItemDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item-dialog/index.vue';
-import UButton from '@/components/button/index.vue';
+<script setup lang="ts">
+/**
+ * ConditionItem 条件项列表管理（vue3 + TS + ant-design-vue）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-button（自定义）→ a-button
+ * - 原生 <select> → a-select
+ * - 移除 Vuex（getContext 未使用）
+ * - 子弹窗使用 v-model:visible 双向绑定
+ */
+import { ref, computed, watch } from 'vue'
+import { showAlert } from '@/utils/comnon'
+import { setDirty } from '@/utils/table'
+import { v1 as uuid } from 'uuid'
+import ConditionItemDialog, { type ConditionItem } from '../condition-item-dialog/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'ConditionItem',
-  components: {
-    ConditionItemDialog,
-    UButton
-  },
-  props: {
-    selectedGroup: {
-      type: Object,
-      default: null
-    },
-    fields: {
-      type: Array,
-      default: () => []
-    },
-    conditions: {
-      type: Array,
-      default: () => []
-    },
-    resetSelection: {
-      type: Boolean,
-      default: true
-    }
-  },
-  data() {
-    return {
-      selectedConditionIndex: -1,
-      isAddingCondition: false,
-      dialogVisible: false,
-      condition: null,
-      localConditions: []
-    };
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext || {};
-    }
-  },
-  watch: {
-    resetSelection(newVal) {
-      if (newVal) {
-        this.selectedConditionIndex = -1;
-      }
-    },
-    conditions: {
-      handler(newVal) {
-        if (newVal) {
-          this.selectedConditionIndex = -1;
-        }
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    getConditionText(condition) {
-      let text = condition.left + ' ' + condition.operation + ' ' + condition.right;
-      if (condition.type === 'property' && (!condition.left || condition.left === '')) {
-        text = this.$t('dialog.propCondition.currentValue') + ' ' + condition.operation + ' ' + (condition.right || condition.expr);
-      }
-      if (condition.join && this.conditions.indexOf(condition) > 0) {
-        text = condition.join + ' ' + text;
-      }
-      return text;
-    },
-    addCondition() {
-      if (!this.selectedGroup) {
-        showAlert(this.$t('dialog.propCondition.selectItem'));
-        return;
-      }
+defineOptions({ name: 'ConditionItem' })
 
-      const conditions = this.selectedGroup.conditions || [];
 
-      this.isAddingCondition = true;
-      this.condition = null;
-      this.localConditions = conditions;
-      this.dialogVisible = true;
-    },
-    editCondition() {
-      if (this.selectedConditionIndex < 0 || this.selectedConditionIndex >= this.conditions.length) {
-        showAlert(this.$t('dialog.propCondition.editConditionTip'));
-        return;
-      }
+const { t } = useI18n()
+interface Field {
+  name: string
+  [key: string]: unknown
+}
 
-      if (!this.selectedGroup) {
-        showAlert(this.$t('dialog.propCondition.selectConditionItem'));
-        return;
-      }
+interface Condition {
+  type?: string
+  left?: string
+  operation?: string
+  right?: string
+  expr?: string
+  join?: string | null
+  id?: string
+  [key: string]: unknown
+}
 
-      const condition = this.conditions[this.selectedConditionIndex];
-      const conditions = this.selectedGroup.conditions || [];
+interface SelectedGroup {
+  id?: string
+  name?: string
+  conditions?: Condition[]
+  [key: string]: unknown
+}
 
-      this.isAddingCondition = false;
-      this.condition = condition;
-      this.localConditions = conditions;
-      this.dialogVisible = true;
-    },
+const props = withDefaults(
+  defineProps<{
+    selectedGroup?: SelectedGroup | null
+    fields?: Field[]
+    conditions?: Condition[]
+    resetSelection?: boolean
+  }>(),
+  {
+    selectedGroup: null,
+    fields: () => [],
+    conditions: () => [],
+    resetSelection: true
+  }
+)
 
-    handleSaveAfter(type, left, op, right, join) {
-      if (!this.selectedGroup) {
-        return;
-      }
+const emit = defineEmits<{
+  (e: 'condition-added', condition: Condition): void
+  (e: 'condition-updated', index: number, condition: Condition): void
+  (e: 'condition-deleted', index: number): void
+  (e: 'condition-selected', condition: Condition): void
+}>()
 
-      if (this.isAddingCondition) {
-        const newCondition = {
-          type,
-          left,
-          operation: op,
-          right,
-          join,
-          id: uuid()
-        };
-        this.$emit('condition-added', newCondition);
-        this.isAddingCondition = false;
-      } else {
-        if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
-          const condition = this.conditions[this.selectedConditionIndex];
-          const updatedCondition = {
-            ...condition,
-            type,
-            left,
-            operation: op,
-            right,
-            join,
-            id: condition.id || uuid()
-          };
-          this.$emit('condition-updated', this.selectedConditionIndex, updatedCondition);
-        }
-        this.isAddingCondition = false;
-      }
+const selectedConditionIndex = ref<number>(-1)
+const isAddingCondition = ref<boolean>(false)
+const dialogVisible = ref<boolean>(false)
+const editingCondition = ref<ConditionItem | null>(null)
+const localConditions = ref<Condition[]>([])
 
-      setDirty();
-    },
-    deleteCondition() {
-      if (this.selectedConditionIndex < 0 || this.selectedConditionIndex >= this.conditions.length) {
-        showAlert(this.$t('dialog.propCondition.delConditionTip'));
-        return;
-      }
+const conditionOptions = computed<{ value: number; label: string }[]>(() => {
+  return props.conditions.map((condition, index) => ({
+    value: index,
+    label: getConditionText(condition, index)
+  }))
+})
 
-      if (!this.selectedGroup) {
-        showAlert(this.$t('dialog.propCondition.selectDelCondition'));
-        return;
-      }
-
-      this.$emit('condition-deleted', this.selectedConditionIndex);
-      this.selectedConditionIndex = -1;
-      setDirty();
-    },
-    onConditionSelectChange() {
-      this.$nextTick(() => {
-        if (this.selectedConditionIndex >= 0 && this.selectedConditionIndex < this.conditions.length) {
-          const selectedCondition = this.conditions[this.selectedConditionIndex];
-          this.$emit('condition-selected', selectedCondition);
-        }
-      });
+watch(
+  () => props.resetSelection,
+  (newVal) => {
+    if (newVal) {
+      selectedConditionIndex.value = -1
     }
   }
-};
+)
+
+watch(
+  () => props.conditions,
+  (newVal) => {
+    if (newVal) {
+      selectedConditionIndex.value = -1
+      localConditions.value = newVal
+    }
+  },
+  { immediate: true, deep: true }
+)
+
+const getConditionText = (condition: Condition, index: number): string => {
+  let text = `${condition.left || ''} ${condition.operation || ''} ${condition.right || ''}`
+  if (condition.type === 'property' && (!condition.left || condition.left === '')) {
+    text = `${t('dialog.propCondition.currentValue')} ${condition.operation || ''} ${condition.right || condition.expr || ''}`
+  }
+  if (condition.join && index > 0) {
+    text = `${condition.join} ${text}`
+  }
+  return text
+}
+
+const addCondition = (): void => {
+  if (!props.selectedGroup) {
+    showAlert(t('dialog.propCondition.selectItem'))
+    return
+  }
+
+  localConditions.value = props.selectedGroup.conditions || []
+
+  isAddingCondition.value = true
+  editingCondition.value = null
+  dialogVisible.value = true
+}
+
+const editCondition = (): void => {
+  if (selectedConditionIndex.value < 0 || selectedConditionIndex.value >= props.conditions.length) {
+    showAlert(t('dialog.propCondition.editConditionTip'))
+    return
+  }
+
+  if (!props.selectedGroup) {
+    showAlert(t('dialog.propCondition.selectConditionItem'))
+    return
+  }
+
+  const condition = props.conditions[selectedConditionIndex.value]
+  localConditions.value = props.selectedGroup.conditions || []
+
+  isAddingCondition.value = false
+  editingCondition.value = {
+    name: (condition.left as string) || '',
+    join: condition.join ?? null
+  }
+  dialogVisible.value = true
+}
+
+const handleSaveAfter = (data: { name: string; join: string | null }): void => {
+  if (!props.selectedGroup) {
+    return
+  }
+
+  if (isAddingCondition.value) {
+    const newCondition: Condition = {
+      type: 'property',
+      left: data.name,
+      operation: '=',
+      right: '',
+      join: data.join,
+      id: uuid()
+    }
+    emit('condition-added', newCondition)
+    isAddingCondition.value = false
+  } else {
+    if (selectedConditionIndex.value >= 0 && selectedConditionIndex.value < props.conditions.length) {
+      const condition = props.conditions[selectedConditionIndex.value]
+      const updatedCondition: Condition = {
+        ...condition,
+        type: 'property',
+        left: data.name,
+        operation: condition.operation || '=',
+        right: condition.right || '',
+        join: data.join,
+        id: condition.id || uuid()
+      }
+      emit('condition-updated', selectedConditionIndex.value, updatedCondition)
+    }
+    isAddingCondition.value = false
+  }
+
+  dialogVisible.value = false
+  setDirty()
+}
+
+const deleteCondition = (): void => {
+  if (selectedConditionIndex.value < 0 || selectedConditionIndex.value >= props.conditions.length) {
+    showAlert(t('dialog.propCondition.delConditionTip'))
+    return
+  }
+
+  if (!props.selectedGroup) {
+    showAlert(t('dialog.propCondition.selectDelCondition'))
+    return
+  }
+
+  emit('condition-deleted', selectedConditionIndex.value)
+  selectedConditionIndex.value = -1
+  setDirty()
+}
+
+watch(selectedConditionIndex, (newVal) => {
+  if (newVal >= 0 && newVal < props.conditions.length) {
+    const selectedCondition = props.conditions[newVal]
+    emit('condition-selected', selectedCondition)
+  }
+})
 </script>
 
 <style scoped>
-.u-button + .u-button{
-  margin-left: 5px;
-}
-
-.top-button{
+.top-button {
   display: flex;
   justify-content: end;
 }
 
-.condition-select{
+.top-button :deep(.ant-btn + .ant-btn) {
+  margin-left: 5px;
+}
+
+.condition-select {
   height: 400px;
   padding: 3px;
   outline: none;

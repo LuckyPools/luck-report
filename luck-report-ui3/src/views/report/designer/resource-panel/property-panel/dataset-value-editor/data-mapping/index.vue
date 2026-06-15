@@ -1,369 +1,367 @@
 <template>
   <div class="data-mapping-tab">
-    <u-form :label-width="100" labelPosition="left">
+    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
       <div style="padding-top: 10px">
         <div v-if="!showMappingOptions" class="alert alert-info" style="margin-bottom: 10px;">
         </div>
 
-        <u-form-item :label="$t('property.dataset.mappingType')" v-show="showMappingOptions">
-          <u-radio-group
-              v-model="localMappingType"
-              @change="handleMappingTypeChange">
-            <u-radio
+        <a-form-item :label="t('property.dataset.mappingType')" v-show="showMappingOptions">
+          <a-radio-group v-model:value="localMappingType" @change="handleMappingTypeChange">
+            <a-radio
               v-for="option in mappingTypeOptions"
               :key="option.value"
-              :label="option.value"
+              :value="option.value"
             >
-            {{ option.label }}
-            </u-radio>
-          </u-radio-group>
-        </u-form-item>
+              {{ option.label }}
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
         <div v-show="showMappingOptions && localMappingType === 'simple'" class="form-group table-wrapper">
           <div class="top-button">
-            <u-button
-                type="info"
-                :title="$t('property.dataset.addMappping')"
+            <a-button
+                type="primary"
+                :title="t('property.dataset.addMappping')"
                 @click="handleAddMapping"
-                icon="icon-plus-circle"
             >
-            </u-button>
+              <template #icon><i class="iconfont icon-plus-circle"></i></template>
+            </a-button>
           </div>
-          <table class="table-container" style="margin-top: 10px">
-            <thead>
-              <tr>
-                <th style="width: 130px;"><span>{{ $t('property.dataset.realValue') }}</span></th>
-                <th style="width: 150px;"><span>{{ $t('property.dataset.displayValue') }}</span></th>
-                <th style="width: 80px;"><span>{{ $t('property.dataset.op') }}</span></th>
-              </tr>
-            </thead>
-            <tbody style="font-size: 12px">
-              <tr v-for="(item, index) in localMappingItems" :key="index" style="height: 30px">
-                <td><span>{{ item.value }}</span></td>
-                <td><span>{{ item.label }}</span></td>
-                <td>
-                  <u-button
-                      type="info"
-                      icon="icon-edit"
-                      :title="$t('dialog.urlParam.edit')"
-                      @click="handleEditMapping(index)"
-                      style="border: none">
-                  </u-button>
-                  <u-button
-                      type="info"
-                      icon="icon-delete"
-                      :title="$t('dialog.urlParam.delete')"
-                      @click="handleDeleteMapping(index)"
-                      style="border: none;color: red">
-                  </u-button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <a-table
+            :columns="mappingColumns"
+            :data-source="localMappingItems"
+            :pagination="false"
+            size="small"
+            row-key="value"
+            style="margin-top: 10px"
+          >
+            <template #bodyCell="{ column, index }">
+              <template v-if="column.key === 'op'">
+                <a-button
+                    type="link"
+                    :title="t('dialog.urlParam.edit')"
+                    @click="handleEditMapping(index)"
+                >
+                  <i class="iconfont icon-edit"></i>
+                </a-button>
+                <a-button
+                    type="link"
+                    :title="t('dialog.urlParam.delete')"
+                    @click="handleDeleteMapping(index)"
+                    style="color: red"
+                >
+                  <i class="iconfont icon-delete"></i>
+                </a-button>
+              </template>
+            </template>
+          </a-table>
         </div>
 
         <div v-show="showMappingOptions && localMappingType === 'dataset'">
-          <u-form-item :label="$t('property.dataset.dataset')">
-            <u-select
-              v-model="localMappingDataset"
+          <a-form-item :label="t('property.dataset.dataset')">
+            <a-select
+              v-model:value="localMappingDataset"
+              :options="datasetOptions"
+              :allow-clear="true"
+              style="width: 250px"
               @change="handleMappingDatasetChange"
-            >
-              <u-option
-                v-for="option in datasetOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-              />
-            </u-select>
-          </u-form-item>
+            />
+          </a-form-item>
 
-          <u-form-item :label="$t('property.dataset.realValueProp')">
-            <u-select
-              v-model="localMappingKeyProperty"
+          <a-form-item :label="t('property.dataset.realValueProp')">
+            <a-select
+              v-model:value="localMappingKeyProperty"
+              :options="mappingFieldOptions"
+              :allow-clear="true"
+              style="width: 250px"
               @change="handleMappingKeyPropertyChange"
-            >
-              <u-option
-                v-for="option in mappingFieldOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-              />
-            </u-select>
-          </u-form-item>
+            />
+          </a-form-item>
 
-          <u-form-item :label="$t('property.dataset.displayValueProp')">
-            <u-select
-              v-model="localMappingValueProperty"
+          <a-form-item :label="t('property.dataset.displayValueProp')">
+            <a-select
+              v-model:value="localMappingValueProperty"
+              :options="mappingFieldOptions"
+              :allow-clear="true"
+              style="width: 250px"
               @change="handleMappingValuePropertyChange"
-            >
-              <u-option
-                v-for="option in mappingFieldOptions"
-                :key="option.value"
-                :value="option.value"
-                :label="option.label"
-              />
-            </u-select>
-          </u-form-item>
+            />
+          </a-form-item>
         </div>
       </div>
-    </u-form>
+    </a-form>
     <!-- 映射对话框 -->
     <mapping-dialog
-      :visible.sync="dialogVisible"
+      v-model:visible="dialogVisible"
       :mapping-item="currentMappingItem"
       :operation="dialogOperation"
       @save="handleMappingSave"
-    ></mapping-dialog>
+    />
   </div>
 </template>
 
-<script>
-import { setDirty } from '@/utils/table.js';
-import { showAlert, showConfirm } from '@/utils/comnon.js';
-import MappingDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/mapping-dialog/index.vue';
-import USelect from '@/components/select/index.vue';
-import UOption from '@/components/option/index.vue';
-import URadioGroup from '@/components/radio-group/index.vue';
-import URadio from '@/components/radio/index.vue';
-import UButton from '@/components/button/index.vue';
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
-import { mapGetters } from 'vuex';
+<script setup lang="ts">
+/**
+ * DataMapping 数据映射面板（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. props 同步到 localMappingType/localMappingItems/...
+ * 2. 用户在 simple/dataset 两种模式下增删改映射项
+ * 3. localMappingDataset 变化时自动加载 mappingFields
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-form/u-form-item/u-select/u-option/u-radio-group/u-radio/u-button → a-form/a-form-item/a-select/a-radio-group/a-radio/a-button
+ * - 原生 <table> → a-table
+ * - Vuex mapGetters → useReportStore (Pinia)
+ */
+import { ref, computed, watch } from 'vue'
+import { setDirty } from '@/utils/table'
+import { showConfirm } from '@/utils/comnon'
+import MappingDialog, { type MappingItem } from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/mapping-dialog/index.vue'
+import { useReportStore } from '@/store/modules/report'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'DataMappingTab',
-  components: {
-    MappingDialog,
-    USelect,
-    UOption,
-    URadioGroup,
-    URadio,
-    UButton,
-    UForm,
-    UFormItem
-  },
-  props: {
-    datasets: {
-      type: Array,
-      default: () => []
-    },
-    showMappingOptions: {
-      type: Boolean,
-      default: false
-    },
-    mappingType: {
-      type: String,
-      default: 'simple'
-    },
-    mappingItems: {
-      type: Array,
-      default: () => []
-    },
-    mappingDataset: {
-      type: String,
-      default: ''
-    },
-    mappingKeyProperty: {
-      type: String,
-      default: ''
-    },
-    mappingValueProperty: {
-      type: String,
-      default: ''
-    }
-  },
-  data() {
-    return {
-      mappingFields: [],
-      dialogVisible: false,
-      dialogOperation: 'add',
-      currentMappingItem: {
-        value: '',
-        label: ''
-      },
-      editingIndex: -1,
-      // 本地数据属性，用于存储props的值
-      localMappingType: this.mappingType,
-      localMappingItems: [...this.mappingItems],
-      localMappingDataset: this.mappingDataset,
-      localMappingKeyProperty: this.mappingKeyProperty,
-      localMappingValueProperty: this.mappingValueProperty
-    };
-  },
-  computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    },
-    datasources() {
-      return this.context.reportDef.datasources || [];
-    },
-    // 为USelect组件准备的数据集选项
-    datasetOptions() {
-      return this.datasets.map(dataset => ({
-        value: dataset.name,
-        label: dataset.name
-      }));
-    },
-    // 为USelect组件准备的字段选项
-    mappingFieldOptions() {
-      return this.mappingFields.map(field => ({
-        value: field.name,
-        label: field.name
-      }));
-    },
-    // 为URadioGroup组件准备的映射类型选项
-    mappingTypeOptions() {
-      return [
-        { value: 'simple', label: this.$t('property.dataset.simple') },
-        { value: 'dataset', label: this.$t('property.dataset.ds') }
-      ];
-    }
-  },
-  watch: {
-    // 监听props变化，更新本地数据
-    mappingType(newVal) {
-      this.localMappingType = newVal;
-    },
-    mappingItems(newVal) {
-      this.localMappingItems = [...newVal];
-    },
-    mappingDataset(newVal) {
-      this.localMappingDataset = newVal;
-    },
-    mappingKeyProperty(newVal) {
-      this.localMappingKeyProperty = newVal;
-    },
-    mappingValueProperty(newVal) {
-      this.localMappingValueProperty = newVal;
-    },
-    localMappingDataset: {
-      handler() {
-        this.loadMappingFields();
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    /**
-     * 加载映射数据集的字段
-     */
-    loadMappingFields() {
-      // 清空当前字段
-      this.mappingFields = [];
+defineOptions({ name: 'DataMapping' })
 
-      // 加载选中数据集的字段
-      if (this.localMappingDataset) {
-        for (let datasource of this.datasources) {
-          let datasets = datasource.datasets || [];
-          for (let dataset of datasets) {
-            if (dataset.name === this.localMappingDataset) {
-              this.mappingFields = dataset.fields || [];
-              break;
-            }
-          }
-          if (this.mappingFields.length > 0) {
-            break;
-          }
+
+const { t } = useI18n()
+/** select / radio 选项 */
+interface SelectOption {
+  value: string
+  label: string
+}
+
+/** 字段元数据 */
+interface Field {
+  name: string
+  [key: string]: unknown
+}
+
+const props = withDefaults(
+  defineProps<{
+    datasets?: { name: string; [key: string]: unknown }[]
+    showMappingOptions?: boolean
+    mappingType?: string
+    mappingItems?: MappingItem[]
+    mappingDataset?: string
+    mappingKeyProperty?: string
+    mappingValueProperty?: string
+  }>(),
+  {
+    datasets: () => [],
+    showMappingOptions: false,
+    mappingType: 'simple',
+    mappingItems: () => [],
+    mappingDataset: '',
+    mappingKeyProperty: '',
+    mappingValueProperty: ''
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'mapping-type-change', value: string): void
+  (e: 'mapping-items-change', value: MappingItem[]): void
+  (e: 'mapping-dataset-change', value: string): void
+  (e: 'mapping-key-property-change', value: string): void
+  (e: 'mapping-value-property-change', value: string): void
+}>()
+
+const reportStore = useReportStore()
+
+// ====== 状态 ======
+const mappingFields = ref<Field[]>([])
+const dialogVisible = ref<boolean>(false)
+const dialogOperation = ref<string>('add')
+const currentMappingItem = ref<MappingItem>({ value: '', label: '' })
+const editingIndex = ref<number>(-1)
+const localMappingType = ref<string>(props.mappingType)
+const localMappingItems = ref<MappingItem[]>([...props.mappingItems])
+const localMappingDataset = ref<string>(props.mappingDataset)
+const localMappingKeyProperty = ref<string>(props.mappingKeyProperty)
+const localMappingValueProperty = ref<string>(props.mappingValueProperty)
+
+// ====== 来自 store ======
+const context = computed(() => reportStore.getContext)
+
+const datasources = computed(() => {
+  const ctx = context.value
+  if (!ctx) return []
+  return (ctx.reportDef?.datasources as { name: string; datasets?: { name: string; fields?: Field[] }[] }[] | undefined) || []
+})
+
+// ====== 选项 ======
+const datasetOptions = computed<SelectOption[]>(() =>
+  (props.datasets || []).map((dataset) => ({
+    value: dataset.name,
+    label: dataset.name
+  }))
+)
+
+const mappingFieldOptions = computed<SelectOption[]>(() =>
+  mappingFields.value.map((field) => ({
+    value: field.name,
+    label: field.name
+  }))
+)
+
+const mappingTypeOptions = computed<SelectOption[]>(() => [
+  { value: 'simple', label: t('property.dataset.simple') },
+  { value: 'dataset', label: t('property.dataset.ds') }
+])
+
+/** a-table 列定义 */
+const mappingColumns = computed(() => [
+  {
+    title: t('property.dataset.realValue'),
+    dataIndex: 'value',
+    key: 'value',
+    width: 130
+  },
+  {
+    title: t('property.dataset.displayValue'),
+    dataIndex: 'label',
+    key: 'label',
+    width: 150
+  },
+  {
+    title: t('property.dataset.op'),
+    key: 'op',
+    width: 80
+  }
+])
+
+// ====== 监听 props 同步 ======
+watch(() => props.mappingType, (val) => { localMappingType.value = val })
+watch(() => props.mappingItems, (val) => { localMappingItems.value = [...val] })
+watch(() => props.mappingDataset, (val) => { localMappingDataset.value = val })
+watch(() => props.mappingKeyProperty, (val) => { localMappingKeyProperty.value = val })
+watch(() => props.mappingValueProperty, (val) => { localMappingValueProperty.value = val })
+
+/**
+ * 加载映射数据集的字段
+ */
+const loadMappingFields = (): void => {
+  mappingFields.value = []
+
+  if (localMappingDataset.value) {
+    for (const datasource of datasources.value) {
+      const dsList = datasource.datasets || []
+      for (const ds of dsList) {
+        if (ds.name === localMappingDataset.value) {
+          mappingFields.value = ds.fields || []
+          break
         }
       }
-    },
-
-    /**
-     * 处理映射类型变化
-     */
-    handleMappingTypeChange() {
-      this.$emit('mapping-type-change', this.localMappingType);
-      setDirty();
-    },
-
-    /**
-     * 处理添加映射
-     */
-    handleAddMapping() {
-      this.currentMappingItem = { value: '', label: '' };
-      this.dialogOperation = 'add';
-      this.editingIndex = -1;
-      this.dialogVisible = true;
-    },
-
-    /**
-     * 处理编辑映射
-     */
-    handleEditMapping(index) {
-      const item = this.localMappingItems[index];
-      this.currentMappingItem = {
-        value: item.value,
-        label: item.label
-      };
-      this.dialogOperation = 'edit';
-      this.editingIndex = index;
-      this.dialogVisible = true;
-    },
-
-    /**
-     * 处理映射保存
-     */
-    handleMappingSave(data) {
-      if (this.dialogOperation === 'add') {
-        this.localMappingItems.push(data);
-      } else {
-        if (this.editingIndex >= 0) {
-          this.localMappingItems[this.editingIndex] = data;
-        }
+      if (mappingFields.value.length > 0) {
+        break
       }
-      this.$emit('mapping-items-change', this.localMappingItems);
-      setDirty();
-    },
-
-    /**
-     * 处理删除映射
-     */
-    handleDeleteMapping(index) {
-      const item = this.localMappingItems[index];
-      showConfirm(this.$t('property.dataset.delConfirm')).then(() => {
-        const newMappingItems = [...this.localMappingItems];
-        const itemIndex = newMappingItems.indexOf(item);
-
-        if (itemIndex !== -1) {
-          newMappingItems.splice(itemIndex, 1);
-          this.localMappingItems = newMappingItems;
-          this.$emit('mapping-items-change', newMappingItems);
-          setDirty();
-        }
-      });
-    },
-
-    /**
-     * 处理映射数据集变化
-     */
-    handleMappingDatasetChange() {
-      this.$emit('mapping-dataset-change', this.localMappingDataset);
-      setDirty();
-    },
-
-    /**
-     * 处理映射键属性变化
-     */
-    handleMappingKeyPropertyChange() {
-      this.$emit('mapping-key-property-change', this.localMappingKeyProperty);
-      setDirty();
-    },
-
-    /**
-     * 处理映射值属性变化
-     */
-    handleMappingValuePropertyChange() {
-      this.$emit('mapping-value-property-change', this.localMappingValueProperty);
-      setDirty();
     }
   }
-};
+}
+
+watch(localMappingDataset, () => {
+  loadMappingFields()
+}, { immediate: true })
+
+/**
+ * 处理映射类型变化
+ */
+const handleMappingTypeChange = (e: Event): void => {
+  const target = e.target as HTMLInputElement
+  localMappingType.value = target.value
+  emit('mapping-type-change', localMappingType.value)
+  setDirty()
+}
+
+/**
+ * 处理添加映射
+ */
+const handleAddMapping = (): void => {
+  currentMappingItem.value = { value: '', label: '' }
+  dialogOperation.value = 'add'
+  editingIndex.value = -1
+  dialogVisible.value = true
+}
+
+/**
+ * 处理编辑映射
+ */
+const handleEditMapping = (index: number): void => {
+  const item = localMappingItems.value[index]
+  currentMappingItem.value = {
+    value: item.value,
+    label: item.label
+  }
+  dialogOperation.value = 'edit'
+  editingIndex.value = index
+  dialogVisible.value = true
+}
+
+/**
+ * 处理映射保存
+ */
+const handleMappingSave = (data: MappingItem): void => {
+  if (dialogOperation.value === 'add') {
+    localMappingItems.value.push(data)
+  } else {
+    if (editingIndex.value >= 0) {
+      localMappingItems.value[editingIndex.value] = data
+    }
+  }
+  emit('mapping-items-change', localMappingItems.value)
+  setDirty()
+}
+
+/**
+ * 处理删除映射
+ */
+const handleDeleteMapping = (index: number): void => {
+  const item = localMappingItems.value[index]
+  showConfirm(t('property.dataset.delConfirm')).then(() => {
+    const newMappingItems = [...localMappingItems.value]
+    const itemIndex = newMappingItems.indexOf(item)
+
+    if (itemIndex !== -1) {
+      newMappingItems.splice(itemIndex, 1)
+      localMappingItems.value = newMappingItems
+      emit('mapping-items-change', newMappingItems)
+      setDirty()
+    }
+  })
+}
+
+/**
+ * 处理映射数据集变化
+ */
+const handleMappingDatasetChange = (value: string): void => {
+  localMappingDataset.value = value
+  emit('mapping-dataset-change', localMappingDataset.value)
+  setDirty()
+}
+
+/**
+ * 处理映射键属性变化
+ */
+const handleMappingKeyPropertyChange = (value: string): void => {
+  localMappingKeyProperty.value = value
+  emit('mapping-key-property-change', localMappingKeyProperty.value)
+  setDirty()
+}
+
+/**
+ * 处理映射值属性变化
+ */
+const handleMappingValuePropertyChange = (value: string): void => {
+  localMappingValueProperty.value = value
+  emit('mapping-value-property-change', localMappingValueProperty.value)
+  setDirty()
+}
 </script>
+
 <style scoped>
-.top-button{
+.top-button {
   display: flex;
   justify-content: end;
 }
-
 </style>

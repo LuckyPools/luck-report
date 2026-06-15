@@ -1,106 +1,164 @@
-<script>
-import draggable from 'vuedraggable'
-import render from '../utils/render'
-import URow from '@/components/row/index.vue'
-import UCol from '@/components/col/index.vue'
-import UFormItem from '@/components/form-item/index.vue'
+<script setup lang="ts">
+/**
+ * 画布上的拖拽项
+ *
+ * 改造要点：
+ * 1. vuedraggable → vue-draggable-plus 的 VueDraggable
+ * 2. u-row / u-col / u-form-item → a-row / a-col / a-form-item
+ * 3. $listeners 改为 emit 显式
+ * 4. $set 改为直接赋值
+ * 5. nativeOnClick → onClick.stop
+ */
+import { h, type VNode } from 'vue'
+import { FormItem, Row, Col } from 'ant-design-vue'
+import { VueDraggable } from 'vue-draggable-plus'
+import { useI18n } from 'vue-i18n'
+import RenderField from '../utils/render'
+import type { FormField, FormConf } from '../utils/types'
 
-const components = {
-  itemBtns(h, element, index, parent) {
-    const { copyItem, deleteItem } = this.$listeners
-    return [
-      <span class="drawing-item-copy" title={this.$t('searchForm.copy')} onClick={event => {
-        copyItem(element, parent); event.stopPropagation()
-      }}>
-        <i class="iconfont icon-share" />
-      </span>,
-      <span class="drawing-item-delete" title={this.$t('searchForm.delete')} onClick={event => {
-        deleteItem(index, parent); event.stopPropagation()
-      }}>
-        <i class="iconfont icon-delete" />
-      </span>
+const props = defineProps<{
+  element: FormField
+  index: number
+  drawingList: FormField[]
+  activeId: number
+  formConf: FormConf
+}>()
+
+const emit = defineEmits<{
+  (e: 'active-item', el: FormField): void
+  (e: 'copy-item', el: FormField, parent?: FormField[]): void
+  (e: 'delete-item', index: number, parent: FormField[]): void
+}>()
+
+const { t } = useI18n()
+
+function itemBtns(el: FormField, index: number, parent: FormField[]): VNode[] {
+  return [
+    h(
+      'span',
+      {
+        class: 'drawing-item-copy',
+        title: t('searchForm.copy') as string,
+        onClick: (e: MouseEvent) => {
+          emit('copy-item', el, parent)
+          e.stopPropagation()
+        }
+      },
+      [h('i', { class: 'iconfont icon-share' })]
+    ),
+    h(
+      'span',
+      {
+        class: 'drawing-item-delete',
+        title: t('searchForm.delete') as string,
+        onClick: (e: MouseEvent) => {
+          // 使用本层级在 parent 中的下标，而非 props.index（顶层下标）
+          emit('delete-item', index, parent)
+          e.stopPropagation()
+        }
+      },
+      [h('i', { class: 'iconfont icon-delete' })]
+    )
+  ]
+}
+
+function renderChildren(el: FormField): VNode[] {
+  if (!Array.isArray(el.children)) return []
+  return el.children.map((child, i) => renderItem(child, i, el.children!))
+}
+
+function renderItem(el: FormField, index: number, parent: FormField[]): VNode {
+  if (el.layout === 'colFormItem') {
+    const className =
+      props.activeId === el.formId ? 'drawing-item active-from-item' : 'drawing-item'
+    const finalClass = props.formConf.unFocusedComponentBorder
+      ? className + ' unfocus-bordered'
+      : className
+    return h(
+      Col,
+      {
+        span: el.span,
+        class: finalClass,
+        onClick: (e: MouseEvent) => {
+          emit('active-item', el)
+          e.stopPropagation()
+        }
+      },
+      () => [
+        h(
+          FormItem,
+          {
+            labelWidth: el.labelWidth ? Number(el.labelWidth) : null,
+            label: el.label,
+            required: el.required
+          },
+          () => [
+            h(RenderField, {
+              key: el.__key,
+              conf: el,
+              modelValue: el.defaultValue,
+              'onUpdate:modelValue': (val: unknown) => {
+                el.defaultValue = val
+              }
+            })
+          ]
+        ),
+        ...itemBtns(el, index, parent)
+      ]
+    )
+  }
+
+  // rowFormItem
+  const className2 =
+    props.activeId === el.formId ? 'drawing-row-item active-from-item' : 'drawing-row-item'
+  const child = renderChildren(el)
+  return h(
+    Col,
+    { span: el.span },
+    () => [
+      h(
+        Row,
+        {
+          gutter: el.gutter,
+          class: className2,
+          onClick: (e: MouseEvent) => {
+            emit('active-item', el)
+            e.stopPropagation()
+          }
+        },
+        () => [
+          h('span', { class: 'component-name' }, el.componentName),
+          h(
+            VueDraggable,
+            {
+              modelValue: el.children,
+              'onUpdate:modelValue': (val: FormField[]) => {
+                el.children = val
+              },
+              animation: 340,
+              group: 'componentsGroup',
+              class: 'drag-wrapper'
+            },
+            () => child
+          ),
+          ...itemBtns(el, index, parent)
+        ]
+      )
     ]
-  }
-}
-const layouts = {
-  colFormItem(h, element, index, parent) {
-    const { activeItem } = this.$listeners
-    let className = this.activeId === element.formId ? 'drawing-item active-from-item' : 'drawing-item'
-    if (this.formConf.unFocusedComponentBorder) className += ' unfocus-bordered';
-    return (
-      <u-col span={element.span} class={className}
-        nativeOnClick={event => { activeItem(element); event.stopPropagation() }}>
-        <u-form-item label-width={element.labelWidth ? Number(element.labelWidth) : null}
-          label={element.label} required={element.required}>
-          <render key={element.renderKey} conf={element} onInput={ event => {
-            this.$set(element, 'defaultValue', event)
-          }} />
-        </u-form-item>
-        {components.itemBtns.apply(this, arguments)}
-      </u-col>
-    )
-  },
-  rowFormItem(h, element, index, parent) {
-    const { activeItem } = this.$listeners
-    const className = this.activeId === element.formId ? 'drawing-row-item active-from-item' : 'drawing-row-item'
-    let child = renderChildren.apply(this, arguments)
-    if (element.type === 'flex') {
-      child = <u-row type={element.type} justify={element.justify} align={element.align}>
-              {child}
-            </u-row>
-    }
-    return (
-      <u-col span={element.span}>
-        <u-row gutter={element.gutter} class={className}
-          nativeOnClick={event => { activeItem(element); event.stopPropagation() }}>
-          <span class="component-name">{element.componentName}</span>
-          <draggable list={element.children} animation={340} group="componentsGroup" class="drag-wrapper">
-            {child}
-          </draggable>
-          {components.itemBtns.apply(this, arguments)}
-        </u-row>
-      </u-col>
-    )
-  }
-}
-
-function renderChildren(h, element, index, parent) {
-  if (!Array.isArray(element.children)) return null
-  return element.children.map((el, i) => {
-    const layout = layouts[el.layout]
-    if (layout) {
-      return layout.call(this, h, el, i, element.children)
-    }
-    return layoutIsNotFound()
-  })
-}
-
-function layoutIsNotFound() {
-  throw new Error(this.$t('searchForm.layoutNotFound', { layout: this.element.layout }))
-}
-
-export default {
-  components: {
-    render,
-    draggable,
-    URow,
-    UCol,
-    UFormItem
-  },
-  props: [
-    'element',
-    'index',
-    'drawingList',
-    'activeId',
-    'formConf'
-  ],
-  render(h) {
-    const layout = layouts[this.element.layout]
-
-    if (layout) {
-      return layout.call(this, h, this.element, this.index, this.drawingList)
-    }
-    return layoutIsNotFound()
-  }
+  )
 }
 </script>
+
+<template>
+  <component
+    :is="
+      element.layout === 'rowFormItem' && element.type === 'flex'
+        ? h(
+            Row,
+            { type: element.type, justify: element.justify, align: element.align },
+            () => [renderItem(element, index, drawingList)]
+          )
+        : renderItem(element, index, drawingList)
+    "
+  />
+</template>

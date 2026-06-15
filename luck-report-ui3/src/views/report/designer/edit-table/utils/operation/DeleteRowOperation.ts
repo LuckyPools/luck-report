@@ -19,7 +19,7 @@ import Handsontable from 'handsontable';
 import type { HandsontableInstance } from '@/types/handsontable';
 import { resetTableData, setDirty, undoManager } from '@/utils/table';
 import { renderRowHeader } from '../HeaderUtils';
-import { $t } from '@/locales';
+import { t, i18n } from '@/locales';
 import { showAlert } from '@/utils/comnon';
 import {
   addCell,
@@ -29,7 +29,7 @@ import {
   getContext,
   removeCell
 } from '@/utils/contextActions';
-import { deepCopy } from '@/components/utils';
+import { deepCopy } from '@/utils/comnon';
 import type { ReportCell } from '@/types/report-def';
 
 /** 合并单元格定义（项目用到的最小子集） */
@@ -155,7 +155,7 @@ export function doDeleteRow(this: HandsontableInstance): void {
   const selected = this.getSelected()
   const context = getContext()
   if (!selected) {
-    showAlert($t('table.rowTip')).then(() => { /* 取消无操作 */ })
+    showAlert(i18n.global.t('table.rowTip')).then(() => { /* 取消无操作 */ })
     return
   }
   let [startRow, , endRow] = selected[0]

@@ -4,198 +4,215 @@
     <div v-if="!dataset" class="empty-tip-container">
       <i class="iconfont icon-warning empty-tip-icon"></i>
       <div class="empty-tip-content">
-        <div class="empty-tip-title">{{ $t('property.dataset.noDatasetSelected') }}</div>
-        <div class="empty-tip-desc">{{ $t('property.dataset.bindDatasetTip') }}</div>
+        <div class="empty-tip-title">{{ t('property.dataset.noDatasetSelected') }}</div>
+        <div class="empty-tip-desc">{{ t('property.dataset.bindDatasetTip') }}</div>
       </div>
     </div>
 
     <!-- 条件列表和操作按钮 -->
     <div v-show="dataset" class="form-group" style="margin-bottom: 10px;">
       <div class="top-button">
-        <u-button
-            type="info"
-            icon="icon-plus-circle"
-            :title="$t('property.dataset.addFilterCondition')"
+        <a-button
+            type="primary"
+            :title="t('property.dataset.addFilterCondition')"
             @click="handleAddCondition"
         >
-        </u-button>
-        <u-button
-            type="info"
-            icon="icon-edit"
-            :title="$t('property.dataset.editFilterCondition')"
+          <template #icon><i class="iconfont icon-plus-circle"></i></template>
+        </a-button>
+        <a-button
+            type="primary"
+            :title="t('property.dataset.editFilterCondition')"
             @click="handleEditCondition"
         >
-        </u-button>
-        <u-button
-            type="info"
-            icon="icon-delete"
-            :title="$t('property.dataset.delFilterCondition')"
+          <template #icon><i class="iconfont icon-edit"></i></template>
+        </a-button>
+        <a-button
+            type="primary"
+            :title="t('property.dataset.delFilterCondition')"
             @click="handleDeleteCondition"
         >
-        </u-button>
+          <template #icon><i class="iconfont icon-delete"></i></template>
+        </a-button>
       </div>
 
       <div style="margin-top: 10px;">
-        <select
-            class="form-control condition-select"
-            size="5"
-            v-model="selectedConditionIndex"
-        >
-          <option
-              v-for="(condition, index) in conditions"
-              :key="index"
-              :value="index"
-          >
-            {{ formatConditionText(condition) }}
-          </option>
-        </select>
+        <a-select
+            v-model:value="selectedConditionIndex"
+            class="condition-select"
+            :options="conditionOptions"
+            :field-names="{ label: 'label', value: 'value' }"
+            style="width: 100%"
+        />
       </div>
     </div>
 
     <!-- 条件对话框组件 -->
     <ConditionDialog
-      :visible.sync="conditionDialogVisible"
+      v-model:visible="conditionDialogVisible"
       :fields="fields"
       :condition="condition"
-      :conditions="conditions"
+      :conditions="(conditions as ConditionData[])"
       @saveAfter="handleConditionSave"
     />
   </div>
 </template>
 
-<script>
-import { showAlert, showConfirm } from '@/utils/comnon.js';
-import { setDirty } from '@/utils/table.js';
-import ConditionDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
-import UButton from "@/components/button/index.vue";
+<script setup lang="ts">
+/**
+ * FilterCondition 过滤条件面板（vue3 + TS + ant-design-vue）
+ *
+ * 工作流程：
+ * 1. 用户点击 +/-/edit/delete 按钮 → 触发 conditionDialog 或直接修改
+ * 2. 通过 ConditionDialog 弹窗编辑单条条件 → saveAfter → emit('update:conditions') + emit('update-filter-conditions')
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup>
+ * - u-button → a-button（用 #icon 插槽渲染 iconfont）
+ * - 原生 <select> → a-select
+ * - showConfirm 通过 Promise.then 触发
+ */
+import { computed, ref } from 'vue'
+import { showAlert, showConfirm } from '@/utils/comnon'
+import { setDirty } from '@/utils/table'
+import ConditionDialog, { type ConditionData } from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  name: 'FilterConditionTab',
-  components: {
-    UButton,
-    ConditionDialog
-  },
-  props: {
-    dataset: {
-      type: String,
-      default: ''
-    },
-    conditions: {
-      type: Array,
-      default: () => []
-    },
-    fields: {
-      type: Array,
-      default: () => []
-    }
-  },
-  data() {
-    return {
-      selectedConditionIndex: -1,
-      conditionDialogVisible: false,
-      condition: null
-    };
-  },
-  methods: {
-    /**
-     * 处理添加过滤条件
-     */
-    handleAddCondition() {
-      if (!this.dataset) {
-        showAlert(this.$t('property.dataset.bindDatasetTip'));
-        return;
-      }
+defineOptions({ name: 'FilterCondition' })
 
-      this.condition = null;
-      this.conditionDialogVisible = true;
-    },
 
-    handleEditCondition() {
-      if (this.selectedConditionIndex < 0) {
-        showAlert(this.$t('property.dataset.selectFilterConditionTip'));
-        return;
-      }
-
-      this.condition = this.conditions[this.selectedConditionIndex];
-      this.conditionDialogVisible = true;
-    },
-
-    /**
-     * 处理条件保存事件
-     */
-    handleConditionSave(conditionData) {
-      const conditions = this.conditions.map((item, index) => {
-        if (conditionData.isEdit && index === this.selectedConditionIndex) {
-          return {
-            ...item,
-            left: conditionData.left,
-            operation: conditionData.operation,
-            right: conditionData.right,
-            join: conditionData.join
-          };
-        }
-        return item;
-      });
-
-      if (!conditionData.isEdit) {
-        conditions.push({
-          left: conditionData.left,
-          operation: conditionData.operation,
-          right: conditionData.right,
-          join: conditionData.join
-        });
-      }
-
-      this.$emit('update:conditions', conditions);
-      this.$emit('update-filter-conditions', conditions);
-      setDirty();
-    },
-
-    /**
-     * 处理删除过滤条件
-     */
-    handleDeleteCondition() {
-      if (this.selectedConditionIndex < 0) {
-        showAlert(this.$t('property.dataset.delFilterConditionTip'));
-        return;
-      }
-
-      showConfirm(this.$t('property.dataset.delConfirm')).then(() => {
-        const conditions = [...this.conditions];
-        conditions.splice(this.selectedConditionIndex, 1);
-        this.$emit('update:conditions', conditions);
-        this.$emit('update-filter-conditions', conditions);
-        this.selectedConditionIndex = -1;
-        setDirty();
-      });
-    },
-
-    /**
-     * 格式化条件文本
-     */
-    formatConditionText(condition) {
-      let text = `${condition.left} ${condition.operation} ${condition.right}`;
-      if (condition.join) {
-        text = `${condition.join} ${text}`;
-      }
-      return text;
-    }
-  }
-};
-</script>
-<style scoped>
-.u-button + .u-button{
-  margin-left: 5px;
+const { t } = useI18n()
+/** 字段元数据 */
+interface Field {
+  name: string
+  [key: string]: unknown
 }
 
-.top-button{
+const props = withDefaults(
+  defineProps<{
+    dataset?: string
+    conditions?: ConditionData[]
+    fields?: Field[]
+  }>(),
+  {
+    dataset: '',
+    conditions: () => [],
+    fields: () => []
+  }
+)
+
+const emit = defineEmits<{
+  (e: 'update:conditions', value: ConditionData[]): void
+  (e: 'update-filter-conditions', value: ConditionData[]): void
+}>()
+
+const selectedConditionIndex = ref<number>(-1)
+const conditionDialogVisible = ref<boolean>(false)
+const condition = ref<ConditionData | null>(null)
+
+/** a-select 选项：把 conditions 转成 { label, value } */
+const conditionOptions = computed(() =>
+  (props.conditions || []).map((cond, index) => ({
+    value: index,
+    label: formatConditionText(cond)
+  }))
+)
+
+/**
+ * 格式化条件文本
+ */
+const formatConditionText = (cond: ConditionData): string => {
+  let text = `${cond.left} ${cond.operation} ${cond.right}`
+  if (cond.join) {
+    text = `${cond.join} ${text}`
+  }
+  return text
+}
+
+/**
+ * 处理添加过滤条件
+ */
+const handleAddCondition = (): void => {
+  if (!props.dataset) {
+    showAlert(t('property.dataset.bindDatasetTip'))
+    return
+  }
+
+  condition.value = null
+  conditionDialogVisible.value = true
+}
+
+/**
+ * 处理编辑过滤条件
+ */
+const handleEditCondition = (): void => {
+  if (selectedConditionIndex.value < 0) {
+    showAlert(t('property.dataset.selectFilterConditionTip'))
+    return
+  }
+
+  condition.value = (props.conditions || [])[selectedConditionIndex.value] || null
+  conditionDialogVisible.value = true
+}
+
+/**
+ * 处理条件保存事件
+ */
+const handleConditionSave = (conditionData: ConditionData): void => {
+  const newConditions = (props.conditions || []).map((item, index) => {
+    if (conditionData.isEdit && index === selectedConditionIndex.value) {
+      return {
+        ...item,
+        left: conditionData.left,
+        operation: conditionData.operation,
+        right: conditionData.right,
+        join: conditionData.join
+      }
+    }
+    return item
+  })
+
+  if (!conditionData.isEdit) {
+    newConditions.push({
+      left: conditionData.left,
+      operation: conditionData.operation,
+      right: conditionData.right,
+      join: conditionData.join
+    })
+  }
+
+  emit('update:conditions', newConditions)
+  emit('update-filter-conditions', newConditions)
+  setDirty()
+}
+
+/**
+ * 处理删除过滤条件
+ */
+const handleDeleteCondition = (): void => {
+  if (selectedConditionIndex.value < 0) {
+    showAlert(t('property.dataset.delFilterConditionTip'))
+    return
+  }
+
+  showConfirm(t('property.dataset.delConfirm')).then(() => {
+    const newConditions = [...(props.conditions || [])]
+    newConditions.splice(selectedConditionIndex.value, 1)
+    emit('update:conditions', newConditions)
+    emit('update-filter-conditions', newConditions)
+    selectedConditionIndex.value = -1
+    setDirty()
+  })
+}
+</script>
+
+<style scoped>
+.top-button {
   display: flex;
   justify-content: end;
 }
 
-.condition-select{
-  height: 100px;
-  outline: none;
+.condition-select :deep(.ant-select-selector) {
+  min-height: 100px;
 }
 
 .empty-tip-container {
