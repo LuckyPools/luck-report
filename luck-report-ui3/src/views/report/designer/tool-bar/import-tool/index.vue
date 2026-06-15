@@ -1,0 +1,46 @@
+<template>
+  <u-button
+      :title="$t('importExcel')"
+      class="tool-button"
+      icon="icon-cloud-upload"
+      @click="visible = true"
+  >
+    <ImportDialog 
+      :visible="visible" 
+      @update:visible="visible = $event"
+      @import-success="handleImportSuccess"
+    />
+  </u-button>
+</template>
+
+<script>
+import ImportDialog from '@/views/report/designer/tool-bar/import-tool/import-dialog/index.vue';
+import UButton from "@/components/button/index.vue";
+import { createNavigator } from '@/lib/navigator';
+
+export default {
+  name: 'ImportTool',
+  components: {
+    UButton,
+    ImportDialog
+  },
+  data() {
+    return {
+      visible: false
+    };
+  },
+  computed: {
+    navigator() {
+      return createNavigator(this);
+    }
+  },
+  methods: {
+    handleImportSuccess() {
+      this.navigator.openDesigner({}, false);
+    }
+  }
+};
+</script>
+
+<style scoped>
+</style>
