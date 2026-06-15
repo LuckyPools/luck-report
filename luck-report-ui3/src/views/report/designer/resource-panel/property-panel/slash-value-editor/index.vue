@@ -57,7 +57,7 @@
 import { setDirty } from '@/utils/table.js';
 import { deepCopy } from '@/components/utils/index.js';
 import { setCell, getCell, getContext } from '@/utils/contextActions.js';
-import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class.js';
+import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class';
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";

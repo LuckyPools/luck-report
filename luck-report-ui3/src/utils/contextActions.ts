@@ -15,8 +15,8 @@
  * removeCell(store, cell);
  */
 
-import store from '@/store';
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import store from '@/store/vuex-compat';
+import TableManager from '@/views/report/designer/edit-table/manager';
 import { deepCopy } from '@/components/utils';
 import { setDirty } from '@/utils/table';
 import type { ReportCell, ReportContext, ReportDatasource, ReportDataset, ReportSearchForm, ReportPaperLike, ReportRowDef, ReportColumnDef } from '@/types/report-def'

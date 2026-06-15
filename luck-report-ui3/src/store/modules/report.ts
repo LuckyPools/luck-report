@@ -153,6 +153,8 @@ export type ReportStore = Store<
     triggerCellUpdate(): void
     setDatasourcePanelUpdate(isDatasourcePanelUpdate: boolean): void
     triggerDatasourcePanelUpdate(): void
+    /** 批量执行 context 操作（接收一个回调，回调里直接操作 context） */
+    contextBatchExecute(operationFn: (context: ReportContext) => void): void
 
     // ============ 参数化 getter（仅在类型中体现，运行时 Pinia options 会展开为独立 getter） ============
     getDatasources(name?: string): ReportDatasource | ReportDatasource[] | null
@@ -709,6 +711,18 @@ export const useReportStore = defineStore('report', {
         /** 触发数据源面板更新（置 true，面板监听后会自行重置为 false） */
         triggerDatasourcePanelUpdate() {
             this.isDatasourcePanelUpdate = true
+        },
+
+        /**
+         * 批量执行 context 操作
+         * - 在一个同步操作里对 context 内部 cellsMap / rowHeaders / datasources 等做任意修改
+         * - 由于 Pinia 的 state 是 reactive，无需 commit/事务，直接调用回调即可
+         * @param {(context: ReportContext) => void} operationFn - 操作函数，接收当前 context
+         */
+        contextBatchExecute(operationFn: (context: ReportContext) => void) {
+            if (this.context) {
+                operationFn(this.context)
+            }
         }
     }
 })

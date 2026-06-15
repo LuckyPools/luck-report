@@ -2,36 +2,26 @@
  * Created by Jacky.gao on 2016/7/27.
  */
 import UndoManager from 'undo-manager';
-import MessageBox from '@/components/messagebox/instance.js';
-import store from '@/store';
+import MessageBox from '@/components/messagebox/instance';
+import { useReportStore } from '@/store/modules/report';
 import {getCell, getCellName} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 import { getUrlQueryString } from '@/utils/url';
 import { $t } from '@/locales';
+import type { ReportCell } from '@/types/report-def'
+import type { HandsontableInstance } from '@/types/handsontable'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** MessageBox 抽象 */
 const MB: any = MessageBox
 
-/** 抽象 store，兼容过渡期的 dispatch/getters 写法 */
-interface LegacyStore {
-    dispatch(type: string, payload?: any): Promise<any>
-    getters: Record<string, any>
-}
-
-/** 表格对象（handsontable）抽象类型 */
-interface HotInstance {
-    countCols(): number
-    countRows(): number
-    getCell(row: number, col: number, topmost?: boolean): any
-    loadData(data: any[][]): void
-    getRowHeight(row: number): number | undefined
-    getColWidth(col: number): number | undefined
-    getSettings(): { mergeCells?: Array<{ row: number; col: number; rowspan: number; colspan: number }> }
-    setDataAtCell(row: number, col: number, value: any): void
-    render(): void
-}
+/**
+ * 表格对象（handsontable）抽象类型
+ * - 直接复用项目内别名 HandsontableInstance（即 _Handsontable.Core）
+ * - 这样 Operation 文件传入 HandsontableInstance 时不会因字段缺失报错
+ */
+type HotInstance = HandsontableInstance
 
 /**
  * 重置表格数据（将单元格定义转换为显示文本后回填到表格）
@@ -81,12 +71,18 @@ export function resetTableData(hot: HotInstance): void {
  * 构建新的单元格定义
  * @param rowNumber 行号（从 1 开始）
  * @param columnNumber 列号（从 1 开始）
- * @returns 单元格定义对象
+ * @returns 单元格定义对象（符合 ReportCell 形状）
  */
-export function buildNewCellDef(rowNumber: number, columnNumber: number): Record<string, any> {
-    let cellDef: Record<string, any> = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
-    return cellDef;
-};
+export function buildNewCellDef(rowNumber: number, columnNumber: number): ReportCell {
+    const cellDef: ReportCell = {
+        rowNumber,
+        columnNumber,
+        expand: 'None',
+        cellStyle: { fontSize: 10, forecolor: '0,0,0', fontFamily: '宋体', align: 'center', valign: 'middle' },
+        value: { type: 'simple', value: '' }
+    }
+    return cellDef
+}
 
 /**
  * 将报表上下文序列化为 ureport XML
@@ -647,13 +643,16 @@ export function tableToXml(context: any): string {
  * @returns 包含 rowspan/colspan 的对象
  */
 function getSpan(hot: HotInstance, row: number, col: number): { rowspan: number; colspan: number } {
-    const mergeCells=hot.getSettings().mergeCells || [];
-    for(let item of mergeCells){
-        if(item.row===row && item.col===col){
-            return item;
+    // 官方 d.ts 中 mergeCells 字段类型为 `true | Handsontable.MergeCells.Settings[]`
+    // 项目运行时实际拿到的是数组（当值为 true 时不会有设置项），先做类型守卫再迭代
+    const mergeCells = hot.getSettings().mergeCells
+    const mergeList: Array<{ row: number; col: number; rowspan: number; colspan: number }> = Array.isArray(mergeCells) ? mergeCells : []
+    for (const item of mergeList) {
+        if (item.row === row && item.col === col) {
+            return item
         }
     }
-    return {rowspan:0,colspan:0};
+    return { rowspan: 0, colspan: 0 }
 }
 
 /**
@@ -929,14 +928,14 @@ export const undoManager=new UndoManager();
  * 设置脏数据状态，启用保存按钮
  */
 export function setDirty(): void {
-    (store as unknown as LegacyStore).dispatch('report/setDisableSaveBtn', false).then((r: any) => {});
+    useReportStore().setDisableSaveBtn(false);
 }
 
 /**
  * 重置脏数据状态，禁用保存按钮
  */
 export function resetDirty(): void {
-    (store as unknown as LegacyStore).dispatch('report/setDisableSaveBtn', true).then((r: any) => {{}});
+    useReportStore().setDisableSaveBtn(true);
 }
 
 /**

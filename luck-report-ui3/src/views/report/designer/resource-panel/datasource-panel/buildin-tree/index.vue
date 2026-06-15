@@ -100,7 +100,7 @@ import ContextMenu from '../context-menu/index.vue';
 import { buildFields } from '@/api/designer/index.js';
 import { mapGetters } from 'vuex';
 import {addCell, getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'BuildinTree',

@@ -35,7 +35,7 @@ import UForm from "@/components/form/index.vue";
 import UFormItem from "@/components/form-item/index.vue";
 import { mapGetters, mapActions } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'SimpleValueEditor',

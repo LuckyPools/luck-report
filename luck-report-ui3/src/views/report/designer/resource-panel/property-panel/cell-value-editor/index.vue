@@ -180,7 +180,7 @@ import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UInput from '@/components/input/index.vue';
 import UButton from '@/components/button/index.vue';
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 import UForm from "@/components/form/index.vue";
 import UFormItem from "@/components/form-item/index.vue";
 

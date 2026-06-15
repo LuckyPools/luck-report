@@ -1,137 +1,159 @@
 <template>
-  <UDialog
+  <a-modal
     :title="isRow ? $t('dialog.rowColNumber.insertRow') : $t('dialog.rowColNumber.insertCol')"
-    width="400px"
-    :visible="visible"
-    @close="handleClose"
+    :open="visible"
+    :width="400"
+    :destroy-on-close="true"
+    :mask-closable="false"
+    @cancel="handleClose"
   >
-    <div class="dialog-content">
-      <u-form ref="form" :model="formData" :rules="rules" :label-width="100">
-        <u-form-item class="solo-label" :label="isRow ? $t('dialog.rowColNumber.rowCount') : $t('dialog.rowColNumber.colCount')" prop="num">
-          <u-input-number
-            :placeholder="$t('dialog.rowColNumber.tip')"
-            v-model="formData.num"
-            :min="1"
-            ref="input"
-            @keyup.enter="handleOk"
-          />
-        </u-form-item>
-      </u-form>
-    </div>
-    <div slot="footer" style="text-align: right">
-      <u-button @click="handleClose" type="info" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</u-button>
-      <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-    </div>
-  </UDialog>
+    <a-form
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      :label-col="{ span: 8 }"
+      :wrapper-col="{ span: 14 }"
+      style="margin-top: 16px"
+    >
+      <a-form-item
+        :label="isRow ? $t('dialog.rowColNumber.rowCount') : $t('dialog.rowColNumber.colCount')"
+        name="num"
+      >
+        <a-input-number
+          :placeholder="$t('dialog.rowColNumber.tip')"
+          v-model:value="formData.num"
+          :min="1"
+          style="width: 100%"
+          @press-enter="handleOk"
+        />
+      </a-form-item>
+    </a-form>
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">{{ $t('dialog.common.cancel') }}</a-button>
+      <a-button type="primary" @click="handleOk">{{ $t('dialog.common.ok') }}</a-button>
+    </template>
+  </a-modal>
 </template>
 
-<script>
-import UDialog from '@/components/dialog/index.vue';
-import UButton from "@/components/button/index.vue";
-import UInputNumber from "@/components/input-number/index.vue";
-import UForm from '@/components/form/index.vue';
-import UFormItem from '@/components/form-item/index.vue';
+<script lang="ts">
+/**
+ * RowColNumberDialog：插入行/列数量输入弹窗
+ *
+ * 工作流程：
+ * 1. 父级（ContextMenu）通过 class.ts 创建 + 调用 show(callback, isRow)
+ * 2. show 打开弹窗，回调保存到组件实例
+ * 3. 用户在 a-input-number 中输入数字 → handleOk 校验后回调 → 关闭
+ *
+ * 调用方：
+ * - src/views/report/designer/edit-table/row-col-number-dialog/class.ts（动态挂载 + 调 show）
+ *
+ * 迁移说明：
+ * - Options API → vue3 Options API 简化版（保留 data/methods，减少 this 嵌套）
+ * - UDialog/UButton/UInputNumber/UForm/UFormItem 替换为 ant-design-vue 对应组件
+ * - slot="footer" → #footer
+ * - $refs.form.validate(callback) → a-form 的 Promise 化 validate()
+ */
+import { defineComponent } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-export default {
+/** show() 方法入参类型 */
+export interface ShowOptions {
+  callback: (num: number) => void
+  isRow: boolean
+}
+
+export default defineComponent({
   name: 'RowColNumberDialog',
-  components: {
-    UButton,
-    UDialog,
-    UInputNumber,
-    UForm,
-    UFormItem
+  setup() {
+    const { t } = useI18n()
+    return {
+      t
+    }
   },
   data() {
     return {
       visible: false,
-      formData: {
-        num: 1
-      },
+      formData: { num: 1 },
       rules: {
         num: [{
           required: true,
           type: 'number',
-          message: this.$t('dialog.rowColNumber.numValidate'),
+          message: this.t('dialog.rowColNumber.numValidate'),
           trigger: 'blur'
         }]
       },
       isRow: false,
-      callback: null
-    };
+      callback: null as ((num: number) => void) | null
+    }
   },
   mounted() {
-    document.addEventListener('keydown', this.handleKeydown);
+    document.addEventListener('keydown', this.handleKeydown)
   },
-  beforeDestroy() {
-    document.removeEventListener('keydown', this.handleKeydown);
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleKeydown)
   },
   methods: {
     /**
      * 显示弹窗
-     * @param {Function} callback - 回调函数
-     * @param {Boolean} isRow - 是否为行操作
+     * @param callback 确认后的回调，参数为输入数字
+     * @param isRow true=行操作；false=列操作
      */
-    show(callback, isRow) {
-      this.visible = true;
-      this.formData.num = 1;
-      this.isRow = !!isRow;
-      this.callback = callback;
+    show(callback: (num: number) => void, isRow: boolean): void {
+      this.visible = true
+      this.formData.num = 1
+      this.isRow = !!isRow
+      this.callback = callback
     },
 
     /**
-     * 校验表单
-     * @returns {Promise<boolean>} 校验结果
+     * 异步校验表单
+     * @returns 校验通过返回 true，否则返回 false
      */
-    validateForm() {
-      return new Promise((resolve) => {
-        this.$refs.form.validate((valid) => {
-          resolve(valid);
-        });
-      });
-    },
-
-    /**
-     * 确认操作
-     */
-    async handleOk() {
-      const valid = await this.validateForm();
-      if (!valid) {
-        return;
+    async validateForm(): Promise<boolean> {
+      try {
+        await (this.$refs.formRef as { validate: () => Promise<void> }).validate()
+        return true
+      } catch {
+        return false
       }
+    },
 
-      const numValue = parseInt(this.formData.num);
+    /**
+     * 确认按钮：校验通过后回调 + 关闭
+     */
+    async handleOk(): Promise<void> {
+      const valid = await this.validateForm()
+      if (!valid) return
+      const numValue = parseInt(String(this.formData.num))
       if (typeof this.callback === 'function') {
-        this.callback(numValue);
+        this.callback(numValue)
       }
-      this.handleClose();
+      this.handleClose()
     },
 
     /**
-     * 关闭弹窗
+     * 关闭弹窗 + 清理 callback（保留 300ms 防止动画期间回调被重置）
      */
-    handleClose() {
-      this.$refs.form && this.$refs.form.resetFields();
-      this.visible = false;
+    handleClose(): void {
+      const formRef = this.$refs.formRef as { resetFields?: () => void } | undefined
+      if (formRef && typeof formRef.resetFields === 'function') {
+        formRef.resetFields()
+      }
+      this.visible = false
       setTimeout(() => {
-        this.callback = null;
-      }, 300);
+        this.callback = null
+      }, 300)
     },
 
     /**
-     * 键盘事件处理
-     * @param {KeyboardEvent} e - 键盘事件
+     * 键盘事件：Esc 关闭
+     * @param e 键盘事件
      */
-    handleKeydown(e) {
-      if (this.visible) {
-        if (e.key === 'Escape') {
-          this.handleClose();
-        }
+    handleKeydown(e: KeyboardEvent): void {
+      if (this.visible && e.key === 'Escape') {
+        this.handleClose()
       }
     }
-  },
-};
+  }
+})
 </script>
-
-<style scoped>
-
-</style>

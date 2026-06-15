@@ -184,7 +184,7 @@ export default {
     document.addEventListener('click', this.addCloseEvent)
     this.getSuggesitions()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // 释放点击事件
     document.removeEventListener('click', this.addCloseEvent)
   },

@@ -25,7 +25,7 @@ import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 import UButton from "@/components/button/index.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
 import { hexToRgb, rgbToHex } from '@/utils/color';

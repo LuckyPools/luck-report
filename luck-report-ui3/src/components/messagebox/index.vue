@@ -150,7 +150,7 @@ export default {
       }
     }
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener("keydown", this.handleCloseByEsc);
   }
 };

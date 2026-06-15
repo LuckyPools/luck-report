@@ -107,7 +107,7 @@ import UFormItem from '@/components/form-item/index.vue'
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters, mapActions } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 import UForm from "@/components/form/index.vue";
 
 export default {

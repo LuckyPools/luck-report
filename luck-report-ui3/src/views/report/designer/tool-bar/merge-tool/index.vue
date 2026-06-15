@@ -13,8 +13,8 @@
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import UButton from "@/components/button/index.vue";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
-import { doMergeCells } from '@/views/report/designer/edit-table/utils/MergeCellUtils.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
+import { doMergeCells } from '@/views/report/designer/edit-table/utils/MergeCellUtils';
 
 export default {
   name: 'MergeTool',

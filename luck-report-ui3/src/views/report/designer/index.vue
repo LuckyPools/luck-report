@@ -3,25 +3,25 @@
     <div class="u-designer">
       <!-- 左侧区域：顶部工具和内容表格 -->
       <div class="left-part">
-        <!-- TODO: 子组件 vue3 迁移完成后回挂 -->
+        <!-- TODO: TopToolBar 子组件 vue3 迁移完成后回挂 -->
         <!-- <TopToolBar ref="topToolBar" :selectedCells="selectedCells" /> -->
-        <!-- <ContentTable
-          ref="contentTable"
+        <ContentTable
+          ref="contentTableRef"
           :reportPath="localReportPath"
           @cell-selected="handleCellSelected"
-          @navigate="handleNavigate"
           @save="handleSave"
           @error="handleError"
-        /> -->
+        />
+        <!-- 打印线：position: absolute 覆盖在设计区右侧，标识纸张右边界 -->
+        <PrintLine />
       </div>
       <!-- 右侧区域：侧边栏 -->
       <div class="right-part">
+        <!-- TODO: ResourcePanel / AiIframe 子组件 vue3 迁移完成后回挂 -->
         <!-- <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" /> -->
+        <!-- <AiIframe :defaultVisible="true" ref="aiIframe" /> -->
       </div>
     </div>
-
-    <!-- AI 对话框 iframe 组件 -->
-    <!-- <AiIframe :defaultVisible="true" ref="aiIframe" /> -->
   </div>
 </template>
 
@@ -59,9 +59,13 @@ import { ref, watch, onMounted } from 'vue'
 // import '../../../assets/css/designer/tree.css'
 // import 'codemirror/mode/javascript/javascript.js'
 
+// ContentTable 已在阶段 3 完成 vue3 迁移，解开引用
+import 'handsontable/dist/handsontable.min.css'
+import ContentTable from '@/views/report/designer/edit-table/index.vue'
+// PrintLine 打印线组件：根据 store 中 showPrintLine / isPrintLineRefresh 控制显隐与位置
+import PrintLine from '@/views/report/designer/print-line/index.vue'
 // import ResourcePanel from '@/views/report/designer/resource-panel/index.vue'
 // import TopToolBar from '@/views/report/designer/tool-bar/index.vue'
-// import ContentTable from '@/views/report/designer/edit-table/index.vue'
 // import AiIframe from '@/views/report/designer/ai-iframe/index.vue'
 import { createNavigator } from '@/utils/navigator'
 import { getUrlSearchParams } from '@/utils/url'
@@ -108,6 +112,9 @@ const selectedCells = ref({
 
 /** 当前报表路径（跟随 props 同步，可被内部方法覆写） */
 const localReportPath = ref(props.reportPath)
+
+/** ContentTable 组件引用（用于调用暴露的 getReportData / saveReport） */
+const contentTableRef = ref(null)
 
 // 监听 props.reportPath 变化同步到本地
 watch(
@@ -172,21 +179,30 @@ function handleError(err) {
 }
 
 /**
- * 获取报表数据（待 ContentTable 迁移后实现）
- * @returns {*} 当前报表数据快照
+ * 获取报表数据（由 ContentTable 暴露的 getReportData 转发）
+ * @returns {string|null} 当前报表 XML 数据；组件未就绪时返回 null
  */
 function getReportData() {
-  // TODO: 待 ContentTable 迁移后接入
+  // ContentTable 通过 defineExpose 暴露 getReportData / saveReport
+  // 此处仅在 ContentTable 已挂载完成后才有值
+  const inst = contentTableRef.value
+  if (inst && typeof inst.getReportData === 'function') {
+    return inst.getReportData()
+  }
   return null
 }
 
 /**
- * 触发保存（待 ContentTable 迁移后实现）
- * @returns {*} 保存结果
+ * 触发保存（由 ContentTable 暴露的 saveReport 转发）
+ * @returns {boolean} true=已成功触发；false=ContentTable 尚未就绪
  */
 function saveReport() {
-  // TODO: 待 ContentTable 迁移后接入
-  return null
+  const inst = contentTableRef.value
+  if (inst && typeof inst.saveReport === 'function') {
+    inst.saveReport()
+    return true
+  }
+  return false
 }
 
 /**

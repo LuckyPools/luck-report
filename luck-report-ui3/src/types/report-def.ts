@@ -7,11 +7,18 @@
  * - 字段命名沿用后端协议（rowNumber/columnNumber 等），不做 isXxx 风格转换（后端字段以数据为准）
  */
 
-/** 单元格定义 */
+/**
+ * 单元格定义
+ * - rowNumber/columnNumber 为强类型字段
+ * - 其余字段（value/cellStyle/format/...）通过 [key: string]: any 索引
+ *   这样 cell.cellStyle?.xxx 这种链式读写不会触发 TS18046（unknown 不可索引）
+ *   比 unknown 更贴合运行时实际使用方式
+ */
 export interface ReportCell {
   rowNumber: number
   columnNumber: number
-  [key: string]: unknown
+  cellStyle?: Record<string, any>
+  [key: string]: any
 }
 
 /** 行头定义 */

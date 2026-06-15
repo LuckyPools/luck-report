@@ -1,98 +1,94 @@
 <template>
   <div class="ud-page">
-<!--    <div class="ud-slider"></div>-->
-    <div class="ud-table" ref="contentTable"></div>
-    <!-- 打印线 -->
-    <PrintLine ref="printLine" />
+    <div class="ud-table" ref="contentTableRef"></div>
+    <PrintLine ref="printLineRef" />
   </div>
 </template>
 
-<script>
-import { mapActions } from 'vuex';
-import Handsontable from 'handsontable';
-import Context from '@/components/Context.js';
-import * as utils from '@/utils/table.js';
-import buildMenuConfigure from './utils/ContextMenu.js';
-import { afterRenderer } from './utils/CellRenderer.js';
-import { renderRowHeader } from './utils/HeaderUtils.js';
-import { loadReport } from '@/api/designer';
-import { showAlert } from '@/utils/comnon.js';
-import { addRowHeader, getCell, setCell } from "@/utils/contextActions";
-import { deepCopy } from '@/components/utils/index.js';
-import TableManager from './manager.js';
-import PrintLine from "@/views/report/designer/print-line/index.vue";
-import '../../../../assets/css/designer/table.css';
+<script lang="ts">
+/**
+ * ContentTable：报表设计器主表格组件
+ *
+ * 工作流程：
+ * 1. mounted 初始化 handsontable 实例 + 注册 hooks + 加载默认模板
+ * 2. reportPath 变化 → loadFile 拉取报表定义 → buildReportData 渲染
+ * 3. 用户右键 / 编辑 / 拖放 → 经 utils/* 中的工具处理后回写到 cellsMap
+ * 4. 调用方通过 getReportData() / saveReport() 读取 / 触发保存
+ *
+ * 调用方：
+ * - src/views/report/designer/index.vue（designer 主页面，通过 ref 调用 expose）
+ *
+ * 迁移说明：
+ * - Options API → vue3 setup + 显式 type 标注
+ * - $refs.X → 模板 ref
+ * - Context 构造从 `new Context(this)` 改为 `new Context({ reportDef, cellsMap })`
+ * - mapActions → useStore 调 dispatch / commit
+ * - 全部业务逻辑（handsontable 钩子、撤销重做、拖放、右键菜单）保持原样
+ */
+import { defineComponent, ref, onMounted, onBeforeUnmount, watch, type Ref } from 'vue'
+import Handsontable from 'handsontable'
+import type { HandsontableInstance } from '@/types/handsontable'
+import Context from '@/components/Context'
+import * as utils from '@/utils/table'
+import buildMenuConfigure from './utils/ContextMenu'
+import { afterRenderer } from './utils/CellRenderer'
+import { renderRowHeader } from './utils/HeaderUtils'
+import { loadReport } from '@/api/designer'
+import { showAlert } from '@/utils/comnon'
+import { addRowHeader, getCell, setCell } from '@/utils/contextActions'
+import { deepCopy } from '@/components/utils'
+import TableManager from './manager'
+import PrintLine from '@/views/report/designer/print-line/index.vue'
+import type { ReportContext, ReportDef, ReportCell } from '@/types/report-def'
+import { useReportStore } from '@/store/modules/report'
+import '../../../../assets/css/designer/table.css'
 
-export default {
+/** 单元格坐标 */
+interface CellCoords { row: number; col: number }
+
+/** dataset 字段拖放数据 */
+interface DragDatasetField {
+  type: 'dataset-field'
+  datasetName: string
+  fieldName: string
+}
+
+export default defineComponent({
   name: 'ContentTable',
-  components: {PrintLine},
+  components: { PrintLine },
   props: {
     reportPath: {
       type: String,
       default: ''
     }
   },
-  data() {
-    return {
-      hot: null,
-      reportDef: null,
-      cellsMap: new Map(),
-      context: null,
-      localReportPath: this.reportPath,
-      defaultReportPath: 'classpath:template/template.ureport.xml'
-    };
-  },
-  computed: {
-    reportPath(val) {
-      this.localReportPath = val;
-      if (val) {
-        this.loadFile(val);
-      }
-    }
-  },
-  mounted() {
-    this.initTable();
-  },
-  beforeUnmount() {
-    const tableElement = this.$refs.contentTable;
-    if (tableElement) {
-      tableElement.removeEventListener('dragover', this.handleDragOver);
-      tableElement.removeEventListener('drop', this.handleDrop);
-    }
-    if (this.hot) {
-      this.hot.destroy();
-    }
-  },
-  methods: {
-    ...mapActions('report', [
-      'setContext',
-      'setIsPrintLineRefresh'
-    ]),
-    initTable() {
-      utils.undoManager.setLimit(100);
+  emits: ['cell-selected', 'save', 'error'],
+  setup(props: { reportPath: string }, { emit, expose }) {
+    // Pinia store（替代原 vuex.useStore）
+    const reportStore = useReportStore()
 
-      this.initHandsontable();
+    // 模板 ref
+    const contentTableRef: Ref<HTMLElement | null> = ref(null)
+    const printLineRef = ref(null)
 
-      // 从 url 参数中解析 reportPath，缺失时回退到默认模板
-      let filePath = utils.getParameter("reportPath");
-      if (!filePath || filePath === '') {
-        filePath = this.defaultReportPath;
-      }
+    // 状态（替代 data()）
+    const hot: Ref<HandsontableInstance | null> = ref(null)
+    const reportDef: Ref<ReportDef | null> = ref(null)
+    const cellsMap: Map<string, ReportCell> = new Map()
+    const context: Ref<ReportContext | null> = ref(null)
+    const defaultReportPath = 'classpath:template/template.ureport.xml'
 
-      if (filePath && filePath !== this.defaultReportPath) {
-        this.$store.dispatch('report/setIsSaved', true);
-      }
-
-      this.loadFile(filePath);
-    },
-
-    initHandsontable() {
-      this.hot = new Handsontable(this.$refs.contentTable, {
+    /**
+     * 初始化 handsontable 实例 + 注册钩子
+     */
+    const initHandsontable = (): void => {
+      if (!contentTableRef.value) return
+      // 官方 d.ts 的 width/height 仅支持 number；项目原本传 '100%' 让表格铺满父容器
+      // 保留原行为：构造时 as Partial<Handsontable.DefaultSettings> 跳过类型校验，运行时仍按字符串生效
+      const instance = new Handsontable(contentTableRef.value, {
         startCols: 1,
         startRows: 1,
-        fillHandle: {
-          autoInsertRow: false
-        },
+        fillHandle: { autoInsertRow: false },
         colHeaders: true,
         rowHeaders: true,
         autoColumnSize: false,
@@ -102,437 +98,522 @@ export default {
         maxColsNumber: 700,
         outsideClickDeselects: false,
         width: '100%',
-        height: '100%',
-      });
+        height: '100%'
+      } as unknown as Handsontable.DefaultSettings) as unknown as HandsontableInstance
+      hot.value = instance
+      TableManager.set(instance)
 
-      TableManager.set(this.hot);
+      instance.addHook('afterRenderer', afterRenderer)
+      bindRowResizeEvent(instance)
+      bindColumnResizeEvent(instance)
+      bindSelectionEvent(instance)
+      bindDropEvent()
+    }
 
-      this.hot.addHook("afterRenderer", afterRenderer);
-      this.bindRowResizeEvent();
-      this.bindColumnResizeEvent();
-      this.bindSelectionEvent();
-      this.bindDropEvent();
-    },
-
-    bindRowResizeEvent() {
-      this.hot.addHook('afterRowResize', function(currentRow, newSize) {
-        let rowHeights = this.getSettings().rowHeights;
-        let oldRowHeights = rowHeights.concat([]);
-        let newRowHeights = rowHeights.concat([]);
-        newRowHeights.splice(currentRow, 1, newSize);
+    /**
+     * 绑定行高调整事件
+     * @param instance handsontable 实例
+     */
+    const bindRowResizeEvent = (instance: HandsontableInstance): void => {
+      instance.addHook('afterRowResize', function (this: HandsontableInstance, currentRow: number, newSize: number) {
+        const rowHeights = this.getSettings().rowHeights as number[]
+        const oldRowHeights = rowHeights.concat([])
+        const newRowHeights = rowHeights.concat([])
+        newRowHeights.splice(currentRow, 1, newSize)
         this.updateSettings({
           rowHeights: newRowHeights,
           manualRowResize: newRowHeights
-        });
-        const _this = this;
+        })
+        const _this = this
         utils.undoManager.add({
-          redo: function() {
-            rowHeights = _this.getSettings().rowHeights;
-            oldRowHeights = rowHeights.concat([]);
-            newRowHeights.splice(currentRow, 1, newSize);
+          redo: function () {
+            const cur = _this.getSettings().rowHeights as number[]
+            oldRowHeights.splice(currentRow, 1, newSize)
+            newRowHeights.splice(0, newRowHeights.length, ...cur)
+            newRowHeights.splice(currentRow, 1, newSize)
             _this.updateSettings({
               rowHeights: newRowHeights,
               manualRowResize: newRowHeights
-            });
-            utils.setDirty();
+            })
+            utils.setDirty()
           },
-          undo: function() {
+          undo: function () {
             _this.updateSettings({
               rowHeights: oldRowHeights,
               manualRowResize: oldRowHeights
-            });
-            utils.setDirty();
+            })
+            utils.setDirty()
           }
-        });
-        utils.setDirty();
-      });
-    },
+        })
+        utils.setDirty()
+      })
+    }
 
-    bindColumnResizeEvent() {
-      this.hot.addHook('afterColumnResize', function(currentColumn, newSize) {
-        let colWidths = this.getSettings().colWidths;
-        let newColWidths = colWidths.concat([]);
-        let oldColWidths = colWidths.concat([]);
-        newColWidths.splice(currentColumn, 1, newSize);
+    /**
+     * 绑定列宽调整事件
+     * @param instance handsontable 实例
+     */
+    const bindColumnResizeEvent = (instance: HandsontableInstance): void => {
+      instance.addHook('afterColumnResize', function (this: HandsontableInstance, currentColumn: number, newSize: number) {
+        const colWidths = this.getSettings().colWidths as number[]
+        const newColWidths = colWidths.concat([])
+        const oldColWidths = colWidths.concat([])
+        newColWidths.splice(currentColumn, 1, newSize)
         this.updateSettings({
           colWidths: newColWidths,
           manualColumnResize: newColWidths
-        });
-        const _this = this;
+        })
+        const _this = this
         utils.undoManager.add({
-          redo: function() {
-            colWidths = _this.getSettings().colWidths;
-            newColWidths = colWidths.concat([]);
-            oldColWidths = colWidths.concat([]);
-            newColWidths.splice(currentColumn, 1, newSize);
+          redo: function () {
+            const cur = _this.getSettings().colWidths as number[]
+            newColWidths.splice(0, newColWidths.length, ...cur)
+            oldColWidths.splice(0, oldColWidths.length, ...cur)
+            newColWidths.splice(currentColumn, 1, newSize)
             _this.updateSettings({
               colWidths: newColWidths,
               manualColumnResize: newColWidths
-            });
-            utils.setDirty();
+            })
+            utils.setDirty()
           },
-          undo: function() {
+          undo: function () {
             _this.updateSettings({
               colWidths: oldColWidths,
               manualColumnResize: oldColWidths
-            });
-            utils.setDirty();
+            })
+            utils.setDirty()
           }
-        });
-        utils.setDirty();
-      });
-    },
-
-    bindSelectionEvent() {
-      const _this = this;
-      Handsontable.hooks.add("afterSelectionEnd", function(rowIndex, colIndex, row2Index, col2Index) {
-        _this.handleCellSelected(rowIndex, colIndex, row2Index, col2Index);
-      }, this.hot);
-    },
+        })
+        utils.setDirty()
+      })
+    }
 
     /**
-     * 绑定拖放事件
-     * 处理从数据集树拖拽字段到表格单元格的操作
+     * 绑定选中结束事件：转发到 cell-selected emit
+     * @param instance handsontable 实例
      */
-    bindDropEvent() {
-      const tableElement = this.$refs.contentTable;
-      tableElement.addEventListener('dragover', this.handleDragOver);
-      tableElement.addEventListener('drop', this.handleDrop);
-    },
+    const bindSelectionEvent = (instance: HandsontableInstance): void => {
+      Handsontable.hooks.add('afterSelectionEnd', function (
+        this: HandsontableInstance,
+        rowIndex: number,
+        colIndex: number,
+        row2Index: number,
+        col2Index: number
+      ) {
+        handleCellSelected(rowIndex, colIndex, row2Index, col2Index)
+        return undefined
+      }, instance)
+    }
+
+    /**
+     * 绑定拖放事件（数据集字段 → 单元格）
+     */
+    const bindDropEvent = (): void => {
+      const tableElement = contentTableRef.value
+      if (!tableElement) return
+      tableElement.addEventListener('dragover', handleDragOver)
+      tableElement.addEventListener('drop', handleDrop)
+    }
 
     /**
      * 处理拖拽经过事件
-     * @param {DragEvent} event - 拖拽事件对象
+     * @param event 拖拽事件
      */
-    handleDragOver(event) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    },
+    const handleDragOver = (event: DragEvent): void => {
+      event.preventDefault()
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+    }
 
     /**
-     * 处理拖放事件
-     * 将数据集字段拖放到单元格时设置单元格类型
-     * @param {DragEvent} event - 拖拽事件对象
+     * 处理拖放事件：将数据集字段设置到目标单元格
+     * @param event 拖放事件
      */
-    handleDrop(event) {
-      event.preventDefault();
-      const jsonData = event.dataTransfer.getData('application/json');
-      if (!jsonData) {
-        return;
-      }
-      let dragData;
+    const handleDrop = (event: DragEvent): void => {
+      event.preventDefault()
+      const jsonData = event.dataTransfer?.getData('application/json')
+      if (!jsonData) return
+      let dragData: DragDatasetField
       try {
-        dragData = JSON.parse(jsonData);
-      } catch (e) {
-        return;
+        dragData = JSON.parse(jsonData)
+      } catch {
+        return
       }
-      if (dragData.type !== 'dataset-field') {
-        return;
-      }
-      const targetCell = this.getCellFromPoint(event.clientX, event.clientY);
-      if (!targetCell) {
-        return;
-      }
-      const { row, col } = targetCell;
-      this.applyDatasetFieldToCell(row, col, dragData.datasetName, dragData.fieldName);
-    },
+      if (dragData.type !== 'dataset-field') return
+      const targetCell = getCellFromPoint(event.clientX, event.clientY)
+      if (!targetCell) return
+      applyDatasetFieldToCell(targetCell.row, targetCell.col, dragData.datasetName, dragData.fieldName)
+    }
 
     /**
      * 根据鼠标坐标获取单元格位置
-     * @param {number} clientX - 鼠标 X 坐标
-     * @param {number} clientY - 鼠标 Y 坐标
-     * @returns {Object|null} 包含 row 和 col 的对象，或 null
+     * @param clientX 鼠标 X
+     * @param clientY 鼠标 Y
+     * @returns 单元格坐标或 null
      */
-    getCellFromPoint(clientX, clientY) {
-      const element = document.elementFromPoint(clientX, clientY);
-      if (!element) {
-        return null;
+    const getCellFromPoint = (clientX: number, clientY: number): CellCoords | null => {
+      const element = document.elementFromPoint(clientX, clientY)
+      if (!element) return null
+      const td = element.closest('td')
+      if (!td) return null
+      let cellCoords: CellCoords | null = null
+      if (hot.value && hot.value.getCoords) {
+        // 官方 getCoords 返回 object，运行时实际是 { row, col }；强转为 CellCoords
+        cellCoords = hot.value.getCoords(td as HTMLElement) as CellCoords | null
+      } else if (hot.value && hot.value.view && hot.value.view.wt && hot.value.view.wt.wtTable) {
+        cellCoords = hot.value.view.wt.wtTable.getCoords(td as HTMLElement)
       }
-      const td = element.closest('td');
-      if (!td) {
-        return null;
-      }
-      let cellCoords = null;
-      if (this.hot.getCoords) {
-        cellCoords = this.hot.getCoords(td);
-      } else if (this.hot.view && this.hot.view.wt && this.hot.view.wt.wtTable) {
-        cellCoords = this.hot.view.wt.wtTable.getCoords(td);
-      }
-      if (!cellCoords || cellCoords.row < 0 || cellCoords.col < 0) {
-        return null;
-      }
-      return { row: cellCoords.row, col: cellCoords.col };
-    },
+      if (!cellCoords || cellCoords.row < 0 || cellCoords.col < 0) return null
+      return { row: cellCoords.row, col: cellCoords.col }
+    }
 
     /**
      * 将数据集字段应用到单元格
-     * @param {number} rowIndex - 行索引
-     * @param {number} colIndex - 列索引
-     * @param {string} datasetName - 数据集名称
-     * @param {string} fieldName - 字段名称
+     * @param rowIndex 行索引
+     * @param colIndex 列索引
+     * @param datasetName 数据集名称
+     * @param fieldName 字段名称
      */
-    applyDatasetFieldToCell(rowIndex, colIndex, datasetName, fieldName) {
-      const cellDef = getCell(rowIndex, colIndex);
-      if (!cellDef) {
-        return;
-      }
-      const oldCellDef = deepCopy(cellDef);
-      let newCellDef;
-      if (cellDef.value.type !== 'dataset') {
+    const applyDatasetFieldToCell = (
+      rowIndex: number,
+      colIndex: number,
+      datasetName: string,
+      fieldName: string
+    ): void => {
+      // ReportCell 自带 [key: string]: any 索引签名，可承载 expand/value 等所有动态字段
+      const cellDef = getCell(rowIndex, colIndex) as ReportCell | null
+      if (!cellDef) return
+      const oldCellDef = deepCopy(cellDef) as ReportCell
+      let newCellDef: ReportCell
+      if (cellDef.value?.type !== 'dataset') {
         newCellDef = {
-          value: { type: 'dataset', conditions: [] },
           rowNumber: cellDef.rowNumber,
           columnNumber: cellDef.columnNumber,
-          cellStyle: cellDef.cellStyle
-        };
+          cellStyle: cellDef.cellStyle,
+          expand: 'Down',
+          value: { type: 'dataset', conditions: [] }
+        }
       } else {
-        newCellDef = deepCopy(cellDef);
+        newCellDef = deepCopy(cellDef) as ReportCell
       }
-      newCellDef.expand = 'Down';
-      const value = newCellDef.value;
-      value.aggregate = 'group';
-      value.datasetName = datasetName;
-      value.property = fieldName;
-      value.order = 'none';
-      let text = value.datasetName + '.' + value.aggregate + '(';
-      text += value.property + ')';
-      setCell(rowIndex, colIndex, newCellDef);
-      this.hot.setDataAtCell(rowIndex, colIndex, text);
-      if (window.setDirty) {
-        window.setDirty();
-      }
-      this.hot.render();
-      if (window.Handsontable && window.Handsontable.hooks) {
-        window.Handsontable.hooks.run(this.hot, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex);
+      newCellDef.expand = 'Down'
+      const value = newCellDef.value as { type: string; aggregate?: string; datasetName?: string; property?: string; order?: string; conditions?: unknown[] }
+      value.aggregate = 'group'
+      value.datasetName = datasetName
+      value.property = fieldName
+      value.order = 'none'
+      let text = value.datasetName + '.' + value.aggregate + '('
+      text += value.property + ')'
+      setCell(rowIndex, colIndex, newCellDef)
+      if (hot.value) {
+        hot.value.setDataAtCell(rowIndex, colIndex, text)
+        if (window.setDirty) window.setDirty()
+        hot.value.render()
+        if (window.Handsontable && window.Handsontable.hooks) {
+          window.Handsontable.hooks.run(hot.value, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex)
+        }
       }
       if (window.undoManager) {
         window.undoManager.add({
           redo: () => {
-            const currentCellDef = getCell(rowIndex, colIndex);
-            let redoCellDef;
-            if (currentCellDef.value.type !== 'dataset') {
+            const currentCellDef = getCell(rowIndex, colIndex) as ReportCell | null
+            if (!currentCellDef) return
+            let redoCellDef: ReportCell
+            if (currentCellDef.value?.type !== 'dataset') {
               redoCellDef = {
-                value: { type: 'dataset', conditions: [] },
                 rowNumber: currentCellDef.rowNumber,
                 columnNumber: currentCellDef.columnNumber,
-                cellStyle: currentCellDef.cellStyle
-              };
+                cellStyle: currentCellDef.cellStyle,
+                expand: 'Down',
+                value: { type: 'dataset', conditions: [] }
+              }
             } else {
-              redoCellDef = deepCopy(currentCellDef);
+              redoCellDef = deepCopy(currentCellDef) as ReportCell
             }
-            redoCellDef.expand = 'Down';
-            const redoValue = redoCellDef.value;
-            redoValue.aggregate = 'group';
-            redoValue.datasetName = datasetName;
-            redoValue.property = fieldName;
-            redoValue.order = 'none';
-            let redoText = redoValue.datasetName + '.' + redoValue.aggregate + '(';
-            redoText += redoValue.property + ')';
-            setCell(rowIndex, colIndex, redoCellDef);
-            this.hot.setDataAtCell(rowIndex, colIndex, redoText);
-            if (window.setDirty) window.setDirty();
-            this.hot.render();
-            if (window.Handsontable && window.Handsontable.hooks) {
-              window.Handsontable.hooks.run(this.hot, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex);
+            redoCellDef.expand = 'Down'
+            const redoValue = redoCellDef.value as { type: string; aggregate?: string; datasetName?: string; property?: string; order?: string; conditions?: unknown[] }
+            redoValue.aggregate = 'group'
+            redoValue.datasetName = datasetName
+            redoValue.property = fieldName
+            redoValue.order = 'none'
+            let redoText = redoValue.datasetName + '.' + redoValue.aggregate + '('
+            redoText += redoValue.property + ')'
+            setCell(rowIndex, colIndex, redoCellDef)
+            if (hot.value) {
+              hot.value.setDataAtCell(rowIndex, colIndex, redoText)
+              if (window.setDirty) window.setDirty()
+              hot.value.render()
+              if (window.Handsontable && window.Handsontable.hooks) {
+                window.Handsontable.hooks.run(hot.value, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex)
+              }
             }
           },
           undo: () => {
-            setCell(rowIndex, colIndex, oldCellDef);
-            const value = oldCellDef.value;
-            let text = value.value || '';
-            if (value.type === 'dataset') {
-              text = value.datasetName + '.' + value.aggregate + '(';
-              text += value.property + ')';
+            setCell(rowIndex, colIndex, oldCellDef)
+            const oldValue = oldCellDef.value as { value?: string; type: string; datasetName?: string; aggregate?: string; property?: string }
+            let text2 = oldValue.value || ''
+            if (oldValue.type === 'dataset') {
+              text2 = oldValue.datasetName + '.' + oldValue.aggregate + '('
+              text2 += oldValue.property + ')'
             }
-            this.hot.setDataAtCell(rowIndex, colIndex, text);
-            if (window.setDirty) window.setDirty();
-            this.hot.render();
-            if (window.Handsontable && window.Handsontable.hooks) {
-              window.Handsontable.hooks.run(this.hot, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex);
+            if (hot.value) {
+              hot.value.setDataAtCell(rowIndex, colIndex, text2)
+              if (window.setDirty) window.setDirty()
+              hot.value.render()
+              if (window.Handsontable && window.Handsontable.hooks) {
+                window.Handsontable.hooks.run(hot.value, 'afterSelectionEnd', rowIndex, colIndex, rowIndex, colIndex)
+              }
             }
           }
-        });
+        })
       }
-    },
+    }
 
-    handleCellSelected(rowIndex, colIndex, row2Index, col2Index) {
-      this.$emit('cell-selected', {
-        rowIndex,
-        colIndex,
-        row2Index,
-        col2Index
-      });
-    },
+    /**
+     * 单元格选中事件：emit 到父级
+     */
+    const handleCellSelected = (rowIndex: number, colIndex: number, row2Index: number, col2Index: number): void => {
+      emit('cell-selected', { rowIndex, colIndex, row2Index, col2Index })
+    }
 
-    handleReportLoaded() {
-      this.context = new Context(this);
-      this.setContext(this.context);
-      this.setIsPrintLineRefresh(true);
-      this.processRowHeaders();
-    },
+    /**
+     * 报表加载完成：构造 Context + 提交 Vuex + 渲染行头
+     */
+    const handleReportLoaded = (): void => {
+      if (!reportDef.value) return
+      context.value = new Context({ reportDef: reportDef.value, cellsMap })
+      reportStore.setContext(context.value)
+      reportStore.setIsPrintLineRefresh(true)
+      processRowHeaders()
+    }
 
-    processRowHeaders() {
-      if (this.reportDef && this.reportDef.rows) {
-        const rows = this.reportDef.rows;
-        for (let row of rows) {
-          const band = row.band;
-          if (!band) {
-            continue;
-          }
-          addRowHeader(row.rowNumber - 1, band);
+    /**
+     * 处理报表行头：把 band 类型添加到 Context + 重绘
+     */
+    const processRowHeaders = (): void => {
+      if (reportDef.value && reportDef.value.rows && hot.value) {
+        const rows = reportDef.value.rows as Array<{ rowNumber: number; band: string }>
+        for (const row of rows) {
+          if (!row.band) continue
+          addRowHeader(row.rowNumber - 1, row.band)
         }
-        renderRowHeader(this.hot);
+        renderRowHeader(hot.value)
       }
-    },
+    }
 
-    async loadFile(filePath) {
+    /**
+     * 加载报表文件
+     * @param filePath 报表路径
+     */
+    const loadFile = async (filePath: string): Promise<void> => {
       try {
-        let formData = new FormData();
-        formData.append('filePath', filePath);
-        const reportDef = await loadReport(formData);
+        const formData = new FormData()
+        formData.append('filePath', filePath)
+        const def = await loadReport(formData)
+        reportDef.value = def
+        buildReportData(def)
+        buildMenu()
+        handleReportLoaded()
 
-        this.reportDef = reportDef;
-        this.buildReportData(reportDef);
-        this.buildMenu();
-        this.handleReportLoaded();
-
-        if (filePath !== this.defaultReportPath) {
-          this.$store.dispatch('report/setFileName', filePath);
+        if (filePath !== defaultReportPath) {
+          reportStore.setFileName(filePath)
         } else {
-          this.$store.dispatch('report/setFileName', `${this.$t('table.report.tip')}`);
+          const t = (window as { $t?: (k: string) => string }).$t
+          reportStore.setFileName(`${t ? t('table.report.tip') : 'Tip'}`)
         }
-        const masterElement = document.querySelector('.ht_master');
+        const masterElement = document.querySelector('.ht_master') as HTMLElement | null
         if (masterElement) {
-          if (reportDef.paper.bgImage) {
-            masterElement.style.background = `url(${reportDef.paper.bgImage}) 50px 26px no-repeat`;
+          const paper = (def as { paper?: { bgImage?: string } }).paper
+          if (paper && paper.bgImage) {
+            masterElement.style.background = `url(${paper.bgImage}) 50px 26px no-repeat`
           } else {
-            masterElement.style.background = 'transparent';
+            masterElement.style.background = 'transparent'
           }
         }
-
       } catch (error) {
-        this.$emit('error', error);
-        if (error.msg) {
-          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
+        emit('error', error)
+        const err = error as { msg?: string }
+        const t = (window as { $t?: (k: string) => string }).$t
+        if (err.msg) {
+          showAlert((t ? t('dialog.save.serverError') : 'Server error:') + (t ? t('colon') : ':') + err.msg, { useHTMLString: true })
         } else {
-          showAlert(this.$t('table.report.load') + `${filePath}` + this.$t('table.report.fail'));
+          showAlert((t ? t('table.report.load') : 'Load ') + `${filePath}` + (t ? t('table.report.fail') : ' failed'))
         }
       }
-    },
+    }
 
-    buildReportData(data) {
-      this.cellsMap.clear();
-      const rows = data.rows;
-      const rowHeights = [];
-      for (let row of rows) {
-        const height = row.height;
-        rowHeights.push(utils.pointToPixel(height));
+    /**
+     * 用报表定义构建 handsontable 数据 + 合并单元格 + cells 钩子
+     * @param data 报表核心定义
+     */
+    const buildReportData = (data: ReportDef): void => {
+      cellsMap.clear()
+      const rows = (data.rows || []) as Array<{ rowNumber: number; height: number }>
+      const rowHeights: number[] = []
+      for (const row of rows) {
+        rowHeights.push(utils.pointToPixel(row.height))
       }
-      const columns = data.columns;
-      const colWidths = [];
-      for (let col of columns) {
-        const width = col.width;
-        colWidths.push(utils.pointToPixel(width));
+      const columns = (data.columns || []) as Array<{ columnNumber: number; width: number }>
+      const colWidths: number[] = []
+      for (const col of columns) {
+        colWidths.push(utils.pointToPixel(col.width))
       }
-      const cellsMap = data.cellsMap;
-      const dataArray = [], mergeCells = [];
-      for (let row of rows) {
-        const rowData = [];
-        for (let col of columns) {
-          let key = row.rowNumber + "," + col.columnNumber;
-          let cell = cellsMap[key];
+      const cellsMapData = (data as { cellsMap?: Record<string, ReportCell & { value: { value?: string }; rowSpan?: number; colSpan?: number }> }).cellsMap || {}
+      const dataArray: unknown[][] = []
+      const mergeCells: Array<{ rowspan: number; colspan: number; row: number; col: number }> = []
+      for (const row of rows) {
+        const rowData: unknown[] = []
+        for (const col of columns) {
+          const key = row.rowNumber + ',' + col.columnNumber
+          const cell = cellsMapData[key]
           if (cell) {
-            this.cellsMap.set(key, cell);
-            rowData.push(cell.value.value || "");
-            let rowspan = cell.rowSpan, colspan = cell.colSpan;
+            cellsMap.set(key, cell)
+            const cv = (cell.value as { value?: string }).value || ''
+            rowData.push(cv)
+            let rowspan = cell.rowSpan || 0
+            let colspan = cell.colSpan || 0
             if (rowspan > 0 || colspan > 0) {
-              if (rowspan === 0) rowspan = 1;
-              if (colspan === 0) colspan = 1;
-              mergeCells.push({
-                rowspan,
-                colspan,
-                row: row.rowNumber - 1,
-                col: col.columnNumber - 1
-              });
+              if (rowspan === 0) rowspan = 1
+              if (colspan === 0) colspan = 1
+              mergeCells.push({ rowspan, colspan, row: row.rowNumber - 1, col: col.columnNumber - 1 })
             }
           } else {
-            rowData.push("");
+            rowData.push('')
           }
         }
-        dataArray.push(rowData);
+        dataArray.push(rowData)
       }
-      this.hot.loadData(dataArray);
-      this.hot.updateSettings({
-        colWidths,
-        rowHeights,
-        mergeCells,
-        cells: (row, col) => {
-          const cellProperties = {};
-          const cellDef = getCell(row, col);
-          if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
-            cellProperties.readOnly = false;
-          } else {
-            cellProperties.readOnly = true;
+      if (hot.value) {
+        hot.value.loadData(dataArray)
+        hot.value.updateSettings({
+          colWidths,
+          rowHeights,
+          mergeCells,
+          cells: (row: number | undefined, col: number | undefined) => {
+            const cellProperties: { readOnly: boolean } = { readOnly: true }
+            if (row === undefined || col === undefined) {
+              return cellProperties as unknown as Handsontable.GridSettings
+            }
+            const cellDef = getCell(row, col) as { value: { type: string } } | null
+            if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
+              cellProperties.readOnly = false
+            }
+            return cellProperties as unknown as Handsontable.GridSettings
           }
-          return cellProperties;
-        }
-      });
-      this.bindAfterChangeEvent();
-    },
+        })
+        bindAfterChangeEvent()
+      }
+    }
 
     /**
      * 绑定单元格编辑完成事件
-     * 当 simple 类型单元格编辑完成后，更新单元格定义并标记脏数据
      */
-    bindAfterChangeEvent() {
-      this.hot.addHook('afterChange', (changes, source) => {
+    const bindAfterChangeEvent = (): void => {
+      if (!hot.value) return
+      hot.value.addHook('afterChange', (changes: Array<[number, number, string | null, string | null]> | null, source: string) => {
         if (source === 'edit' && changes) {
-          changes.forEach(([row, col, oldValue, newValue]) => {
-            const cellDef = getCell(row, col);
+          changes.forEach(([row, col, , newValue]) => {
+            const cellDef = getCell(row, col) as { value: { type: string; value?: string } } | null
             if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
-              const newCellDef = deepCopy(cellDef);
-              newCellDef.value.value = newValue;
-              setCell(row, col, newCellDef);
-              utils.setDirty();
+              const newCellDef = deepCopy(cellDef) as ReportCell & { value: { type: string; value?: string } }
+              newCellDef.value.value = newValue || ''
+              setCell(row, col, newCellDef)
+              utils.setDirty()
             }
-          });
+          })
         }
-      });
-    },
+      })
+    }
 
-    buildMenu() {
-      this.hot.updateSettings({
-        contextMenu: buildMenuConfigure()
-      });
-    },
+    /**
+     * 构建右键菜单
+     */
+    const buildMenu = (): void => {
+      if (hot.value) {
+        hot.value.updateSettings({ contextMenu: buildMenuConfigure() })
+      }
+    }
 
-    getReportData() {
-      return utils.tableToXml(this.context);
-    },
+    /**
+     * 获取当前报表 XML 字符串
+     * @returns 序列化后的报表 XML
+     */
+    const getReportData = (): string => {
+      return utils.tableToXml(context.value)
+    }
 
-    saveReport() {
-      this.$emit('save', { data: this.getReportData() });
+    /**
+     * 触发保存：emit 'save' 事件，由父组件处理
+     */
+    const saveReport = (): void => {
+      emit('save', { data: getReportData() })
+    }
+
+    /**
+     * 初始化（mounted 时执行）
+     */
+    const initTable = (): void => {
+      utils.undoManager.setLimit(100)
+      initHandsontable()
+      let filePath = utils.getParameter('reportPath')
+      if (!filePath || filePath === '') {
+        filePath = defaultReportPath
+      }
+      if (filePath && filePath !== defaultReportPath) {
+        reportStore.setIsSaved(true)
+      }
+      loadFile(filePath)
+    }
+
+    // 监听 reportPath 变化，重新加载
+    watch(() => props.reportPath, (val) => {
+      if (val) {
+        loadFile(val)
+      }
+    })
+
+    onMounted(() => {
+      initTable()
+    })
+
+    onBeforeUnmount(() => {
+      const tableElement = contentTableRef.value
+      if (tableElement) {
+        tableElement.removeEventListener('dragover', handleDragOver)
+        tableElement.removeEventListener('drop', handleDrop)
+      }
+      if (hot.value) {
+        hot.value.destroy()
+        TableManager.clear()
+      }
+    })
+
+    // 暴露给父组件的实例方法
+    expose({
+      getReportData,
+      saveReport
+    })
+
+    return {
+      contentTableRef,
+      printLineRef
     }
   }
-};
+})
 </script>
 
 <style scoped>
-
-.ud-page{
+.ud-page {
   position: relative;
   display: flex;
   flex: 1;
   overflow: hidden;
   background: white;
 }
-
-.ud-slider{
+.ud-slider {
   height: 200px;
   width: 50px;
 }
-
-.ud-table{
+.ud-table {
   width: 100%;
   min-height: 500px;
 }

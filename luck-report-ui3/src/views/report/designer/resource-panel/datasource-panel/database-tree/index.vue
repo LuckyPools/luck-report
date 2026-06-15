@@ -112,7 +112,7 @@ import { buildJdbcFields } from '@/api/designer/index.js';
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'DatabaseTree',

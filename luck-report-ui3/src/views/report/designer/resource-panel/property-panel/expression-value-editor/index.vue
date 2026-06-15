@@ -101,7 +101,7 @@ import 'vue-simple-suggest/dist/styles.css'
 import { deepCopy } from '@/components/utils/index.js';
 import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'ExpressionValueEditor',

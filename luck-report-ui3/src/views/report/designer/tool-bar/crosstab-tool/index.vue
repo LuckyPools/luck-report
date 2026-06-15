@@ -12,15 +12,15 @@
 
 <script>
 import { setDirty, undoManager } from '@/utils/table.js';
-import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class.js';
-import CrossTabWidgetManager from '@/views/report/designer/edit-table/cross-tab-widget/manager.js';
+import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class';
+import CrossTabWidgetManager from '@/views/report/designer/edit-table/cross-tab-widget/manager';
 import Handsontable from 'handsontable';
 import CrosstabDialog from '@/views/report/designer/tool-bar/crosstab-tool/crosstab-dialog/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import UButton from "@/components/button/index.vue";
 import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'CrosstabTool',

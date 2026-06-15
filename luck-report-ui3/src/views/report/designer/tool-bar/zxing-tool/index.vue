@@ -16,7 +16,7 @@ import { deepCopy } from '@/components/utils/index.js';
 import Handsontable from 'handsontable';
 import ButtonGroup from '@/components/button-group/index.vue';
 import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'ZxingTool',

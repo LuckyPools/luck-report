@@ -8,99 +8,138 @@
   ></div>
 </template>
 
-<script>
-export default {
-  name: 'PrintLine',
-  computed: {
-    /**
-     * 从vuex获取context
-     */
-    context: function() {
-      return this.$store.getters['report/getContext'];
-    },
-    /**
-     * 获取打印线刷新标志
-     */
-    isPrintLineRefresh() {
-      return this.$store.getters['report/getPrintLineShouldRefresh'];
-    },
-    /**
-     * 获取打印线显示状态
-     */
-    showPrintLine() {
-      return this.$store.getters['report/getShowPrintLine'];
-    }
-  },
-  watch: {
-    /**
-     * 监听打印线刷新标志，为true时刷新打印线并重置标志
-     */
-    isPrintLineRefresh(newVal) {
-      if (newVal) {
-        this.refresh();
-        this.$store.dispatch('report/setIsPrintLineRefresh', false);
-      }
-    }
-  },
-  data() {
-    return {
-      lineStyle: {
-        height: '0px',
-        width: '0px',
-        borderLeft: 'dashed 1px #999999',
-        position: 'absolute',
-        left: '300pt',
-        top: '35px',
-        zIndex: 10
-      }
-    };
-  },
-  mounted() {
-    // 监听窗口大小变化
-    window.addEventListener('resize', this.updateLineHeight);
-    // 初始化打印线高度
-    this.updateLineHeight();
-  },
-  beforeUnmount() {
-    // 清理事件监听
-    window.removeEventListener('resize', this.updateLineHeight);
-  },
-  methods: {
+<script setup lang="ts">
+/**
+ * PrintLine 打印线组件（vue3 + TS）
+ *
+ * 工作流程：
+ * 1. 从 pinia store 读取 showPrintLine 控制显隐
+ * 2. 监听 isPrintLineRefresh 标志，变化时根据 paper 配置重新计算水平位置并重置标志
+ * 3. 监听窗口 resize，重新计算打印线高度（高度 = 视口高度 - 90px）
+ *
+ * 调用方：
+ * - src/views/report/designer/index.vue（直接挂载）
+ * - src/views/report/designer/edit-table/index.vue（嵌套挂载）
+ *
+ * 迁移说明：
+ * - Options API → vue3 <script setup> + 显式 type 标注
+ * - Vuex getter 改为 Pinia getter（useReportStore()）
+ * - Vuex dispatch('report/setIsPrintLineRefresh', false) 改为 store action 调用
+ * - data().lineStyle 改为 reactive 对象
+ * - beforeUnmount 改为 onBeforeUnmount
+ *
+ * 类型说明：
+ * - lineStyle 直接复用 vue 提供的 CSSProperties 类型
+ * - paper 上的自定义字段（orientation/width/height/leftMargin/rightMargin）
+ *   抽到本地 PaperFields 接口，访问前做可选链处理
+ */
+import {
+  ref,
+  reactive,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  defineOptions,
+  type CSSProperties
+} from 'vue'
+import { useReportStore } from '@/store/modules/report'
+import type { ReportContext } from '@/types/report-def'
 
-    /**
-     * 更新打印线高度
-     */
-    updateLineHeight() {
-      const height = window.innerHeight - 90;
-      this.lineStyle.height = height + 'px';
-    },
+defineOptions({ name: 'PrintLine' })
 
-    /**
-     * 刷新打印线位置
-     */
-    refresh() {
-      if (!this.context || !this.context.reportDef || !this.context.reportDef.paper) {
-        return;
-      }
-      const paper = this.context.reportDef.paper;
-      const orientation = paper.orientation;
-      let width = paper.width;
+/** paper 上读取打印线位置需要用到的字段（domain 扩展字段，单独抽接口） */
+interface PaperFields {
+  orientation?: string
+  width?: number
+  height?: number
+  leftMargin?: number
+  rightMargin?: number
+}
 
-      // 如果是横向，交换宽高
-      if (orientation === 'landscape') {
-        width = paper.height;
-      }
+const reportStore = useReportStore()
 
-      // 计算实际宽度（减去左右边距）并加上偏移量
-      const actualWidth = width - paper.leftMargin - paper.rightMargin + 38;
+/** 模板 ref */
+const printLine = ref<HTMLElement | null>(null)
 
-      // 更新打印线位置
-      this.lineStyle.left = actualWidth + 'pt';
-    }
+/**
+ * 打印线样式（reactive 容器，对象属性变化可被响应式追踪）
+ * - zIndex 使用数字，Vue 会自动转成 px-less 数字样式
+ * - 宽度单位沿用 'pt'，与 paper 字段保持一致
+ */
+const lineStyle = reactive<CSSProperties>({
+  height: '0px',
+  width: '0px',
+  borderLeft: 'dashed 1px #999999',
+  position: 'absolute',
+  left: '300pt',
+  top: '35px',
+  zIndex: 10
+})
+
+/** 从 store 获取 context */
+const context = computed<ReportContext | null>(() => reportStore.getContext)
+
+/** 打印线刷新标志 */
+const isPrintLineRefresh = computed<boolean>(() => reportStore.getPrintLineShouldRefresh)
+
+/** 打印线显示状态 */
+const showPrintLine = computed<boolean>(() => reportStore.getShowPrintLine)
+
+/**
+ * 更新打印线高度
+ * - 高度 = 视口高度 - 90（顶部工具栏与边距占用的固定像素）
+ */
+function updateLineHeight(): void {
+  const height = window.innerHeight - 90
+  lineStyle.height = height + 'px'
+}
+
+/**
+ * 刷新打印线位置（根据 paper 配置）
+ * - 横向时交换 width / height
+ * - 实际可用宽度 = 纸张宽度 - 左右边距 + 偏移量 38
+ */
+function refresh(): void {
+  const ctx = context.value
+  if (!ctx || !ctx.reportDef || !ctx.reportDef.paper) {
+    return
   }
-};
+  const paper = ctx.reportDef.paper as PaperFields
+  const orientation = paper.orientation
+  let width = paper.width ?? 0
+
+  // 横向时交换宽高
+  if (orientation === 'landscape') {
+    width = paper.height ?? 0
+  }
+
+  const leftMargin = paper.leftMargin ?? 0
+  const rightMargin = paper.rightMargin ?? 0
+  const actualWidth = width - leftMargin - rightMargin + 38
+  lineStyle.left = actualWidth + 'pt'
+}
+
+// 监听刷新标志，为 true 时刷新并重置标志
+watch(isPrintLineRefresh, (newVal) => {
+  if (newVal) {
+    refresh()
+    reportStore.setIsPrintLineRefresh(false)
+  }
+})
+
+onMounted(() => {
+  // 监听窗口大小变化 + 初始化打印线高度
+  window.addEventListener('resize', updateLineHeight)
+  updateLineHeight()
+})
+
+onBeforeUnmount(() => {
+  // 清理事件监听
+  window.removeEventListener('resize', updateLineHeight)
+})
 </script>
 
 <style scoped>
-/* 可以在这里添加组件特定的样式 */
+/* 组件特定样式（如有需要在此扩展） */
 </style>

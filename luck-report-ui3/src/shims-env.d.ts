@@ -30,46 +30,36 @@ declare module 'undo-manager' {
 /**
  * 项目内未迁移到 TS 的 JS 模块类型 shim
  * 这些模块后续会单独迁移，本 shim 仅消除 TS 检查报错
+ * 注：messagebox/instance 已迁为 .ts 并自带类型，**不再需要 shim**。
+ *     保留其他未迁移模块的 shim 占位。
  */
-declare module '@/components/messagebox/instance' {
-  const MessageBox: {
-    alert(message: string, title?: string, options?: any): Promise<any>
-    confirm(message: string, title?: string, options?: any): Promise<any>
-    prompt(message: string, title?: string, options?: any): Promise<any>
+
+/**
+ * 全局 window 扩展
+ * - 这些字段由项目运行时挂到 window 上，TS 阶段先声明好类型避免 TS2339
+ * - setDirty / undoManager：兼容层注入到 window 的全局副作用
+ * - Handsontable：handsontable 全局对象（与 import 进来的同名值同源）
+ */
+declare global {
+  interface Window {
+    /** 标记报表脏数据，触发保存提示。运行时由 utils/table.ts 注入 */
+    setDirty?: () => void
+    /** 全局撤销/重做管理器。运行时由 utils/table.ts 注入 */
+    undoManager?: {
+      add(cmd: { redo: () => void; undo: () => void }): void
+      undo(): void
+      redo(): void
+      clear(): void
+      setLimit(limit: number): void
+      hasUndo(): boolean
+      hasRedo(): boolean
+    }
+    /** handsontable 全局对象，UI 模块偶有引用 */
+    Handsontable?: typeof import('handsontable').default
   }
-  export default MessageBox
 }
 
-declare module '@/components/messagebox/instance.js' {
-  const MessageBox: {
-    alert(message: string, title?: string, options?: any): Promise<any>
-    confirm(message: string, title?: string, options?: any): Promise<any>
-    prompt(message: string, title?: string, options?: any): Promise<any>
-  }
-  export default MessageBox
-}
-
-declare module '@/views/report/designer/edit-table/manager' {
-  const TableManager: {
-    table: any
-    get(): any
-    set(table: any): void
-    has(): boolean
-    clear(): void
-  }
-  export default TableManager
-}
-
-declare module '@/views/report/designer/edit-table/manager.js' {
-  const TableManager: {
-    table: any
-    get(): any
-    set(table: any): void
-    has(): boolean
-    clear(): void
-  }
-  export default TableManager
-}
+export {}
 
 declare module '@/components/utils' {
   export function debounce(func: () => void, wait: number, name: string): void

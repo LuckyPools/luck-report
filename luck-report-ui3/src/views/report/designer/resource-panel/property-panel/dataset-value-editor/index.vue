@@ -74,7 +74,7 @@ import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
 import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
 
 export default {
   name: 'DatasetValueEditor',

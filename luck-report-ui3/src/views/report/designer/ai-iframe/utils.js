@@ -24,13 +24,13 @@ import {
   setColumns as doSetColumns,
   getContext
 } from "@/utils/contextActions";
-import TableManager from '@/views/report/designer/edit-table/manager.js';
-import { doMergeCells } from '@/views/report/designer/edit-table/utils/MergeCellUtils.js';
-import { insertRow as doInsertRow } from '@/views/report/designer/edit-table/utils/operation/InsertRowOperation.js';
-import { deleteRow as doDeleteRow } from '@/views/report/designer/edit-table/utils/operation/DeleteRowOperation.js';
-import { insertCol as doInsertCol } from '@/views/report/designer/edit-table/utils/operation/InsertColOperation.js';
-import { deleteCol as doDeleteCol } from '@/views/report/designer/edit-table/utils/operation/DeleteColOperation.js';
-import { cleanCells as doCleanCells } from '@/views/report/designer/edit-table/utils/operation/ClearCellOperation.js';
+import TableManager from '@/views/report/designer/edit-table/manager';
+import { doMergeCells } from '@/views/report/designer/edit-table/utils/MergeCellUtils';
+import { insertRow as doInsertRow } from '@/views/report/designer/edit-table/utils/operation/InsertRowOperation';
+import { deleteRow as doDeleteRow } from '@/views/report/designer/edit-table/utils/operation/DeleteRowOperation';
+import { insertCol as doInsertCol } from '@/views/report/designer/edit-table/utils/operation/InsertColOperation';
+import { deleteCol as doDeleteCol } from '@/views/report/designer/edit-table/utils/operation/DeleteColOperation';
+import { cleanCells as doCleanCells } from '@/views/report/designer/edit-table/utils/operation/ClearCellOperation';
 import { pushBackup, popAndRestore, getBackupCount, getBackupSummary, clearBackup } from './backupManager';
 import { deepCopy } from "@/components/utils";
 import {
