@@ -16,7 +16,7 @@
 <script>
 import ImportDialog from '@/views/report/designer/tool-bar/import-tool/import-dialog/index.vue';
 import UButton from "@/components/button/index.vue";
-import { createNavigator } from '@/lib/navigator';
+import { createNavigator } from '@/utils/navigator';
 
 export default {
   name: 'ImportTool',

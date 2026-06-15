@@ -1,5 +1,7 @@
 module.exports = {
     root: true, // 停止在父级目录中寻找
+    // .ts 文件不参与 ESLint，类型检查统一交给 tsc（strict 模式）保证
+    ignorePatterns: ['**/*.ts', '**/*.tsx', 'dist/**', 'node_modules/**'],
     env: {
         es6: true, // 启用 ES6 语法支持以及新的 ES6 全局变量或类型
         node: true // Node.js 全局变量和 Node.js 作用域
@@ -62,6 +64,18 @@ module.exports = {
             files: ['**/__tests__/*.{j,t}s?(x)', '**/tests/unit/**/*.spec.{j,t}s?(x)'],
             env: {
                 jest: true
+            }
+        },
+        {
+            // .vue 文件的 <script> 块改用 vue-eslint-parser + @typescript-eslint/parser，
+            // 让 eslint 能正确解析 <script lang="ts"> 中的 TS 语法（泛型 / 联合类型 / type 等）
+            files: ['*.vue', '**/*.vue'],
+            parser: 'vue-eslint-parser',
+            parserOptions: {
+                parser: '@typescript-eslint/parser',
+                extraFileExtensions: ['.vue'],
+                ecmaVersion: 2022,
+                sourceType: 'module'
             }
         },
         {

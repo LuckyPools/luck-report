@@ -9,10 +9,38 @@ import TableManager from '@/views/report/designer/edit-table/manager.js';
 import { getUrlQueryString } from '@/utils/url';
 import { $t } from '@/locales';
 
-export function resetTableData(hot){
-    const countCols=hot.countCols(),countRows=hot.countRows(),data=[];
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** MessageBox 抽象 */
+const MB: any = MessageBox
+
+/** 抽象 store，兼容过渡期的 dispatch/getters 写法 */
+interface LegacyStore {
+    dispatch(type: string, payload?: any): Promise<any>
+    getters: Record<string, any>
+}
+
+/** 表格对象（handsontable）抽象类型 */
+interface HotInstance {
+    countCols(): number
+    countRows(): number
+    getCell(row: number, col: number, topmost?: boolean): any
+    loadData(data: any[][]): void
+    getRowHeight(row: number): number | undefined
+    getColWidth(col: number): number | undefined
+    getSettings(): { mergeCells?: Array<{ row: number; col: number; rowspan: number; colspan: number }> }
+    setDataAtCell(row: number, col: number, value: any): void
+    render(): void
+}
+
+/**
+ * 重置表格数据（将单元格定义转换为显示文本后回填到表格）
+ * @param hot handsontable 实例
+ */
+export function resetTableData(hot: HotInstance): void {
+    const countCols=hot.countCols(),countRows=hot.countRows(),data: string[][]=[];
     for(let i=0;i<countRows;i++){
-        let rowData=[];
+        let rowData: string[]=[];
         for(let j=0;j<countCols;j++){
             let td=hot.getCell(i,j);
             if(!td){
@@ -21,7 +49,7 @@ export function resetTableData(hot){
             }
             let cellDef= getCell(i,j);
             if(cellDef){
-                let valueType=cellDef.value.type,value=cellDef.value;
+                let valueType=(cellDef as any).value.type,value=(cellDef as any).value;
                 if(valueType==='dataset'){
                     let text=value.datasetName+"."+value.aggregate+"(";
                     let prop=value.property;
@@ -49,13 +77,24 @@ export function resetTableData(hot){
     hot.loadData(data);
 };
 
-export function buildNewCellDef(rowNumber,columnNumber){
-    let cellDef = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
+/**
+ * 构建新的单元格定义
+ * @param rowNumber 行号（从 1 开始）
+ * @param columnNumber 列号（从 1 开始）
+ * @returns 单元格定义对象
+ */
+export function buildNewCellDef(rowNumber: number, columnNumber: number): Record<string, any> {
+    let cellDef: Record<string, any> = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
     return cellDef;
 };
 
-export function tableToXml(context){
-    const hot = TableManager.get();
+/**
+ * 将报表上下文序列化为 ureport XML
+ * @param context 报表上下文
+ * @returns 经 URI 编码后的 XML 字符串
+ */
+export function tableToXml(context: any): string {
+    const hot: any = TableManager.get();
     const countRows=hot.countRows(),countCols=hot.countCols();
     let xml=`<?xml version="1.0" encoding="UTF-8"?><ureport>`;
     let rowsXml='',columnXml='';
@@ -81,13 +120,13 @@ export function tableToXml(context){
         width=pixelToPoint(width);
         columnXml+=`<column col-number="${i+1}" width="${width}"/>`;
     }
-    let cellXml='',spanData=[];
+    let cellXml='',spanData: string[]=[];
     for(let i=0;i<countRows;i++){
         for(let j=0;j<countCols;j++){
             if(spanData.indexOf(i+","+j)>-1){
                 continue;
             }
-            let cellDef= getCell(i,j);
+            let cellDef: any = getCell(i,j);
             if(!cellDef){
                 continue;
             }
@@ -151,7 +190,7 @@ export function tableToXml(context){
                     msg=$t('validation.cell.aggregateRequired', { cell: cellName });
                 }
                 if(msg){
-                    MessageBox.alert(msg);
+                    MB.alert(msg);
                     throw msg;
                 }
                 const mappingType=value.mappingType || 'simple';
@@ -190,7 +229,7 @@ export function tableToXml(context){
             }else if(value.type==='expression'){
                 if(!value.value || value.value===''){
                     const msg=$t('validation.cell.expressionRequired', { cell: cellName });
-                    MessageBox.alert(msg);
+                    MB.alert(msg);
                     throw msg;
                 }
                 cellXml+=`<expression-value>`;
@@ -209,7 +248,7 @@ export function tableToXml(context){
                     msg=$t('validation.cell.imageExpressionRequired', { cell: cellName });
                 }
                 if(msg){
-                    MessageBox.alert(msg);
+                    MB.alert(msg);
                     throw msg;
                 }
                 cellXml+=`<image-value source="${value.source}"`;
@@ -233,7 +272,7 @@ export function tableToXml(context){
                     msg=$t('validation.cell.zxingExpressionRequired', { cell: cellName });
                 }
                 if(msg){
-                    MessageBox.alert(msg);
+                    MB.alert(msg);
                     throw msg;
                 }
                 cellXml+=`<zxing-value source="${value.source}" category="${value.category}" width="${value.width}" height="${value.height}"`;
@@ -260,12 +299,12 @@ export function tableToXml(context){
                 const dataset=chart.dataset;
                 const chartType=dataset.type;
                 let msg=null;
-                
+
                 // 校验数据集名称
                 if(!dataset.datasetName){
                     msg=$t('validation.cell.chartDatasetRequired', { cell: cellName });
                 }
-                
+
                 // 根据图表类型进行不同校验
                 if(!msg){
                     if(chartType==='scatter'){
@@ -314,12 +353,12 @@ export function tableToXml(context){
                         }
                     }
                 }
-                
+
                 if(msg){
-                    MessageBox.alert(msg);
+                    MB.alert(msg);
                     throw msg;
                 }
-                
+
                 cellXml+=`<chart-value>`;
                 cellXml+=`<dataset dataset-name="${dataset.datasetName}" type="${dataset.type}"`;
                 if(dataset.categoryProperty){
@@ -449,54 +488,50 @@ export function tableToXml(context){
                         cellXml+=`</link-parameter>`;
                     }
                 }
-                const style=pc.cellStyle;
-                if(style){
-                    cellXml+=buildCellStyle(style,true);
-                }
-                cellXml+=buildConditions(pc.conditions);
-                cellXml+=`</condition-property-item>`;
             }
-            cellXml+='</cell>';
+            cellXml+=`</cell>`;
         }
     }
-    xml+=cellXml;
     xml+=rowsXml;
     xml+=columnXml;
-    const header=context.reportDef.header;
-    if(header && (header.left || header.center || header.right)){
-        xml+='<header ';
-        if(header.fontFamily){
-            xml+=` font-family="${header.fontFamily}"`
+    xml+=cellXml;
+    if(context.reportDef.header){
+        const header=context.reportDef.header;
+        if(header && (header.left || header.center || header.right)){
+            xml+='<header ';
+            if(header.fontFamily){
+                xml+=` font-family="${header.fontFamily}"`
+            }
+            if(header.fontSize){
+                xml+=` font-size="${header.fontSize}"`
+            }
+            if(header.forecolor){
+                xml+=` forecolor="${header.forecolor}"`
+            }
+            if(header.bold){
+                xml+=` bold="${header.bold}"`
+            }
+            if(header.italic){
+                xml+=` italic="${header.italic}"`
+            }
+            if(header.underline){
+                xml+=` underline="${header.underline}"`
+            }
+            if(header.margin){
+                xml+=` margin="${header.margin}"`
+            }
+            xml+='>';
+            if(header.left){
+                xml+=`<left><![CDATA[${header.left}]]></left>`;
+            }
+            if(header.center){
+                xml+=`<center><![CDATA[${header.center}]]></center>`;
+            }
+            if(header.right){
+                xml+=`<right><![CDATA[${header.right}]]></right>`;
+            }
+            xml+='</header>';
         }
-        if(header.fontSize){
-            xml+=` font-size="${header.fontSize}"`
-        }
-        if(header.forecolor){
-            xml+=` forecolor="${header.forecolor}"`
-        }
-        if(header.bold){
-            xml+=` bold="${header.bold}"`
-        }
-        if(header.italic){
-            xml+=` italic="${header.italic}"`
-        }
-        if(header.underline){
-            xml+=` underline="${header.underline}"`
-        }
-        if(header.margin){
-            xml+=` margin="${header.margin}"`
-        }
-        xml+='>';
-        if(header.left){
-            xml+=`<left><![CDATA[${header.left}]]></left>`;
-        }
-        if(header.center){
-            xml+=`<center><![CDATA[${header.center}]]></center>`;
-        }
-        if(header.right){
-            xml+=`<right><![CDATA[${header.right}]]></right>`;
-        }
-        xml+='</header>';
     }
     const footer=context.reportDef.footer;
     if(footer && (footer.left || footer.center || footer.right)){
@@ -604,7 +639,14 @@ export function tableToXml(context){
     return xml;
 };
 
-function getSpan(hot,row,col){
+/**
+ * 获取指定单元格的合并信息
+ * @param hot handsontable 实例
+ * @param row 行索引
+ * @param col 列索引
+ * @returns 包含 rowspan/colspan 的对象
+ */
+function getSpan(hot: HotInstance, row: number, col: number): { rowspan: number; colspan: number } {
     const mergeCells=hot.getSettings().mergeCells || [];
     for(let item of mergeCells){
         if(item.row===row && item.col===col){
@@ -614,7 +656,12 @@ function getSpan(hot,row,col){
     return {rowspan:0,colspan:0};
 }
 
-function buildConditions(conditions){
+/**
+ * 构建条件片段 XML
+ * @param conditions 条件数组
+ * @returns 拼接后的条件 XML
+ */
+function buildConditions(conditions: any[]): string {
     let cellXml='';
     if(conditions){
         const size=conditions.length;
@@ -648,7 +695,13 @@ function buildConditions(conditions){
     return cellXml;
 };
 
-function buildCellStyle(cellStyle,condition){
+/**
+ * 构建单元格样式 XML
+ * @param cellStyle 单元格样式对象
+ * @param condition 是否条件样式（可选）
+ * @returns 样式 XML
+ */
+function buildCellStyle(cellStyle: any, condition?: boolean): string {
     let cellXml="<cell-style";
     if(condition){
         cellXml+=` for-condition="true"`;
@@ -741,45 +794,83 @@ function buildCellStyle(cellStyle,condition){
     return cellXml;
 };
 
-export function encode(text){
-    let result = text.replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});
+/**
+ * 对 XML 文本进行实体转义
+ * @param text 待转义的文本
+ * @returns 转义后的文本
+ */
+export function encode(text: string): string {
+    let result = text.replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c] as string;});
     return result;
 };
 
-export function getParameter(name) {
+/**
+ * 获取 URL 中指定名称的参数值
+ * @param name 参数名
+ * @returns 参数值或 null
+ */
+export function getParameter(name: string): string | null {
     var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
     var r = getUrlQueryString().match(reg);
-    if (r != null)return r[2];
+    if (r != null) return r[2];
     return null;
 };
 
-export function mmToPoint(mm){
+/**
+ * 毫米转磅
+ * @param mm 毫米值
+ * @returns 转换后的磅值
+ */
+export function mmToPoint(mm: number): number {
     let value=mm*2.834646;
     return Math.round(value);
 };
-export function pointToMM(point){
+
+/**
+ * 磅转毫米
+ * @param point 磅值
+ * @returns 转换后的毫米值
+ */
+export function pointToMM(point: number): number {
     let value=point*0.352778;
     return Math.round(value);
 };
 
-export function pointToPixel(point){
+/**
+ * 磅转像素
+ * @param point 磅值
+ * @returns 转换后的像素值
+ */
+export function pointToPixel(point: number): number {
     const value=point * 1.33;
     return Math.round(value);
 };
 
-export function pixelToPoint(pixel){
+/**
+ * 像素转磅
+ * @param pixel 像素值
+ * @returns 转换后的磅值
+ */
+export function pixelToPoint(pixel: number): number {
     const value=pixel * 0.75;
     return Math.round(value);
 };
 
-export function formatDate(date,format){
+/**
+ * 按指定格式格式化日期
+ * 支持 format 占位符：y/M/d/H/m/s
+ * @param date 日期（Date/时间戳/字符串）
+ * @param format 格式字符串
+ * @returns 格式化后的字符串
+ */
+export function formatDate(date: Date | number | string, format: string): string {
     if(typeof date === 'number'){
         date=new Date(date);
     }
     if(typeof date==='string'){
         return date;
     }
-    var o = {
+    var o: Record<string, number> = {
         "M+" : date.getMonth()+1,
         "d+" : date.getDate(),
         "H+" : date.getHours(),
@@ -787,14 +878,24 @@ export function formatDate(date,format){
         "s+" : date.getSeconds()
     };
     if(/(y+)/.test(format))
-        format=format.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));
+        format=format.replace(String(RegExp.$1), (date.getFullYear()+"").substr(4 - RegExp.$1.length));
     for(var k in o)
         if(new RegExp("("+ k +")").test(format))
-            format = format.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+            format = format.replace(String(RegExp.$1), (RegExp.$1.length==1) ? (""+ o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
     return format;
 };
 
-export function buildPageSizeList(){
+/** 纸张尺寸（毫米） */
+interface PaperSize {
+    width: number
+    height: number
+}
+
+/**
+ * 构建标准纸张尺寸列表（A/B 系列）
+ * @returns 键为纸张代号、值为 {width,height} 的对象
+ */
+export function buildPageSizeList(): Record<string, PaperSize> {
     return {
         A0:{width:841,height:1189},
         A1:{width:594,height:841},
@@ -821,20 +922,31 @@ export function buildPageSizeList(){
     }
 }
 
+/** 全局 UndoManager 实例 */
 export const undoManager=new UndoManager();
 
-// 设置脏数据状态，启用保存按钮
-export function setDirty() {
-    store.dispatch('report/setDisableSaveBtn', false).then(r => {});
+/**
+ * 设置脏数据状态，启用保存按钮
+ */
+export function setDirty(): void {
+    (store as unknown as LegacyStore).dispatch('report/setDisableSaveBtn', false).then((r: any) => {});
 }
 
-// 重置脏数据状态，禁用保存按钮
-export function resetDirty() {
-    store.dispatch('report/setDisableSaveBtn', true).then(r => {{}});
+/**
+ * 重置脏数据状态，禁用保存按钮
+ */
+export function resetDirty(): void {
+    (store as unknown as LegacyStore).dispatch('report/setDisableSaveBtn', true).then((r: any) => {{}});
 }
 
-
-export function objToXml(obj, indent = 0, defaultTag = null) {
+/**
+ * 将对象转换为 XML 字符串
+ * @param obj 待转换对象
+ * @param indent 缩进级别，可选
+ * @param defaultTag 当对象无 tag 字段时的默认标签，可选
+ * @returns XML 字符串
+ */
+export function objToXml(obj: any, indent: number = 0, defaultTag: string | null = null): string {
     if (!obj || typeof obj !== 'object') {
         return '';
     }

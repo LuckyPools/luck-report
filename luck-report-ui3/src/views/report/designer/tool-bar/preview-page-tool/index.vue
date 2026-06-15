@@ -14,7 +14,7 @@ import { showAlert } from '@/utils/comnon.js';
 import { savePreviewFile } from '@/api/designer/index.js';
 import UButton from "@/components/button/index.vue";
 import { mapGetters } from 'vuex';
-import { createNavigator, getLibMode } from '@/lib/navigator';
+import { createNavigator } from '@/utils/navigator';
 
 export default {
   name: 'PreviewPageTool',
@@ -27,9 +27,6 @@ export default {
     ...mapGetters('report', ['getContext']),
     context() {
       return this.getContext;
-    },
-    isLibMode() {
-      return getLibMode();
     },
     navigator() {
       return createNavigator(this);

@@ -3,10 +3,8 @@ const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
 const port = process.env.port;
 const PUBLIC_PATH = process.env.VUE_APP_PUBLIC_PATH || '/';
 
-const isLibBuild = process.env.BUILD_TYPE === 'lib';
-
 module.exports = {
-  publicPath: isLibBuild ? './' : PUBLIC_PATH,
+  publicPath: PUBLIC_PATH,
   runtimeCompiler: true,
   devServer: {
     port: port,
@@ -19,8 +17,8 @@ module.exports = {
         changeOrigin: true
       }
     },
-    client:{
-      overlay:false
+    client: {
+      overlay: false
     },
     static: {
       directory: path.resolve(__dirname, 'src/assets'),
@@ -35,20 +33,7 @@ module.exports = {
     hot: true
   },
   assetsDir: 'assets',
-  configureWebpack: isLibBuild ? {
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, 'src')
-      },
-      fallback: {
-        crypto: false,
-        stream: require.resolve('stream-browserify')
-      }
-    },
-    output: {
-      libraryExport: 'default'
-    }
-  } : {
+  configureWebpack: {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src')
@@ -60,7 +45,7 @@ module.exports = {
     }
   },
   css: {
-    extract: isLibBuild ? false : true,
+    extract: true,
     loaderOptions: {
       css: {
         // 忽略 CSS 顺序冲突警告
@@ -69,12 +54,9 @@ module.exports = {
     }
   },
   chainWebpack: config => {
-    if (!isLibBuild) {
-      config.plugin('extract-css').tap(args => {
-        args[0].ignoreOrder = true;
-        return args;
-      });
-    }
+    config.plugin('extract-css').tap(args => {
+      args[0].ignoreOrder = true;
+      return args;
+    });
   }
 }
-

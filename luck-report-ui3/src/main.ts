@@ -1,6 +1,12 @@
 /**
  * 应用入口文件
- * 负责创建 Vue3 应用实例、注册全局依赖（路由/Pinia/国际化/AntdVue）并挂载根节点
+ *
+ * 流程：
+ * 1. createApp(App) - 创建 Vue3 应用实例
+ * 2. app.use(router/pinia/i18n/Antd) - 注册路由、状态管理、国际化、UI 库
+ * 3. app.mount('#app') - 挂载到 index.html 中 id=app 的根节点
+ *
+ * 调用方：index.html（vue-cli-service 会将本文件作为 webpack entry）
  */
 import { createApp } from 'vue'
 import Antd from 'ant-design-vue'
@@ -17,9 +23,9 @@ import './assets/css/common/index.css'
 // 创建应用实例
 const app = createApp(App)
 
-// 注册全局依赖
-app.use(router)
+// 注册全局依赖（顺序：pinia 需先于 router，保证路由守卫中能正常访问 store）
 app.use(pinia)
+app.use(router)
 app.use(i18n)
 app.use(Antd)
 

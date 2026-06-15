@@ -20,7 +20,6 @@ import { showAlert } from '@/utils/comnon.js';
 import { addRowHeader, getCell, setCell } from "@/utils/contextActions";
 import { deepCopy } from '@/components/utils/index.js';
 import TableManager from './manager.js';
-import { getLibMode } from '@/lib/navigator';
 import PrintLine from "@/views/report/designer/print-line/index.vue";
 import '../../../../assets/css/designer/table.css';
 
@@ -44,11 +43,6 @@ export default {
     };
   },
   computed: {
-    isLibMode() {
-      return getLibMode();
-    }
-  },
-  watch: {
     reportPath(val) {
       this.localReportPath = val;
       if (val) {
@@ -79,14 +73,10 @@ export default {
 
       this.initHandsontable();
 
-      let filePath = '';
-      if (this.isLibMode) {
-        filePath = this.localReportPath || this.defaultReportPath;
-      } else {
-        filePath = utils.getParameter("reportPath");
-        if (!filePath || filePath === '') {
-          filePath = this.defaultReportPath;
-        }
+      // 从 url 参数中解析 reportPath，缺失时回退到默认模板
+      let filePath = utils.getParameter("reportPath");
+      if (!filePath || filePath === '') {
+        filePath = this.defaultReportPath;
       }
 
       if (filePath && filePath !== this.defaultReportPath) {

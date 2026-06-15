@@ -106,7 +106,7 @@ import UOption from '@/components/option/index.vue';
 import UButton from "@/components/button/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
-import { createNavigator, getLibMode } from '@/lib/navigator';
+import { createNavigator } from '@/utils/navigator';
 import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
@@ -152,9 +152,6 @@ export default {
     pathSegments() {
       if (!this.currentPath) return [];
       return this.currentPath.split('/').filter(Boolean);
-    },
-    isLibMode() {
-      return getLibMode();
     },
     navigator() {
       return createNavigator(this);
@@ -254,14 +251,7 @@ export default {
         // 先关闭弹窗
         _this.handleClose();
 
-        if (_this.isLibMode) {
-          _this.$emit('open-file', fullFile);
-          _this.navigator.openDesigner({
-            reportPath: fullFile
-          }, false);
-        } else {
-          window.location.replace("?reportPath=" + fullFile);
-        }
+        window.location.replace("?reportPath=" + fullFile);
       });
     },
     handleFileClick(file) {

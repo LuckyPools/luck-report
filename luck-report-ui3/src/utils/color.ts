@@ -7,12 +7,12 @@
  * 支持两种调用方式：
  * - rgbToHex("255,0,0") 字符串参数
  * - rgbToHex(255, 0, 0) 三个数字参数
- * @param {string|number} r RGB 字符串或红色分量
- * @param {number} [g] 绿色分量（当第一个参数为数字时需要）
- * @param {number} [b] 蓝色分量（当第一个参数为数字时需要）
- * @returns {string} 十六进制颜色值，如 "#ff0000"，转换失败返回 "#000000"
+ * @param r RGB 字符串或红色分量
+ * @param g 绿色分量（当第一个参数为数字时需要）
+ * @param b 蓝色分量（当第一个参数为数字时需要）
+ * @returns 十六进制颜色值，如 "#ff0000"，转换失败返回 "#000000"
  */
-export function rgbToHex(r, g, b) {
+export function rgbToHex(r: string | number, g?: number, b?: number): string {
     if (typeof r === 'string') {
         const parts = r.split(',');
         if (parts.length !== 3) {
@@ -30,8 +30,8 @@ export function rgbToHex(r, g, b) {
     }
 
     if (typeof r === 'number' && typeof g === 'number' && typeof b === 'number') {
-        const toHex = (val) => {
-            const num = Math.min(255, Math.max(0, parseInt(val, 10) || 0));
+        const toHex = (val: number) => {
+            const num = Math.min(255, Math.max(0, parseInt(String(val), 10) || 0));
             const hex = num.toString(16);
             return hex.length === 1 ? '0' + hex : hex;
         };
@@ -43,10 +43,10 @@ export function rgbToHex(r, g, b) {
 
 /**
  * 将十六进制颜色值转换为 RGB 格式字符串
- * @param {string} hex 十六进制颜色值，如 "#ff0000"
- * @returns {string} RGB 格式字符串，如 "255,0,0"，转换失败返回 "0,0,0"
+ * @param hex 十六进制颜色值，如 "#ff0000"
+ * @returns RGB 格式字符串，如 "255,0,0"，转换失败返回 "0,0,0"
  */
-export function hexToRgb(hex) {
+export function hexToRgb(hex: string): string {
     if (!hex || typeof hex !== 'string') {
         return '0,0,0';
     }
@@ -64,7 +64,7 @@ export function hexToRgb(hex) {
         return '0,0,0';
     }
 
-    let r, g, b;
+    let r: number, g: number, b: number;
     if (hexValue.length === 3) {
         r = parseInt(hexValue[0] + hexValue[0], 16);
         g = parseInt(hexValue[1] + hexValue[1], 16);

@@ -6,7 +6,6 @@
     "dev": "vue-cli-service serve --mode dev",
     "build:dev": "vue-cli-service build --mode dev",
     "build:prod": "vue-cli-service build --mode prod",
-    "build:lib": "cross-env BUILD_TYPE=lib vue-cli-service build --target lib --inline-vue --name luck-report-lib --dest dist/lib src/lib/index.js",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
@@ -37,13 +36,18 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
+    "@types/node": "^20.19.43",
+    "@typescript-eslint/parser": "^7.18.0",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-plugin-typescript": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "@vue/compiler-sfc": "^3.5.13",
+    "@vue/tsconfig": "^0.5.1",
     "cross-env": "^7.0.3",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^9.29.0",
+    "typescript": "~5.4.0",
     "vue-loader": "^17.4.2"
   },
   "browserslist": [
