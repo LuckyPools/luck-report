@@ -4,14 +4,13 @@ import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.AgentKnowle
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.CreateAgentKnowledgeDTO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.UpdateAgentKnowledgeDTO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.agent.domain.vo.PageResultVO;
-import com.luck.report.agent.domain.vo.ResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
 import javax.validation.Valid;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 

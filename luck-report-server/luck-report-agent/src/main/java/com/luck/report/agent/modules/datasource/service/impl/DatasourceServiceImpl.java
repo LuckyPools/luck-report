@@ -2,7 +2,7 @@ package com.luck.report.agent.modules.datasource.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
@@ -23,7 +23,6 @@ import com.luck.report.agent.modules.vector.domain.entity.VectorDocument;
 import com.luck.report.agent.modules.vector.service.impl.AgentVectorStore;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -143,7 +142,7 @@ public class DatasourceServiceImpl implements DatasourceService {
         // 先获取数据源信息，用于删除缓存
         Datasource datasource = datasourceMapper.selectById(id);
         String datasourceName = datasource != null ? datasource.getName() : null;
-        
+
         // 删除关联的逻辑外键
         logicalRelationMapper.deleteByDatasourceId(id);
         // 删除数据源

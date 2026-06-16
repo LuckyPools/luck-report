@@ -1,8 +1,8 @@
 package com.luck.report.agent.modules.chat.controller;
 
-import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.chat.domain.entity.ChatSession;
-import com.luck.report.agent.domain.vo.ResultVO;
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.agent.modules.chat.service.ChatSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -15,6 +15,7 @@
         <module>luck-report-font</module>
         <module>luck-report-pub</module>
         <module>luck-report-agent</module>
+        <module>luck-report-common</module>
     </modules>
 
     <properties>
@@ -41,8 +42,8 @@
         <ooxml-schemas.version>1.4</ooxml-schemas.version>
         <zxing-core.version>3.5.4</zxing-core.version>
         <jsqlparser.version>4.9</jsqlparser.version>
+        <mybatis.version>2.3.2</mybatis.version>
         <!-- agent模块依赖版本 -->
-        <mybatis-spring-boot.version>2.3.2</mybatis-spring-boot.version>
         <postgresql.version>42.7.3</postgresql.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
@@ -148,12 +149,12 @@
                 <artifactId>jsqlparser</artifactId>
                 <version>${jsqlparser.version}</version>
             </dependency>
-            
+
             <!-- agent模块依赖 -->
             <dependency>
                 <groupId>org.mybatis.spring.boot</groupId>
                 <artifactId>mybatis-spring-boot-starter</artifactId>
-                <version>${mybatis-spring-boot.version}</version>
+                <version>${mybatis.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.postgresql</groupId>

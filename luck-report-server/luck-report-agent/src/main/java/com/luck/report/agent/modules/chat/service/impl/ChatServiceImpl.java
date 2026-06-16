@@ -1,12 +1,11 @@
 package com.luck.report.agent.modules.chat.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.agent.modules.chat.domain.vo.*;
 import com.luck.report.agent.modules.chat.service.ChatService;
 import com.luck.report.agent.modules.chat.utils.ChatUtils;
 import com.luck.report.agent.modules.modelConfig.domain.entity.ModelConfig;
 import com.luck.report.agent.modules.modelConfig.service.ModelConfigDataService;
-import com.luck.report.agent.domain.vo.ResultVO;
+import com.luck.report.common.domain.vo.ResultVO;
 import lombok.AllArgsConstructor;
 import okhttp3.*;
 import okio.BufferedSource;

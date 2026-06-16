@@ -1,7 +1,7 @@
 package com.luck.report.agent.modules.vector.controller;
 
 import com.luck.report.agent.modules.chat.domain.vo.ComponentDocAddRequest;
-import com.luck.report.agent.domain.vo.ResultVO;
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.agent.modules.vector.domain.vo.VectorAddRequest;
 import com.luck.report.agent.modules.vector.domain.vo.VectorSearchRequest;
 import com.luck.report.agent.modules.vector.domain.vo.VectorSearchResult;

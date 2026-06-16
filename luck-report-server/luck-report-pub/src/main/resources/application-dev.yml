@@ -4,6 +4,19 @@ spring:
     password: root
     url: jdbc:mysql://localhost:3306/luck_report_agent?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
     driver-class-name: com.mysql.cj.jdbc.Driver
+  thymeleaf:
+    # 模板根目录：luck-report-web/src/main/resources/html/
+    prefix: classpath:/html/
+    suffix: .html
+    mode: HTML
+    # dev 关闭缓存便于热改；prod 建议改 true
+    cache: false
+  mvc:
+    # 静态资源匹配模式收窄到 /<servletPrefix>/manage/assets/**，避免覆盖其他业务路径
+    static-path-pattern: /${luck-report.servletPrefix:report}/manage/assets/**
+  web:
+    resources:
+      static-locations: classpath:/html/assets/
 
 luck-report:
   # 请求前缀

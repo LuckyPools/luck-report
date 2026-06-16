@@ -3,7 +3,7 @@ package com.luck.report.agent.modules.chat.controller;
 import com.luck.report.agent.modules.chat.domain.dto.ChatMessageBatchDTO;
 import com.luck.report.agent.modules.chat.domain.dto.ChatMessageDTO;
 import com.luck.report.agent.modules.chat.domain.entity.ChatMessage;
-import com.luck.report.agent.domain.vo.ResultVO;
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.agent.modules.chat.service.ChatMessageService;
 import com.luck.report.agent.modules.chat.service.ChatSessionService;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
-package com.luck.report.agent.domain.vo;
+package com.luck.report.common.domain.vo;
 
-import com.luck.report.agent.enums.HttpCodeEnum;
+import com.luck.report.common.domain.enums.HttpCodeEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

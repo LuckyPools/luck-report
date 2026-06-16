@@ -4,7 +4,9 @@
  * 流程：
  * 1. createApp(App) - 创建 Vue3 应用实例
  * 2. app.use(router/pinia/i18n/Antd) - 注册路由、状态管理、国际化、UI 库
- * 3. app.mount('#app') - 挂载到 index.html 中 id=app 的根节点
+ * 3. 读取 window.__INIT__（由后端壳模板注入，view=workspace/embed 等）
+ * 4. 注册全局消息组件
+ * 5. app.mount('#app') - 挂载到 index.html 中 id=app 的根节点
  *
  * 调用方：public/index.html（vite 通过 /src/main.ts 模块加载）
  */
@@ -28,6 +30,25 @@ app.use(pinia)
 app.use(router)
 app.use(i18n)
 app.use(Antd)
+
+// —— 读取后端壳模板注入的初始化上下文（可选） ——
+// 后端可在 index.html 中通过 Thymeleaf 注入：
+//   <script>window.__INIT__ = { view: 'workspace', theme: 'dark' }</script>
+// 前端通过该对象判断默认形态、主题等。当前实现仅作占位读取，预留扩展位。
+declare global {
+  interface Window {
+    __INIT__?: {
+      view?: 'workspace' | 'embed'
+      theme?: 'light' | 'dark'
+      [key: string]: unknown
+    }
+    __PAGE__?: string
+  }
+}
+const initContext = (typeof window !== 'undefined' && window.__INIT__) || {}
+// 预留：将 initContext 同步到 store / provide，供 WorkspaceLayout 等读取
+// 当前实现：WorkspaceLayout 直接读 route.query.view 即可，无需 store 同步
+void initContext
 
 // 挂载根节点
 app.mount('#app')

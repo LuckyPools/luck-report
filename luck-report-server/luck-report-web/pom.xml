@@ -19,6 +19,11 @@
             <version>${revision}</version>
         </dependency>
         <dependency>
+            <groupId>com.luck.cloud</groupId>
+            <artifactId>luck-report-common</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -52,6 +57,11 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+        </dependency>
+        <!-- Thymeleaf：用于渲染报表前端 SPA 入口模板（designer.html / preview.html） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
     </dependencies>
 

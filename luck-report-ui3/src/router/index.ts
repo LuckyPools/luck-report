@@ -1,72 +1,96 @@
 /**
  * 路由配置
  *
- * 当前阶段：占位首页 + 报表设计器/预览已就位；AI Agent / 后台管理 / 嵌入页路由已预留
+ * 当前阶段：工作台化（顶栏 + 左侧菜单 + 内容区）
  *
- * 调用方：src/main.ts（app.use(router)）
+ * 形态：
+ * - 工作台（默认）：所有业务页面统一由 WorkspaceLayout 包裹，含顶栏、菜单
+ * - 嵌入（?view=embed）：由 WorkspaceLayout 自身识别 query 隐藏 chrome，
+ *   第三方 iframe 嵌入时无菜单/无顶栏，直接渲染目标页
+ *
+ * 路由分层：
+ * - 顶层独立路由：/report/designer、/report/preview —— 独立全屏页，
+ *   菜单点击会通过 window.open 打开新标签，不在 workspace 内嵌渲染
+ * - workspace 子路由：/（首页）、/report/datasource、/report/model-config 等后台管理页
+ *   全部由 WorkspaceLayout 包裹，含顶栏/侧栏
  */
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import Home from '@/views/Home.vue'
 
 /** 报表子模块根路径（与 webpack publicPath 区分：这是业务路由前缀） */
 export const rootPath: string = '/report'
 
 /**
  * 路由表
- * - 占位首页 Home 直接静态引入，体积小、加载时机早
- * - 设计器/预览/AI 对话/嵌入页/后台管理 4 类均挂载在 `views/report/*` 下，统一走 `/report/*`
- * - `/_dev/test` 仅在 development 构建时注册
+ * - 顶层独立路由（designer/preview）走全屏渲染，菜单点击新标签打开
+ * - 顶层 / 走 WorkspaceLayout（菜单 + 顶栏）
+ * - workspace 下挂 WorkspaceHome（仪表盘）+ 后台管理子路由
  */
 const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    name: 'Home',
-    component: Home,
-    meta: { title: '占位首页' }
-  },
+  // —— 顶层独立路由：报表设计/预览（全屏，不嵌在 workspace 内） ——
   {
     path: rootPath + '/designer',
     name: 'Designer',
-    component: () => import('@/views/report/designer/index.vue')
+    component: () => import('@/views/report/designer/index.vue'),
+    meta: { title: '报表设计' }
   },
   {
     path: rootPath + '/preview',
     name: 'Preview',
-    component: () => import('@/views/report/preview/index.vue')
+    component: () => import('@/views/report/preview/index.vue'),
+    meta: { title: '报表预览' }
   },
 
-  // —— AI 对话与 Agent 引擎 ——
+  // —— 工作台：/ 走 WorkspaceLayout（菜单 + 顶栏） ——
   {
-    path: rootPath + '/chat',
-    name: 'AgentChat',
-    component: () => import('@/views/report/designer/chat/index.vue'),
-    meta: { title: 'AI 报表助手' }
+    path: '/',
+    name: 'Workspace',
+    component: () => import('@/layouts/WorkspaceLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'WorkspaceHome',
+        component: () => import('@/views/WorkspaceHome.vue'),
+        meta: { title: '工作台首页' }
+      },
+
+      // —— 后台管理：数据源/模型/知识库（workspace 内显示） ——
+      {
+        path: rootPath + '/datasource',
+        name: 'ManageDatasource',
+        component: () => import('@/views/report/datasource/index.vue'),
+        meta: { title: '数据源管理' }
+      },
+      {
+        path: rootPath + '/model-config',
+        name: 'ManageModelConfig',
+        component: () => import('@/views/report/model-config/index.vue'),
+        meta: { title: '模型管理' }
+      },
+      {
+        path: rootPath + '/business-knowledge',
+        name: 'ManageBusinessKnowledge',
+        component: () => import('@/views/report/business-knowledge/index.vue'),
+        meta: { title: '业务知识库' }
+      },
+      {
+        path: rootPath + '/agent-knowledge',
+        name: 'ManageAgentKnowledge',
+        component: () => import('@/views/report/agent-knowledge/index.vue'),
+        meta: { title: 'Agent 知识库' }
+      },
+      {
+        path: rootPath + '/manage',
+        name: 'ManageReports',
+        component: () => import('@/views/report/manage/index.vue'),
+        meta: { title: '报表管理' }
+      }
+    ]
   },
 
-  // —— 后台管理：数据源/模型/知识库 ——
+  // —— 兜底：未匹配路径回到工作台首页 ——
   {
-    path: rootPath + '/datasource',
-    name: 'ManageDatasource',
-    component: () => import('@/views/report/datasource/index.vue'),
-    meta: { title: '数据源管理' }
-  },
-  {
-    path: rootPath + '/model-config',
-    name: 'ManageModelConfig',
-    component: () => import('@/views/report/model-config/index.vue'),
-    meta: { title: '模型管理' }
-  },
-  {
-    path: rootPath + '/business-knowledge',
-    name: 'ManageBusinessKnowledge',
-    component: () => import('@/views/report/business-knowledge/index.vue'),
-    meta: { title: '业务知识库' }
-  },
-  {
-    path: rootPath + '/agent-knowledge',
-    name: 'ManageAgentKnowledge',
-    component: () => import('@/views/report/agent-knowledge/index.vue'),
-    meta: { title: 'Agent 知识库' }
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

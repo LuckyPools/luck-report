@@ -1,6 +1,6 @@
 package com.luck.report.agent.modules.datasource.service;
 
-import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
 import com.luck.report.agent.modules.datasource.domain.entity.Datasource;

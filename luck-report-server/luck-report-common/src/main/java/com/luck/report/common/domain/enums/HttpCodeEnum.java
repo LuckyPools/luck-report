@@ -1,4 +1,4 @@
-package com.luck.report.agent.enums;
+package com.luck.report.common.domain.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -5,7 +5,7 @@ import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.CreateAgent
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.UpdateAgentKnowledgeDTO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;
 
 import java.util.List;
