@@ -1,14 +1,22 @@
 /**
  * 全局环境变量类型声明
- * 说明：补充 Vue CLI 注入到 process.env 上的变量类型，让 TS 能正常推断
+ * Vite 默认会把 `VITE_` 前缀的变量注入到 import.meta.env 中
  */
-declare namespace NodeJS {
-  interface ProcessEnv {
-    /** 资源基础路径，由 vue.config.js publicPath 注入 */
-    readonly VUE_APP_PUBLIC_PATH?: string
-    /** 当前构建模式（development/production） */
-    readonly NODE_ENV?: 'development' | 'production' | 'test'
-  }
+interface ImportMetaEnv {
+  /** 应用名（页面标题），对应 .env.* 中的 VITE_APP_NAME */
+  readonly VITE_APP_NAME?: string
+  /** 资源基础路径，对应 .env.* 中的 VITE_PUBLIC_PATH */
+  readonly VITE_PUBLIC_PATH?: string
+  /** 后端 API baseURL，对应 .env.* 中的 VITE_API_BASE_URL */
+  readonly VITE_API_BASE_URL?: string
+  /** 当前构建模式（development/production/test） */
+  readonly MODE?: 'development' | 'production' | 'test'
+  /** 是否启用 LangGraph 引擎 */
+  readonly VITE_USE_LANGGRAPH_ENGINE?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
 }
 
 /**
@@ -57,6 +65,20 @@ declare global {
     /** handsontable 全局对象，UI 模块偶有引用 */
     Handsontable?: typeof import('handsontable').default
   }
+}
+
+/**
+ * Webpack 5 raw loader 资源类型声明
+ * 配合 `import x from './xxx.md?raw'` 使用
+ */
+declare module '*.md?raw' {
+  const content: string
+  export default content
+}
+
+declare module '*.txt?raw' {
+  const content: string
+  export default content
 }
 
 export {}

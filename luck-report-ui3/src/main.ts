@@ -6,7 +6,7 @@
  * 2. app.use(router/pinia/i18n/Antd) - 注册路由、状态管理、国际化、UI 库
  * 3. app.mount('#app') - 挂载到 index.html 中 id=app 的根节点
  *
- * 调用方：index.html（vue-cli-service 会将本文件作为 webpack entry）
+ * 调用方：public/index.html（vite 通过 /src/main.ts 模块加载）
  */
 import { createApp } from 'vue'
 import Antd from 'ant-design-vue'

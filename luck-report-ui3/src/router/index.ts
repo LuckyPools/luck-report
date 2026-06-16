@@ -1,7 +1,7 @@
 /**
  * 路由配置
  *
- * 当前阶段：仅保留占位页用于骨架验证，views 下的页面后续逐个迁移并加入路由表
+ * 当前阶段：占位首页 + 报表设计器/预览已就位；AI Agent / 后台管理 / 嵌入页路由已预留
  *
  * 调用方：src/main.ts（app.use(router)）
  */
@@ -14,7 +14,8 @@ export const rootPath: string = '/report'
 /**
  * 路由表
  * - 占位首页 Home 直接静态引入，体积小、加载时机早
- * - 后续阶段将原 views 下的 preview/designer/searchFormDesigner 等页面按 vue-router 4 写法回填
+ * - 设计器/预览/AI 对话/嵌入页/后台管理 4 类均挂载在 `views/report/*` 下，统一走 `/report/*`
+ * - `/_dev/test` 仅在 development 构建时注册
  */
 const routes: RouteRecordRaw[] = [
   {
@@ -32,11 +33,45 @@ const routes: RouteRecordRaw[] = [
     path: rootPath + '/preview',
     name: 'Preview',
     component: () => import('@/views/report/preview/index.vue')
+  },
+
+  // —— AI 对话与 Agent 引擎 ——
+  {
+    path: rootPath + '/chat',
+    name: 'AgentChat',
+    component: () => import('@/views/report/designer/chat/index.vue'),
+    meta: { title: 'AI 报表助手' }
+  },
+
+  // —— 后台管理：数据源/模型/知识库 ——
+  {
+    path: rootPath + '/datasource',
+    name: 'ManageDatasource',
+    component: () => import('@/views/report/datasource/index.vue'),
+    meta: { title: '数据源管理' }
+  },
+  {
+    path: rootPath + '/model-config',
+    name: 'ManageModelConfig',
+    component: () => import('@/views/report/model-config/index.vue'),
+    meta: { title: '模型管理' }
+  },
+  {
+    path: rootPath + '/business-knowledge',
+    name: 'ManageBusinessKnowledge',
+    component: () => import('@/views/report/business-knowledge/index.vue'),
+    meta: { title: '业务知识库' }
+  },
+  {
+    path: rootPath + '/agent-knowledge',
+    name: 'ManageAgentKnowledge',
+    component: () => import('@/views/report/agent-knowledge/index.vue'),
+    meta: { title: 'Agent 知识库' }
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.VUE_APP_PUBLIC_PATH || '/'),
+  history: createWebHistory(import.meta.env.VITE_PUBLIC_PATH || '/'),
   routes
 })
 

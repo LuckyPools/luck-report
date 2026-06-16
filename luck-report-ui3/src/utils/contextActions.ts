@@ -2,20 +2,19 @@
  * Context 操作方法集合
  *
  * 架构说明：
- * - 所有操作方法都通过 Vuex dispatch 调用
+ * - 所有操作方法通过 Pinia store（useReportStore）直接调用
  * - 保持了对 context 数据的集中管理
- * - 符合 Vuex 的最佳实践
  * - 新增方法统一使用 ({ ... }) 解构对象参数格式，便于 iframe 消息传递调用
  *
  * 使用示例：
- * import { addCell, removeCell } from '@/utils/contextActions.js';
+ * import { addCell, removeCell } from '@/utils/contextActions';
  *
  * // 在组件或函数中调用
- * addCell(store, cell);
- * removeCell(store, cell);
+ * addCell(cell);
+ * removeCell(cell);
  */
 
-import store from '@/store/vuex-compat';
+import { useReportStore } from '@/store/modules/report';
 import TableManager from '@/views/report/designer/edit-table/manager';
 import { deepCopy } from '@/utils/comnon';
 import { setDirty } from '@/utils/table';
@@ -35,18 +34,18 @@ export const ToolResult = {
 /** 工具结果类型 */
 export type ToolResultType = typeof ToolResult[keyof typeof ToolResult]
 
-/** 抽象 store，兼容过渡期的 dispatch/getters 写法 */
-interface LegacyStore {
-  dispatch(type: string, payload?: any): Promise<any>
-  getters: Record<string, any>
-}
+/**
+ * 惰性获取 report store。
+ * 使用闭包形式调用 useReportStore()，避免在模块加载阶段（Pinia 未激活时）抛错。
+ */
+const useReport = () => useReportStore()
 
 /**
  * 获取 context
  * @returns 当前 report 模块的 context
  */
 export function getContext(): ReportContext | null {
-  return (store as unknown as LegacyStore).getters['report/getContext'];
+  return useReport().getContext;
 }
 
 /**
@@ -54,7 +53,7 @@ export function getContext(): ReportContext | null {
  * @param cell 单元格定义
  */
 export function addCell(cell: ReportCell): void {
-  (store as unknown as LegacyStore).dispatch('report/contextAddCell', cell);
+  useReport().contextAddCell(cell);
 }
 
 /**
@@ -62,7 +61,7 @@ export function addCell(cell: ReportCell): void {
  * @param cell 单元格
  */
 export function removeCell(cell: ReportCell): void {
-  (store as unknown as LegacyStore).dispatch('report/contextRemoveCell', cell);
+  useReport().contextRemoveCell(cell);
 }
 
 /**
@@ -74,7 +73,7 @@ export function removeCell(cell: ReportCell): void {
 export function setCell(rowIndex: number, colIndex: number, cell: ReportCell): void {
   rowIndex++;
   colIndex++;
-  (store as unknown as LegacyStore).dispatch('report/contextSetCell', { rowIndex, colIndex, cell });
+  useReport().contextSetCell({ rowIndex, colIndex, cell });
 }
 
 /**
@@ -83,7 +82,7 @@ export function setCell(rowIndex: number, colIndex: number, cell: ReportCell): v
  * @param columnNumber 列号
  */
 export function deleteCell(rowNumber: number, columnNumber: number): void {
-  (store as unknown as LegacyStore).dispatch('report/contextDeleteCell', { rowNumber, columnNumber });
+  useReport().contextDeleteCell({ rowNumber, columnNumber });
 }
 
 /**
@@ -116,7 +115,7 @@ export function getCellsMap(): Map<string, ReportCell> | null {
  * @param band 带类型（header, footer, detail 等）
  */
 export function addRowHeader(row: number, band: string): void {
-  (store as unknown as LegacyStore).dispatch('report/contextAddRowHeader', { row, band });
+  useReport().contextAddRowHeader({ row, band });
 }
 
 /**
@@ -124,7 +123,7 @@ export function addRowHeader(row: number, band: string): void {
  * @param row 行号
  */
 export function adjustInsertRowHeaders(row: number): void {
-  (store as unknown as LegacyStore).dispatch('report/contextAdjustInsertRowHeaders', { row });
+  useReport().contextAdjustInsertRowHeaders({ row });
 }
 
 /**
@@ -132,7 +131,7 @@ export function adjustInsertRowHeaders(row: number): void {
  * @param row 行号
  */
 export function adjustDelRowHeaders(row: number): void {
-  (store as unknown as LegacyStore).dispatch('report/contextAdjustDelRowHeaders', { row });
+  useReport().contextAdjustDelRowHeaders({ row });
 }
 
 /**
@@ -200,7 +199,7 @@ export function getSelectedCells(): ReportCell[] | null {
  * });
  */
 export function batchExecute(operationFn: (context: ReportContext) => void): void {
-  (store as unknown as LegacyStore).dispatch('report/contextBatchExecute', operationFn);
+  useReport().contextBatchExecute(operationFn);
 }
 
 /**
@@ -208,7 +207,7 @@ export function batchExecute(operationFn: (context: ReportContext) => void): voi
  * @param context Context 实例
  */
 export function setContext(context: ReportContext): void {
-  (store as unknown as LegacyStore).dispatch('report/setContext', context);
+  useReport().setContext(context);
 }
 
 /**
@@ -216,7 +215,7 @@ export function setContext(context: ReportContext): void {
  * @param reportDef 报表定义对象
  */
 export function updateReportDef(reportDef: any): void {
-  (store as unknown as LegacyStore).dispatch('report/contextUpdateReportDef', reportDef);
+  useReport().contextUpdateReportDef(reportDef);
 }
 
 /**
@@ -225,7 +224,7 @@ export function updateReportDef(reportDef: any): void {
  * @param value 属性值
  */
 export function updateProperty(property: string, value: any): void {
-  (store as unknown as LegacyStore).dispatch('report/contextUpdateProperty', { property, value });
+  useReport().contextUpdateProperty({ property, value });
 }
 
 // ============ Agent 单元格操作 ============
@@ -253,7 +252,7 @@ export function writeCell({ rowIndex, colIndex, cell }: WriteCellParams): ToolRe
     setCell(rowIndex, colIndex, cell);
 
     // 2. 触发编辑器组件更新（通过 isCellUpdate 状态变化通知监听组件）
-    (store as unknown as LegacyStore).dispatch('report/triggerCellUpdate');
+    useReport().triggerCellUpdate();
 
     // 3. 更新 Handsontable 表格显示
     const hot: any = TableManager.get();
@@ -278,7 +277,7 @@ export function writeCell({ rowIndex, colIndex, cell }: WriteCellParams): ToolRe
  * @returns 提供name返回单个数据源对象，不提供返回数据源数组
  */
 export function getDatasources({ name }: { name?: string } = {}): ReportDatasource | ReportDatasource[] | null {
-  return (store as unknown as LegacyStore).getters['report/getDatasources'](name);
+  return useReport().getDatasources(name);
 }
 
 /**
@@ -289,8 +288,9 @@ export function getDatasources({ name }: { name?: string } = {}): ReportDatasour
  */
 export function setDatasources({ datasources }: { datasources: ReportDatasource[] }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextSetDatasources', datasources);
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextSetDatasources(datasources);
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] setDatasources 执行失败:', e);
@@ -306,8 +306,9 @@ export function setDatasources({ datasources }: { datasources: ReportDatasource[
  */
 export function addDatasource({ datasource }: { datasource: ReportDatasource }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextAddDatasource', datasource);
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextAddDatasource(datasource);
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] addDatasource 执行失败:', e);
@@ -324,8 +325,9 @@ export function addDatasource({ datasource }: { datasource: ReportDatasource }):
  */
 export function updateDatasource({ name, datasource }: { name: string; datasource: ReportDatasource }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextUpdateDatasource', { name, datasource });
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextUpdateDatasource({ name, datasource });
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] updateDatasource 执行失败:', e);
@@ -341,8 +343,9 @@ export function updateDatasource({ name, datasource }: { name: string; datasourc
  */
 export function removeDatasource({ name }: { name: string }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextRemoveDatasource', name);
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextRemoveDatasource(name);
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] removeDatasource 执行失败:', e);
@@ -360,7 +363,7 @@ export function removeDatasource({ name }: { name: string }): ToolResultType {
  * @returns 返回数据集对象或数组
  */
 export function getDatasets({ datasourceName, datasetName }: { datasourceName?: string; datasetName?: string } = {}): ReportDataset | ReportDataset[] | null {
-  return (store as unknown as LegacyStore).getters['report/getDatasets'](datasourceName, datasetName);
+  return useReport().getDatasets(datasourceName, datasetName);
 }
 
 /**
@@ -372,8 +375,9 @@ export function getDatasets({ datasourceName, datasetName }: { datasourceName?: 
  */
 export function addDataset({ datasourceName, dataset }: { datasourceName: string; dataset: ReportDataset }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextAddDataset', { datasourceName, dataset });
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextAddDataset({ datasourceName, dataset });
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] addDataset 执行失败:', e);
@@ -391,8 +395,9 @@ export function addDataset({ datasourceName, dataset }: { datasourceName: string
  */
 export function updateDataset({ datasourceName, datasetName, dataset }: { datasourceName: string; datasetName: string; dataset: ReportDataset }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextUpdateDataset', { datasourceName, datasetName, dataset });
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextUpdateDataset({ datasourceName, datasetName, dataset });
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] updateDataset 执行失败:', e);
@@ -409,8 +414,9 @@ export function updateDataset({ datasourceName, datasetName, dataset }: { dataso
  */
 export function removeDataset({ datasourceName, datasetName }: { datasourceName: string; datasetName: string }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextRemoveDataset', { datasourceName, datasetName });
-    (store as unknown as LegacyStore).dispatch('report/triggerDatasourcePanelUpdate');
+    const report = useReport();
+    report.contextRemoveDataset({ datasourceName, datasetName });
+    report.triggerDatasourcePanelUpdate();
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] removeDataset 执行失败:', e);
@@ -425,7 +431,7 @@ export function removeDataset({ datasourceName, datasetName }: { datasourceName:
  * @returns 表单设计对象
  */
 export function getSearchForm(): ReportSearchForm | null {
-  return (store as unknown as LegacyStore).getters['report/getSearchForm'];
+  return useReport().getSearchForm;
 }
 
 /**
@@ -436,7 +442,7 @@ export function getSearchForm(): ReportSearchForm | null {
  */
 export function setSearchForm({ searchForm }: { searchForm: ReportSearchForm }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextSetSearchForm', searchForm);
+    useReport().contextSetSearchForm(searchForm);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] setSearchForm 执行失败:', e);
@@ -451,7 +457,7 @@ export function setSearchForm({ searchForm }: { searchForm: ReportSearchForm }):
  * @returns 页面配置对象
  */
 export function getPaperConfig(): ReportPaperLike | null {
-  return (store as unknown as LegacyStore).getters['report/getPaperConfig'];
+  return useReport().getPaperConfig;
 }
 
 /**
@@ -462,7 +468,7 @@ export function getPaperConfig(): ReportPaperLike | null {
  */
 export function updatePaper({ paper }: { paper: ReportPaperLike }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextUpdatePaper', paper);
+    useReport().contextUpdatePaper(paper);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] updatePaper 执行失败:', e);
@@ -477,7 +483,7 @@ export function updatePaper({ paper }: { paper: ReportPaperLike }): ToolResultTy
  * @returns 页眉配置对象
  */
 export function getHeaderConfig(): ReportPaperLike | null {
-  return (store as unknown as LegacyStore).getters['report/getHeaderConfig'];
+  return useReport().getHeaderConfig;
 }
 
 /**
@@ -488,7 +494,7 @@ export function getHeaderConfig(): ReportPaperLike | null {
  */
 export function updateHeader({ header }: { header: ReportPaperLike }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextUpdateHeader', header);
+    useReport().contextUpdateHeader(header);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] updateHeader 执行失败:', e);
@@ -503,7 +509,7 @@ export function updateHeader({ header }: { header: ReportPaperLike }): ToolResul
  * @returns 页脚配置对象
  */
 export function getFooterConfig(): ReportPaperLike | null {
-  return (store as unknown as LegacyStore).getters['report/getFooterConfig'];
+  return useReport().getFooterConfig;
 }
 
 /**
@@ -514,7 +520,7 @@ export function getFooterConfig(): ReportPaperLike | null {
  */
 export function updateFooter({ footer }: { footer: ReportPaperLike }): ToolResultType {
   try {
-    (store as unknown as LegacyStore).dispatch('report/contextUpdateFooter', footer);
+    useReport().contextUpdateFooter(footer);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] updateFooter 执行失败:', e);
@@ -534,7 +540,7 @@ export function updateFooter({ footer }: { footer: ReportPaperLike }): ToolResul
  * @returns 以行号（字符串）为 key、行定义为 value 的对象
  */
 export function getRows({ rowNumbers }: { rowNumbers?: number[] } = {}): Record<string, ReportRowDef> {
-  const allRows: ReportRowDef[] = (store as unknown as LegacyStore).getters['report/getRows']();
+  const allRows: ReportRowDef[] = useReport().getRows();
   const result: Record<string, ReportRowDef> = {};
   if (Array.isArray(rowNumbers) && rowNumbers.length > 0) {
     for (const rowNumber of rowNumbers) {
@@ -564,7 +570,7 @@ export function getRows({ rowNumbers }: { rowNumbers?: number[] } = {}): Record<
 export function setRows({ rows }: { rows: Record<string, ReportRowDef> }): ToolResultType {
   try {
     // 1. 获取当前所有行（数组形式）
-    const currentRows: ReportRowDef[] = (store as unknown as LegacyStore).getters['report/getRows']();
+    const currentRows: ReportRowDef[] = useReport().getRows();
     // 2. 将 keyed 对象转换为数组
     const incomingRows: ReportRowDef[] = [];
     for (const key of Object.keys(rows || {})) {
@@ -585,7 +591,7 @@ export function setRows({ rows }: { rows: Record<string, ReportRowDef> }): ToolR
     }
     // 4. 按行号升序排序后下发
     const mergedRows = Array.from(mergedMap.values()).sort((a, b) => a.rowNumber - b.rowNumber);
-    (store as unknown as LegacyStore).dispatch('report/contextSetRows', mergedRows);
+    useReport().contextSetRows(mergedRows);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] setRows 执行失败:', e);
@@ -604,7 +610,7 @@ export function setRows({ rows }: { rows: Record<string, ReportRowDef> }): ToolR
  * @returns 以列号（字符串）为 key、列定义为 value 的对象
  */
 export function getColumns({ columnNumbers }: { columnNumbers?: number[] } = {}): Record<string, ReportColumnDef> {
-  const allColumns: ReportColumnDef[] = (store as unknown as LegacyStore).getters['report/getColumns']();
+  const allColumns: ReportColumnDef[] = useReport().getColumns();
   const result: Record<string, ReportColumnDef> = {};
   if (Array.isArray(columnNumbers) && columnNumbers.length > 0) {
     for (const columnNumber of columnNumbers) {
@@ -632,7 +638,7 @@ export function getColumns({ columnNumbers }: { columnNumbers?: number[] } = {})
 export function setColumns({ columns }: { columns: Record<string, ReportColumnDef> }): ToolResultType {
   try {
     // 1. 获取当前所有列（数组形式）
-    const currentColumns: ReportColumnDef[] = (store as unknown as LegacyStore).getters['report/getColumns']();
+    const currentColumns: ReportColumnDef[] = useReport().getColumns();
     // 2. 将 keyed 对象转换为数组
     const incomingColumns: ReportColumnDef[] = [];
     for (const key of Object.keys(columns || {})) {
@@ -653,7 +659,7 @@ export function setColumns({ columns }: { columns: Record<string, ReportColumnDe
     }
     // 4. 按列号升序排序后下发
     const mergedColumns = Array.from(mergedMap.values()).sort((a, b) => a.columnNumber - b.columnNumber);
-    (store as unknown as LegacyStore).dispatch('report/contextSetColumns', mergedColumns);
+    useReport().contextSetColumns(mergedColumns);
     return ToolResult.SUCCESS;
   } catch (e) {
     console.error('[contextActions] setColumns 执行失败:', e);

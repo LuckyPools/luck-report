@@ -997,6 +997,50 @@ const en = {
             bubbleYPropertyRequired: '{cell} cell bubble chart Y-axis property cannot be empty!',
             bubbleRPropertyRequired: '{cell} cell bubble chart radius property cannot be empty!'
         }
+    },
+    // ===== Merged from luck-report-vue3: AI Agent chat module =====
+    common: {
+        confirm: 'Confirm',
+        cancel: 'Cancel',
+        save: 'Save',
+        delete: 'Delete',
+        edit: 'Edit',
+        add: 'Add',
+        search: 'Search',
+        reset: 'Reset',
+        export: 'Export',
+        import: 'Import',
+        success: 'Success',
+        failed: 'Failed',
+        loading: 'Loading...',
+        noData: 'No Data',
+        tip: 'Tip'
+    },
+    chat: {
+        title: 'AI Report Assistant',
+        headerTitle: 'AI Assistant',
+        inputPlaceholder: 'Type your question, press Enter to send...',
+        send: 'Send',
+        stop: 'Stop',
+        clear: 'Clear',
+        newSession: 'New Session',
+        agentMode: 'Agent Mode',
+        deepThink: 'Deep Think',
+        thinking: 'Thinking...',
+        taskList: 'Task List',
+        toolCalling: 'Tool Calling',
+        confirmSend: 'Confirm',
+        regen: 'Regenerate',
+        copy: 'Copy',
+        copied: 'Copied',
+        thinking1: 'Analyzing the question',
+        thinking2: 'Planning task steps',
+        thinking3: 'Calling tools to execute',
+        thinking4: 'Organizing the reply',
+        errorSend: 'Send failed, please retry',
+        errorNetwork: 'Network error',
+        errorUnauthorized: 'Session expired',
+        emptyHint: 'Start a conversation with AI'
     }
 } as const
 

@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "useDefineForClassFields": true,
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
   },
   "include": [

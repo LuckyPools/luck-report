@@ -17,6 +17,8 @@
         <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" />
       </div>
     </div>
+    <!-- AI 助手浮标 + 对话面板（同进程直接调用工具，无需 iframe 通信） -->
+    <AgentView />
   </div>
 </template>
 
@@ -56,6 +58,7 @@ import ContentTable from '@/views/report/designer/edit-table/index.vue'
 import PrintLine from '@/views/report/designer/print-line/index.vue'
 import ResourcePanel from '@/views/report/designer/resource-panel/index.vue'
 import TopToolBar from '@/views/report/designer/tool-bar/index.vue'
+import AgentView from '@/views/report/designer/chat/index.vue'
 import { getUrlSearchParams } from '@/utils/url'
 import { setLocale } from '@/locales'
 

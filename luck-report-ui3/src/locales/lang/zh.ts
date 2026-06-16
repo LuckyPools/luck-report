@@ -998,6 +998,50 @@ const zh = {
             bubbleYPropertyRequired: '{cell}单元格气泡图Y轴属性不能为空！',
             bubbleRPropertyRequired: '{cell}单元格气泡图半径属性不能为空！'
         }
+    },
+    // ===== 自 luck-report-vue3 合并：AI Agent 聊天模块文案 =====
+    common: {
+        confirm: '确定',
+        cancel: '取消',
+        save: '保存',
+        delete: '删除',
+        edit: '编辑',
+        add: '添加',
+        search: '搜索',
+        reset: '重置',
+        export: '导出',
+        import: '导入',
+        success: '操作成功',
+        failed: '操作失败',
+        loading: '加载中...',
+        noData: '暂无数据',
+        tip: '提示'
+    },
+    chat: {
+        title: 'AI 报表助手',
+        headerTitle: 'AI 智能助手',
+        inputPlaceholder: '请输入您的问题，按 Enter 发送...',
+        send: '发送',
+        stop: '停止',
+        clear: '清空对话',
+        newSession: '新建会话',
+        agentMode: 'Agent 模式',
+        deepThink: '深度思考',
+        thinking: '思考中...',
+        taskList: '任务列表',
+        toolCalling: '工具调用',
+        confirmSend: '确认发送',
+        regen: '重新生成',
+        copy: '复制',
+        copied: '已复制',
+        thinking1: '正在分析问题',
+        thinking2: '规划任务步骤',
+        thinking3: '调用工具执行',
+        thinking4: '整理回复内容',
+        errorSend: '发送失败，请重试',
+        errorNetwork: '网络异常',
+        errorUnauthorized: '登录已过期',
+        emptyHint: '开始与 AI 对话吧'
     }
 } as const
 

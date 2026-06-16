@@ -3,6 +3,9 @@ import {t, i18n} from "@/locales";
 
 /** 默认实例的 axios 配置 */
 const defaultRequest: AxiosInstance = axios.create({
+    // API 走独立的 /api 前缀，由 Vite dev 代理（^/api → 后端 /report）和生产 Nginx 转发。
+    // 注意：不要拼接 import.meta.env.BASE_URL，否则 Vite base（如 /luck-report/）会被加到
+    // 请求路径上，导致 dev 代理的 ^/api 匹配不上而 404，生产环境部署子路径也会被错误转发。
     baseURL: '/api',
     timeout: 60000
 })
@@ -78,6 +81,29 @@ async function get<T = any>(url: string, config: AxiosRequestConfig = {}): Promi
 }
 
 /**
+ * PUT 请求封装
+ * @param url 请求地址
+ * @param param 请求体，可选
+ * @param config axios 配置，可选
+ * @returns 响应数据
+ */
+async function put<T = any>(url: string, param: any = {}, config: AxiosRequestConfig = {}): Promise<T> {
+    const res = await defaultRequest.put(url, param, config)
+    return dealAxiosResult(res)
+}
+
+/**
+ * DELETE 请求封装（前端习惯简写为 del）
+ * @param url 请求地址
+ * @param config axios 配置，可选
+ * @returns 响应数据
+ */
+async function del<T = any>(url: string, config: AxiosRequestConfig = {}): Promise<T> {
+    const res = await defaultRequest.delete(url, config)
+    return dealAxiosResult(res)
+}
+
+/**
  * 处理响应结果
  * 提取响应数据，文件下载类型直接返回整个 response 对象
  *
@@ -96,5 +122,7 @@ export default {
     default: defaultRequest,
     ...defaultRequest,
     post,
-    get
+    get,
+    put,
+    del
 }
