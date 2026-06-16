@@ -4,7 +4,7 @@
  *
  * 设计要点：
  * 1. 任何"动作"都是 TaskNode（读写、循环、批处理都靠 dependsOn/params 表达，不为特定场景建专用节点）
- * 2. Planner 节点（LLM）把用户需求拆成 TaskPlan JSON
+ * 2. understand_and_plan 节点（LLM）把用户需求拆成 TaskPlan JSON
  * 3. Dispatcher 节点（代码）自环执行 TaskPlan，拓扑排序 + 失败策略
  * 4. summary 是 TaskNode 的一种 action，由 Dispatcher 收尾
  */
@@ -24,7 +24,7 @@ export type TaskFailPolicy = 'abort' | 'skip' | 'continue'
 export interface TaskNode {
   /** 任务唯一 ID（同 plan 内唯一），Planner 输出 t1/t2/... */
   id: string
-  /** 任务动作：见 TASK_ACTIONS 常量，read_* / create_* / modify_* / delete_* / summary */
+  /** 任务动作：见 EXECUTABLE_ACTIONS 常量，read_* / create_* / modify_* / delete_* / summary */
   action: string
   /** 动作参数，透传给对应 executor / 子图 */
   params?: Record<string, any>
@@ -77,7 +77,49 @@ export interface ActionRegistryEntry {
 /** Dispatcher 内部用：action → registry 映射 */
 export type ActionRegistry = Record<string, ActionRegistryEntry>
 
-/** Planner 输出（Function Calling 工具 plan_tasks 的 input schema） */
+/**
+ * 可执行 action 白名单（单一来源，PLANNER_TASK_SCHEMA 共享）
+ */
+export const EXECUTABLE_ACTIONS = [
+  // 读
+  'read_datasources',
+  'read_datasets',
+  'read_cells',
+  'read_rows',
+  'read_cols',
+  'read_form',
+  'read_page',
+  'read_report',
+  // 写：数据源
+  'create_datasource',
+  'modify_datasource',
+  'delete_datasource',
+  // 写：数据集
+  'create_dataset',
+  'modify_dataset',
+  'delete_dataset',
+  // 写：单元格 / 行 / 列
+  'modify_cell',
+  'create_row',
+  'modify_row',
+  'delete_row',
+  'create_col',
+  'modify_col',
+  'delete_col',
+  // 写：表单 / 页面
+  'modify_form',
+  'modify_page',
+  // 收尾
+  'summary'
+] as const
+
+/** action 名（EXECUTABLE_ACTIONS 的 element 类型） */
+export type ExecutableAction = typeof EXECUTABLE_ACTIONS[number]
+
+/** Planner 输出（Function Calling 工具 plan_tasks 的 input schema）
+ *
+ * 关键设计：action 字段是受控 enum（不是 string），强制 LLM 只能选可执行动作
+ */
 export const PLANNER_TASK_SCHEMA = {
   type: 'object',
   properties: {
@@ -90,7 +132,8 @@ export const PLANNER_TASK_SCHEMA = {
           id: { type: 'string', description: '任务 ID，同 plan 内唯一，推荐 t1/t2/...' },
           action: {
             type: 'string',
-            description: '任务动作，决定走哪个 executor；常用值见下方注释'
+            enum: EXECUTABLE_ACTIONS,
+            description: '任务动作，决定走哪个 executor；可选值见 EXECUTABLE_ACTIONS'
           },
           params: { type: 'object', description: '动作参数，透传给对应 executor' },
           dependsOn: { type: 'array', items: { type: 'string' }, description: '依赖的 task id 列表' },
@@ -109,22 +152,40 @@ export const PLANNER_TOOL_NAME = 'plan_tasks'
 
 /**
  * 注册 Planner 虚拟工具到 toolRegistry
- * 关键决策点：plan_tasks 不是真实工具（不操作设计器），但需要出现在 LLM 的 tools 列表中
- * 这样 LLM 才能收到完整 inputSchema 并按 function calling 格式返回，否则会降级为 ```json``` 文本输出
- *
- * 执行器为 noop：planner 节点的真实"读 result"路径是 llm-decide-node 把 toolResults 透传为 state.plan_tasks
- * 所以这里直接把 LLM 输入的 tasks 透传作为返回值（collect_plan 节点从 state.plan_tasks 读）
+ * plan_tasks 不是真实工具（不操作设计器），但需要出现在 LLM 的 tools 列表中，
+ * 让 LLM 按 function calling 格式返回结构化 TaskPlan
  *
  * @param registry - 工具注册表
  */
 export function registerPlannerTool(registry: ToolRegistry): void {
   registry.register({
     name: PLANNER_TOOL_NAME,
-    description: '把用户需求拆成 TaskPlan 任务列表（planner 节点专用）。必填字段：tasks 数组，每个元素含 id、action，可选 params/dependsOn/onFail/maxRetries。',
+    description: '把用户需求拆成 TaskPlan 任务列表。必填字段：tasks 数组，每个元素含 id、action，可选 params/dependsOn/onFail/maxRetries。',
     inputSchema: PLANNER_TASK_SCHEMA as unknown as Record<string, any>,
-    // 关键决策点：planner 是"虚拟工具"，execute 不操作设计器，只透传 LLM 输入
-    // collect_plan 节点从 state.plan_tasks 读取结果（llm-decide-node 把 toolResults 透传为 state）
-    execute: async (input: any) => ({ tasks: input?.tasks ?? [] }),
+    validate: (input: any) => {
+      if (!input || typeof input !== 'object') return null
+      if (input.tasks !== undefined && !Array.isArray(input.tasks) && typeof input.tasks !== 'string') {
+        return 'tasks 参数必须是 JSON 数组。正确：{"tasks":[{"id":"t1","action":"read_cols"}]}'
+      }
+      return null
+    },
+    execute: async (input: any) => {
+      if (!input || typeof input !== 'object') {
+        return { tasks: [] }
+      }
+      let tasks = input.tasks
+      if (typeof tasks === 'string') {
+        try {
+          tasks = JSON.parse(tasks)
+        } catch {
+          return { tasks: [] }
+        }
+      }
+      if (!Array.isArray(tasks)) {
+        return { tasks: [] }
+      }
+      return { tasks }
+    },
     readOnly: true,
     requireConfirm: false
   })
@@ -135,8 +196,6 @@ export function registerPlannerTool(registry: ToolRegistry): void {
  * 1. id 唯一
  * 2. dependsOn 引用的 id 必须存在
  * 3. 不能形成环（DFS 检测）
- * @param plan - 任务计划
- * @returns 错误列表，空数组表示合法
  */
 export function validateTaskPlan(plan: TaskPlan): string[] {
   const errors: string[] = []
@@ -182,8 +241,6 @@ export function validateTaskPlan(plan: TaskPlan): string[] {
 
 /**
  * 计算当前可执行的任务（status=pending 且所有依赖 success）
- * @param plan - 任务计划
- * @returns 可执行任务列表
  */
 export function pickReadyTasks(plan: TaskPlan): TaskNode[] {
   const byId = new Map<string, TaskNode>()
@@ -196,8 +253,6 @@ export function pickReadyTasks(plan: TaskPlan): TaskNode[] {
 
 /**
  * 判断 TaskPlan 是否全部完成（无 pending/in_progress）
- * @param plan - 任务计划
- * @returns true = 全部完成（success/failed/skipped）
  */
 export function isPlanDone(plan: TaskPlan): boolean {
   return plan.every(t => ['success', 'failed', 'skipped'].includes(t.status ?? ''))
@@ -205,9 +260,6 @@ export function isPlanDone(plan: TaskPlan): boolean {
 
 /**
  * 判断 TaskPlan 是否处于"卡死"状态（无 pending/in_progress 但又未 done）
- * 通常因依赖任务 failed 阻断导致
- * @param plan - 任务计划
- * @returns true = 卡死
  */
 export function isPlanDead(plan: TaskPlan): boolean {
   if (isPlanDone(plan)) return false
@@ -218,20 +270,15 @@ export function isPlanDead(plan: TaskPlan): boolean {
 /**
  * 根据失败策略，传播失败/跳过状态
  * 任务 t 失败后，所有"depends on t 且 onFail 不是 continue"的任务被标 skipped
- * @param plan - 任务计划（就地修改）
- * @param failedId - 失败任务 id
- * @returns 更新后的 plan（同一引用）
  */
 export function propagateFailure(plan: TaskPlan, failedId: string): TaskPlan {
   const failedTask = plan.find(t => t.id === failedId)
   if (!failedTask) return plan
   const failPolicy = failedTask.onFail ?? 'abort'
-  // 找到所有"依赖链上"挂着 failedId 的 pending 任务
   for (const t of plan) {
     if (t.status !== 'pending') continue
     if (!(t.dependsOn ?? []).includes(failedId)) continue
     if (failPolicy === 'continue') {
-      // 失败者 onFail=continue 时不传播，但本任务的依赖里有失败者，标 failed
       t.status = 'failed'
       t.error = `依赖任务 ${failedId} 失败`
     } else {
@@ -242,3 +289,37 @@ export function propagateFailure(plan: TaskPlan, failedId: string): TaskPlan {
   return plan
 }
 
+/**
+ * 根据 intent 结构化信息生成兜底 TaskPlan
+ * 当 LLM 未能成功调用 plan_tasks 时，基于 intent 的 needs* 标志位推断任务链
+ */
+export function generateFallbackPlan(
+  intent: { taskDescription?: string; intentType?: string },
+  userMessage: string
+): TaskPlan {
+  // 无法推断时返回空 plan，由 summary 兜底
+  if (!intent?.taskDescription && !userMessage) return []
+  const desc = intent?.taskDescription ?? userMessage
+  return [
+    {
+      id: 't1',
+      action: 'read_report',
+      params: { description: `读取当前报表结构` },
+      dependsOn: [],
+      onFail: 'abort',
+      maxRetries: 0,
+      status: 'pending',
+      retryCount: 0
+    },
+    {
+      id: 't2',
+      action: 'summary',
+      params: { description: `汇报结果：${desc}` },
+      dependsOn: ['t1'],
+      onFail: 'abort',
+      maxRetries: 0,
+      status: 'pending',
+      retryCount: 0
+    }
+  ]
+}

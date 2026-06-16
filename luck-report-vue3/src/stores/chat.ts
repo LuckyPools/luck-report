@@ -89,6 +89,9 @@ export const useChatStore = defineStore('chat', () => {
   /** Agent 待确认的工具调用 */
   const pendingConfirmToolCall = ref<ToolCall | null>(null)
 
+  /** Agent ask_user 任务中断后等待用户在输入框回复的提问 */
+  const awaitingUserPrompt = ref<{ taskId: string; question: string; options?: string[] } | null>(null)
+
   /** 用户是否正在手动滚动 */
   const isUserScrolling = ref(false)
 
@@ -430,6 +433,7 @@ export const useChatStore = defineStore('chat', () => {
     historyType,
     historyCount,
     pendingConfirmToolCall,
+    awaitingUserPrompt,
     isUserScrolling
   }
 })

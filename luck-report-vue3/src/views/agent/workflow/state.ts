@@ -5,7 +5,8 @@
  */
 
 import { Annotation } from '@langchain/langgraph'
-import type { IntentAnalysisResult, TaskNode } from './types.ts'
+import type { IntentAnalysisResult } from './types.ts'
+import type { TaskNode } from './task-plan.ts'
 
 // ==================== 字段类型定义（与自建引擎一致） ====================
 
@@ -87,6 +88,17 @@ export interface WorkflowStepRecord {
 export const ReportStateAnnotation = Annotation.Root({
   // ==================== overwrite 字段（业务数据） ====================
   userMessage: Annotation<string>(),
+  /** 用户的原始需求（不含 ask_user enriched 前缀），供子图推断表名等业务逻辑使用 */
+  originalUserMessage: Annotation<string>({
+    reducer: (oldVal, newVal) => {
+      if (!newVal) return oldVal
+      // 如果新值包含 enriched 前缀，且旧值已存在且不含 enriched 前缀，保留旧值
+      if (newVal.includes('【上一轮 ask_user 任务】') && oldVal && !oldVal.includes('【上一轮 ask_user 任务】')) {
+        return oldVal
+      }
+      return newVal
+    }
+  }),
   intent: Annotation<IntentAnalysisResult>(),
   datasources: Annotation<DatasourceInfo[]>({
     reducer: (a, b) => b ?? a,
@@ -189,7 +201,7 @@ export const ReportStateAnnotation = Annotation.Root({
   }),
 
   // ==================== 任务计划（TaskPlan / Dispatcher）==================
-  /** 任务计划，由 Planner 节点生成，Dispatcher 自环执行 */
+  /** 任务计划，由 plan_execution 节点生成，Dispatcher 自环执行 */
   taskPlan: Annotation<TaskNode[]>({
     reducer: (a, b) => b ?? a,
     default: () => []
@@ -239,15 +251,17 @@ export type ReportStateUpdate = typeof ReportStateAnnotation.Update
 
 // ==================== Input/Output Schema 工厂 ====================
 
-/** modify_report 入口需要的 input 字段 */
-export const ModifyReportInputAnnotation = Annotation.Root({
+/** report_agent 入口需要的 input 字段 */
+export const ReportAgentInputAnnotation = Annotation.Root({
   userMessage: Annotation<string>(),
+  originalUserMessage: Annotation<string>(),
   intent: Annotation<IntentAnalysisResult>(),
   reportState: Annotation<any>()
 })
 
-/** modify_report 出口需要的 output 字段（对齐原 output 配置） */
-export const ModifyReportOutputAnnotation = Annotation.Root({
+/** report_agent 出口需要的 output 字段（包含 read + write 两类所需字段） */
+export const ReportAgentOutputAnnotation = Annotation.Root({
+  searchResults: Annotation<Record<string, any>>(),
   cellsData: Annotation<Record<string, any> | null>(),
   datasources: Annotation<DatasourceInfo[]>(),
   datasets: Annotation<DatasetInfo[]>(),
@@ -256,25 +270,6 @@ export const ModifyReportOutputAnnotation = Annotation.Root({
   pageConfig: Annotation<Record<string, any> | null>(),
   headerConfig: Annotation<Record<string, any> | null>(),
   footerConfig: Annotation<Record<string, any> | null>(),
-  searchForm: Annotation<SearchFormConfig | null>(),
-  errors: Annotation<string[]>()
-})
-
-/** analyze_report 入口需要的 input 字段 */
-export const AnalyzeReportInputAnnotation = Annotation.Root({
-  userMessage: Annotation<string>(),
-  intent: Annotation<IntentAnalysisResult>(),
-  reportState: Annotation<any>()
-})
-
-/** analyze_report 出口需要的 output 字段 */
-export const AnalyzeReportOutputAnnotation = Annotation.Root({
-  searchResults: Annotation<Record<string, any>>(),
-  datasources: Annotation<DatasourceInfo[]>(),
-  datasets: Annotation<DatasetInfo[]>(),
-  rowData: Annotation<Record<string, any>[] | null>(),
-  colData: Annotation<Record<string, any>[] | null>(),
-  pageConfig: Annotation<Record<string, any> | null>(),
   searchForm: Annotation<SearchFormConfig | null>(),
   errors: Annotation<string[]>()
 })

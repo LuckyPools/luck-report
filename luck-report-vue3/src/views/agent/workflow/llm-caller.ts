@@ -63,17 +63,14 @@ export function createLLMCaller(
       return new Promise(r => { resolveWait = r })
     }
 
-    // 关键决策点日志：诊断 toolChoice / tools 实际传给 chatStream 的值
-    console.log(`[llm-caller] tools=${JSON.stringify((tools ?? []).map(t => t.function?.name ?? t.name))} toolChoice=${JSON.stringify(options?.toolChoice)}`)
+
     // 调用 chatStream
     chatStream(
       '',
       {
         onMessage: (data: string) => {
-          // 关键决策点日志：仅首个 token 出现时打一次（不刷屏）
           if (!tokenStartLogged) {
             tokenStartLogged = true
-            console.log(`[llm-caller] onMessage 首个 token 出现，长度=${data.length}`)
           }
           pushEvent({ type: 'token', content: data })
         },
@@ -81,8 +78,6 @@ export function createLLMCaller(
           pushEvent({ type: 'reasoning', content: data })
         },
         onToolUse: (toolCall: SseToolCall) => {
-          // 关键决策点日志：诊断 LLM 是否触发了 function calling
-          console.log(`[llm-caller] onToolUse toolName=${toolCall.toolName} input=${JSON.stringify(toolCall.input)}`)
           pushEvent({
             type: 'tool_call',
             toolCallId: toolCall.toolCallId,

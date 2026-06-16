@@ -17,6 +17,7 @@ export type PromptDocName = keyof typeof PROMPT_DOC_PATH_MAP
 export const PROMPT_DOC_PATH_MAP = {
   SYSTEM: 'plan/system',
   INTENT_ANALYSIS: 'plan/intent-analysis',
+  UNDERSTAND_PLAN: 'plan/understand-plan',
   REPORT_DEFINITION: 'instruction/report-definition',
   CELL_RENDER_ORDER: 'instruction/cell-render-order',
   PARENT_CELL_RELATION: 'instruction/parent-cell-relation',
@@ -113,6 +114,33 @@ export async function loadPromptDocByEnum(name: string): Promise<string> {
     throw new Error(`未知的提示词文档名: ${name}`)
   }
   return loadPromptDoc(filePath)
+}
+
+/**
+ * 根据文档名同步加载提示词文档
+ * Vite import.meta.glob eager=true 模式下，模块内容在构建时已内联，可同步读取
+ * 适用于节点工厂等同步初始化场景
+ *
+ * @param name - 提示词文档名称，string，不可为空
+ * @returns 压缩后的文档文本内容，string
+ */
+export function loadPromptDocByEnumSync(name: string): string {
+  const filePath = PROMPT_DOC_PATH_MAP[name]
+  if (!filePath) {
+    throw new Error(`未知的提示词文档名: ${name}`)
+  }
+  const cached = docCache.get(filePath)
+  if (cached !== undefined) {
+    return cached
+  }
+  const moduleKey = `/src/prompt/${filePath}.md`
+  const rawContent = promptModules[moduleKey]
+  if (rawContent === undefined) {
+    throw new Error(`加载提示词文档失败: ${filePath}，文件不存在`)
+  }
+  const content = compressPrompt(rawContent)
+  docCache.set(filePath, content)
+  return content
 }
 
 /**

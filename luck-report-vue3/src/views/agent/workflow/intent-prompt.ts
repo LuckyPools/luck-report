@@ -54,8 +54,8 @@ export const INTENT_ANALYSIS_SCHEMA = {
   properties: {
     intentType: {
       type: 'string',
-      enum: ['modify_report', 'analyze_report', 'create_report', 'irrelevant'],
-      description: '用户意图类型'
+      enum: ['report_agent', 'create_report', 'irrelevant'],
+      description: '用户意图类型：report_agent 统一接管所有报表相关需求（读+改由 Planner 自主规划），create_report 让用户先手动建报表，irrelevant 表示与报表无关'
     },
     needsDatasourceOperation: {
       type: 'boolean',

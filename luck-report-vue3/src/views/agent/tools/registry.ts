@@ -1,6 +1,7 @@
 import type { ToolDefinition, ToolApiFormat } from './types'
 
 import { loadReportIntroduceTool } from './doc-tools.ts'
+import { askUserTool } from './ask-user-tool.ts'
 import {
   saveReportTool,
   searchAgentKnowledgeTool,
@@ -21,6 +22,7 @@ import {
 } from "@/views/agent/tools/datasource-tools.ts";
 import {
     addDatasetTool, buildFieldsTool,
+    commitDatasetTool,
     getDatasetsTool, getDatasetTemplateTool, parseFilterConditionsTool, previewDataTool,
     removeDatasetTool,
     updateDatasetTool, validateDatasetTool
@@ -177,6 +179,8 @@ export class ToolRegistry {
 export function createDefaultRegistry(): ToolRegistry {
   const registry = new ToolRegistry()
   registry.registerAll([
+    // 中断型工具：ask_user 只在 understand_and_plan 节点中允许调用
+    askUserTool,
     searchBusinessKnowledgeTool,
     searchAgentKnowledgeTool,
     loadReportIntroduceTool,
@@ -195,6 +199,7 @@ export function createDefaultRegistry(): ToolRegistry {
     removeDatasetTool,
     validateDatasetTool,
     parseFilterConditionsTool,
+    commitDatasetTool,
 
     getSearchFormTool,
     setSearchFormTool,

@@ -64,6 +64,8 @@ export class WorkflowRuntime {
   readonly signal?: AbortSignal
   /** 工具确认回调 */
   readonly onToolConfirm?: (toolCall: any) => Promise<boolean>
+  /** 用户输入回调（ask_user 任务用）— 收到 question/options 后阻塞等待用户回复 */
+  readonly onUserPrompt?: (prompt: UserPrompt) => Promise<string>
   /** 事件回调（节点通过 emitEvent 间接调用） */
   readonly onEvent?: (event: StreamEvent) => void
   /** 会话ID */
@@ -72,6 +74,8 @@ export class WorkflowRuntime {
   readonly modelId?: number
   /** 当前执行 ID（fork 时子 runtime 继承并扩展） */
   readonly runId: string
+  /** gather_requirements 阶段最大询问轮次（达到后强制收敛，禁止继续 ask_user） */
+  readonly gatherMaxRounds: number
   /** fork 自增计数器，每次 fork() 递增，嵌入子 runId 确保 toolCallId 全局唯一 */
   private forkCounter: number = 0
 
@@ -86,10 +90,12 @@ export class WorkflowRuntime {
     this.llmCaller = options.llmCaller
     this.signal = options.signal
     this.onToolConfirm = options.onToolConfirm
+    this.onUserPrompt = options.onUserPrompt
     this.onEvent = options.onEvent
     this.sessionId = options.sessionId
     this.modelId = options.modelId
     this.runId = options.runId ?? generateRunId()
+    this.gatherMaxRounds = options.gatherMaxRounds ?? 5
   }
 
   /**
@@ -117,7 +123,8 @@ export class WorkflowRuntime {
       onEvent: this.onEvent,
       sessionId: this.sessionId,
       modelId: this.modelId,
-      runId: `${this.runId}_f${this.forkCounter}`
+      runId: `${this.runId}_f${this.forkCounter}`,
+      gatherMaxRounds: this.gatherMaxRounds
     })
     return child
   }
@@ -141,8 +148,24 @@ export interface WorkflowRuntimeOptions {
   llmCaller: LLMCaller
   signal?: AbortSignal
   onToolConfirm?: (toolCall: any) => Promise<boolean>
+  /** ask_user 任务触发时调用，返回用户输入文本；未提供时 ask_user 任务会失败并提示"agent 未配置用户输入通道" */
+  onUserPrompt?: (prompt: UserPrompt) => Promise<string>
   onEvent?: (event: StreamEvent) => void
   sessionId?: string
   modelId?: number
   runId?: string
+  /** gather_requirements 阶段最大询问轮次，默认 5 */
+  gatherMaxRounds?: number
+}
+
+/**
+ * ask_user 任务的回调入参
+ */
+export interface UserPrompt {
+  /** 任务 ID（TaskPlan 中的 id） */
+  taskId: string
+  /** 提问文本 */
+  question: string
+  /** 可选项列表（多选一时用；空数组表示自由输入） */
+  options?: string[]
 }

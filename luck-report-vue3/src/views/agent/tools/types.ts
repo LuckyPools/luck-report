@@ -16,6 +16,12 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
   requireConfirm: boolean
   /** 参数校验函数，返回错误信息或 undefined（校验通过） */
   validate?: (input: TInput) => string | undefined
+  /**
+   * 调用此工具会立即抛出 AskUserInterrupt 中断整个图执行
+   * 适用于 ask_user 等需要用户输入的交互型工具
+   * 设置后 execute 不会被调用，工具执行流直接被中断信号取代
+   */
+  interruptOnCall?: 'ask_user'
 }
 
 /**

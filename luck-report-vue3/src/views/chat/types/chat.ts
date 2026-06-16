@@ -116,7 +116,7 @@ export interface Attachment {
 /**
  * 响应状态
  */
-export type ResponseStatus = 'done' | 'pending'
+export type ResponseStatus = 'done' | 'pending' | 'awaiting_user'
 
 /**
  * 聊天状态

@@ -179,7 +179,17 @@ export function extractTargetTableNames(
 
 /** 从用户消息 / 意图推断 get_table_relation 的 query 参数 */
 export function inferTableQuery(userMessage: string, intent?: { taskDescription?: string }): string {
-  const text = (intent?.taskDescription || userMessage || '').trim()
+  let text = (userMessage || '').trim()
+  // 清洗 enriched 前缀：提取【本轮用户回答】中的原始内容
+  const answerMatch = text.match(/【本轮用户回答】(.+?)(?:\n|【|$)/)
+  if (answerMatch) {
+    text = answerMatch[1].trim()
+  }
+  // 仅当 taskDescription 不含 ask_user 回复轮的偏移描述（如"配置数据源"）时才使用
+  const taskDesc = intent?.taskDescription?.trim()
+  if (taskDesc && !/配置|数据源|指定/.test(taskDesc)) {
+    text = taskDesc
+  }
   if (!text) return '用户'
   return text.replace(/^在.*?中/, '').replace(/创建|添加|新增|一个|的|数据集/g, '').trim() || text
 }
@@ -290,6 +300,7 @@ export function inferSqlFromTableStructures(tableStructures: any, userMessage = 
 
 /**
  * 确定性找/建 buildin 数据源
+ * 优先使用 taskParams.datasourceName（planner 已指定的数据源名），仅当未指定时才自动搜索匹配
  * @param runtime - 工作流运行时
  * @param stepId - 节点ID，用于事件关联
  * @param state - 工作流状态
@@ -300,6 +311,40 @@ export async function resolveBuildinDatasource(
   stepId: string,
   state: Record<string, any>
 ): Promise<{ targetDatasourceName?: string; datasources?: any[]; errors?: string[] }> {
+  // 1. 先查当前报表已有的数据源
+  const existing: any = await runToolWithEvent(runtime, stepId, 'get_datasources', {})
+  const dsList: any[] = Array.isArray(existing) ? existing : (Array.isArray(existing?.datasources) ? existing.datasources : [])
+
+  // 2. 优先使用 planner 已指定的 datasourceName
+  const specifiedName = state.taskParams?.datasourceName || state.targetDatasourceName
+  if (specifiedName) {
+    const found = dsList.find((d: any) => d?.name === specifiedName)
+    if (found) {
+      console.log(`[resolveBuildinDatasource] 使用已指定的数据源: ${specifiedName}`)
+      return { targetDatasourceName: specifiedName, datasources: dsList }
+    }
+    // 指定了名称但报表中不存在，尝试从 buildin 模板创建
+    const sr: any = state.searchResults || {}
+    const legalNames: string[] = Array.isArray(sr.load_buildin_datasources?.datasources)
+      ? sr.load_buildin_datasources.datasources : []
+    if (legalNames.includes(specifiedName)) {
+      const template: any = await runToolWithEvent(runtime, stepId, 'get_datasource_template', { name: specifiedName })
+      if (template && !template.error && template.type === 'buildin') {
+        const addResult: any = await runToolWithEvent(runtime, stepId, 'add_datasource', { datasource: template })
+        if (addResult?.success === false) {
+          return { errors: [`添加数据源失败: ${addResult.message || '未知错误'}`] }
+        }
+        const newDs = { name: template.name, type: template.type, datasets: Array.isArray(template.datasets) ? template.datasets : [] }
+        const merged = dsList.some((d: any) => d?.name === newDs.name) ? dsList : [...dsList, newDs]
+        return { targetDatasourceName: specifiedName, datasources: merged }
+      }
+    }
+    // 非 buildin 类型或模板获取失败，但仍返回指定名称（可能是 jdbc/spring 类型，已由其他方式添加）
+    console.log(`[resolveBuildinDatasource] 指定的数据源 ${specifiedName} 不在报表中且非 buildin，仍使用该名称`)
+    return { targetDatasourceName: specifiedName, datasources: dsList }
+  }
+
+  // 3. 未指定数据源名称时，自动搜索匹配
   const sr: any = state.searchResults || {}
   const legalNames: string[] = Array.isArray(sr.load_buildin_datasources?.datasources)
     ? sr.load_buildin_datasources.datasources : []
@@ -313,8 +358,6 @@ export async function resolveBuildinDatasource(
     return { errors: ['未找到与用户需求匹配的内置数据源，jdbc/spring 类型需在报表设计器中手动添加'] }
   }
 
-  const existing: any = await runToolWithEvent(runtime, stepId, 'get_datasources', {})
-  const dsList: any[] = Array.isArray(existing) ? existing : (Array.isArray(existing?.datasources) ? existing.datasources : [])
   if (dsList.some((d: any) => d?.name === pickedName)) {
     return { targetDatasourceName: pickedName, datasources: dsList }
   }
@@ -363,6 +406,21 @@ export function buildWorkflowStateContext(state: Record<string, any>): string {
   }
   if (state.dataset) {
     parts.push(`dataset: ${JSON.stringify(state.dataset)}`)
+  }
+  // 注入当前任务的参数（dispatcher 传入的 taskParams，子图 LLM 可据此了解任务意图）
+  if (state.taskParams && typeof state.taskParams === 'object' && Object.keys(state.taskParams).length > 0) {
+    parts.push(`taskParams(当前任务参数): ${JSON.stringify(state.taskParams)}`)
+  }
+  // 关键决策点：注入 understand_and_plan 阶段确认的任务计划
+  if (Array.isArray(state.taskPlan) && state.taskPlan.length > 0) {
+    parts.push(`taskPlan(任务计划): ${JSON.stringify(state.taskPlan.map(t => ({ id: t.id, action: t.action, status: t.status })))}`)
+  }
+  // 关键决策点：注入已问过的 ask_user 问题（避免 planner 重复规划同问题）
+  // 注意：ask_user 中断时 state 整体丢失，所以这个字段仅在**单次 workflow run 内**有效
+  // 跨 run 的防重靠 useChat 的 enrichedContent + PLANNER_DESCRIPTION【回复识别】规则
+  if (Array.isArray(state.askedQuestions) && state.askedQuestions.length > 0) {
+    const list = state.askedQuestions.map(a => `  - ${a.taskId}: ${a.question}`).join('\n')
+    parts.push(`已问过的问题（不要再问这些）：\n${list}`)
   }
   if (parts.length === 0) return ''
   return `\n\n[工作流状态 — 以下值已就绪，必须直接使用，禁止编造]\n${parts.join('\n')}`

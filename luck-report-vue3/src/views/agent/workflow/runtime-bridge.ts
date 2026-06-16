@@ -65,6 +65,7 @@ export function rebuildRuntime(ctx: WorkflowRuntimeContext, nodeName: string): W
     llmCaller: ctx.llmCaller,
     signal: ctx.signal,
     onToolConfirm: ctx.onToolConfirm,
+    onUserPrompt: ctx.onUserPrompt,
     onEvent: ctx.onEvent,
     sessionId: ctx.sessionId,
     modelId: ctx.modelId,

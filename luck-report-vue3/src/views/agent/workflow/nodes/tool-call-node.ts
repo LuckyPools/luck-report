@@ -59,9 +59,6 @@ export function createToolCallNode(options: ToolCallNodeOptions) {
       ? await (options.args as (state: ReportState) => Record<string, any> | Promise<Record<string, any>>)(state)
       : options.args
 
-    // 关键决策点：状态变化时打日志（不在循环内打）
-    console.log(`[DEBUG][tool-call] [${nodeId}] 开始 工具=${toolName} 参数=${JSON.stringify(derivedArgs)}`)
-
     const toolCallId = `${nodeId}#${runtime.runId}#0`
     runtime.emitEvent({
       mode: 'updates',
@@ -92,7 +89,7 @@ export function createToolCallNode(options: ToolCallNodeOptions) {
       event: { nodeId, output: { type: 'tool_result', toolCallId, toolName, result }, status: 'success' },
       timestamp: Date.now()
     })
-    console.log(`[DEBUG][tool-call] [${nodeId}] 完成 工具=${toolName}`)
+    console.log(`[tool-call] [${nodeId}] ${toolName} 成功`)
 
     return (resultKey
       ? { [resultKey]: result }

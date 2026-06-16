@@ -3,6 +3,7 @@
  * - createDatasourceGraph：创建数据源（仅 buildin）
  * - modifyDatasourceGraph：修改数据源（不支持）
  * - deleteDatasourceGraph：删除数据源（不支持）
+ * - readDatasourcesGraph：单节点拉取数据源列表（被 dispatcher read_datasources 动作调用）
  *
  * 与自建引擎版本的差异：
  * 1. 不再 new LastValueAfterFinishChannel / graph.addChannel — channel 概念已被 Annotation 取代
@@ -19,6 +20,7 @@ import {
 } from '../index.ts'
 import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/views/agent/workflow/nodes/llm-decide-node.ts'
+import { createToolCallNode } from '@/views/agent/workflow/nodes/tool-call-node.ts'
 import {
   extractSearchCandidates,
   extractTargetTableNames,
@@ -65,6 +67,9 @@ export function createDatasourceGraph(): CompiledReportGraph {
     description:
       '根据用户需求搜索可用的内置数据源。\n' +
       '1. 调用 search_schema 查找与用户需求匹配的数据源和表信息\n' +
+      '   - 如果 taskParams 中有 purpose 字段，用 purpose 作为 search_schema 的 query 参数\n' +
+      '   - 如果 taskParams 中有 name 字段，用 name 作为 search_schema 的 query 参数\n' +
+      '   - 否则用用户消息作为 query\n' +
       '2. 调用 load_buildin_datasources 获取合法 buildin 数据源名称列表\n' +
       '3. 比对两者，筛选出匹配的 buildin 数据源\n' +
       '【关键】如果 search_schema 返回的结果中没有 buildin 类型（只有 jdbc/spring），' +
@@ -101,15 +106,13 @@ export function createDatasourceGraph(): CompiledReportGraph {
       String(state.userMessage ?? ''),
       1
     )
-    console.log(`[datasource-graph] ${stepId} 选名`, JSON.stringify({
-      searchCandidates, pickedName, targetTableNames
-    }))
+    console.log(`[datasource-graph] ${stepId} 选名: ${pickedName}`)
 
     const existing: any = await runToolWithEvent(runtime, stepId, 'get_datasources', {})
     const dsList: any[] = Array.isArray(existing) ? existing : (Array.isArray(existing?.datasources) ? existing.datasources : [])
     const exists = dsList.some((d: any) => d?.name === pickedName)
     if (exists) {
-      console.log(`[datasource-graph] ${stepId} 跳过创建`, JSON.stringify({ pickedName, reason: '已存在' }))
+      console.log(`[datasource-graph] ${stepId} 跳过创建: ${pickedName} 已存在`)
       return {
         targetDatasourceName: pickedName,
         targetTableNames: targetTableNames.length > 0 ? targetTableNames : undefined,
@@ -194,6 +197,32 @@ export function modifyDatasourceGraph(): CompiledReportGraph {
     .addNode('not_supported_modify', notSupported)
     .addEdge(START, 'not_supported_modify')
     .addEdge('not_supported_modify', END)
+
+  return g.compile()
+}
+
+// ==================== 读数据源子工作流 ====================
+
+/**
+ * 读数据源工作流（dispatcher read_datasources 动作调用）
+ * 单节点，调 get_datasources，结果写入 state.datasources
+ * 支持 task.params.name 过滤（不传 = 全量）
+ */
+export function readDatasourcesGraph(): CompiledReportGraph {
+  const readNode = createToolCallNode({
+    nodeId: 'read_datasources',
+    toolName: 'get_datasources',
+    args: (state) => {
+      const p = state.taskParams ?? {}
+      return p.name ? { name: p.name } : {}
+    },
+    resultKey: 'datasources'
+  })
+
+  const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
+    .addNode('read_datasources', readNode)
+    .addEdge(START, 'read_datasources')
+    .addEdge('read_datasources', END)
 
   return g.compile()
 }

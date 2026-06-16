@@ -2,7 +2,7 @@
  * LangGraph 工作流图注册表（VITE_USE_LANGGRAPH_ENGINE=true 时使用）
  * 与 graph/workflow-graphs.ts 保持同名同签名的工厂函数，agent-loop.ts 无感知切换
  *
- * 已迁移：datasource、dataset、cell、row、col、form、page、modify_report、analyze_report
+ * 顶层唯一入口：[report_agent]（Planner 自主规划 read_* + write_* + summary 任务，Dispatcher 自环执行）
  */
 
 import type { CompiledReportGraph } from './langgraph'
@@ -16,14 +16,15 @@ import {
   modifyCellGraph,
   modifyRowGraph,
   modifyColGraph,
+  deleteRowGraph,
+  deleteColGraph,
   modifyFormGraph,
-  modifyPageGraph,
-  modifyReportGraph,
-  analyzeReportGraph
+  modifyPageGraph
 } from './graphs'
+import { buildUnifiedReportGraph } from './graphs/unified-report-graph.ts'
 
 /**
- * 已迁移到 LangGraph 的图注册表
+ * 工作流图注册表
  * 格式与 graph/workflow-graphs.ts 一致：intentType → factory
  */
 const graphRegistry = new Map<string, () => CompiledReportGraph>()
@@ -37,9 +38,8 @@ function registerGraph(intentType: string, factory: () => CompiledReportGraph): 
   graphRegistry.set(intentType, factory)
 }
 
-// 顶层意图图
-registerGraph('modify_report', modifyReportGraph)
-registerGraph('analyze_report', analyzeReportGraph)
+// 顶层统一入口：read + write 自由混排，Planner 自主规划
+registerGraph('report_agent', () => buildUnifiedReportGraph())
 
 /**
  * 根据意图类型获取工作流图
@@ -70,6 +70,8 @@ export function getSubGraphByType(subworkflowType: string): CompiledReportGraph 
     // 行/列
     modify_row: modifyRowGraph,
     modify_col: modifyColGraph,
+    delete_row: deleteRowGraph,
+    delete_col: deleteColGraph,
     // 表单/页面
     modify_form: modifyFormGraph,
     modify_page: modifyPageGraph

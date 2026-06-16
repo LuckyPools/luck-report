@@ -31,7 +31,8 @@ export type AgentEvent =
   | { type: 'tool_call_confirm'; toolCall: ToolCall }
   | { type: 'tool_call_result'; toolCall: ToolCall }
   | { type: 'token_usage'; usage: TokenUsage }
-  | { type: 'done'; reason: 'completed' | 'max_iterations' | 'aborted' | 'error'; error?: string }
+  | { type: 'user_prompt'; taskId: string; question: string; options?: string[] }
+  | { type: 'done'; reason: 'completed' | 'max_iterations' | 'aborted' | 'error' | 'awaiting_user'; error?: string; prompt?: { taskId: string; question: string; options?: string[] } }
 
 /**
  * Agent 循环配置
@@ -136,7 +137,7 @@ async function runWorkflowMode(
     console.log(`[DEBUG][agent-loop] 阶段1完成 intent=${intent.intentType}`)
 
     // ==================== 阶段2：选择工作流图 ====================
-    // 仅使用新图引擎（graph/workflow-graphs.ts 中注册的 modify_report / analyze_report）
+    // 顶层唯一入口：report_agent（Planner 自主规划 read + write 混排）
     const compiledGraph = getGraphByIntent(intent.intentType)
     console.log(`[DEBUG][agent-loop] 阶段2 查图 intent=${intent.intentType} found=${!!compiledGraph}`)
 
@@ -176,6 +177,8 @@ async function runWorkflowMode(
               ? (stepToolCallIdMap.get(output.toolCallId) || output.toolCallId)
               : (stepToolCallIdMap.get(data.nodeId) || `wf_${data.nodeId}_${output.toolName}`)
             onEvent({ type: 'tool_call_result', toolCall: { toolCallId, toolName: output.toolName ?? '', input: {}, status: output.error ? 'error' : 'done', result: output.result, error: output.error } })
+          } else if (output.type === 'user_prompt') {
+            onEvent({ type: 'user_prompt', taskId: output.taskId, question: output.question, options: output.options })
           } else if (data.status === 'failed') {
             onEvent({ type: 'text_delta', content: `  错误: ${data.error ?? '未知错误'}\n` })
           }
@@ -185,6 +188,7 @@ async function runWorkflowMode(
 
     const graphInput = {
       userMessage,
+      originalUserMessage: userMessage,
       intent,
       reportState
     }
@@ -241,8 +245,18 @@ async function runWorkflowMode(
 
       // 将 LangGraph 原始 chunk 转换为 AgentEvent
       const agentEvents = convertChunkToAgentEvents(chunk, stepToolCallIdMap)
+      let pendingPrompt: { taskId: string; question: string; options?: string[] } | null = null
       for (const evt of agentEvents) {
         onEvent(evt)
+        if (evt.type === 'user_prompt') {
+          pendingPrompt = { taskId: evt.taskId, question: evt.question, options: evt.options }
+        }
+      }
+      // ask_user 触发的中断：发完 user_prompt 后立即发 done 事件，让 UI 进入"等待用户输入"态
+      // LangGraph 流会在 AskUserInterrupt 抛出时结束，循环自然退出，这里先发 done
+      if (pendingPrompt) {
+        onEvent({ type: 'done', reason: 'awaiting_user', prompt: pendingPrompt })
+        return
       }
     }
 
@@ -252,10 +266,25 @@ async function runWorkflowMode(
     console.error('[DEBUG][agent-loop] 外层 catch:', err.name, err.message)
     if (err.name === 'AbortError') {
       onEvent({ type: 'done', reason: 'aborted' })
+    } else if (err?.name === 'AskUserInterrupt' || err?.code === 'ASK_USER') {
+      // ask_user 中断：emitEvent 可能因格式不匹配被丢弃，且 AskUserInterrupt 导致 stream 异常退出，
+      // for-await 循环中的 pendingPrompt 检查不会执行，因此必须在此处补发 done 事件
+      onEvent({
+        type: 'done',
+        reason: 'awaiting_user',
+        prompt: {
+          taskId: err.taskId,
+          question: err.question,
+          options: err.options
+        }
+      })
     } else {
       onEvent({ type: 'done', reason: 'error', error: err.message })
     }
   } finally {
+    // ask_user 跨中断的轮次计数已迁移到 gather-state.ts（按 sessionId 跟踪）
+    // ask_user 已升级为 gather_requirements 节点的中断型工具，不再走 dispatcher 路径
+    // 因此旧的 cleanupAskUserSeen（按 runId 跟踪）已不再需要，此处移除该清理
     if (memoryManager.needsCompact() && config.onAutoCompact) {
       if (config.onCaptureSnapshot) {
         try {
@@ -460,6 +489,14 @@ function convertChunkToAgentEvents(
           error: output.error
         }
       })
+    } else if (output.type === 'user_prompt') {
+      // ask_user 任务发射的 user_prompt 事件 — 透传给 UI 渲染 question 卡
+      results.push({
+        type: 'user_prompt',
+        taskId: output.taskId,
+        question: output.question ?? '',
+        options: output.options
+      })
     }
   }
 
@@ -470,28 +507,21 @@ function convertChunkToAgentEvents(
 
 /**
  * 构建意图分析后的用户确认消息
+ * 顶层只有 report_agent 一条路径，按 needs*Operation 拼出动作预告即可
  * @param intent - 意图分析结果，IntentAnalysisResult，不可为空
  * @returns 友好的确认消息文本，string
  */
 function buildIntentConfirmMessage(intent: IntentAnalysisResult): string {
-  const parts: string[] = []
+  if (intent.intentType !== 'report_agent') return ''
   const desc = intent.taskDescription || '您的需求'
-
-  if (intent.intentType === 'modify_report') {
-    parts.push(`好的，我已了解您的需求：${desc}`)
-    const actions: string[] = []
-    if (intent.needsDatasourceOperation) actions.push('配置数据源')
-    if (intent.needsCellOperation) actions.push('修改单元格')
-    if (intent.needsFormOperation) actions.push('配置查询表单')
-    if (intent.needsRowOperation) actions.push('调整行结构')
-    if (intent.needsColOperation) actions.push('调整列结构')
-    if (intent.needsPageConfigOperation) actions.push('调整页面配置')
-    if (actions.length > 0) {
-      parts.push(`接下来我将为您${actions.join('、')}，请稍候。`)
-    }
-  } else if (intent.intentType === 'analyze_report') {
-    parts.push(`好的，我来帮您分析：${desc}`)
-  }
-
-  return parts.join('')
+  const actions: string[] = []
+  if (intent.needsDatasourceOperation) actions.push('配置数据源/数据集')
+  if (intent.needsCellOperation) actions.push('修改单元格')
+  if (intent.needsFormOperation) actions.push('配置查询表单')
+  if (intent.needsRowOperation) actions.push('调整行结构')
+  if (intent.needsColOperation) actions.push('调整列结构')
+  if (intent.needsPageConfigOperation) actions.push('调整页面配置')
+  const head = `好的，我已了解您的需求：${desc}`
+  if (actions.length === 0) return head
+  return `${head}\n接下来我将为您${actions.join('、')}，请稍候。`
 }

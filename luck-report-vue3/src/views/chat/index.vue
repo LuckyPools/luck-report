@@ -70,6 +70,39 @@
         />
       </div>
 
+      <!-- ask_user 中断提示：Agent 主动询问补充信息，提示用户在下方输入框回复 -->
+      <transition name="user-prompt-slide">
+        <div v-if="awaitingUserPrompt" class="user-prompt-hint">
+          <div class="user-prompt-hint-icon">💬</div>
+          <div class="user-prompt-hint-body">
+            <div class="user-prompt-hint-label">Agent 在询问：</div>
+            <div class="user-prompt-hint-question">{{ awaitingUserPrompt.question }}</div>
+          </div>
+          <a-button
+            v-if="awaitingUserPrompt.options && awaitingUserPrompt.options.length"
+            type="link"
+            size="small"
+            class="user-prompt-hint-toggle"
+            @click="showOptions = !showOptions"
+          >{{ showOptions ? '收起选项' : '查看选项' }}</a-button>
+          <a-button
+            type="text"
+            size="small"
+            class="user-prompt-hint-dismiss"
+            title="忽略此问题"
+            @click="handleDismissUserPrompt"
+          >×</a-button>
+        </div>
+      </transition>
+      <div v-if="awaitingUserPrompt && awaitingUserPrompt.options && awaitingUserPrompt.options.length && showOptions" class="user-prompt-options-bar">
+        <a-tag
+          v-for="opt in awaitingUserPrompt.options"
+          :key="opt"
+          class="user-prompt-option-pill"
+          @click="fillOption(opt)"
+        >{{ opt }}</a-tag>
+      </div>
+
       <InputArea
         :response-status="responseStatus"
         :message-count="messageList.length"
@@ -111,7 +144,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Alert as AAlert, Button as AButton, Modal as AModal, Modal } from 'ant-design-vue'
+import { Alert as AAlert, Button as AButton, Modal as AModal, Modal, Tag as ATag } from 'ant-design-vue'
 import { CustomerServiceOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import '@/assets/css/common/index.css'
 import { useDrag } from './drag.ts'
@@ -144,6 +177,7 @@ const {
   historyType,
   historyCount,
   pendingConfirmToolCall,
+  awaitingUserPrompt,
   currentSessionId,
   sendMessage,
   stopChat,
@@ -157,6 +191,7 @@ const {
   setHistoryCount,
   confirmAgentTool,
   rejectAgentTool,
+  dismissUserPrompt,
   removeCurrentSession,
   loadSession,
   taskListManager
@@ -189,6 +224,35 @@ const greetingText = ref('')
 
 /** 是否显示滚动到底部按钮，综合判断滚动位置和响应状态 */
 const showScrollButton = ref(false)
+
+/** ask_user 中断提示条：是否展开查看 options */
+const showOptions = ref(false)
+
+/** 监听 awaitingUserPrompt 变化：进入提问时默认收起 options，离开时清空 */
+watch(awaitingUserPrompt, (val) => {
+  showOptions.value = false
+})
+
+/** 忽略 ask_user 中断：清空 awaitingUserPrompt，状态切回 done */
+const handleDismissUserPrompt = () => {
+  showOptions.value = false
+  dismissUserPrompt()
+}
+
+/** 选中备选项：把选项填入输入框（通过 DOM 找到 textarea 并设值 + 触发 input 事件） */
+const fillOption = (opt: string) => {
+  const textarea = document.querySelector<HTMLTextAreaElement>('.input-textarea')
+  if (!textarea) return
+  // 用原生 setter 绕过 Vue 的响应式追踪，确保 input 事件能正确触发 v-model 更新
+  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+  if (nativeSetter) {
+    nativeSetter.call(textarea, opt)
+  } else {
+    textarea.value = opt
+  }
+  textarea.focus()
+  textarea.dispatchEvent(new Event('input', { bubbles: true }))
+}
 
 /** 是否显示引导提示（当模型未配置时） */
 const showGuideAlert = computed(() => {
@@ -607,5 +671,85 @@ onUnmounted(() => {
 
 .chat-body::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.user-prompt-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 8px 12px 0;
+  background: linear-gradient(135deg, #fff7e6 0%, #fff1d6 100%);
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(255, 159, 67, 0.08);
+}
+.user-prompt-hint-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.user-prompt-hint-body {
+  flex: 1;
+  min-width: 0;
+}
+.user-prompt-hint-label {
+  font-size: 12px;
+  color: #d48806;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.user-prompt-hint-question {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5c2e00;
+  word-break: break-word;
+}
+.user-prompt-hint-toggle,
+.user-prompt-hint-dismiss {
+  flex-shrink: 0;
+  padding: 0 6px;
+  height: 24px;
+  font-size: 12px;
+}
+.user-prompt-hint-dismiss {
+  color: #999;
+  font-size: 18px;
+  line-height: 1;
+}
+.user-prompt-hint-dismiss:hover {
+  color: #666;
+}
+
+.user-prompt-options-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px 0;
+  margin: 0 12px;
+}
+.user-prompt-option-pill {
+  cursor: pointer;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #fafafa;
+  border-color: #d9d9d9;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.user-prompt-option-pill:hover {
+  color: #fa8c16;
+  border-color: #ffd591;
+  background: #fff7e6;
+}
+
+.user-prompt-slide-enter-active,
+.user-prompt-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.user-prompt-slide-enter-from,
+.user-prompt-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

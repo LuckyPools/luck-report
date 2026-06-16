@@ -10,6 +10,7 @@ import type { LangGraphRunnableConfig } from '@langchain/langgraph'
 import type { WorkflowRuntime } from '../runtime.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 import { buildWorkflowStateContext } from '../utils.ts'
+import { AskUserInterrupt } from '../ask-user-interrupt.ts'
 
 /**
  * LLM 决策节点构造选项
@@ -86,16 +87,21 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     const toolResults: Record<string, any> = {}
     let accumulatedResult: Record<string, any> | null = null
     let assistantContent = ''
-    const hasRequiredTools = (options.requiredToolResults?.length ?? 0) > 0
-      || (options.requiredToolResultsAny?.length ?? 0) > 0
-    const toolChoice: any = hasRequiredTools
-      ? (options.requiredToolResults?.length === 1
-        ? { type: 'function', function: { name: options.requiredToolResults[0] } }
+    let lastAssistantToolCalls: any[] = []
+    const hasRequiredAll = (options.requiredToolResults?.length ?? 0) > 0
+    const hasRequiredAny = (options.requiredToolResultsAny?.length ?? 0) > 0
+    const hasRequiredTools = hasRequiredAll || hasRequiredAny
+    const toolChoice: any = hasRequiredAll
+      ? (options.requiredToolResults!.length === 1
+        ? { type: 'function', function: { name: options.requiredToolResults![0] } }
         : 'required')
       : undefined
-    // 关键决策点日志：诊断 tool_choice 是否真传给 LLM
-    console.log(`[llm-decide] node=${nodeId} allowedTools=${JSON.stringify(options.allowedTools)} requiredToolResults=${JSON.stringify(options.requiredToolResults)} toolChoice=${JSON.stringify(toolChoice)}`)
+    console.log(`[llm-decide] node=${nodeId} tools=${JSON.stringify(options.allowedTools)} toolChoice=${JSON.stringify(toolChoice)}`)
     let iteration = 0
+    // 关键决策点：跟踪必需工具是否曾被调用但返回 error，用于触发"系统强制重试"
+    // 之前只有 !hasToolCall 才会重试；thinking 模式下 LLM 经常先发空 input 占位再思考，
+    // 导致 hasToolCall=true 但工具拿到 {error:...}，必须再给 LLM 一次带错误 hint 的机会
+    let hasToolError = false
 
     while (iteration < maxIterations) {
       iteration++
@@ -124,6 +130,9 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
           case 'tool_call': {
             hasToolCall = true
             const mappedToolCallId = mapToolCallId(nodeId, currentRunId, event.toolCallId, toolCallIdMap, () => toolCallCounter++)
+            // #region debug-point planner-no-tool-call
+            lastAssistantToolCalls = [{ id: mappedToolCallId, name: event.toolName, input: event.input }]
+            // #endregion
 
             // 高危操作（删除/整表替换/合并）弹窗确认
             const toolDef = runtime.toolRegistry.get(event.toolName)
@@ -140,7 +149,86 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
               }
             }
 
+            // 关键决策点：中断型工具（interruptOnCall='ask_user'）
+            // - 不调用 execute，直接发 user_prompt 事件 + 抛 AskUserInterrupt
+            // - LangGraph stream 异常退出 → agent-loop 捕获 → 转 done(awaiting_user) → UI
+            // - gather_requirements 节点限制最大询问轮次；超限不抛中断，给 LLM 一个 error 反馈，强制收敛
+            if (toolDef?.interruptOnCall === 'ask_user') {
+              const question = String(event.input?.question ?? '').trim()
+              if (!question) {
+                const errMsg = 'ask_user 工具缺少 question 参数'
+                toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
+                hasToolError = true
+                messages.push({
+                  role: 'tool',
+                  tool_call_id: mappedToolCallId,
+                  content: JSON.stringify({ error: errMsg, success: false })
+                })
+                runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: errMsg }, status: 'failed' }, timestamp: Date.now() })
+                break
+              }
+              // 关键决策点：轮次检查放在 runtime 的 session 级计数器上，跨 AskUserInterrupt 也能累计
+              const { getGatherRounds, markGatherRound, appendGatherHistory } = await import('../gather-state.ts')
+              const sessionKey = runtime.sessionId ?? 'default'
+              const currentRounds = getGatherRounds(sessionKey)
+              const maxRounds = runtime.gatherMaxRounds
+              if (currentRounds >= maxRounds) {
+                // 关键决策点：超过最大轮次，不再抛中断（避免无限循环）
+                // 给 LLM 一个明确的 error 反馈，让它转用 submit_requirements 提交 best-effort 结果
+                const errMsg = `已达到最大询问轮次 ${maxRounds}，禁止继续 ask_user。请直接调用 plan_tasks 提交任务计划（必填字段缺失时用合理默认值填充，并在 description 中注明）。`
+                toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
+                hasToolError = true
+                messages.push({
+                  role: 'tool',
+                  tool_call_id: mappedToolCallId,
+                  content: JSON.stringify({ error: errMsg, success: false })
+                })
+                runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: errMsg }, status: 'failed' }, timestamp: Date.now() })
+                break
+              }
+              // 正常路径：计数 +1 → 追加历史 → 发 user_prompt → 抛 AskUserInterrupt
+              markGatherRound(sessionKey)
+              appendGatherHistory(sessionKey, question)
+              const options = Array.isArray(event.input?.options) ? event.input.options : undefined
+              runtime.emitEvent({
+                mode: 'updates',
+                event: {
+                  nodeId,
+                  output: { type: 'user_prompt', taskId: event.toolName, question, options },
+                  status: 'running'
+                },
+                timestamp: Date.now()
+              })
+              throw new AskUserInterrupt(event.toolName, question, options)
+            }
+
+            // 关键决策点：校验 LLM 输出的工具名是否在 allowedTools 白名单内
+            // LLM 可能幻觉调用不在白名单中的工具（如 modify_and_write_cells 节点幻觉调 read_cells），
+            // 必须拦截并返回错误，否则会以错误参数执行导致死循环
+            if (options.allowedTools.length > 0 && !options.allowedTools.includes(event.toolName)) {
+              const errMsg = `工具 ${event.toolName} 不在当前步骤的允许列表 [${options.allowedTools.join(', ')}] 中，禁止调用。请只使用允许的工具。`
+              toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
+              hasToolError = true
+              messages.push({
+                role: 'assistant',
+                tool_calls: [{
+                  id: mappedToolCallId,
+                  type: 'function',
+                  function: { name: event.toolName, arguments: JSON.stringify(event.input) }
+                }]
+              })
+              messages.push({
+                role: 'tool',
+                tool_call_id: mappedToolCallId,
+                content: JSON.stringify({ error: errMsg, success: false, message: errMsg })
+              })
+              runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: errMsg }, status: 'failed' }, timestamp: Date.now() })
+              break
+            }
+
             runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_call', toolCallId: mappedToolCallId, toolName: event.toolName, input: event.input }, status: 'running' }, timestamp: Date.now() })
+            // DEBUG: 打印 LLM 调用工具的完整参数（便于排查 planner 输出空任务等问题）
+            console.log(`[llm-decide] node=${nodeId} tool_call name=${event.toolName} input=${JSON.stringify(event.input)}`)
             try {
               const result = await runtime.toolRegistry.executeTool(event.toolName, event.input)
 
@@ -198,6 +286,18 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
             } catch (err: any) {
               runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: err.message }, status: 'running' }, timestamp: Date.now() })
               toolResults[event.toolName] = { error: err.message }
+              // 关键决策点：catch 路径也要把 error 写进 accumulatedResult，
+              // 否则下游节点（planner 的 collect_plan）读 state.taskResults['plan_tasks'] 拿不到任何值，
+              // 会报"Planner 未调用 plan_tasks 工具"（误导，实际情况是工具返回了 error）
+              if (options.resultKey) {
+                if (!accumulatedResult) accumulatedResult = {}
+                if (options.resultKeyAsObject) {
+                  accumulatedResult[event.toolName] = { error: err.message }
+                } else {
+                  accumulatedResult[event.toolName] = { error: err.message }
+                }
+              }
+              hasToolError = true
               messages.push({
                 role: 'tool',
                 tool_call_id: mappedToolCallId,
@@ -208,24 +308,38 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
           }
 
           case 'done': {
-            if (!hasToolCall && hasRequiredTools && iteration < maxIterations) {
+            // 关键决策点：触发"系统强制重试"的条件从 `!hasToolCall` 扩到 `!hasToolCall || hasToolError`
+            // 当 LLM 调了工具但拿到 error（参数非法、抛异常等），必须再给一次带错误 hint 的机会，
+            // 否则整个节点会以"必需工具未执行"失败（误导）
+            if ((!hasToolCall || hasToolError) && hasRequiredTools && iteration < maxIterations) {
               const requiredAny = options.requiredToolResultsAny ?? []
               const requiredAll = options.requiredToolResults ?? []
               const requiredHint = [
                 ...requiredAll.map(t => `必须调: ${t}`),
                 ...(requiredAny.length > 0 ? [`必须调任一: ${requiredAny.join(' / ')}`] : [])
               ].join('；')
+              // 关键决策点：把工具返回的 error 拼成 hint 喂回给 LLM
+              const errorHints = Object.entries(toolResults)
+                .filter(([_, r]) => r?.error)
+                .map(([name, r]) => `${name}: ${r!.error}`)
+                .join('；')
+              const errorPart = hasToolError && errorHints
+                ? `【上轮错误】${errorHints}\n请按错误信息修正后重新调用。\n`
+                : ''
               messages.push({
                 role: 'user',
                 content:
-                  `【系统强制提示】你刚才没有调用必需工具，本步骤会失败。\n` +
+                  `【系统强制提示】你刚才没有成功调用必需工具，本步骤会失败。\n` +
+                  errorPart +
                   `你必须：${requiredHint}。\n` +
                   `请使用 OpenAI 原生 function calling 格式输出 tool_calls，**不要**把工具调用写到文本 content 里（不要用 \`\`\`json {"tool": ...} \`\`\` 这种格式）。\n` +
                   `立即重新调用必需工具。`
               })
+              // 重置 hasToolError，避免下一轮 done 仍带同样的 hint 反复重试
+              hasToolError = false
               break
             }
-            if (requiredToolsSatisfied || !hasToolCall) iteration = maxIterations
+            if (requiredToolsSatisfied || (!hasToolCall && !hasToolError)) iteration = maxIterations
             break
           }
 
@@ -240,8 +354,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     const missingTools = checkRequiredTools(options, toolResults)
     const missingAny = checkRequiredToolsAny(options, toolResults)
     if (missingTools.length > 0 || missingAny.length > 0) {
-      // 关键决策点日志：诊断 LLM 没调必需工具时实际输出内容
-      console.log(`[llm-decide] node=${nodeId} 必需工具未执行 toolResultsKeys=${JSON.stringify(Object.keys(toolResults))} assistantContent前200字=${assistantContent.slice(0, 200)}`)
+      console.warn(`[llm-decide] node=${nodeId} 必需工具未执行: toolResults=${Object.keys(toolResults).join(',')} lastCall=${JSON.stringify(lastAssistantToolCalls)}`)
       const reasons = [
         ...missingTools.map(t => `缺少: ${t}`),
         ...missingAny.map(t => `缺少任一: ${t}`)
@@ -325,6 +438,12 @@ function buildMessages(options: LLMDecideNodeOptions, state: ReportState, memory
     }
   }
   const userMessage = state.userMessage + knowledgeBlock + buildWorkflowStateContext(state as any) + stepContext
+
+  // DEBUG: 打印 LLM 实际收到的完整消息（便于排查 planner 输出空任务等问题）
+  console.log(`[llm-decide] node=${options.nodeId} userMessage length=${userMessage.length} preview=${userMessage.substring(0, 500)}`)
+  if (state.requirements) {
+    console.log(`[llm-decide] node=${options.nodeId} requirements=${JSON.stringify(state.requirements)}`)
+  }
 
   return [...history, { role: 'user', content: userMessage }]
 }

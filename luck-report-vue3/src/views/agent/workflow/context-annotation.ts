@@ -35,6 +35,8 @@ export const WorkflowRuntimeAnnotation = Annotation.Root({
   signal: Annotation<AbortSignal | undefined>(),
   /** 工具确认回调 */
   onToolConfirm: Annotation<((toolCall: any) => Promise<boolean>) | undefined>(),
+  /** ask_user 任务触发时的用户输入回调 */
+  onUserPrompt: Annotation<((prompt: any) => Promise<string>) | undefined>(),
   /** 流事件发射回调（注意：建议使用 runtime.emitEvent 而非 config.writer，详见 runtime-bridge.ts） */
   onEvent: Annotation<((event: any) => void) | undefined>(),
   /** 会话ID */

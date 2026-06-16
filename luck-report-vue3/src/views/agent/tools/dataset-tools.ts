@@ -339,3 +339,38 @@ export const parseFilterConditionsTool: ToolDefinition<{
   requireConfirm: false
 }
 
+/**
+ * 提交数据集工具（build_dataset 节点专用）
+ * LLM 在 build_dataset 步骤中调用此工具，传入最终组装的数据集对象
+ * 透传到 state.dataset.commit_dataset，供 build_dataset 节点读取
+ */
+export const commitDatasetTool: ToolDefinition<{
+  dataset: Record<string, any>
+}> = {
+  name: 'commit_dataset',
+  description: `提交最终组装的数据集对象。build_dataset 步骤必须调用此工具完成提交。
+【必填】dataset：完整的数据集对象，至少包含 name、sql、fields（数组）、parameters（数组，可空）字段。`,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      dataset: {
+        type: 'object',
+        description: '完整的数据集定义',
+        properties: {
+          name: { type: 'string', description: '数据集名称' },
+          sql: { type: 'string', description: '数据集 SQL 语句' },
+          fields: { type: 'array', description: '数据集字段列表（来自 build_fields 工具的返回）' },
+          parameters: { type: 'array', description: 'SQL 参数列表（来自筛选条件）' }
+        },
+        required: ['name', 'sql', 'fields']
+      }
+    },
+    required: ['dataset']
+  },
+  execute: async (input) => {
+    return { dataset: input?.dataset ?? {} }
+  },
+  readOnly: false,
+  requireConfirm: false
+}
+

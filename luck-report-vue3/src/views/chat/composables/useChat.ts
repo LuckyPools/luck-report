@@ -29,6 +29,7 @@ export function useChat() {
     historyType,
     historyCount,
     pendingConfirmToolCall,
+    awaitingUserPrompt,
     currentSessionId
   } = storeToRefs(store)
 
@@ -275,6 +276,12 @@ export function useChat() {
         break
       }
 
+      case 'user_prompt': {
+        // 不再单独处理 user_prompt 事件 — 等 done(reason='awaiting_user') 一次性处理
+        // 避免重复设置 awaitingUserPrompt
+        break
+      }
+
       case 'done': {
         cancelRaf()
         responseMessage.value = rawContent
@@ -286,8 +293,27 @@ export function useChat() {
         rawReasoning = ''
         responseMessage.value = ''
         responseReasoning.value = ''
-        responseStatus.value = 'done'
         abortController = null
+
+        if (event.reason === 'awaiting_user') {
+          // ask_user 中断：把 question 写入 awaitingUserPrompt，UI 在输入框上方显示提示
+          // 不把 responseStatus 设为 done，保持 pending 状态以禁用发送按钮
+          responseStatus.value = 'awaiting_user'
+          if (event.prompt) {
+            awaitingUserPrompt.value = {
+              taskId: event.prompt.taskId,
+              question: event.prompt.question,
+              options: event.prompt.options
+            }
+          }
+          // 持久化当前消息（保留已生成的 assistant 文本/工具记录）
+          store.persistMessages().catch(e => {
+            console.warn('[useChat] ask_user 中断后消息持久化失败:', e)
+          })
+          break
+        }
+
+        responseStatus.value = 'done'
 
         if (event.reason === 'error') {
           const errorMessage: Message = {
@@ -333,6 +359,9 @@ export function useChat() {
         if (rawContent || rawReasoning) {
           messageList.value.push(buildAssistantMessage(rawContent, rawReasoning))
         }
+        if (responseStatus.value !== 'awaiting_user') {
+          responseStatus.value = 'done'
+        }
       } else {
         const errorMessage: Message = {
           id: Date.now(),
@@ -346,7 +375,11 @@ export function useChat() {
         messageList.value.push(errorMessage)
       }
     } finally {
-      responseStatus.value = 'done'
+      // 关键：awaiting_user 状态下保持 pending-like 行为（让 InputArea 仍可发送）
+      // 这里不重置 responseStatus，由 done 事件决定最终值
+      if (responseStatus.value !== 'awaiting_user') {
+        responseStatus.value = 'done'
+      }
       responseMessage.value = ''
       responseReasoning.value = ''
       rawContent = ''
@@ -392,10 +425,30 @@ export function useChat() {
       }
     }
 
+    // ask_user 模式下：把用户当前的输入作为"对问题的补充回答"，并清空 awaitingUserPrompt
+    // 不再单独发问 — 重新进入 plan/exec 完整流程，让 agent 看到完整上下文
+    const promptContext = awaitingUserPrompt.value
+    const finalContent = content.trim()
+    // 关键决策点：enrichedContent 携带"上轮 ask_user 任务 id + 显式禁止再问"提示
+    // 之前只用"【针对...】...【我的回答】..."格式，planner 看到也当成新提问，反复规划 ask_user
+    // 现在加了"上轮任务 id"和"系统提示禁止再问同样问题"，planner 才能精准判断这是回复
+    const enrichedContent = promptContext
+      ? `【上一轮 ask_user 任务】问题：${promptContext.question}\n` +
+        `【本轮用户回答】${finalContent}\n` +
+        `【系统提示】这是对上一轮 ask_user 的回复，请从"本轮用户回答"中提取参数并直接规划后续执行任务，` +
+        `禁止再次规划 ask_user 问同样的内容。` +
+        `除非"本轮用户回答"明显缺少关键字段（如只回答了"嗯"、完全不相关），` +
+        `且必须用精准单点问题（如"类型未指定，请提供 mysql 或 oracle"），不要整组再问一遍。`
+      : finalContent
+
+    if (promptContext) {
+      awaitingUserPrompt.value = null
+    }
+
     const userMessage: Message = {
       id: Date.now(),
       role: 'user',
-      content: content.trim(),
+      content: finalContent,
       createdAt: new Date(),
       type: 'text',
       attachments,
@@ -413,7 +466,7 @@ export function useChat() {
     mcpTools.value = []
     pendingConfirmToolCall.value = null
 
-    await sendMessageViaAgent(content.trim(), modelId, maxTokens)
+    await sendMessageViaAgent(enrichedContent, modelId, maxTokens)
   }
 
   /**
@@ -605,6 +658,15 @@ export function useChat() {
     pendingConfirmToolCall.value = null
   }
 
+  /**
+   * 取消 ask_user 中断（用户选择不回答，让 agent 用默认推断继续）
+   * 调用后清空 awaitingUserPrompt，触发 store 中记录的"已忽略"提示
+   */
+  const dismissUserPrompt = () => {
+    awaitingUserPrompt.value = null
+    responseStatus.value = 'done'
+  }
+
   return {
     // 从 storeToRefs 解构出的 ref，保持 .value 访问方式
     messageList,
@@ -617,6 +679,7 @@ export function useChat() {
     historyType,
     historyCount,
     pendingConfirmToolCall,
+    awaitingUserPrompt,
     currentSessionId,
 
     // 业务方法
@@ -632,6 +695,7 @@ export function useChat() {
     setHistoryCount,
     confirmAgentTool,
     rejectAgentTool,
+    dismissUserPrompt,
     removeCurrentSession,
     loadSession,
     getFilteredMessages,

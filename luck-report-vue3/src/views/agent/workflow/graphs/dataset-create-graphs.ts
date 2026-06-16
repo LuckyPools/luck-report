@@ -5,6 +5,7 @@
  * 差异化：create 从 prepare_schema 起、update 前置 load_existing_dataset；写入节点 add vs update
  *
  * 删除数据集见本文件 deleteDatasetGraph
+ * 读数据集见本文件 readDatasetsGraph（dispatcher read_datasets 动作调用）
  */
 
 import { StateGraph, START, END } from '@langchain/langgraph'
@@ -15,8 +16,8 @@ import {
 } from '../index.ts'
 import type { CompiledReportGraph } from '../index.ts'
 import { runToolWithEvent } from '../utils.ts'
+import { createToolCallNode } from '@/views/agent/workflow/nodes/tool-call-node.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
-import { modifyFormGraph } from './form-page-graphs.ts'
 import {
   buildPrepareSchemaNode,
   buildResolveDatasourceNode,
@@ -25,8 +26,7 @@ import {
   buildResolveFilterConditionsNode,
   buildBuildDatasetNode,
   buildValidateDatasetNode,
-  buildConfirmDatasetNode,
-  buildSyncFormSubgraphNode
+  buildConfirmDatasetNode
 } from './dataset-shared-builders.ts'
 
 /** 数据集操作模式：create 新建，update 修改 */
@@ -100,7 +100,8 @@ function buildWriteDatasetNode(mode: DatasetOpMode) {
  * 创建/修改数据集工作流工厂（LangGraph 版本）
  * 边序：__start__ → [load_existing_dataset?] → prepare_schema → resolve_datasource → resolve_table
  *       → fetch_dataset_template → resolve_filter_conditions → build_dataset
- *       → validate_dataset → write_dataset → confirm_dataset → sync_form_subgraph → __end__
+ *       → validate_dataset → write_dataset → confirm_dataset → __end__
+ * 注：表单同步已移至 planner 统一规划 modify_form 任务，不再由数据集子图内部处理
  * @param mode - 'create' 新建，'update' 修改
  * @returns 编译后的工作流图
  */
@@ -121,7 +122,6 @@ export function createOrUpdateDatasetGraph(mode: DatasetOpMode): CompiledReportG
     .addNode('validate_dataset', buildValidateDatasetNode())
     .addNode('write_dataset', writeNode)
     .addNode('confirm_dataset', buildConfirmDatasetNode())
-    .addNode('sync_form_subgraph', buildSyncFormSubgraphNode(modifyFormGraph))
 
   // update 模式前置 load_existing_dataset
   let startEdges = 'prepare_schema'
@@ -143,8 +143,7 @@ export function createOrUpdateDatasetGraph(mode: DatasetOpMode): CompiledReportG
     .addEdge('build_dataset', 'validate_dataset')
     .addEdge('validate_dataset', writeNodeName)
     .addEdge(writeNodeName, 'confirm_dataset')
-    .addEdge('confirm_dataset', 'sync_form_subgraph')
-    .addEdge('sync_form_subgraph', END)
+    .addEdge('confirm_dataset', END)
     .compile()
 }
 
@@ -185,6 +184,35 @@ export function deleteDatasetGraph(): CompiledReportGraph {
     .addEdge(START, 'confirm_dataset_exists')
     .addEdge('confirm_dataset_exists', 'delete_dataset_obj')
     .addEdge('delete_dataset_obj', END)
+
+  return g.compile()
+}
+
+// ==================== 读数据集子工作流 ====================
+
+/**
+ * 读数据集工作流（dispatcher read_datasets 动作调用）
+ * 单节点，调 get_datasets，结果写入 state.datasets
+ * 支持 task.params.datasourceName / name 过滤
+ */
+export function readDatasetsGraph(): CompiledReportGraph {
+  const readNode = createToolCallNode({
+    nodeId: 'read_datasets',
+    toolName: 'get_datasets',
+    args: (state) => {
+      const p = state.taskParams ?? {}
+      const args: Record<string, any> = {}
+      if (p.datasourceName) args.datasourceName = p.datasourceName
+      if (p.name) args.datasetName = p.name
+      return args
+    },
+    resultKey: 'datasets'
+  })
+
+  const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
+    .addNode('read_datasets', readNode)
+    .addEdge(START, 'read_datasets')
+    .addEdge('read_datasets', END)
 
   return g.compile()
 }

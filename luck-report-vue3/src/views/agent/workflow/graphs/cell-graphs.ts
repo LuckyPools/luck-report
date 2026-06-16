@@ -1,6 +1,7 @@
 /**
  * 单元格相关子工作流（LangGraph 版本）
  * - modifyCellGraph：read → check_and_apply_row_col → modify_and_write_cells
+ * - readCellsGraph：单节点拉取 cellsData（被 dispatcher read_cells 动作调用）
  *
  * 与自建引擎版本的差异：
  * 1. 不再 new LastValueAfterFinishChannel — channel 概念被 Annotation 取代
@@ -16,6 +17,7 @@ import {
 } from '../index.ts'
 import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/views/agent/workflow/nodes/llm-decide-node.ts'
+import { createToolCallNode } from '@/views/agent/workflow/nodes/tool-call-node.ts'
 import { runToolWithEvent } from '../utils.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 
@@ -93,14 +95,72 @@ export function modifyCellGraph(): CompiledReportGraph {
   })
 
   // 边序：__start__ → read_cells → check_and_apply_row_col → modify_and_write_cells（写入）→ __end__
+  // 关键决策点：当 Dispatcher 已执行 read_cells 任务时，state.cellsData 已有数据，
+  // 此时跳过内部 read_cells 节点，直接进入 check_and_apply_row_col，避免冗余读取
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('read_cells', readCells)
     .addNode('check_and_apply_row_col', checkAndApplyRowCol)
     .addNode('modify_and_write_cells', modifyAndWriteCellsLLM)
-    .addEdge(START, 'read_cells')
+    .addConditionalEdges(START, (state: ReportState) => {
+      const cellsData = state.cellsData
+      if (cellsData && typeof cellsData === 'object' && Object.keys(cellsData).length > 0) {
+        return 'check_and_apply_row_col'
+      }
+      return 'read_cells'
+    }, {
+      read_cells: 'read_cells',
+      check_and_apply_row_col: 'check_and_apply_row_col'
+    })
     .addEdge('read_cells', 'check_and_apply_row_col')
     .addEdge('check_and_apply_row_col', 'modify_and_write_cells')
     .addEdge('modify_and_write_cells', END)
+
+  return g.compile()
+}
+
+/**
+ * 单元格地址 → 行列坐标
+ * 支持 A1 / B2 / AA10 等 1-based 坐标，非法地址返回 null
+ * （read_cells 工具要求 cellPositionArray 形态）
+ */
+export function cellAddressToPosition(addr: string): { row: number; col: number } | null {
+  if (!addr) return null
+  const m = /^([A-Z]+)(\d+)$/i.exec(addr.trim())
+  if (!m) return null
+  const colLetters = m[1].toUpperCase()
+  let col = 0
+  for (let i = 0; i < colLetters.length; i++) {
+    col = col * 26 + (colLetters.charCodeAt(i) - 64)
+  }
+  return { row: Number(m[2]), col }
+}
+
+// ==================== 读单元格子工作流 ====================
+
+/**
+ * 读单元格工作流（dispatcher read_cells 动作调用）
+ * 单节点，调 read_cells，结果写入 state.cellsData
+ * 支持 task.params.cellAddress="A1" 或 task.params.cellAddresses=["A1","B2"]
+ */
+export function readCellsGraph(): CompiledReportGraph {
+  const readNode = createToolCallNode({
+    nodeId: 'read_cells',
+    toolName: 'read_cells',
+    args: (state) => {
+      const p = state.taskParams ?? {}
+      const addrs: string[] = Array.isArray(p.cellAddresses) ? p.cellAddresses
+        : (p.cellAddress ? [p.cellAddress] : [])
+      const positions = addrs.map(cellAddressToPosition).filter(Boolean) as Array<{ row: number; col: number }>
+      if (positions.length === 0) return {} // 空 args → 工具按需返回
+      return { cellPositionArray: positions }
+    },
+    resultKey: 'cellsData'
+  })
+
+  const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
+    .addNode('read_cells', readNode)
+    .addEdge(START, 'read_cells')
+    .addEdge('read_cells', END)
 
   return g.compile()
 }
