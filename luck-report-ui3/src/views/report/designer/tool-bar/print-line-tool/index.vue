@@ -52,6 +52,3 @@ function handleClick(): void {
   report.setShowPrintLine(!showPrintLine.value)
 }
 </script>
-
-<style scoped>
-</style>

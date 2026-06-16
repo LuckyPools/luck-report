@@ -11,13 +11,10 @@
           @save="handleSave"
           @error="handleError"
         />
-        <!-- 打印线：position: absolute 覆盖在设计区右侧，标识纸张右边界 -->
-        <PrintLine />
       </div>
       <!-- 右侧区域：侧边栏 -->
       <div class="right-part">
         <ResourcePanel ref="sidePanel" :selectedCells="selectedCells" />
-        <AiIframe :defaultVisible="true" ref="aiIframe" />
       </div>
     </div>
   </div>
@@ -35,7 +32,8 @@
  * 迁移说明：
  * - 子组件（TopToolBar / ContentTable / ResourcePanel / AiIframe）已完成 vue3 迁移，
  *   全部回挂并启用
- * - 第三方样式（handsontable / codemirror / designer/tree.css）随子组件一起放开
+ * - 第三方样式（handsontable / designer/tree.css）随子组件一起放开
+ * - CodeMirror 已从 v5 升级到 v6，CSS 由 <CodeMirror> 组件自身按需引入，不再在此处手动 import
  *
  * 类型说明：
  * - 保留 lang="ts" 以便后续接入完整 TS 类型检查
@@ -51,18 +49,13 @@ import { useRouter } from 'vue-router'
 
 // 第三方样式
 import 'handsontable/dist/handsontable.min.css'
-import 'codemirror/lib/codemirror.css'
-import 'codemirror/addon/hint/show-hint.css'
-import 'codemirror/addon/lint/lint.css'
 import '../../../assets/css/designer/tree.css'
-import 'codemirror/mode/javascript/javascript.js'
 
 // 子组件
 import ContentTable from '@/views/report/designer/edit-table/index.vue'
 import PrintLine from '@/views/report/designer/print-line/index.vue'
 import ResourcePanel from '@/views/report/designer/resource-panel/index.vue'
 import TopToolBar from '@/views/report/designer/tool-bar/index.vue'
-import AiIframe from '@/views/report/designer/ai-iframe/index.vue'
 import { getUrlSearchParams } from '@/utils/url'
 import { setLocale } from '@/locales'
 

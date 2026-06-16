@@ -75,6 +75,20 @@ const pagingLine = ref<number>(0)
 
 const pagingPositionOptions = ref<{ value: string; label: string }[]>([])
 
+/**
+ * 加载分页属性
+ */
+const loadPagingProperties = (paging?: Paging | null): void => {
+  pagingBreakChecked.value = !!paging
+  if (pagingBreakChecked.value) {
+    pagingPosition.value = paging?.position || 'after'
+    pagingLine.value = (paging?.line as number) || 0
+  } else {
+    pagingPosition.value = 'after'
+    pagingLine.value = 0
+  }
+}
+
 onMounted(() => {
   pagingPositionOptions.value = configOptions.getPagingPositionOptions()
 })
@@ -86,17 +100,6 @@ watch(
   },
   { immediate: true, deep: true }
 )
-
-const loadPagingProperties = (paging?: Paging | null): void => {
-  pagingBreakChecked.value = !!paging
-  if (pagingBreakChecked.value) {
-    pagingPosition.value = paging?.position || 'after'
-    pagingLine.value = (paging?.line as number) || 0
-  } else {
-    pagingPosition.value = 'after'
-    pagingLine.value = 0
-  }
-}
 
 const onPagingBreakChange = (): void => {
   emit('paging-change', {

@@ -18,6 +18,7 @@
 import { createApp, type App, type ComponentPublicInstance } from 'vue'
 import CrossTabWidgetVue from './index.vue'
 import TableManager from '../manager'
+import i18n from '@/locales'
 import type { HandsontableInstance } from '@/types/handsontable'
 import type { ReportContext } from '@/types/report-def'
 
@@ -117,13 +118,14 @@ export default class CrossTabWidget {
     this.container = document.createElement('div')
     td.appendChild(this.container)
 
-    // 启动 Vue3 子应用
+    // 启动 Vue3 子应用（需注册 i18n，否则组件内 useI18n 会报错）
     this.vueInstance = createApp(CrossTabWidgetVue, {
       context: this.context,
       rowIndex: this.rowIndex,
       colIndex: this.colIndex,
       value: this.value
     } as CrossTabWidgetProps)
+    this.vueInstance.use(i18n)
     // mount() 返回组件代理，defineExpose 暴露的方法挂载在代理上
     this.exposed = this.vueInstance.mount(this.container) as unknown as ExposedCrossTabWidget
   }

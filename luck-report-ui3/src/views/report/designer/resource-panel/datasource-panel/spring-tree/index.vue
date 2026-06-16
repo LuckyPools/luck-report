@@ -117,8 +117,7 @@
  */
 import { ref, reactive, onMounted } from 'vue'
 import { v1 as uuidv1 } from 'uuid'
-import { showAlert, showConfirm } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, showConfirm, deepCopy } from '@/utils/comnon'
 import BeanMethodDialog from '@/views/report/designer/resource-panel/datasource-panel/bean-method-dialog/index.vue'
 import SpringDialog from '@/views/report/designer/resource-panel/datasource-panel/spring-dialog/index.vue'
 import FieldNameDialog from '../field-name-dialog/index.vue'

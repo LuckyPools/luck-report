@@ -38,6 +38,3 @@ const { t } = useI18n()
 /** 弹窗显示状态 */
 const visible = ref<boolean>(false)
 </script>
-
-<style scoped>
-</style>

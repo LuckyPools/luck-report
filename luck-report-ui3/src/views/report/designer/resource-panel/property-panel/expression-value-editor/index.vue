@@ -1,5 +1,5 @@
 <template>
-  <div class="expression-value-editor" ref="container">
+  <div class="expression-value-editor" ref="containerRef">
     <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
 
       <div class="property-quote">
@@ -64,13 +64,13 @@
       <a-form-item class="property-label" :label="t('property.expr.expr')">
       </a-form-item>
       <div>
-        <textarea ref="codeEditor"></textarea>
+        <CodeMirror v-model="codeValue" :basic-setup="true" :height="160" />
       </div>
     </a-form>
 
     <!-- 条件属性对话框 -->
     <PropertyConditionDialog
-      ref="propertyConditionDialog"
+      ref="propertyConditionDialogRef"
       v-model:visible="propertyConditionDialogVisible"
       :fields="[]"
       :condition-groups="conditionGroups"
@@ -95,17 +95,15 @@
  * - this.$refs.codeEditor → ref<HTMLTextAreaElement | null>(null)
  * - this.$nextTick → nextTick
  * - Vuex mapGetters/mapActions → useReportStore (Pinia)
- * - CodeMirror 实例统一存到 ref，beforeUnmount 钩子用 onBeforeUnmount
- * - scriptValidation API 沿用
+ * - CodeMirror 5 → 6，封装为 <CodeMirror> 响应式组件
+ * - 自定义表达式（ds.field / cell("A1") 等）非严格 JS 语法，
+ *   故不引入 @codemirror/lang-javascript 等语言包，避免误报
+ *   （如需语法校验可重新接 scriptValidation API）
  */
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import CodeMirror from 'codemirror'
-import 'codemirror/addon/hint/show-hint.js'
-import 'codemirror/addon/lint/lint.js'
+import { ref, computed, watch, nextTick } from 'vue'
+import CodeMirror from '@/components/code-mirror/index.vue'
 import { setDirty } from '@/utils/table'
-import { scriptValidation } from '@/api/designer'
 import PropertyConditionDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/index.vue'
-import { showAlert } from '@/utils/comnon'
 import { deepCopy } from '@/utils/comnon'
 import { getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
@@ -144,15 +142,13 @@ const props = withDefaults(
 const reportStore = useReportStore()
 
 // ====== 状态 ======
-const codeMirror = ref<any>(null)
-const initialized = ref<boolean>(false)
+const codeValue = ref<string>('')
 const wrapCompute = ref<string>('default')
 const expand = ref<string>('None')
 const format = ref<string>('')
 const loadingCellData = ref<boolean>(false)
 const propertyConditionDialogVisible = ref<boolean>(false)
 const conditionGroups = ref<any[]>([])
-const codeEditorRef = ref<HTMLTextAreaElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 const propertyConditionDialogRef = ref<InstanceType<typeof PropertyConditionDialog> | null>(null)
 
@@ -200,111 +196,29 @@ const formatSuggestionOptions = computed<AutoCompleteOption[]>(() =>
   formatSuggestionList.map((s) => ({ value: s, label: s }))
 )
 
-/** 构建 CodeMirror 脚本校验函数 */
-const buildScriptLintFunction = () => {
-  return async (text: string, updateLinting: any, options: any, editor: any) => {
-    if (text === '') {
-      updateLinting(editor, [])
-      return
-    }
-    if (!text || text === '') {
-      return
-    }
-
-    try {
-      const result = await scriptValidation(text)
-      if (result) {
-        for (const item of result) {
-          item.from = { line: item.line - 1 }
-          item.to = { line: item.line - 1 }
-        }
-        updateLinting(editor, result)
-      } else {
-        updateLinting(editor, [])
-      }
-    } catch (error) {
-      console.error('Script validation error:', error)
-      showAlert(t('property.base.syntaxError'))
-    }
-  }
-}
-
-/** 初始化 CodeMirror */
-const initCodeEditor = (): void => {
-  const textarea = codeEditorRef.value
-  if (!textarea) return
-
-  codeMirror.value = CodeMirror.fromTextArea(textarea, {
-    mode: 'javascript',
-    lineNumbers: true,
-    gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-    lint: {
-      getAnnotations: buildScriptLintFunction(),
-      async: true
-    },
-    lineWrapping: true,
-    viewportMargin: Infinity,
-    indentWithTabs: false,
-    tabSize: 2,
-    smartIndent: true,
-    cursorScrollMargin: 10
-  })
-
-  nextTick(() => {
-    if (codeMirror.value) {
-      codeMirror.value.refresh()
-    }
-  })
-  codeMirror.value.setSize('auto', '160px')
-
-  codeMirror.value.on('change', (cm: any) => {
-    if (loadingCellData.value) return
-    const expr = cm.getValue()
-    if (expr === 'undefined' || expr === undefined || expr === null) {
-      return
-    }
-    const cellDef = getCell(props.rowIndex, props.colIndex)
-    if (cellDef && cellDef.value) {
-      const newCellDef = deepCopy(cellDef)
-      newCellDef.value.value = expr
-      setCell(props.rowIndex, props.colIndex, newCellDef)
-    }
-    const hot = TableManager.get()
-    if (hot) {
-      hot.setDataAtCell(props.rowIndex, props.colIndex, expr)
-    }
-    setDirty()
-  })
-
-  // 初始化后再加载数据
-  loadCellData()
-}
-
-/** 加载单元格数据 */
+/** 从单元格同步数据到 UI */
 const loadCellData = (): void => {
   loadingCellData.value = true
 
   const cellDef = getCell(props.rowIndex, props.colIndex)
 
-  // 编辑器已初始化 → 立即设置值
-  if (codeMirror.value && cellDef && cellDef.value) {
-    let valueToSet = cellDef.value.value || ''
+  let valueToSet = ''
+  if (cellDef && cellDef.value) {
+    valueToSet = cellDef.value.value || ''
     if (valueToSet === 'undefined') {
       valueToSet = ''
     }
-    codeMirror.value.setValue(valueToSet)
   }
+  codeValue.value = valueToSet
 
   if (cellDef && cellDef.expand) {
     expand.value = cellDef.expand
   }
-
   if (cellDef && cellDef.cellStyle && cellDef.cellStyle.format) {
     format.value = cellDef.cellStyle.format
   } else {
     format.value = ''
   }
-
   if (cellDef && cellDef.cellStyle && cellDef.cellStyle.wrapCompute) {
     wrapCompute.value = 'default'
   } else {
@@ -312,15 +226,30 @@ const loadCellData = (): void => {
   }
 
   nextTick(() => {
-    initialized.value = true
-    if (!codeMirror.value) {
-      initCodeEditor()
-    } else {
-      codeMirror.value.refresh()
-    }
     loadingCellData.value = false
   })
 }
+
+// 编辑器内容变化 → 写回 cellDef + 表格
+const handleCodeChange = (value: string): void => {
+  if (loadingCellData.value) return
+  if (value === 'undefined' || value === undefined || value === null) return
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.value) {
+    const newCellDef = deepCopy(cellDef)
+    newCellDef.value.value = value
+    setCell(props.rowIndex, props.colIndex, newCellDef)
+  }
+  const hot = TableManager.get()
+  if (hot) {
+    hot.setDataAtCell(props.rowIndex, props.colIndex, value)
+  }
+  setDirty()
+}
+
+watch(codeValue, (val) => {
+  handleCodeChange(val)
+})
 
 watch(cellPosition, () => {
   loadCellData()
@@ -333,17 +262,11 @@ watch(isCellUpdate, (newVal) => {
   }
 })
 
-onBeforeUnmount(() => {
-  if (codeMirror.value) {
-    codeMirror.value.toTextArea()
-    codeMirror.value = null
-  }
-})
-
-const handleExpandChange = (val: string): void => {
+const handleExpandChange = (): void => {
+  // a-radio-group 的 @change 传的是 event 对象，v-model 已把新值同步到 expand
   const hot = TableManager.get()
   if (!hot) return
-  expand.value = val
+  const expandValue = expand.value
   for (let i = props.rowIndex; i <= props.row2Index; i++) {
     for (let j = props.colIndex; j <= props.col2Index; j++) {
       const cellDef = getCell(i, j)
@@ -352,7 +275,7 @@ const handleExpandChange = (val: string): void => {
       const type = cellDef.value?.type
       if (type === 'dataset' || type === 'expression') {
         const newCellDef = deepCopy(cellDef)
-        newCellDef.expand = val
+        newCellDef.expand = expandValue
         setCell(i, j, newCellDef)
       }
     }

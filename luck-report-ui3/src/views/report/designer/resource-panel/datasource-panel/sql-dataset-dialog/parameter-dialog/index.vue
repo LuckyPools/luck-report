@@ -3,7 +3,7 @@
     :title="t('dialog.sqlParam.title')"
     :width="500"
     :open="visible"
-    :zIndex="20000"
+    :zIndex="21000"
     @cancel="handleClose"
   >
     <a-form

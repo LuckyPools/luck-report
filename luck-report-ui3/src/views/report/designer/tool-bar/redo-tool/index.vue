@@ -40,6 +40,3 @@ function handleClick(): void {
   }
 }
 </script>
-
-<style scoped>
-</style>

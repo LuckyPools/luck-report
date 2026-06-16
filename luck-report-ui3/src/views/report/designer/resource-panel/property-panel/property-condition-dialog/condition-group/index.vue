@@ -1,22 +1,19 @@
 <template>
   <div>
-    <div>
+    <div class="top-button">
       <a-button
-          type="primary"
           :title="t('dialog.propCondition.addGroup')"
           @click="addGroup"
       >
         <template #icon><i class="iconfont icon-plus-circle"></i></template>
       </a-button>
       <a-button
-          type="primary"
           :title="t('dialog.propCondition.editGroup')"
           @click="editGroup"
       >
         <template #icon><i class="iconfont icon-edit"></i></template>
       </a-button>
       <a-button
-          type="primary"
           :title="t('dialog.propCondition.delGroup')"
           @click="deleteGroup"
       >
@@ -25,19 +22,28 @@
     </div>
 
     <div style="margin-top: 10px;">
-      <a-select
-        v-model:value="localSelectedGroupIndex"
-        class="group-select"
-        :options="groupOptions"
-        :field-names="{ label: 'name', value: 'value' }"
-        style="width: 100%"
-      />
+      <a-list
+        class="group-list"
+        bordered
+        :pagination="false"
+      >
+        <a-list-item
+          v-for="(group, index) in conditionGroups"
+          :key="group.id || index"
+          :class="['list-item', { 'list-item-active': localSelectedGroupIndex === index }]"
+          @click="handleItemClick(index)"
+        >
+          {{ group.name || `Group ${index + 1}` }}
+        </a-list-item>
+      </a-list>
     </div>
 
     <ConditionGroupDialog
       v-model:visible="dialogVisible"
-      :condition-items="currentConditionGroup?.conditions || []"
-      @save="handleSaveAfter"
+      :condition-group="currentConditionGroup"
+      :operation="currentOperation"
+      :condition-groups="conditionGroups"
+      @saveAfter="handleSaveAfter"
     />
   </div>
 </template>
@@ -49,11 +55,11 @@
  * 迁移说明：
  * - Options API → vue3 <script setup>
  * - u-button（自定义）→ a-button
- * - 原生 <select> → a-select
+ * - 原生 <select> → a-list（可点击选择 + 顶部按钮操作）
  * - 子弹窗使用 v-model:visible 双向绑定
  * - 移除 Vuex（getContext 未使用）
  */
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { showAlert, showConfirm } from '@/utils/comnon'
 import { setDirty } from '@/utils/table'
 import ConditionGroupDialog from '../condition-group-dialog/index.vue'
@@ -92,20 +98,7 @@ const emit = defineEmits<{
 const localSelectedGroupIndex = ref<number>(-1)
 const dialogVisible = ref<boolean>(false)
 const currentConditionGroup = ref<ConditionGroup | null>(null)
-const currentOperation = ref<string>('add')
-
-const groupOptions = ref<{ value: number; name: string }[]>([])
-
-watch(
-  () => props.conditionGroups,
-  () => {
-    groupOptions.value = props.conditionGroups.map((group, index) => ({
-      value: index,
-      name: group.name || `Group ${index + 1}`
-    }))
-  },
-  { immediate: true, deep: true }
-)
+const currentOperation = ref<'add' | 'edit'>('add')
 
 watch(
   () => props.selectedGroupIndex,
@@ -122,9 +115,9 @@ watch(
   { immediate: true }
 )
 
-watch(localSelectedGroupIndex, (newVal) => {
-  emit('group-index-changed', newVal)
-})
+const handleItemClick = (index: number): void => {
+  emit('group-index-changed', index)
+}
 
 const addGroup = (): void => {
   currentConditionGroup.value = { name: '', conditions: [] }
@@ -158,33 +151,49 @@ const deleteGroup = (): void => {
   })
 }
 
-const handleSaveAfter = (conditionItems: Array<{ name?: string }>): void => {
-  if (currentOperation.value === 'add') {
-    if (!currentConditionGroup.value) {
-      currentConditionGroup.value = { name: '' }
-    }
-    currentConditionGroup.value.conditions = conditionItems
-    emit('group-added', currentConditionGroup.value)
-    const newIndex = props.conditionGroups.length - 1
-    emit('group-index-changed', newIndex)
-  } else if (currentOperation.value === 'edit') {
-    if (currentConditionGroup.value) {
-      currentConditionGroup.value.conditions = conditionItems
-    }
-    emit('group-updated', localSelectedGroupIndex.value, currentConditionGroup.value!)
+const handleSaveAfter = (payload: { group: ConditionGroup; operation: 'add' | 'edit' }): void => {
+  if (payload.operation === 'add') {
+    emit('group-added', payload.group)
+    // 新增的项会被父组件追加到末尾，nextTick 后再选中
+    nextTick(() => {
+      const newIndex = props.conditionGroups.length - 1
+      emit('group-index-changed', newIndex)
+    })
+  } else if (payload.operation === 'edit') {
+    emit('group-updated', localSelectedGroupIndex.value, payload.group)
   }
-  dialogVisible.value = false
   setDirty()
 }
 </script>
 
 <style scoped>
-.button-group :deep(.ant-btn + .ant-btn) {
+.top-button {
+  display: flex;
+  justify-content: end;
+}
+
+.top-button :deep(.ant-btn + .ant-btn) {
   margin-left: 5px;
 }
 
-.group-select {
+.group-list {
   height: 400px;
-  outline: none;
+  overflow-y: auto;
+  border-radius: 4px;
+}
+
+.group-list :deep(.list-item) {
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: background-color 0.2s;
+}
+
+.group-list :deep(.list-item:hover) {
+  background-color: #f5f5f5;
+}
+
+.group-list :deep(.list-item-active) {
+  background-color: #e6f7ff;
+  color: #1890ff;
 }
 </style>

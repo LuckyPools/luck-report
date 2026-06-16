@@ -35,8 +35,7 @@
 import { ref, computed, watch } from 'vue'
 import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
 import { undoManager, setDirty } from '@/utils/table'
-import { showAlert } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
 import type { ReportCell, ReportCellStyle } from '@/types/report-def'
@@ -233,7 +232,3 @@ watch(
   { deep: true }
 )
 </script>
-
-<style scoped>
-/* 组件特定样式（如有需要在此扩展） */
-</style>

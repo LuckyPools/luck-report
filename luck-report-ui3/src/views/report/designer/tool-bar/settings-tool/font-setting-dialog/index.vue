@@ -3,7 +3,6 @@
     :title="t('dialog.fontSetting.title')"
     width="400px"
     :open="visible"
-    :z-index="20000"
     @cancel="handleClose"
     @ok="handleOk"
   >
@@ -101,6 +100,9 @@ import UColorPicker from '@/components/color-picker/index.vue';
 // 模板里用 t(...)，方法里用 this.t(...)，由 setup() 从 useI18n 注入
 export default {
   name: 'FontSettingDialog',
+  // 关闭 inheritAttrs，避免父级透传的 @ok 事件（onOk）与模板里 a-modal 的 @ok
+  // 合并成数组触发 ant-design-vue AModal 的 prop 类型检查警告
+  inheritAttrs: false,
   components: {
     UColorPicker
   },
@@ -204,6 +206,7 @@ export default {
       this.handleClose();
     },
     handleClose() {
+      console.log('[DEBUG][font-setting-dialog] handleClose emit close')
       this.$emit('close');
     }
   }

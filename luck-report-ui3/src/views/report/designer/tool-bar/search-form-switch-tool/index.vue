@@ -5,7 +5,9 @@
     class="tool-button"
     @click="visible = true"
   >
-    <i class="iconfont icon-form-design"></i>
+    <template #icon>
+      <i class="iconfont icon-form-design"></i>
+    </template>
   </a-button>
 
   <SearchFormDialog
@@ -39,10 +41,3 @@ const { t } = useI18n()
 /** 弹窗显隐状态 */
 const visible = ref<boolean>(false)
 </script>
-
-<style scoped>
-.tool-button {
-  font-size: 16px;
-  margin: 7px 0;
-}
-</style>

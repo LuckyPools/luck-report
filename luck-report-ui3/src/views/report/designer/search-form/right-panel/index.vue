@@ -9,7 +9,7 @@
     <div class="field-box">
       <div class="right-scrollbar">
         <!-- 组件属性 -->
-        <a-form v-show="currentTab === 'field' && showField" size="small" :label-width="90">
+        <a-form v-show="currentTab === 'field' && showField" size="medium" :label-width="90">
           <a-form-item v-if="activeData.changeTag" :label="t('searchForm.componentType')">
             <a-select
               v-model:value="activeData.tagIcon"
@@ -268,7 +268,7 @@
           </template>
         </a-form>
         <!-- 表单属性 -->
-        <a-form v-show="currentTab === 'form'" size="small" :label-width="90">
+        <a-form v-show="currentTab === 'form'" size="medium" :label-width="90">
           <a-form-item :label="t('searchForm.formName')">
             <a-input v-model:value="formConf.formRef" :placeholder="t('searchForm.enterFormName')" />
           </a-form-item>

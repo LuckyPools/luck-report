@@ -21,7 +21,7 @@
  * - props 通过 defineProps 声明，原 $refs.X → 模板 ref (Ref<HTMLElement | null>)
  * - 渲染逻辑、配色常量保持原样
  */
-import { defineComponent, ref, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
+import { defineComponent, ref, onMounted, onBeforeUnmount, computed, nextTick, type Ref } from 'vue'
 import { Chart, registerables, type ChartData, type ChartOptions, type ChartTypeRegistry } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { useI18n } from 'vue-i18n'
@@ -458,13 +458,19 @@ export default defineComponent({
       }
 
       if (chart.value) {
+        chart.value.stop()
         chart.value.destroy()
+        chart.value = null
       }
       chart.value = new Chart(canvas, {
         // chartType 是字符串，Chart 构造器期望 keyof ChartTypeRegistry
         type: chartType as keyof ChartTypeRegistry,
         data: data as ChartData,
-        options: options as ChartOptions
+        options: {
+          ...options as ChartOptions,
+          // 禁用动画，避免 canvas 被移除后动画更新报错
+          animation: false
+        }
       })
     }
 
@@ -476,10 +482,15 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      renderChart()
+      // 使用 nextTick 确保 DOM 完全渲染后再创建 Chart，避免 canvas 为 null
+      nextTick(() => {
+        renderChart()
+      })
     })
     onBeforeUnmount(() => {
+      // 先停止动画再销毁，避免动画更新时访问已移除的 canvas
       if (chart.value) {
+        chart.value.stop()
         chart.value.destroy()
         chart.value = null
       }

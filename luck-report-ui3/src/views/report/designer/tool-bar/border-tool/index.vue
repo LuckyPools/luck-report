@@ -46,8 +46,7 @@
 import { reactive, ref } from 'vue'
 import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
 import { undoManager, setDirty } from '@/utils/table'
-import { showAlert } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { rgbToHex } from '@/utils/color'
 import CustomBorderDialog from '@/views/report/designer/resource-panel/property-panel/custom-border-dialog/index.vue'
 import { getCell, setCell } from '@/utils/contextActions'
@@ -491,6 +490,3 @@ function updateBorderStyles(
   return oldStyle
 }
 </script>
-
-<style scoped>
-</style>

@@ -71,8 +71,9 @@ export default {
     }
   },
   methods: {
-    handlePagingModeChange(value) {
-      this.$emit('update:paper', { ...this.localPaper, pagingMode: value });
+    handlePagingModeChange() {
+      // a-radio-group 的 @change 传的是 event 对象，v-model 已把新值同步到 localPaper.pagingMode
+      this.$emit('update:paper', { ...this.localPaper, pagingMode: this.localPaper.pagingMode });
       this.$emit('paging-mode-change');
     },
     handleFixRowsChange(value) {

@@ -15,6 +15,7 @@
  */
 import { Modal, Input } from 'ant-design-vue'
 import { createApp, h, ref, type App, type VNode } from 'vue'
+import i18n from '@/locales'
 
 /** messagebox 通用选项 */
 interface MessageBoxOptions {
@@ -135,6 +136,7 @@ MessageBox.prompt = function (
         return () => contentVnode
       }
     })
+    app.use(i18n)
     app.mount(mountContainer)
 
     const inst: ModalHandle = Modal.confirm({

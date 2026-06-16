@@ -11,7 +11,6 @@ import type { ThemeConfig } from 'ant-design-vue/es/config-provider/context'
 
 defineOptions({ name: 'App' })
 
-/** 全局主题配置：修改 colorPrimary 即可统一切换所有 ant 组件的主题色 */
 const themeConfig: ThemeConfig = {
   token: {
     colorPrimary: '#00554a',
@@ -19,7 +18,10 @@ const themeConfig: ThemeConfig = {
     colorWarning: '#faad14',
     colorError: '#ff4d4f',
     colorInfo: '#1677ff',
-    borderRadius: 6
+    borderRadius: 6,
+    // 选中/激活态背景由"主色派生"改为"中性淡灰"（与老项目 USelect 风格一致）
+    colorPrimaryBg: '#f5f7fa',
+    colorPrimaryBgHover: '#eef0f4'
   }
 }
 </script>

@@ -18,6 +18,7 @@
 import { createApp, type App } from 'vue'
 import ChartWidgetVue from '@/views/report/designer/edit-table/chart-widget/index.vue'
 import chartWidgetManager from './manager'
+import i18n from '@/locales'
 import type { ReportContext } from '@/types/report-def'
 
 /**
@@ -91,12 +92,13 @@ export default class ChartWidget {
     mountPoint.className = 'test'
     this.container.appendChild(mountPoint)
 
-    // Vue3 createApp 启动子应用
+    // Vue3 createApp 启动子应用（需注册 i18n，否则组件内 useI18n 会报错）
     this.vueInstance = createApp(ChartWidgetVue, {
       context,
       rowIndex,
       colIndex
     } as ChartWidgetProps)
+    this.vueInstance.use(i18n)
     this.vueInstance.mount(mountPoint)
   }
 

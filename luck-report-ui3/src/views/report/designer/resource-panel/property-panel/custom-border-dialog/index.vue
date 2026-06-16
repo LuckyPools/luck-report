@@ -3,7 +3,6 @@
     :title="t('tools.border.customBorderLine')"
     :width="600"
     :open="visible"
-    :z-index="zIndex"
     :mask-closable="false"
     @cancel="handleClose"
   >

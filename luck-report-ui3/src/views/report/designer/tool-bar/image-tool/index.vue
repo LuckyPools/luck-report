@@ -30,8 +30,7 @@
  */
 import Handsontable from 'handsontable'
 import { buildNewCellDef, setDirty, undoManager } from '@/utils/table'
-import { showAlert } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import imageIcon from '@/assets/icons/image.svg'
 import { addCell, getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
@@ -163,6 +162,3 @@ function handleClick(): void {
   })
 }
 </script>
-
-<style scoped>
-</style>

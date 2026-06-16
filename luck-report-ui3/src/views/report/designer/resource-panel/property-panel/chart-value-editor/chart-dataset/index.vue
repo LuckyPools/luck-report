@@ -31,15 +31,11 @@
       </a-form-item>
 
       <a-form-item class="property-label" :label="t('chart.seriesProperty')">
-        <a-radio-group v-model:value="localDatasetConfig.seriesType" @change="handleSeriesTypeChange">
-          <a-radio
-            v-for="option in seriesTypeOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </a-radio>
-        </a-radio-group>
+        <a-radio-group
+          v-model:value="localDatasetConfig.seriesType"
+          :options="seriesTypeOptions"
+          @change="handleSeriesTypeChange"
+        />
       </a-form-item>
 
       <a-form-item
@@ -184,7 +180,7 @@ watch(
   () => props.datasetConfig,
   (newVal) => {
     if (newVal) {
-      localDatasetConfig.value = { ...localDatasetConfig.value, ...newVal }
+      Object.assign(localDatasetConfig.value, newVal)
     }
   },
   { deep: true, immediate: true }
@@ -205,7 +201,9 @@ const handleValuePropertyChange = (value: string): void => {
   setDirty()
 }
 
-const handleSeriesTypeChange = (value: string): void => {
+const handleSeriesTypeChange = (e: Event): void => {
+  // a-radio-group 的 @change 传的是原生 event 对象，值在 e.target.value
+  const value = (e.target as HTMLInputElement).value
   emit('series-type-change', value)
   setDirty()
 }

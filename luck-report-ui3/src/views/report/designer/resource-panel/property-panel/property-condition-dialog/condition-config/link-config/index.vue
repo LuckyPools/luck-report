@@ -95,6 +95,20 @@ const localLinkParameters = ref<UrlParameterItem[]>([])
 const urlParameterDialogVisible = ref<boolean>(false)
 const linkTargetOptions = ref<{ value: string; label: string }[]>([])
 
+/**
+ * 加载链接属性
+ */
+const loadLinkProperties = (): void => {
+  linkChecked.value = props.linkUrl != null
+  if (linkChecked.value) {
+    localLinkUrl.value = props.linkUrl || ''
+    localLinkTargetWindow.value = props.linkTargetWindow || ''
+  } else {
+    localLinkUrl.value = ''
+    localLinkTargetWindow.value = ''
+  }
+}
+
 onMounted(() => {
   linkTargetOptions.value = configOptions.getLinkTargetOptions()
 })
@@ -122,17 +136,6 @@ watch(
   },
   { immediate: true }
 )
-
-const loadLinkProperties = (): void => {
-  linkChecked.value = props.linkUrl != null
-  if (linkChecked.value) {
-    localLinkUrl.value = props.linkUrl || ''
-    localLinkTargetWindow.value = props.linkTargetWindow || ''
-  } else {
-    localLinkUrl.value = ''
-    localLinkTargetWindow.value = ''
-  }
-}
 
 const onLinkChange = (): void => {
   emit('link-change', {

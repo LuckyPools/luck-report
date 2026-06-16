@@ -21,14 +21,6 @@
                 <a-menu-item key="paging" @click="changePageEnable(true)">
                   <span>{{ t('preview.paging.pagingPreview') }}</span>
                 </a-menu-item>
-                <a-menu-divider />
-                <a-menu-item
-                  v-for="(item, index) in pageMenuItems"
-                  :key="'page-' + index"
-                  @click="item.action()"
-                >
-                  <span>{{ item.text }}</span>
-                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>

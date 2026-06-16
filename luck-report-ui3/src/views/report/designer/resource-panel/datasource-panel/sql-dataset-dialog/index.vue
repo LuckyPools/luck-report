@@ -7,7 +7,6 @@
       :style="{ top: '10vh' }"
       :zIndex="20000"
       :mask-closable="false"
-      :footer="null"
       @cancel="closeDialog"
     >
       <div class="dialog-content">
@@ -75,9 +74,8 @@
  * - $set / 数组 reactive 操作 → push / 直接赋值（vue3 响应式自动追踪）
  */
 import { ref, watch, nextTick } from 'vue'
-import { showAlert } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { setDirty } from '@/utils/table'
-import { deepCopy } from '@/utils/comnon'
 import { useReportStore } from '@/store/modules/report'
 import SearchTable from './search-table/index.vue'
 import SqlEditor from './sql-editor/index.vue'

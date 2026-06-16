@@ -27,8 +27,7 @@
  */
 import { ref, watch } from 'vue'
 import { undoManager, setDirty } from '@/utils/table'
-import { showAlert } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
 import type { ReportCell, ReportCellStyle } from '@/types/report-def'
@@ -206,38 +205,3 @@ watch(
   { deep: true }
 )
 </script>
-
-<style scoped>
-.underline-tool {
-  width: 28px;
-  height: 28px;
-  margin: 4px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 4px;
-}
-
-.underline-tool :deep(.ant-btn) {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-.underline-tool:hover :deep(.ant-btn) {
-  border-color: #d9d9d9;
-}
-
-.underline-tool.is-active :deep(.ant-btn) {
-  background-color: rgb(236, 237, 237);
-}
-
-.underline-tool .iconfont {
-  font-size: 16px;
-}
-</style>

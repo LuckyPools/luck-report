@@ -3,7 +3,6 @@
     :title="title"
     :width="500"
     :open="visible"
-    :z-index="20010"
     :mask-closable="false"
     @cancel="handleClose"
   >

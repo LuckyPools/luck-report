@@ -36,8 +36,7 @@
 import Handsontable from 'handsontable'
 import type { MenuInfo } from 'ant-design-vue/es/menu/src/interface'
 import { undoManager, setDirty } from '@/utils/table'
-import { showAlert } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
 import type { HandsontableInstance } from '@/types/handsontable'
@@ -242,11 +241,3 @@ function insertZxing(category: ZxingCategory): void {
   })
 }
 </script>
-
-<style scoped>
-.info-button {
-  font-size: 16px;
-  margin: 2px 0;
-  border: none;
-}
-</style>

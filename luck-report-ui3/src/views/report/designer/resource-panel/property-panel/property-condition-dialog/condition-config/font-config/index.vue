@@ -211,24 +211,15 @@ const fontSizeOptions = ref<{ value: string | number; label: string }[]>([])
 const yesNoOptions = ref<{ value: string; label: string }[]>([])
 const scopeOptions = ref<{ value: string; label: string }[]>([])
 
-onMounted(() => {
-  fontOptions.value = configOptions.getFontOptions() as { value: string | number; label: string }[]
-  fontSizeOptions.value = configOptions.getFontSizeOptions()
-  yesNoOptions.value = configOptions.getYesNoOptions()
-  scopeOptions.value = configOptions.getScopeOptions()
-})
-
-watch(
-  () => props.cellStyle,
-  (newVal) => {
-    loadFontProperties(newVal)
-  },
-  { immediate: true, deep: true }
-)
-
+/**
+ * 标准化布尔值
+ */
 const normalizeBool = (val: unknown): string =>
   val === true || val === 'true' ? 'true' : 'false'
 
+/**
+ * 加载字体属性
+ */
 const loadFontProperties = (cellStyle?: CellStyle | null): void => {
   if (!cellStyle) return
 
@@ -264,6 +255,21 @@ const loadFontProperties = (cellStyle?: CellStyle | null): void => {
   fontUnderline.value = fontUnderlineChecked.value ? normalizeBool(cellStyle.underline) : ''
   fontUnderlineScope.value = cellStyle.underlineScope || 'cell'
 }
+
+onMounted(() => {
+  fontOptions.value = configOptions.getFontOptions() as { value: string | number; label: string }[]
+  fontSizeOptions.value = configOptions.getFontSizeOptions()
+  yesNoOptions.value = configOptions.getYesNoOptions()
+  scopeOptions.value = configOptions.getScopeOptions()
+})
+
+watch(
+  () => props.cellStyle,
+  (newVal) => {
+    loadFontProperties(newVal)
+  },
+  { immediate: true, deep: true }
+)
 
 const onFontChange = (): void => {
   emit('font-change', {

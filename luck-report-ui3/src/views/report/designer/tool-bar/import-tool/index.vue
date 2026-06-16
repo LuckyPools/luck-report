@@ -5,7 +5,9 @@
     class="tool-button"
     @click="visible = true"
   >
-    <i class="iconfont icon-cloud-upload"></i>
+    <template #icon>
+      <i class="iconfont icon-cloud-upload"></i>
+    </template>
   </a-button>
 
   <ImportDialog
@@ -50,16 +52,8 @@ const route = useRoute()
  */
 function handleImportSuccess(): void {
   const resolved = router.resolve({
-    name: 'Designer',
-    query: route.query
+    name: 'Designer'
   })
   window.open(resolved.href, '_self')
 }
 </script>
-
-<style scoped>
-.tool-button {
-  font-size: 16px;
-  margin: 7px 0;
-}
-</style>

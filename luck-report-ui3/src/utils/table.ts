@@ -484,6 +484,12 @@ export function tableToXml(context: any): string {
                         cellXml+=`</link-parameter>`;
                     }
                 }
+                const style=pc.cellStyle;
+                if(style){
+                    cellXml+=buildCellStyle(style, true);
+                }
+                cellXml+=buildConditions(pc.conditions);
+                cellXml+=`</condition-property-item>`;
             }
             cellXml+=`</cell>`;
         }

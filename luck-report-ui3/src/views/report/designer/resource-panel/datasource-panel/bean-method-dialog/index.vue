@@ -4,6 +4,7 @@
       :title="t('dialog.bean.beanDatasetConfig')"
       :width="600"
       :open="visible"
+      :zIndex="21000"
       :mask-closable="false"
       @cancel="handleClose"
     >
@@ -26,7 +27,7 @@
               style="width: 300px"
             />
             <span class="input-group-btn">
-              <a-button type="primary" @click.prevent="selectMethod">
+              <a-button type="text" @click.prevent="selectMethod">
                 {{ t('dialog.bean.selectMethod') }}
               </a-button>
             </span>

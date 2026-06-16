@@ -125,8 +125,7 @@
  * - 子弹窗使用 v-model:visible 双向绑定
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { showAlert, showConfirm } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, showConfirm, deepCopy } from '@/utils/comnon'
 import GroupItemDialog, { type GroupItem, type GroupItemSavePayload } from '../custom-group-item-dialog/index.vue'
 import ConditionDialog, { type ConditionData } from '../condition-dialog/index.vue'
 import { useI18n } from 'vue-i18n'

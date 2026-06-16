@@ -3,7 +3,6 @@
     :title="dialogTitle"
     :width="500"
     :open="visible"
-    :z-index="10000"
     :mask-closable="false"
     @cancel="handleClose"
   >

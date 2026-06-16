@@ -3,8 +3,8 @@
     :title="t('dialog.urlParam.title')"
     :width="660"
     :open="visible"
-    :z-index="20000"
     :mask-closable="false"
+    @ok="handleClose"
     @cancel="handleClose"
   >
     <div class="dialog-content">
@@ -81,7 +81,7 @@
  * - keydown 监听从 mounted/beforeDestroy 迁移到 onMounted/onBeforeUnmount
  * - showConfirm 工具函数沿用，promise.then() 写法不变
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { showConfirm } from '@/utils/comnon'
 import URLParameterItemDialog, { type UrlParameterItem } from './url-parameter-item-dialog/index.vue'
 import { useI18n } from 'vue-i18n'
@@ -120,9 +120,9 @@ const currentParamItem = ref<UrlParameterItem | null>(null)
 const currentOperation = ref<OperationType>('add')
 
 /** 兼容入参为空的情况 */
-const displayParameters = (): UrlParameterItem[] => {
+const displayParameters = computed<UrlParameterItem[]>(() => {
   return props.parameters ?? []
-}
+})
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)

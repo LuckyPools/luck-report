@@ -36,8 +36,7 @@ import { setDirty, undoManager } from '@/utils/table'
 import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/class'
 import CrossTabWidgetManager from '@/views/report/designer/edit-table/cross-tab-widget/manager'
 import CrosstabDialog from '@/views/report/designer/tool-bar/crosstab-tool/crosstab-dialog/index.vue'
-import { showAlert } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
 import type { ReportCell, HandsontableSelectionRange } from '@/types/report-def'
@@ -201,6 +200,3 @@ watch(
   { deep: true }
 )
 </script>
-
-<style scoped>
-</style>

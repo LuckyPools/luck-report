@@ -63,7 +63,7 @@
         <a-form-item class="property-label" :label="t('property.image.expr')">
         </a-form-item>
         <div style="border: solid 1px #eeeeee;">
-          <textarea ref="codeEditor"></textarea>
+          <CodeMirror v-model="codeValue" :basic-setup="true" :height="120" />
         </div>
       </div>
     </a-form>
@@ -86,13 +86,9 @@
  * - this.$refs.codeEditor → ref<HTMLTextAreaElement | null>(null)
  * - Vuex mapGetters/mapActions → useReportStore (Pinia)
  */
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import CodeMirror from 'codemirror'
-import 'codemirror/addon/hint/show-hint.js'
-import 'codemirror/addon/lint/lint.js'
+import { ref, computed, watch, nextTick } from 'vue'
+import CodeMirror from '@/components/code-mirror/index.vue'
 import { setDirty } from '@/utils/table'
-import { scriptValidation } from '@/api/designer'
-import { showAlert } from '@/utils/comnon'
 import { deepCopy } from '@/utils/comnon'
 import { getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
@@ -126,14 +122,13 @@ const props = withDefaults(
 const reportStore = useReportStore()
 
 // ====== 状态 ======
-const codeMirror = ref<any>(null)
+const codeValue = ref<string>('')
 const loadingCellData = ref<boolean>(false)
 const width = ref<number | null>(null)
 const height = ref<number | null>(null)
 const source = ref<string>('text')
 const path = ref<string>('')
 const expand = ref<string>('None')
-const codeEditorRef = ref<HTMLTextAreaElement | null>(null)
 
 // ====== 来自 store ======
 const context = computed(() => reportStore.getContext)
@@ -153,79 +148,12 @@ const expandOptions = computed<SelectOption[]>(() => [
 
 const cellPosition = computed<string>(() => `${props.rowIndex},${props.colIndex}`)
 
-/** 构建 CodeMirror 脚本校验函数 */
-const buildScriptLintFunction = () => {
-  return async (text: string, updateLinting: any, options: any, editor: any) => {
-    if (text === '') {
-      updateLinting(editor, [])
-      return
-    }
-    if (!text || text === '') {
-      return
-    }
-
-    try {
-      const result = await scriptValidation(text)
-      if (result) {
-        for (const item of result) {
-          item.from = { line: item.line - 1 }
-          item.to = { line: item.line - 1 }
-        }
-        updateLinting(editor, result)
-      } else {
-        updateLinting(editor, [])
-      }
-    } catch (error) {
-      console.error('Script validation error:', error)
-      showAlert(t('property.base.syntaxError'))
-    }
-  }
-}
-
-/** 初始化 CodeMirror */
-const initCodeEditor = (): void => {
-  const textarea = codeEditorRef.value
-  if (!textarea) return
-
-  codeMirror.value = CodeMirror.fromTextArea(textarea, {
-    mode: 'javascript',
-    lineNumbers: true,
-    gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-    lint: {
-      getAnnotations: buildScriptLintFunction(),
-      async: true
-    }
-  })
-
-  nextTick(() => {
-    if (codeMirror.value) {
-      codeMirror.value.refresh()
-    }
-  })
-  codeMirror.value.setSize('auto', '120px')
-
-  codeMirror.value.on('change', (cm: any) => {
-    if (loadingCellData.value) return
-    const expr = cm.getValue()
-    if (expr === 'undefined' || expr === undefined || expr === null) {
-      return
-    }
-    const cellDef = getCell(props.rowIndex, props.colIndex)
-    if (cellDef && cellDef.value) {
-      const newCellDef = deepCopy(cellDef)
-      newCellDef.value.value = expr
-      setCell(props.rowIndex, props.colIndex, newCellDef)
-    }
-    setDirty()
-  })
-
-  loadCellData()
-}
-
 /** 加载单元格数据 */
 const loadCellData = (): void => {
   const currentCellDef = getCell(props.rowIndex, props.colIndex)
   if (!currentCellDef || !currentCellDef.value) return
+
+  loadingCellData.value = true
 
   width.value = currentCellDef.value.width ?? null
   height.value = currentCellDef.value.height ?? null
@@ -235,31 +163,17 @@ const loadCellData = (): void => {
   if (source.value === 'text') {
     path.value = currentCellDef.value.value || ''
   } else {
-    if (codeMirror.value) {
-      let valueToSet = currentCellDef.value.value || ''
-      if (valueToSet === 'undefined') {
-        valueToSet = ''
-      }
-      loadingCellData.value = true
-      codeMirror.value.setValue(valueToSet)
-      loadingCellData.value = false
+    let valueToSet = currentCellDef.value.value || ''
+    if (valueToSet === 'undefined') {
+      valueToSet = ''
     }
+    codeValue.value = valueToSet
   }
 
   expand.value = currentCellDef.expand || 'None'
 
   nextTick(() => {
-    if (source.value === 'expression' && !codeMirror.value) {
-      initCodeEditor()
-    } else if (source.value === 'expression' && codeMirror.value) {
-      let valueToSet = currentCellDef.value.value || ''
-      if (valueToSet === 'undefined') {
-        valueToSet = ''
-      }
-      loadingCellData.value = true
-      codeMirror.value.setValue(valueToSet)
-      loadingCellData.value = false
-    }
+    loadingCellData.value = false
   })
 }
 
@@ -274,11 +188,17 @@ watch(isCellUpdate, (newVal) => {
   }
 })
 
-onBeforeUnmount(() => {
-  if (codeMirror.value) {
-    codeMirror.value.toTextArea()
-    codeMirror.value = null
+// 编辑器内容变化 → 写回 cellDef
+watch(codeValue, (val) => {
+  if (loadingCellData.value) return
+  if (val === 'undefined' || val === undefined || val === null) return
+  const cellDef = getCell(props.rowIndex, props.colIndex)
+  if (cellDef && cellDef.value) {
+    const newCellDef = deepCopy(cellDef)
+    newCellDef.value.value = val
+    setCell(props.rowIndex, props.colIndex, newCellDef)
   }
+  setDirty()
 })
 
 const handleWidthChange = (): void => {
@@ -308,13 +228,6 @@ const handleSourceChange = (): void => {
     newCellDef.value.source = source.value
     setCell(props.rowIndex, props.colIndex, newCellDef)
   }
-
-  if (source.value === 'expression' && !codeMirror.value) {
-    nextTick(() => {
-      initCodeEditor()
-    })
-  }
-
   setDirty()
 }
 
@@ -331,10 +244,11 @@ const handlePathChange = (): void => {
   setDirty()
 }
 
-const handleExpandChange = (val: string): void => {
+const handleExpandChange = (): void => {
+  // a-radio-group 的 @change 传的是 event 对象，v-model 已把新值同步到 expand
   const hot = TableManager.get()
   if (!hot) return
-  expand.value = val
+  const expandValue = expand.value
   for (let i = props.rowIndex; i <= props.row2Index; i++) {
     for (let j = props.colIndex; j <= props.col2Index; j++) {
       const cellDef = getCell(i, j)
@@ -343,7 +257,7 @@ const handleExpandChange = (val: string): void => {
       const type = cellDef.value?.type
       if (type === 'dataset' || type === 'expression' || type === 'image') {
         const newCellDef = deepCopy(cellDef)
-        newCellDef.expand = val
+        newCellDef.expand = expandValue
         setCell(i, j, newCellDef)
       }
     }

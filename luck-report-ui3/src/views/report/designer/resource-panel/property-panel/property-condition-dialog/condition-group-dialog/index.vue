@@ -1,55 +1,26 @@
 <template>
   <a-modal
-    :title="t('dialog.conditionGroup.title')"
-    :width="800"
+    :title="title"
+    :width="500"
     :open="visible"
+    :mask-closable="false"
     @cancel="handleClose"
   >
-    <div class="condition-group-dialog">
-      <!-- 条件项管理 -->
-      <div class="condition-items">
-        <div class="button-group">
-          <a-button
-            type="primary"
-            :title="t('dialog.conditionGroup.addCondition')"
-            @click="addItem"
-          >
-            <template #icon><i class="iconfont icon-plus-circle"></i></template>
-          </a-button>
-          <a-button
-            type="primary"
-            :title="t('dialog.conditionGroup.deleteCondition')"
-            @click="deleteItem"
-          >
-            <template #icon><i class="iconfont icon-delete"></i></template>
-          </a-button>
-          <a-button
-            type="primary"
-            :title="t('dialog.conditionGroup.editCondition')"
-            @click="editItem"
-          >
-            <template #icon><i class="iconfont icon-edit"></i></template>
-          </a-button>
-        </div>
-
-        <div style="margin-top: 5px;">
-          <a-select
-            v-model:value="selectedItemIndex"
-            class="item-select"
-            :options="itemOptions"
-            :field-names="{ label: 'name', value: 'index' }"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- 子弹窗：ConditionItemDialog -->
-    <ConditionItemDialog
-      v-model:visible="conditionItemDialogVisible"
-      :condition-item="editingConditionItem"
-      :conditions="localConditionItems"
-      @saveAfter="handleConditionItemSave"
-    />
+    <a-form
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      :label-col="{ style: { width: '120px' } }"
+      :colon="false"
+    >
+      <a-form-item :label="t('dialog.conditionGroup.groupName')" name="name">
+        <a-input
+          v-model:value="formData.name"
+          :placeholder="t('dialog.conditionGroup.nameTip')"
+          @keyup.enter="handleOk"
+        />
+      </a-form-item>
+    </a-form>
 
     <template #footer>
       <a-button @click="handleClose" style="margin-right: 10px;">{{ t('dialog.common.cancel') }}</a-button>
@@ -62,156 +33,144 @@
 /**
  * ConditionGroupDialog 条件组弹窗（vue3 + TS + ant-design-vue）
  *
+ * 用途：新增 / 修改条件分组的名称（仅名称）
  * 工作流程：
- * 1. visible=true → 深拷贝 conditionItems + 默认选中第 0 项
- * 2. 用户增删改条件项 → 通过子弹窗（ConditionItemDialog）回写
- * 3. 「确定」→ emit('save', localConditionItems) + 关闭
+ * 1. visible=true → resetForm + 回填名称
+ * 2. 用户输入名称 → 「确定」→ 校验 + 重名检查 → emit('saveAfter', { group, operation })
  *
  * 迁移说明：
  * - Options API → vue3 <script setup>
- * - UDialog/UButton（自定义）→ a-modal/a-button
- * - 原生 <select> → a-select
- * - 子弹窗使用 v-model:visible 双向绑定
+ * - UDialog/UForm/UFormItem/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-input/a-button
+ * - $refs.form.validate(callback) → formRef.value.validate() Promise 化
  */
-import { ref, computed, watch } from 'vue'
-import { showAlert, showConfirm } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
-import ConditionItemDialog, { type ConditionItem } from '../condition-item-dialog/index.vue'
+import { ref, reactive, computed, watch } from 'vue'
+import type { Rule } from 'ant-design-vue/es/form'
+import { showAlert } from '@/utils/comnon'
 import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ConditionGroupDialog' })
 
 
 const { t } = useI18n()
+export interface ConditionGroup {
+  id?: string
+  name?: string
+  conditions?: unknown[]
+  [key: string]: unknown
+}
+
 const props = withDefaults(
   defineProps<{
     visible: boolean
-    conditionItems?: ConditionItem[]
+    conditionGroup?: ConditionGroup | null
+    operation?: 'add' | 'edit'
+    conditionGroups?: ConditionGroup[]
   }>(),
   {
     visible: false,
-    conditionItems: () => []
+    conditionGroup: null,
+    operation: 'add',
+    conditionGroups: () => []
   }
 )
 
 const emit = defineEmits<{
-  (e: 'save', conditionItems: ConditionItem[]): void
+  (e: 'saveAfter', payload: { group: ConditionGroup; operation: 'add' | 'edit' }): void
   (e: 'update:visible', val: boolean): void
 }>()
 
-const localConditionItems = ref<ConditionItem[]>([])
-const selectedItemIndex = ref<number | null>(null)
-const conditionItemDialogVisible = ref<boolean>(false)
-const editingConditionItem = ref<ConditionItem | null>(null)
+const formRef = ref()
+const formData = reactive({
+  name: ''
+})
 
-/** a-select options */
-const itemOptions = computed(() =>
-  localConditionItems.value.map((item, index) => ({
-    index,
-    name: item.name
-  }))
-)
+const rules: Record<string, Rule[]> = {
+  name: [
+    {
+      required: true,
+      message: t('dialog.conditionGroup.nameTip'),
+      trigger: 'blur'
+    }
+  ]
+}
+
+/** 弹窗标题根据操作类型变化 */
+const title = computed<string>(() => {
+  if (props.operation === 'add') {
+    return t('dialog.conditionGroup.add')
+  }
+  if (props.operation === 'edit') {
+    return t('dialog.conditionGroup.edit')
+  }
+  return t('dialog.conditionGroup.title')
+})
 
 watch(
   () => props.visible,
   (val) => {
     if (val) {
+      resetFormData()
       initData()
     }
   }
 )
 
-/** 初始化：深拷贝入参 + 默认选中第 0 项 */
+/** 回填：编辑时把现有名称写入表单 */
 const initData = (): void => {
-  const source = Array.isArray(props.conditionItems) ? props.conditionItems : []
-  localConditionItems.value = deepCopy(source) as ConditionItem[]
-  if (localConditionItems.value.length > 0) {
-    selectedItemIndex.value = 0
-  } else {
-    selectedItemIndex.value = null
+  formData.name = props.conditionGroup?.name || ''
+}
+
+/** 重置 a-form 校验态 */
+const resetFormData = (): void => {
+  formRef.value?.resetFields()
+}
+
+/** 异步校验表单 */
+const validateForm = async (): Promise<boolean> => {
+  try {
+    await formRef.value?.validate()
+    return true
+  } catch {
+    return false
   }
 }
 
-const handleOk = (): void => {
-  if (!Array.isArray(localConditionItems.value)) {
-    localConditionItems.value = []
+const handleOk = async (): Promise<void> => {
+  const valid = await validateForm()
+  if (!valid) {
+    return
   }
-  emit('save', localConditionItems.value)
+
+  // 重名检查：编辑时跳过自身
+  const isDuplicate = props.conditionGroups.some((item) => {
+    if (props.operation === 'edit' && item === props.conditionGroup) {
+      return false
+    }
+    return item.name === formData.name
+  })
+
+  if (isDuplicate) {
+    showAlert(t('dialog.conditionGroup.nameExists'))
+    return
+  }
+
+  const group: ConditionGroup = {
+    ...(props.conditionGroup || {}),
+    name: formData.name
+  }
+
+  emit('saveAfter', {
+    group,
+    operation: props.operation
+  })
+
   handleClose()
 }
 
 const handleClose = (): void => {
   emit('update:visible', false)
 }
-
-// ============ 条件项管理 ============
-const addItem = (): void => {
-  editingConditionItem.value = null
-  conditionItemDialogVisible.value = true
-}
-
-const deleteItem = (): void => {
-  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
-    showAlert(t('dialog.conditionGroup.deleteTip'))
-    return
-  }
-
-  const item = localConditionItems.value[selectedItemIndex.value]
-  showConfirm(`${t('dialog.conditionGroup.deleteConfirm')}[${item.name}]?`).then(() => {
-    localConditionItems.value.splice(selectedItemIndex.value!, 1)
-    selectedItemIndex.value = null
-  })
-}
-
-const editItem = (): void => {
-  if (selectedItemIndex.value === null || selectedItemIndex.value === -1) {
-    showAlert(t('dialog.conditionGroup.editTip'))
-    return
-  }
-
-  const item = localConditionItems.value[selectedItemIndex.value]
-  editingConditionItem.value = { ...item }
-  conditionItemDialogVisible.value = true
-}
-
-/** 处理子弹窗回写的条件项 */
-const handleConditionItemSave = (data: { name: string; join: string | null }): void => {
-  if (!Array.isArray(localConditionItems.value)) {
-    localConditionItems.value = []
-  }
-
-  if (editingConditionItem.value === null) {
-    // 新增
-    localConditionItems.value.push({
-      name: data.name,
-      join: data.join
-    })
-  } else if (selectedItemIndex.value !== null && selectedItemIndex.value >= 0) {
-    // 编辑
-    localConditionItems.value[selectedItemIndex.value] = {
-      name: data.name,
-      join: data.join
-    }
-  }
-}
 </script>
 
 <style scoped>
-.condition-group-dialog {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.condition-items {
-  width: 200px;
-}
-
-.item-select {
-  width: 100%;
-}
-
-.button-group :deep(.ant-btn + .ant-btn) {
-  margin-left: 5px;
-}
 </style>

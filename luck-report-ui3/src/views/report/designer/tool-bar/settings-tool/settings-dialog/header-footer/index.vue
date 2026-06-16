@@ -25,32 +25,32 @@
     <a-row style="margin-top: 5px;">
       <a-col :span="8">
         <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" :label-col="{ style: { width: '80px' } }">
-          <textarea
-            ref="leftHeader"
-            v-model="localHeader.left"
-            class="form-control editor-textarea"
+          <a-textarea
+            ref="leftHeaderRef"
+            v-model:value="localHeader.left"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
             @change="handleHeaderLeftChange"
-          ></textarea>
+          />
         </a-form-item>
       </a-col>
       <a-col :span="8">
         <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" :label-col="{ style: { width: '80px' } }">
-          <textarea
-            ref="centerHeader"
-            v-model="localHeader.center"
-            class="form-control editor-textarea"
+          <a-textarea
+            ref="centerHeaderRef"
+            v-model:value="localHeader.center"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
             @change="handleHeaderCenterChange"
-          ></textarea>
+          />
         </a-form-item>
       </a-col>
       <a-col :span="8">
         <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" :label-col="{ style: { width: '80px' } }">
-          <textarea
-            ref="rightHeader"
-            v-model="localHeader.right"
-            class="form-control editor-textarea"
+          <a-textarea
+            ref="rightHeaderRef"
+            v-model:value="localHeader.right"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
             @change="handleHeaderRightChange"
-          ></textarea>
+          />
         </a-form-item>
       </a-col>
     </a-row>
@@ -78,32 +78,32 @@
     <a-row style="margin-top: 5px;">
       <a-col :span="8">
         <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" :label-col="{ style: { width: '80px' } }">
-          <textarea
-            ref="leftFooter"
-            v-model="localFooter.left"
-            class="form-control editor-textarea"
+          <a-textarea
+            ref="leftFooterRef"
+            v-model:value="localFooter.left"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
             @change="handleFooterLeftChange"
-          ></textarea>
+          />
         </a-form-item>
       </a-col>
       <a-col :span="8">
         <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" :label-col="{ style: { width: '80px' } }">
-          <textarea
-            ref="centerFooter"
-            v-model="localFooter.center"
-            class="form-control editor-textarea"
+          <a-textarea
+            ref="centerFooterRef"
+            v-model:value="localFooter.center"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
             @change="handleFooterCenterChange"
-          ></textarea>
+          />
         </a-form-item>
       </a-col>
       <a-col :span="8">
         <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" :label-col="{ style: { width: '80px' } }">
-          <textarea
-            ref="rightFooter"
-            v-model="localFooter.right"
-            class="form-control editor-textarea"
+          <a-textarea
+            ref="rightFooterRef"
+            v-model:value="localFooter.right"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
             @change="handleFooterRightChange"
-          ></textarea>
+          />
         </a-form-item>
       </a-col>
     </a-row>
@@ -183,6 +183,7 @@ export default {
       }
     },
     handleHeaderLeftChange() {
+      console.log('[DEBUG][header-footer] handleHeaderLeftChange, localHeader=', JSON.stringify(this.localHeader))
       this.$emit('update:header', { ...this.localHeader });
       this.$emit('header-footer-change');
     },
@@ -207,11 +208,16 @@ export default {
       this.$emit('header-footer-change');
     },
     setHeaderEditorStyles() {
-      this.applyEditorStyles(this.localHeader, ['leftHeader', 'centerHeader', 'rightHeader']);
+      this.applyEditorStyles(this.localHeader, ['leftHeaderRef', 'centerHeaderRef', 'rightHeaderRef']);
     },
     setFooterEditorStyles() {
-      this.applyEditorStyles(this.localFooter, ['leftFooter', 'centerFooter', 'rightFooter']);
+      this.applyEditorStyles(this.localFooter, ['leftFooterRef', 'centerFooterRef', 'rightFooterRef']);
     },
+    /**
+     * 应用样式到 textarea 元素
+     * @param style - 样式对象
+     * @param refs - ref 名称数组
+     */
     applyEditorStyles(style, refs) {
       if (!style) return;
       const styles = {
@@ -223,7 +229,9 @@ export default {
         textDecoration: style.underline ? 'underline' : 'none'
       };
       refs.forEach(refName => {
-        const el = this.$refs[refName];
+        const componentRef = this.$refs[refName];
+        // ant design textarea 组件通过 textarea 属性获取内部 textarea 元素
+        const el = componentRef?.textarea || componentRef;
         if (el && el.style) {
           Object.keys(styles).forEach(key => {
             el.style[key] = styles[key];

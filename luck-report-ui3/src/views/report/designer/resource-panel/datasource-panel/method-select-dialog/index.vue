@@ -4,6 +4,7 @@
     :width="600"
     :open="visible"
     :style="{ top: '25vh' }"
+    :zIndex="21000"
     @cancel="closeDialog"
   >
     <div v-if="loading" class="loading-text">
@@ -77,6 +78,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'update:visible', value: boolean): void
   (e: 'save', method: string): void
 }>()
 
@@ -96,6 +98,7 @@ watch(
 /** 关闭弹窗 */
 function closeDialog(): void {
   emit('close')
+  emit('update:visible', false)
 }
 
 /** 拉取 beanId 的方法列表 */
@@ -120,6 +123,7 @@ async function loadMethodsList(): Promise<void> {
 function selectMethod(methodItem: string): void {
   emit('save', methodItem)
   emit('close')
+  emit('update:visible', false)
 }
 </script>
 

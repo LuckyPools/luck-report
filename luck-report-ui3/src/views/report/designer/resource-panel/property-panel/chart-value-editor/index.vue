@@ -51,17 +51,10 @@
  * 3. 写回 cellDef.value.chart（公共逻辑由 useChartConfig 接管）
  */
 import { ref, reactive, computed } from 'vue'
-import { useChartConfig } from './useChartConfig'
+import { useChartConfig, type ChartDataLabels, type ChartTitle, type ChartLegend, type ChartAnimation, type ChartLayout } from './useChartConfig'
 import ChartDataset from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-dataset/index.vue'
 import ChartAxis from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-axis/index.vue'
 import ChartOption from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-option/index.vue'
-import type {
-  ChartDataLabels,
-  ChartTitle,
-  ChartLegend,
-  ChartAnimation,
-  ChartLayout
-} from './useChartConfig'
 import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ChartValueEditor' })

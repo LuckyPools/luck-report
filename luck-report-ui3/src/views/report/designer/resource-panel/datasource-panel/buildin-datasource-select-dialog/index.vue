@@ -23,8 +23,7 @@
               <td><span>{{ name }}</span></td>
               <td>
                 <a-button
-                  type="primary"
-                  shape="circle"
+                  type="text"
                   @click="selectDatasource(name)"
                 >
                   <template #icon><i class="iconfont icon-hand-up"></i></template>

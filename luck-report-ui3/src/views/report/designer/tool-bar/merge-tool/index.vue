@@ -118,7 +118,3 @@ function handleClick(): void {
   setDirty()
 }
 </script>
-
-<style scoped>
-/* 按钮样式继承自父组件 */
-</style>

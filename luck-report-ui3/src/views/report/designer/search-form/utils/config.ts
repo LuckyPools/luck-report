@@ -14,7 +14,7 @@ export const formConf: FormConf = {
   formRef: 'aFormRef',
   formModel: 'formData',
   formRules: 'rules',
-  size: 'small',
+  size: 'medium',
   labelPosition: 'right',
   labelWidth: 100,
   gutter: 0,
@@ -28,7 +28,6 @@ export const vModelMap: Record<string, string> = {
   'a-input': 'value',
   'a-input-number': 'value',
   'a-select': 'value',
-  'a-cascader': 'value',
   'a-radio-group': 'value',
   'a-checkbox-group': 'value',
   'a-switch': 'checked',
@@ -40,7 +39,6 @@ export const trigger = {
   'a-input': 'blur',
   'a-input-number': 'blur',
   'a-select': 'change',
-  'a-cascader': 'change',
   'a-radio-group': 'change',
   'a-checkbox-group': 'change',
   'a-switch': 'change',
@@ -77,23 +75,6 @@ export const inputComponents: FormField[] = [
     type: 'text',
     regList: [],
     required: true,
-    document: 'https://www.antdv.com/components/input-cn'
-  },
-  {
-    __key: 'a-textarea',
-    formId: 2,
-    tag: 'a-input',
-    tagIcon: 'textarea',
-    label: '多行文本',
-    vModel: 'field2',
-    placeholder: '请输入',
-    defaultValue: undefined,
-    span: 24,
-    style: { width: '100%' },
-    type: 'textarea',
-    regList: [],
-    required: true,
-    autosize: { minRows: 4, maxRows: 4 },
     document: 'https://www.antdv.com/components/input-cn'
   },
   {
@@ -206,35 +187,6 @@ export const selectComponents: FormField[] = [
     document: 'https://www.antdv.com/components/switch-cn'
   },
   {
-    __key: 'a-cascader',
-    formId: 8,
-    tag: 'a-cascader',
-    tagIcon: 'cascader',
-    label: '级联选择',
-    vModel: 'field8',
-    placeholder: '请选择',
-    defaultValue: [],
-    span: 24,
-    style: { width: '100%' },
-    options: [
-      {
-        value: 'guide',
-        label: '指南',
-        children: [
-          { value: 'design', label: '设计' },
-          { value: 'document', label: '文档' }
-        ]
-      }
-    ],
-    'show-all-levels': true,
-    separator: '/',
-    clearable: true,
-    filterable: false,
-    regList: [],
-    required: true,
-    document: 'https://www.antdv.com/components/cascader-cn'
-  },
-  {
     __key: 'a-date-picker',
     formId: 9,
     tag: 'a-date-picker',
@@ -256,24 +208,6 @@ export const selectComponents: FormField[] = [
     regList: [],
     required: true,
     document: 'https://www.antdv.com/components/date-picker-cn'
-  },
-  {
-    __key: 'a-time-picker',
-    formId: 10,
-    tag: 'a-time-picker',
-    tagIcon: 'time',
-    label: '时间选择',
-    vModel: 'field10',
-    placeholder: '请选择',
-    defaultValue: undefined,
-    span: 24,
-    style: { width: '100%' },
-    format: 'HH:mm:ss',
-    'valueFormat': 'format',
-    clearable: true,
-    regList: [],
-    required: true,
-    document: 'https://www.antdv.com/components/time-picker-cn'
   }
 ]
 
@@ -303,7 +237,7 @@ export const layoutComponents: FormField[] = [
     tagIcon: 'button',
     label: '按钮',
     span: 24,
-    default: '按钮',
+    defaultValue: '按钮',
     type: 'primary',
     icon: '',
     size: 'small',

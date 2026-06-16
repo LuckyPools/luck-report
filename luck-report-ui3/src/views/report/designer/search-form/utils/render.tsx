@@ -31,22 +31,24 @@ import {
 import type { FormField, SelectOption as Option } from './types'
 import { makeMap } from './index'
 
-// HTML 原生 attr 白名单（参考 Vue 内部 class util），未在该集合中的字段一律走 props
-const isAttr = makeMap(
-  'accept,accept-charset,accesskey,action,align,alt,async,autocomplete,'
-  + 'autofocus,autoplay,autosave,bgcolor,border,buffered,challenge,charset,'
-  + 'checked,cite,class,code,codebase,color,cols,colspan,content,http-equiv,'
-  + 'name,contenteditable,contextmenu,controls,coords,data,datetime,default,'
-  + 'defer,dir,dirname,disabled,download,draggable,dropzone,enctype,method,for,'
-  + 'form,formaction,headers,height,hidden,high,href,hreflang,http-equiv,'
-  + 'icon,id,ismap,itemprop,keytype,kind,label,lang,language,list,loop,low,'
-  + 'manifest,max,maxlength,media,method,GET,POST,min,multiple,email,file,'
-  + 'muted,name,novalidate,open,optimum,pattern,ping,placeholder,poster,'
-  + 'preload,radiogroup,readonly,rel,required,reversed,rows,rowspan,sandbox,'
-  + 'scope,scoped,seamless,selected,shape,size,type,text,sizes,span,'
-  + 'spellcheck,src,srcdoc,srclang,srcset,start,step,style,summary,tabindex,'
-  + 'target,title,type,usemap,value,width,wrap'
-)
+// HTML 原生 attr 白名单（收紧为真正应作为 HTML attr 透传的字段）。
+// 之前白名单混入了大量 ant-design-vue 组件 prop（如 type, size, value, name, maxlength, span 等），
+// 导致 a-button type=primary / a-input-number step / a-date-picker format 等走 attrs 后失效。
+// 现在除真正 HTML attr 与 data-*/aria-* 之外，其余字段一律走 props。
+const HTML_NATIVE_ATTRS =
+  'class,style,id,title,hidden,role,tabindex,lang,dir,'
+  + 'accept,alt,autocomplete,autofocus,cite,cols,colspan,contenteditable,'
+  + 'controls,coords,datetime,default,download,for,headers,height,href,'
+  + 'hreflang,ismap,label,longdesc,manifest,maxlength,method,multiple,'
+  + 'muted,name,novalidate,open,pattern,placeholder,poster,preload,'
+  + 'readonly,rel,required,reversed,rows,rowspan,sandbox,scope,selected,'
+  + 'shape,src,srcdoc,srclang,srcset,start,target,usemap,width,wrap,'
+  + 'crossorigin,decoding,loading,referrerpolicy,sizes,as,color,'
+  + 'inputmode,enterkeyhint,autocapitalize,autocorrect,spellcheck'
+const isAttrBase = makeMap(HTML_NATIVE_ATTRS)
+function isAttr(key: string): boolean {
+  return isAttrBase(key) || key.startsWith('data-') || key.startsWith('aria-')
+}
 
 /** v-model 形式映射 */
 function vModelBind(tag: string): 'value' | 'checked' {
@@ -249,7 +251,12 @@ export default defineComponent({
           }
         }
         // a-checkbox-group / a-radio-group 的 border 在组级（checkbox） / 子项级（radio） 透传
-        if (!isAttr(key)) {
+        // 与原版 render.js 对齐：dataObject 上已存在的字段（style/on/class 等）直接挂到 dataObject 上，
+        // 避免把组件根 style 误塞进 attrs，导致 a-input/a-select 等容器宽度不生效（演示区只显示一部分）
+        const obj = dataObject as Record<string, unknown>
+        if (obj[key] !== undefined) {
+          obj[key] = val
+        } else if (!isAttr(key)) {
           dataObject.props[key] = val
         } else {
           dataObject.attrs[key] = val
@@ -257,15 +264,18 @@ export default defineComponent({
       })
 
       // v-model: 双向绑定
+      // 关键：必须改写 props.conf.defaultValue（draggable-item 中的 el），而不是 confClone.defaultValue。
+      // 否则开关/单选点击后只更新了本渲染函数内的深拷贝，组件内部 checked 状态没真正被外部更新，
+      // 下次重渲又被初始值覆盖，导致"点击没反应"。
       if (confClone.vModel !== undefined) {
         const vKey = vModelBind(confClone.tag)
         dataObject.props[vKey] = confClone.defaultValue
         dataObject.on['update:' + vKey] = (val: unknown) => {
-          confClone.defaultValue = val
+          props.conf.defaultValue = val
         }
       }
 
-      return h(component, dataObject, children)
+      return h(component, dataObject, children.length ? { default: () => children } : null)
     }
   }
 })

@@ -51,6 +51,3 @@ function handleSaveAfter(fullFile: string): void {
   window.location.replace('?reportPath=' + fullFile)
 }
 </script>
-
-<style scoped>
-</style>

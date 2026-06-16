@@ -16,7 +16,10 @@
             class="components-draggable"
             :group="{ name: 'componentsGroup', pull: 'clone', put: false }"
             :clone="cloneComponent"
+            draggable=".components-item"
             :sort="false"
+            @start="onStart"
+            @add="onAdd"
             @end="onEnd"
           >
             <div
@@ -38,7 +41,10 @@
             class="components-draggable"
             :group="{ name: 'componentsGroup', pull: 'clone', put: false }"
             :clone="cloneComponent"
+            draggable=".components-item"
             :sort="false"
+            @start="onStart"
+            @add="onAdd"
             @end="onEnd"
           >
             <div
@@ -60,7 +66,10 @@
             class="components-draggable"
             :group="{ name: 'componentsGroup', pull: 'clone', put: false }"
             :clone="cloneComponent"
+            draggable=".components-item"
             :sort="false"
+            @start="onStart"
+            @add="onAdd"
             @end="onEnd"
           >
             <div
@@ -96,7 +105,7 @@
       <div class="center-scrollbar">
         <a-row class="center-board-row" :gutter="formConf.gutter">
           <a-form
-            :size="formConf.size"
+            :size="formSize"
             :label-position="formConf.labelPosition"
             :disabled="formConf.disabled"
             :label-width="formConf.labelWidth"
@@ -106,10 +115,13 @@
               :animation="340"
               group="componentsGroup"
               class="drawing-board"
+              @start="onStart"
+              @add="onAdd"
+              @end="onEnd"
             >
               <draggable-item
                 v-for="(element, index) in drawingList"
-                :key="element.__key"
+                :key="element.renderKey"
                 :drawing-list="drawingList"
                 :element="element"
                 :index="index"
@@ -146,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import beautifier from 'js-beautify'
 import ClipboardJS from 'clipboard'
@@ -171,8 +183,7 @@ import {
   initDrawingDefaultValue,
   cleanDrawingDefaultValue
 } from './utils/drawingDefault'
-import { showAlert, showConfirm } from '@/utils/comnon'
-import { deepCopy } from '@/utils/comnon'
+import { showAlert, showConfirm, deepCopy } from '@/utils/comnon'
 import logo from '@/assets/images/form-designer/logo.png'
 
 import type { FormField, FormConf } from './utils/types'
@@ -266,17 +277,53 @@ onBeforeUnmount(() => {
 // 国际化
 const { t } = useI18n()
 
+// ant-design-vue Form size 映射：medium -> middle, mini -> small
+const formSize = computed(() => {
+  const s = formConf.size
+  if (s === 'mini') return 'small'
+  if (s === 'medium') return 'middle'
+  return s
+})
+
 function activeFormItem(element: FormField) {
   activeData.value = element
   activeId.value = element.formId
 }
 
-function onEnd(_obj: unknown) {
-  // vue-draggable-plus 通过 v-model 自动同步源/目标列表，clone 逻辑在 cloneComponent 中
-  if (tempActiveData) {
+function onEnd(obj: any) {
+  // 【DEBUG】拖拽结束事件
+  console.log('[search-form][onEnd]', {
+    from: obj.from,
+    to: obj.to,
+    from_list_kind: obj.from?.classList?.contains('components-draggable') ? 'left-board' : (obj.from?.classList?.contains('drawing-board') ? 'center-board' : 'unknown'),
+    to_list_kind: obj.to?.classList?.contains('components-draggable') ? 'left-board' : (obj.to?.classList?.contains('drawing-board') ? 'center-board' : 'unknown'),
+    oldIndex: obj.oldIndex,
+    newIndex: obj.newIndex,
+    item: obj.item?.outerHTML?.slice(0, 80),
+    drawingListLen: drawingList.value.length
+  })
+  // 只在跨列表拖拽时才把新克隆的元素置为激活项，
+  // 画布内排序时 vue-draggable-plus 也会调用 clone 函数，tempActiveData 会被赋值，
+  // 此时不应把 activeData 错误地更新为 tempActiveData
+  if (obj.from !== obj.to && tempActiveData) {
     activeData.value = tempActiveData
     activeId.value = idGlobal.value
   }
+}
+
+function onAdd(obj: any) {
+  console.log('[search-form][onAdd]', {
+    from: obj.from,
+    to: obj.to,
+    newIndex: obj.newIndex,
+    item: obj.item?.outerHTML?.slice(0, 80)
+  })
+}
+
+function onStart(obj: any) {
+  console.log('[search-form][onStart]', {
+    from: obj.from
+  })
 }
 
 function addComponent(item: FormField) {
@@ -289,8 +336,8 @@ function cloneComponent(origin: FormField): FormField {
   const clone: FormField = JSON.parse(JSON.stringify(origin))
   clone.formId = ++idGlobal.value
   clone.span = formConf.span
-  // 使用唯一的 __key 作为 Vue v-for key 与 RenderField 内部 key（强制重渲）
-  clone.__key = `${clone.__key || clone.tag}-${idGlobal.value}-${+new Date()}`
+  // 改变 renderKey 后可强制刷新组件（与原版一致）
+  clone.renderKey = +new Date()
   if (!clone.layout) clone.layout = 'colFormItem'
   if (clone.layout === 'colFormItem') {
     clone.vModel = `field${idGlobal.value}`
@@ -300,6 +347,8 @@ function cloneComponent(origin: FormField): FormField {
     delete clone.label
     clone.componentName = `row${idGlobal.value}`
     clone.gutter = formConf.gutter
+    // 给 rowFormItem 也设置 __key，保证 right-panel 中 a-tree(node-key="__key") 能定位到该节点
+    clone.__key = `a-row-${idGlobal.value}-${clone.renderKey}`
     tempActiveData = clone
   }
   return tempActiveData as FormField
@@ -366,7 +415,9 @@ function drawingItemCopy(item: FormField, parent?: FormField[]) {
 
 function createIdAndKey(item: FormField): FormField {
   item.formId = ++idGlobal.value
-  item.__key = `${item.__key || item.tag}-${idGlobal.value}-${+new Date()}`
+  // 同步刷新 renderKey，强制 v-for 重建组件（v-for 的 :key 用的是 renderKey）
+  item.renderKey = +new Date()
+  item.__key = `${item.__key || item.tag}-${idGlobal.value}-${item.renderKey}`
   if (item.layout === 'colFormItem') {
     item.vModel = `field${idGlobal.value}`
   } else if (item.layout === 'rowFormItem') {
@@ -607,7 +658,7 @@ function updateDrawingList(newTag: FormField) {
   box-sizing: border-box;
   overflow-x: hidden;
 }
-.center-board-row > .a-form {
+.center-board-row > .ant-form {
   height: 100%;
   width: 100%;
 }
@@ -638,7 +689,12 @@ function updateDrawingList(newTag: FormField) {
   background: rgb(89, 89, 223);
   z-index: 2;
 }
-.drawing-board .active-from-item > .a-form-item {
+.drawing-board .components-item.sortable-ghost {
+  width: 100%;
+  height: 60px;
+  background-color: #f6f7ff;
+}
+.drawing-board .active-from-item > .ant-form-item {
   background: #f6f7ff;
   border-radius: 6px;
 }
@@ -649,7 +705,7 @@ function updateDrawingList(newTag: FormField) {
 .drawing-board .active-from-item > .component-name {
   color: #409eff;
 }
-.drawing-board .a-form-item {
+.drawing-board .ant-form-item {
   margin-bottom: 15px;
 }
 .drawing-item {
@@ -659,7 +715,7 @@ function updateDrawingList(newTag: FormField) {
 .drawing-item.unfocus-bordered:not(.active-from-item) > div:first-child {
   border: 1px dashed #ccc;
 }
-.drawing-item .a-form-item {
+.drawing-item .ant-form-item {
   padding: 12px 10px;
 }
 .drawing-row-item {
@@ -674,10 +730,10 @@ function updateDrawingList(newTag: FormField) {
 .drawing-row-item .drawing-row-item {
   margin-bottom: 2px;
 }
-.drawing-row-item .a-col {
+.drawing-row-item .ant-col {
   margin-top: 22px;
 }
-.drawing-row-item .a-form-item {
+.drawing-row-item .ant-form-item {
   margin-bottom: 0;
 }
 .drawing-row-item .drag-wrapper {
@@ -695,8 +751,8 @@ function updateDrawingList(newTag: FormField) {
   display: inline-block;
   padding: 0 6px;
 }
-.drawing-item:hover > .a-form-item,
-.drawing-row-item:hover > .a-form-item {
+.drawing-item:hover > .ant-form-item,
+.drawing-row-item:hover > .ant-form-item {
   background: #f6f7ff;
   border-radius: 6px;
 }

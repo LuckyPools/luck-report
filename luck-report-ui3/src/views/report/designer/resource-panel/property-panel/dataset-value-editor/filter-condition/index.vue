@@ -13,21 +13,18 @@
     <div v-show="dataset" class="form-group" style="margin-bottom: 10px;">
       <div class="top-button">
         <a-button
-            type="primary"
             :title="t('property.dataset.addFilterCondition')"
             @click="handleAddCondition"
         >
           <template #icon><i class="iconfont icon-plus-circle"></i></template>
         </a-button>
         <a-button
-            type="primary"
             :title="t('property.dataset.editFilterCondition')"
             @click="handleEditCondition"
         >
           <template #icon><i class="iconfont icon-edit"></i></template>
         </a-button>
         <a-button
-            type="primary"
             :title="t('property.dataset.delFilterCondition')"
             @click="handleDeleteCondition"
         >
@@ -36,13 +33,20 @@
       </div>
 
       <div style="margin-top: 10px;">
-        <a-select
-            v-model:value="selectedConditionIndex"
-            class="condition-select"
-            :options="conditionOptions"
-            :field-names="{ label: 'label', value: 'value' }"
-            style="width: 100%"
-        />
+        <a-list
+          class="condition-list"
+          bordered
+          :pagination="false"
+        >
+          <a-list-item
+            v-for="(cond, index) in conditions"
+            :key="index"
+            :class="['list-item', { 'list-item-active': selectedConditionIndex === index }]"
+            @click="handleItemClick(index)"
+          >
+            {{ formatConditionText(cond) }}
+          </a-list-item>
+        </a-list>
       </div>
     </div>
 
@@ -68,10 +72,10 @@
  * 迁移说明：
  * - Options API → vue3 <script setup>
  * - u-button → a-button（用 #icon 插槽渲染 iconfont）
- * - 原生 <select> → a-select
+ * - 原生 <select> → a-list（可点击选择 + 顶部按钮操作）
  * - showConfirm 通过 Promise.then 触发
  */
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { showAlert, showConfirm } from '@/utils/comnon'
 import { setDirty } from '@/utils/table'
 import ConditionDialog, { type ConditionData } from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue'
@@ -109,13 +113,10 @@ const selectedConditionIndex = ref<number>(-1)
 const conditionDialogVisible = ref<boolean>(false)
 const condition = ref<ConditionData | null>(null)
 
-/** a-select 选项：把 conditions 转成 { label, value } */
-const conditionOptions = computed(() =>
-  (props.conditions || []).map((cond, index) => ({
-    value: index,
-    label: formatConditionText(cond)
-  }))
-)
+/** 点击列表项选中条件 */
+const handleItemClick = (index: number): void => {
+  selectedConditionIndex.value = index
+}
 
 /**
  * 格式化条件文本
@@ -211,8 +212,30 @@ const handleDeleteCondition = (): void => {
   justify-content: end;
 }
 
-.condition-select :deep(.ant-select-selector) {
+.top-button :deep(.ant-btn + .ant-btn) {
+  margin-left: 5px;
+}
+
+.condition-list {
   min-height: 100px;
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 4px;
+}
+
+.condition-list :deep(.list-item) {
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: background-color 0.2s;
+}
+
+.condition-list :deep(.list-item:hover) {
+  background-color: #f5f5f5;
+}
+
+.condition-list :deep(.list-item-active) {
+  background-color: #e6f7ff;
+  color: #1890ff;
 }
 
 .empty-tip-container {

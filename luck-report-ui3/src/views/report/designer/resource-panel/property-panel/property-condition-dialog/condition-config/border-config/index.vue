@@ -94,14 +94,9 @@ const borderChecked = ref<boolean>(false)
 const customBorderDialogVisible = ref<boolean>(false)
 const localCellStyle = ref<Record<string, unknown>>({})
 
-watch(
-  () => props.cellStyle,
-  (newVal) => {
-    loadBorderProperties(newVal)
-  },
-  { immediate: true, deep: true }
-)
-
+/**
+ * 加载边框属性
+ */
 const loadBorderProperties = (cellStyle?: CellStyle | null): void => {
   if (!cellStyle) return
 
@@ -112,6 +107,14 @@ const loadBorderProperties = (cellStyle?: CellStyle | null): void => {
     cellStyle.bottomBorder
   )
 }
+
+watch(
+  () => props.cellStyle,
+  (newVal) => {
+    loadBorderProperties(newVal)
+  },
+  { immediate: true, deep: true }
+)
 
 const onBorderChange = (): void => {
   const defaultBorder: BorderSide = {

@@ -112,6 +112,21 @@ const alignOptions = ref<{ value: string; label: string }[]>([])
 const valignOptions = ref<{ value: string; label: string }[]>([])
 const scopeOptions = ref<{ value: string; label: string }[]>([])
 
+/**
+ * 加载对齐属性
+ */
+const loadAlignProperties = (cellStyle?: CellStyle | null): void => {
+  if (!cellStyle) return
+
+  alignChecked.value = !!(cellStyle.align && cellStyle.align !== '')
+  align.value = alignChecked.value ? (cellStyle.align as string) : ''
+  alignScope.value = cellStyle.alignScope || 'cell'
+
+  valignChecked.value = !!(cellStyle.valign && cellStyle.valign !== '')
+  valign.value = valignChecked.value ? (cellStyle.valign as string) : ''
+  valignScope.value = cellStyle.valignScope || 'cell'
+}
+
 onMounted(() => {
   alignOptions.value = configOptions.getAlignOptions()
   valignOptions.value = configOptions.getValignOptions()
@@ -125,18 +140,6 @@ watch(
   },
   { immediate: true, deep: true }
 )
-
-const loadAlignProperties = (cellStyle?: CellStyle | null): void => {
-  if (!cellStyle) return
-
-  alignChecked.value = !!(cellStyle.align && cellStyle.align !== '')
-  align.value = alignChecked.value ? (cellStyle.align as string) : ''
-  alignScope.value = cellStyle.alignScope || 'cell'
-
-  valignChecked.value = !!(cellStyle.valign && cellStyle.valign !== '')
-  valign.value = valignChecked.value ? (cellStyle.valign as string) : ''
-  valignScope.value = cellStyle.valignScope || 'cell'
-}
 
 const onAlignChange = (): void => {
   emit('align-change', {

@@ -4,7 +4,7 @@
     :width="1200"
     :open="visible"
     :style="{ top: '50px' }"
-    :zIndex="20000"
+    :zIndex="21000"
     @cancel="closeDialog"
   >
     <div class="preview-body-container">
@@ -104,6 +104,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'update:visible', value: boolean): void
 }>()
 
 const loading = ref<boolean>(false)
@@ -121,6 +122,7 @@ watch(
 
 /** 关闭弹窗 */
 function closeDialog(): void {
+  emit('update:visible', false)
   emit('close')
 }
 

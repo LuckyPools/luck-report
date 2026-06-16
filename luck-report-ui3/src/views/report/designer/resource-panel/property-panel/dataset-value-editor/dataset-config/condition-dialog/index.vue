@@ -3,7 +3,6 @@
     :title="t('dialog.condition.config')"
     :width="500"
     :open="visible"
-    :z-index="20000"
     :mask-closable="false"
     @cancel="handleClose"
   >

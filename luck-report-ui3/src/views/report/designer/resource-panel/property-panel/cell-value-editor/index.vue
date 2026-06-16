@@ -167,9 +167,8 @@
  * - UInput 的 @change 接受 value（自定义）→ a-input @change 传 event，需 .target.value
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { showAlert } from '@/utils/comnon'
+import { showAlert, deepCopy } from '@/utils/comnon'
 import { setDirty } from '@/utils/table'
-import { deepCopy } from '@/utils/comnon'
 import { getCell, getCellName, setCell } from '@/utils/contextActions'
 import URLParameterDialog, { type UrlParameterItem } from '../url-parameter-dialog/index.vue'
 import TableManager from '@/views/report/designer/edit-table/manager'
@@ -463,8 +462,9 @@ const buildParentRowNumberOptions = (): void => {
 }
 
 // ====== 父单元格：左 ======
-const handleLeftParentTypeChange = (value: string): void => {
-  if (value === 'default') {
+const handleLeftParentTypeChange = (): void => {
+  // a-radio-group 的 @change 传的是 event 对象，v-model 已把新值同步到 leftParentType
+  if (leftParentType.value === 'default') {
     setParentCell(null, true)
     updateLeftParentToDefault()
   }
@@ -523,8 +523,9 @@ const handleLeftParentRowNumberChange = (value: string): void => {
 }
 
 // ====== 父单元格：上 ======
-const handleTopParentTypeChange = (value: string): void => {
-  if (value === 'default') {
+const handleTopParentTypeChange = (): void => {
+  // a-radio-group 的 @change 传的是 event 对象，v-model 已把新值同步到 topParentType
+  if (topParentType.value === 'default') {
     setParentCell(null, false)
     updateTopParentToDefault()
   }

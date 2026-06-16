@@ -112,18 +112,9 @@ const bgcolorScope = ref<string>('cell')
 
 const scopeOptions = ref<{ value: string; label: string }[]>([])
 
-onMounted(() => {
-  scopeOptions.value = configOptions.getScopeOptions()
-})
-
-watch(
-  () => props.cellStyle,
-  (newVal) => {
-    loadColorProperties(newVal)
-  },
-  { immediate: true, deep: true }
-)
-
+/**
+ * 颜色转换为 RGB 格式
+ */
 const convertColorToRgb = (color: string): string | null => {
   if (!color) return null
 
@@ -135,6 +126,9 @@ const convertColorToRgb = (color: string): string | null => {
   return color
 }
 
+/**
+ * RGB 字符串转换为 Hex 格式
+ */
 const convertRgbToHex = (rgbString: string): string | null => {
   if (!rgbString) return null
 
@@ -149,6 +143,9 @@ const convertRgbToHex = (rgbString: string): string | null => {
   return null
 }
 
+/**
+ * 加载颜色属性
+ */
 const loadColorProperties = (cellStyle?: CellStyle | null): void => {
   if (!cellStyle) return
 
@@ -170,6 +167,18 @@ const loadColorProperties = (cellStyle?: CellStyle | null): void => {
   }
   bgcolorScope.value = cellStyle.bgcolorScope || 'cell'
 }
+
+onMounted(() => {
+  scopeOptions.value = configOptions.getScopeOptions()
+})
+
+watch(
+  () => props.cellStyle,
+  (newVal) => {
+    loadColorProperties(newVal)
+  },
+  { immediate: true, deep: true }
+)
 
 const onForceChange = (): void => {
   emit('color-change', {

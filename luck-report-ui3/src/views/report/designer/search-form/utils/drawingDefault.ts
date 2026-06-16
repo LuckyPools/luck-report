@@ -14,6 +14,7 @@ export function initDrawingDefaultValue(): void {
   if (drawingDefaultValue.length === 0) {
     drawingDefaultValue.push({
       __key: 'a-input-6',
+      renderKey: +new Date(),
       layout: 'colFormItem',
       tagIcon: 'input',
       label: i18n.global.t('searchForm.phone'),

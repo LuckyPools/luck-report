@@ -96,9 +96,8 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon';
+import { showAlert, deepCopy } from '@/utils/comnon';
 import { buildPageSizeList, mmToPoint, setDirty } from '@/utils/table';
-import { deepCopy } from '@/utils/comnon';
 import FontSettingDialog from '@/views/report/designer/tool-bar/settings-tool/font-setting-dialog/index.vue';
 import PageSettings from './page/index.vue';
 import HeaderFooterSettings from '@/views/report/designer/tool-bar/settings-tool/settings-dialog/header-footer/index.vue';
@@ -110,6 +109,9 @@ import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'SettingsDialog',
+  // 关闭 inheritAttrs，避免父级透传的 @ok 事件（onOk）与模板里 a-modal 的 @ok
+  // 合并成数组触发 ant-design-vue AModal 的 prop 类型检查警告
+  inheritAttrs: false,
   setup() {
     return { t: useI18n().t };
   },
@@ -120,6 +122,7 @@ export default {
     PagingSettings,
     ColumnSettings
   },
+  emits: ['close', 'ok'],
   props: {
     visible: {
       type: Boolean,
@@ -184,6 +187,7 @@ export default {
   },
   watch: {
     visible(newVal) {
+      console.log('[DEBUG][settings-dialog] watch.visible, newVal=', newVal, 'this.context=', this.context ? 'has context' : 'null')
       if (newVal && this.context) {
         this.initializeData();
       }
@@ -290,6 +294,7 @@ export default {
       this.paper = value;
     },
     updateHeader(value) {
+      console.log('[DEBUG][settings-dialog] updateHeader, value=', JSON.stringify(value))
       this.header = value;
     },
     updateFooter(value) {
@@ -319,6 +324,7 @@ export default {
       this.headerFontDialogVisible = false;
     },
     handleHeaderFontDialogOk(style) {
+      console.log('[DEBUG][settings-dialog] handleHeaderFontDialogOk called, style=', JSON.stringify(style), 'before this.header=', JSON.stringify(this.header))
       if (style) {
         this.header.fontFamily = style.fontFamily;
         this.header.fontSize = style.fontSize;
@@ -328,6 +334,7 @@ export default {
         this.header.underline = style.underline;
         setDirty();
       }
+      console.log('[DEBUG][settings-dialog] after mutate this.header=', JSON.stringify(this.header))
       this.headerFontDialogVisible = false;
     },
     handleFooterFontDialogClose() {

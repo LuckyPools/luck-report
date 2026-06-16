@@ -14,7 +14,7 @@
           :placeholder="t('property.simple.tip')"
         />
       </a-form-item>
-      <a-form-item class="property-label" :label="t('property.simple.content')" style="align-items: baseline;">
+      <a-form-item class="property-label" :label="t('property.simple.content')">
         <a-textarea
           v-model:value="content"
           @input="onContentChange"

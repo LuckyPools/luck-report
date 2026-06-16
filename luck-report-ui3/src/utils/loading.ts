@@ -10,6 +10,7 @@
  */
 import { createApp, h, ref, type App, type VNode } from 'vue'
 import { Spin } from 'ant-design-vue'
+import i18n from '@/locales'
 
 /** Loading 服务选项 */
 export interface ShowLoadingOptions {
@@ -65,6 +66,7 @@ function showLoading(options: ShowLoadingOptions = {}): ShowLoadingHandle {
       return () => spinVNode
     }
   })
+  app.use(i18n)
   app.mount(mountContainer)
   mountContainer.__app__ = app
 

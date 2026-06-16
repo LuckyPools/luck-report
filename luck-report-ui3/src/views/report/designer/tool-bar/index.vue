@@ -156,7 +156,7 @@ onMounted(() => {
 <style scoped>
 .ud-toolbar {
   width: 100%;
-  z-index: 10000;
+  position: relative;
 }
 
 .ud-toolbar-title {
@@ -173,6 +173,8 @@ onMounted(() => {
 .toolbar-box {
   background-color: white;
   box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 .file-info {
@@ -183,7 +185,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 标题栏按钮：透明底色 + 白色图标 + 悬停灰色覆盖 */
+/* 标题栏按钮：统一尺寸、间距、hover 背景 */
 .ud-toolbar-title :deep(.tool-button) {
   font-size: 16px;
   margin: 7px 0;
@@ -191,22 +193,82 @@ onMounted(() => {
   background: transparent;
   border: none;
   box-shadow: none;
+  height: 36px;
+  padding: 0 10px;
+  min-width: 36px;
+  line-height: 36px;
 }
 
 .ud-toolbar-title :deep(.tool-button:hover),
 .ud-toolbar-title :deep(.tool-button:focus) {
   color: white;
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(0, 119, 103, 0.7) !important;
 }
 
 .ud-toolbar-title :deep(.tool-button:active) {
   color: white;
-  background-color: rgba(255, 255, 255, 0.25) !important;
+  background-color: rgba(0, 119, 103, 0.9) !important;
 }
 
 .info-button {
   font-size: 16px;
   margin: 2px 0;
   border: none;
+}
+
+/* 内容栏按钮：统一尺寸、间距、hover 背景 */
+.toolbar-box :deep(.info-button) {
+  font-size: 16px;
+  margin: 4px;
+  height: 28px;
+  padding: 0 6px;
+  min-width: 28px;
+  line-height: 28px;
+  border: none;
+  border-radius: 4px;
+}
+
+.toolbar-box :deep(.info-button:hover),
+.toolbar-box :deep(.info-button:focus) {
+  background-color: rgb(236, 237, 237);
+}
+
+/* 内容栏选项按钮（bold/italic/underline）：统一尺寸，有边框 */
+.toolbar-box :deep(.bold-tool),
+.toolbar-box :deep(.italic-tool),
+.toolbar-box :deep(.underline-tool) {
+  width: 28px;
+  height: 28px;
+  margin: 4px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.toolbar-box :deep(.bold-tool:hover),
+.toolbar-box :deep(.italic-tool:hover),
+.toolbar-box :deep(.underline-tool:hover) {
+  border-color: #d9d9d9;
+}
+
+.toolbar-box :deep(.bold-tool.is-active),
+.toolbar-box :deep(.italic-tool.is-active),
+.toolbar-box :deep(.underline-tool.is-active) {
+  background-color: rgb(236, 237, 237);
+}
+
+/* 内容栏颜色选择器按钮：统一尺寸，无边框 */
+.toolbar-box :deep(.font-color-btn),
+.toolbar-box :deep(.bg-color-btn) {
+  height: 28px;
+  padding: 0 6px;
+  margin: 4px;
+  border: none;
+  border-radius: 4px;
+}
+
+.toolbar-box :deep(.font-color-btn:hover),
+.toolbar-box :deep(.bg-color-btn:hover) {
+  background-color: rgb(236, 237, 237);
 }
 </style>

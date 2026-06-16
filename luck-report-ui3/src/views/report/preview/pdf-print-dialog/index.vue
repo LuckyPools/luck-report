@@ -119,7 +119,7 @@
                   <a-button type="primary" @click="handleApply">
                     {{ t('preview.pdfPrint.apply') }}
                   </a-button>
-                  <a-button type="danger" style="margin-left: 5px" @click="handlePrint">
+                  <a-button style="margin-left: 5px" @click="handlePrint">
                     {{ t('preview.pdfPrint.print') }}
                   </a-button>
                 </a-form-item>
@@ -454,14 +454,14 @@ watch(
 
 .pdf-preview-container {
   width: 100%;
-  height: calc(100% - 200px);
+  height: calc(100vh - 200px);
   min-height: 400px;
 }
 
 .pdf-preview-frame {
   width: 100%;
   height: 100%;
-  border: 0;
+  border: solid 1px #c2c2c2;
 }
 
 .property-label {

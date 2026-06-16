@@ -5,12 +5,15 @@
     class="tool-button"
     @click="handleClick"
   >
-    <i class="iconfont icon-settings"></i>
+    <template #icon>
+      <i class="iconfont icon-settings"></i>
+    </template>
   </a-button>
 
   <SettingsDialog
     :visible="dialogVisible"
-    @update:visible="dialogVisible = $event"
+    @close="dialogVisible = false"
+    @ok="dialogVisible = false"
   />
 </template>
 
@@ -26,8 +29,8 @@
  * - Options API → vue3 <script setup> + 显式 type 标注
  * - u-button（自定义按钮）→ a-button[type="text"]
  * - data()/methods → ref + 普通函数
- * - $emit('close') / $emit('ok') → v-model:visible 双向
- * - SettingsDialog 子组件仍保留旧实现，父级只做状态中转
+ * - SettingsDialog 子组件沿用旧版 emit 事件（close / ok），父级只做状态中转
+ * - 首次迁移曾改写为 v-model:visible，但子组件未同步更新 emit，导致顶部关闭/底部取消/保存按钮失效，已回退为 @close/@ok
  */
 import { ref } from 'vue'
 import SettingsDialog from '@/views/report/designer/tool-bar/settings-tool/settings-dialog/index.vue'
@@ -45,10 +48,3 @@ function handleClick(): void {
   dialogVisible.value = true
 }
 </script>
-
-<style scoped>
-.tool-button {
-  font-size: 16px;
-  margin: 7px 0;
-}
-</style>

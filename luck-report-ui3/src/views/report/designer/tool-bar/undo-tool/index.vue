@@ -41,10 +41,3 @@ function handleClick(): void {
   }
 }
 </script>
-
-<style scoped>
-.tool-button {
-  font-size: 16px;
-  margin: 7px 0;
-}
-</style>
