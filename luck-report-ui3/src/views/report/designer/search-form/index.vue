@@ -115,6 +115,7 @@
               :animation="340"
               group="componentsGroup"
               class="drawing-board"
+              draggable=".drawing-item, .drawing-row-item"
               @start="onStart"
               @add="onAdd"
               @end="onEnd"
@@ -158,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import beautifier from 'js-beautify'
 import ClipboardJS from 'clipboard'
@@ -220,6 +221,10 @@ const generateConf = ref<{ type: 'file' | 'dialog'; fileName?: string } | null>(
 let oldActiveId = 0
 let tempActiveData: FormField | null = null
 let clipboard: ClipboardJS | null = null
+// 保存 onAdd 中的正确 newIndex，用于修复 vue-draggable-plus 在 clone 模式下的索引 bug
+let correctNewIndex: number | null = null
+// 标记是否需要修正位置（用于 watch 同步修正）
+let needFixPosition = false
 
 interface Props {
   searchFormConfig?: { fields?: FormField[] } & Partial<FormConf>
@@ -237,6 +242,31 @@ if (typeof document !== 'undefined') {
 watch(activeId, (val) => {
   oldActiveId = val
 }, { immediate: true })
+
+// 同步修正位置：在 Vue 更新 DOM 之前修正 drawingList，避免闪烁
+watch(
+  drawingList,
+  () => {
+    console.log('[search-form][watch] 触发', {
+      needFixPosition,
+      correctNewIndex,
+      tempActiveData: tempActiveData ? { formId: tempActiveData.formId, label: tempActiveData.label } : null,
+      drawingListLen: drawingList.value.length,
+      drawingList: JSON.parse(JSON.stringify(drawingList.value.map((item: FormField) => ({ formId: item.formId, label: item.label }))))
+    })
+    if (needFixPosition && correctNewIndex !== null && tempActiveData) {
+      const newIndex = drawingList.value.findIndex(item => item.formId === tempActiveData?.formId)
+      console.log('[search-form][watch] 查找新元素索引:', newIndex, '目标索引:', correctNewIndex)
+      if (newIndex !== -1 && newIndex !== correctNewIndex) {
+        const [movedItem] = drawingList.value.splice(newIndex, 1)
+        drawingList.value.splice(correctNewIndex, 0, movedItem)
+        console.log('[search-form][watch] 同步修正位置:', { from: newIndex, to: correctNewIndex, formId: tempActiveData?.formId })
+      }
+      needFixPosition = false
+    }
+  },
+  { flush: 'sync', deep: true }
+)
 
 watch(
   () => props.searchFormConfig,
@@ -292,7 +322,7 @@ function activeFormItem(element: FormField) {
 
 function onEnd(obj: any) {
   // 【DEBUG】拖拽结束事件
-  console.log('[search-form][onEnd]', {
+  console.log('[search-form][onEnd] 开始', {
     from: obj.from,
     to: obj.to,
     from_list_kind: obj.from?.classList?.contains('components-draggable') ? 'left-board' : (obj.from?.classList?.contains('drawing-board') ? 'center-board' : 'unknown'),
@@ -302,19 +332,69 @@ function onEnd(obj: any) {
     oldDraggableIndex: obj.oldDraggableIndex,
     newDraggableIndex: obj.newDraggableIndex,
     item: obj.item?.outerHTML?.slice(0, 80),
+    correctNewIndex,
+    tempActiveData: tempActiveData ? { formId: tempActiveData.formId, label: tempActiveData.label } : null,
     drawingListLen: drawingList.value.length,
-    drawingList: JSON.parse(JSON.stringify(drawingList.value.map((item: FormField) => ({ formId: item.formId, label: item.label }))))
+    drawingList: JSON.parse(JSON.stringify(drawingList.value.map((item: FormField) => ({ formId: item.formId, label: item.label, __key: item.__key }))))
   })
+
+  // 输出当前 DOM 结构
+  const drawingBoard = document.querySelector('.drawing-board')
+  if (drawingBoard) {
+    const items = drawingBoard.querySelectorAll(':scope > .drag-item-wrapper, :scope > .ant-col')
+    console.log('[search-form][onEnd] DOM结构 - 当前画布子元素数量:', items.length)
+    items.forEach((el, i) => {
+      console.log(`[search-form][onEnd] DOM[${i}]:`, el.className, el.outerHTML?.slice(0, 100))
+    })
+  }
+
+  // 保存当前 correctNewIndex 用于后续修正
+  const savedCorrectIndex = correctNewIndex
+  const savedTempActiveData = tempActiveData
+  correctNewIndex = null // 重置
+
   // 只在跨列表拖拽时才把新克隆的元素置为激活项，
   // 画布内排序时 vue-draggable-plus 也会调用 clone 函数，tempActiveData 会被赋值，
   // 此时不应把 activeData 错误地更新为 tempActiveData
-  if (obj.from !== obj.to && tempActiveData) {
-    activeData.value = tempActiveData
+  if (obj.from !== obj.to && savedTempActiveData) {
+    activeData.value = savedTempActiveData
     activeId.value = idGlobal.value
+    // vue-draggable-plus 在 clone 模式下会将元素添加到数组开头（索引 0），
+    // 而不是正确的 newIndex 位置。需要在 onEnd 中使用 nextTick 修正位置。
+    if (savedCorrectIndex !== null && savedCorrectIndex > 0) {
+      nextTick(() => {
+        const currentIndex = drawingList.value.findIndex(item => item.formId === savedTempActiveData?.formId)
+        console.log('[search-form][onEnd] nextTick 修正位置:', {
+          currentIndex,
+          targetIndex: savedCorrectIndex,
+          formId: savedTempActiveData?.formId
+        })
+        if (currentIndex !== -1 && currentIndex !== savedCorrectIndex) {
+          const [movedItem] = drawingList.value.splice(currentIndex, 1)
+          drawingList.value.splice(savedCorrectIndex, 0, movedItem)
+          console.log('[search-form][onEnd] 位置已修正:', { from: currentIndex, to: savedCorrectIndex })
+        }
+      })
+    }
   }
+
+  // 延迟输出最终状态（仅用于调试）
+  setTimeout(() => {
+    console.log('[search-form][onEnd] 1秒后 drawingList:', JSON.parse(JSON.stringify(drawingList.value.map((item: FormField) => ({ formId: item.formId, label: item.label, __key: item.__key })))))
+    const drawingBoard2 = document.querySelector('.drawing-board')
+    if (drawingBoard2) {
+      const items2 = drawingBoard2.querySelectorAll(':scope > .drag-item-wrapper, :scope > .ant-col')
+      console.log('[search-form][onEnd] 1秒后 DOM子元素数量:', items2.length)
+      items2.forEach((el, i) => {
+        console.log(`[search-form][onEnd] 1秒后 DOM[${i}]:`, el.className, el.outerHTML?.slice(0, 150))
+      })
+    }
+  }, 1000)
 }
 
 function onAdd(obj: any) {
+  // 保存正确的 newIndex，用于在 onEnd 中修正位置
+  correctNewIndex = obj.newIndex
   console.log('[search-form][onAdd]', {
     from: obj.from,
     to: obj.to,
@@ -345,6 +425,8 @@ function cloneComponent(origin: FormField): FormField {
   if (clone.layout === 'colFormItem') {
     clone.vModel = `field${idGlobal.value}`
     if (clone.placeholder !== undefined) clone.placeholder += clone.label
+    // 为 colFormItem 也设置唯一的 __key，避免相同类型组件 key 冲突导致渲染位置错误
+    clone.__key = `${clone.tag}-${idGlobal.value}-${clone.renderKey}`
     tempActiveData = clone
   } else if (clone.layout === 'rowFormItem') {
     delete clone.label

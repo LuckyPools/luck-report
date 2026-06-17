@@ -58,10 +58,15 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
-        <!-- Thymeleaf：用于渲染报表前端 SPA 入口模板（designer.html / preview.html） -->
+        <!-- Thymeleaf：用于渲染报表前端 SPA 入口模板（designer.html / preview.html）
+             使用手动依赖而非 starter，避免自动配置干扰第三方项目 -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+            <groupId>org.thymeleaf</groupId>
+            <artifactId>thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thymeleaf</groupId>
+            <artifactId>thymeleaf-spring5</artifactId>
         </dependency>
     </dependencies>
 
