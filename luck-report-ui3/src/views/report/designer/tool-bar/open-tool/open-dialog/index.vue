@@ -119,6 +119,7 @@ import {
   deleteReportFile
 } from '@/api/designer'
 import { useI18n } from 'vue-i18n'
+import { getRequestToken } from '@/utils/token'
 
 defineOptions({ name: 'OpenDialog' })
 
@@ -279,7 +280,7 @@ function handleProviderChange(): void {
 /**
  * 打开文件
  * - directory：进入子目录
- * - 普通文件：弹确认后跳转 ?reportPath=
+ * - 普通文件：弹确认后跳转 ?reportPath= + token 参数
  */
 function openFile(file: ReportFileItem): void {
   if (file.directory) {
@@ -291,9 +292,12 @@ function openFile(file: ReportFileItem): void {
 
   showConfirm(`${t('dialog.open.openConfirm')}[${file.name}]？`).then(() => {
     const fullFile = selectedProvider.value + encodeURI(encodeURI(file.path || file.name))
+    // 从 sessionStorage 读取 token（iframe 嵌入场景下已由 captureTokenFromUrl 写入）
+    const token = getRequestToken()
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
     // 先关闭弹窗
     handleClose()
-    window.location.replace('?reportPath=' + fullFile)
+    window.location.replace('?reportPath=' + fullFile + tokenParam)
   })
 }
 

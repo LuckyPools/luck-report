@@ -1,5 +1,11 @@
+/**
+ * 业务知识相关 API
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
+ */
 import request from '@/utils/request'
-import type { ResultVO, PageResultVO } from '@/types/api'
+import type { PageResultVO } from '@/types/api'
 
 /**
  * 业务知识接口定义
@@ -56,13 +62,12 @@ export interface BusinessKnowledgeQueryDTO {
  */
 export async function getBusinessKnowledgeList(
   keyword?: string
-): Promise<ResultVO<Idnex[]>> {
+): Promise<Idnex[]> {
   const params: any = {}
   if (keyword) {
     params.keyword = keyword
   }
-  const response = await request.get('/business-knowledge/list', { params })
-  return response as ResultVO<Idnex[]>
+  return request.get<Idnex[]>('/business-knowledge/list', { params })
 }
 
 /**
@@ -73,8 +78,7 @@ export async function getBusinessKnowledgeList(
 export async function queryBusinessKnowledgeByPage(
   queryDTO: BusinessKnowledgeQueryDTO
 ): Promise<PageResultVO<Idnex>> {
-  const response = await request.post('/business-knowledge/query/page', queryDTO)
-  return response as PageResultVO<Idnex>
+  return request.post<PageResultVO<Idnex>>('/business-knowledge/query/page', queryDTO)
 }
 
 /**
@@ -84,9 +88,8 @@ export async function queryBusinessKnowledgeByPage(
  */
 export async function getBusinessKnowledgeById(
   id: number
-): Promise<ResultVO<Idnex>> {
-  const response = await request.get(`/business-knowledge/detail/${id}`)
-  return response as ResultVO<Idnex>
+): Promise<Idnex> {
+  return request.get<Idnex>(`/business-knowledge/detail/${id}`)
 }
 
 /**
@@ -96,9 +99,8 @@ export async function getBusinessKnowledgeById(
  */
 export async function createBusinessKnowledge(
   data: CreateBusinessKnowledgeDTO
-): Promise<ResultVO<Idnex>> {
-  const response = await request.post('/business-knowledge/create', data)
-  return response as ResultVO<Idnex>
+): Promise<Idnex> {
+  return request.post<Idnex>('/business-knowledge/create', data)
 }
 
 /**
@@ -110,9 +112,8 @@ export async function createBusinessKnowledge(
 export async function updateBusinessKnowledge(
   id: number,
   data: UpdateBusinessKnowledgeDTO
-): Promise<ResultVO<Idnex>> {
-  const response = await request.put(`/business-knowledge/update/${id}`, data)
-  return response as ResultVO<Idnex>
+): Promise<Idnex> {
+  return request.put<Idnex>(`/business-knowledge/update/${id}`, data)
 }
 
 /**
@@ -122,9 +123,8 @@ export async function updateBusinessKnowledge(
  */
 export async function deleteBusinessKnowledge(
   id: number
-): Promise<ResultVO<boolean>> {
-  const response = await request.del(`/business-knowledge/delete/${id}`)
-  return response as ResultVO<boolean>
+): Promise<boolean> {
+  return request.del<boolean>(`/business-knowledge/delete/${id}`)
 }
 
 /**
@@ -136,11 +136,10 @@ export async function deleteBusinessKnowledge(
 export async function enableKnowledge(
   id: number,
   enabled: boolean
-): Promise<ResultVO<boolean>> {
-  const response = await request.post(`/business-knowledge/enable/${id}`, null, {
+): Promise<boolean> {
+  return request.post<boolean>(`/business-knowledge/enable/${id}`, null, {
     params: { enabled }
   })
-  return response as ResultVO<boolean>
 }
 
 /**
@@ -148,10 +147,8 @@ export async function enableKnowledge(
  * 将所有召回的业务知识重新同步到向量库
  * @returns Promise包含刷新结果
  */
-export async function refreshVectorStore(
-): Promise<ResultVO<boolean>> {
-  const response = await request.post('/business-knowledge/refresh-vector-store')
-  return response as ResultVO<boolean>
+export async function refreshVectorStore(): Promise<boolean> {
+  return request.post<boolean>('/business-knowledge/refresh-vector-store')
 }
 
 /**
@@ -162,7 +159,6 @@ export async function refreshVectorStore(
  */
 export async function retryEmbedding(
   id: number
-): Promise<ResultVO<boolean>> {
-  const response = await request.post(`/business-knowledge/retry-embedding/${id}`)
-  return response as ResultVO<boolean>
+): Promise<boolean> {
+  return request.post<boolean>(`/business-knowledge/retry-embedding/${id}`)
 }

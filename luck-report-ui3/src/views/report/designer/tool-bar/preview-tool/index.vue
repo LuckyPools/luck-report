@@ -34,6 +34,7 @@ import { showAlert } from '@/utils/comnon'
 import { savePreviewFile } from '@/api/designer'
 import { useReportStore } from '@/store/modules/report'
 import type { ReportContext } from '@/types/report-def'
+import {getRequestToken} from "@/utils/token";
 
 defineOptions({ name: 'PreviewTool' })
 
@@ -51,6 +52,10 @@ const context = computed<ReportContext | null>(() => report.getContext)
  * @param openInNewTab 是否新标签页打开
  */
 function openRoute(target: string, params: Record<string, any> = {}, openInNewTab: boolean = true): void {
+  const token = getRequestToken()
+  if (token) {
+    params.token = token
+  }
   const routeData = router.resolve({ name: target, query: params })
   window.open(routeData.href, openInNewTab ? '_blank' : '_self')
 }

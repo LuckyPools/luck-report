@@ -34,6 +34,7 @@ import { savePreviewFile } from '@/api/designer'
 import { useReportStore } from '@/store/modules/report'
 import type { ReportContext } from '@/types/report-def'
 import { useI18n } from 'vue-i18n'
+import { getRequestToken } from '@/utils/token'
 
 defineOptions({ name: 'PreviewPageTool' })
 
@@ -46,12 +47,17 @@ const report = useReportStore()
 const context = computed<ReportContext | null>(() => report.getContext)
 
 /**
- * 通过 router 打开目标路由
+ * 通过 router 打开目标路由，并携带 token 参数
  * @param target 目标路由 name
  * @param params 附加到 url query 的参数
  * @param openInNewTab 是否新标签页打开
  */
 function openRoute(target: string, params: Record<string, any> = {}, openInNewTab: boolean = true): void {
+  // 从 sessionStorage 读取 token（iframe 嵌入场景下已由 captureTokenFromUrl 写入）
+  const token = getRequestToken()
+  if (token) {
+    params.token = token
+  }
   const routeData = router.resolve({ name: target, query: params })
   window.open(routeData.href, openInNewTab ? '_blank' : '_self')
 }

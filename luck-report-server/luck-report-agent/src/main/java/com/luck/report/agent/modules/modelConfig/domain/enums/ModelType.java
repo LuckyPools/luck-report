@@ -4,7 +4,7 @@ import lombok.Getter;
 
 /**
  * 模型类型枚举
- * 区分对话模型和嵌入模型，用于 ModelConfig 的 modelType 字段
+ * 区分对话模型和嵌入模型，用于 Index 的 modelType 字段
  *
  * @author luck
  */

@@ -361,12 +361,8 @@ const loadBusinessKnowledge = async () => {
       pageSize: pageSize.value
     }
     const response = await queryBusinessKnowledgeByPage(queryDTO)
-    if (response.code === 0) {
-      businessKnowledgeList.value = response.records
-      total.value = response.total
-    } else {
-      message.error('加载业务知识列表失败')
-    }
+    businessKnowledgeList.value = response.records
+    total.value = response.total
   } catch (error) {
     message.error('加载业务知识列表失败')
     console.error('Failed to load business knowledge:', error)
@@ -381,12 +377,7 @@ const loadBusinessKnowledge = async () => {
 const loadEmbeddingModels = async () => {
   modelLoading.value = true
   try {
-    const response = await getActiveModelConfigList('EMBEDDING')
-    if (response.code === 0) {
-      embeddingModels.value = response.data || []
-    } else {
-      message.error('加载嵌入模型列表失败')
-    }
+    embeddingModels.value = await getActiveModelConfigList('EMBEDDING')
   } catch (error) {
     message.error('加载嵌入模型列表失败')
     console.error('Failed to load embedding models:', error)
@@ -451,15 +442,11 @@ const deleteKnowledge = async (knowledge: Idnex) => {
     okType: 'danger',
     onOk: async () => {
       try {
-        const response = await deleteBusinessKnowledge(knowledge.id!)
-        if (response.code === 0) {
-          message.success('删除成功')
-          await loadBusinessKnowledge()
-        } else {
-          message.error('删除失败')
-        }
-      } catch (error) {
-        message.error('删除失败')
+        await deleteBusinessKnowledge(knowledge.id!)
+        message.success('删除成功')
+        await loadBusinessKnowledge()
+      } catch (error: any) {
+        message.error(error?.message || '删除失败')
         console.error('Failed to delete knowledge:', error)
       }
     }
@@ -473,15 +460,11 @@ const toggleEnabled = async (knowledge: Idnex, enabled: boolean) => {
   if (!knowledge.id) return
 
   try {
-    const response = await enableKnowledge(knowledge.id, enabled)
-    if (response.code === 0) {
-      message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
-      knowledge.enabled = enabled
-    } else {
-      message.error(`${enabled ? '设为生效' : '设为不生效'}失败`)
-    }
-  } catch (error) {
-    message.error(`${enabled ? '设为生效' : '设为不生效'}失败`)
+    await enableKnowledge(knowledge.id, enabled)
+    message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
+    knowledge.enabled = enabled
+  } catch (error: any) {
+    message.error(error?.message || `${enabled ? '设为生效' : '设为不生效'}失败`)
     console.error('Failed to toggle enabled:', error)
   }
 }
@@ -504,15 +487,11 @@ const saveKnowledge = async () => {
         synonyms: knowledgeForm.value.synonyms,
         modelId: knowledgeForm.value.modelId
       }
-      const response = await updateBusinessKnowledge(currentEditId.value, updateData)
-      if (response.code === 0) {
-        message.success('更新成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        await loadBusinessKnowledge()
-      } else {
-        message.error('更新失败')
-      }
+      await updateBusinessKnowledge(currentEditId.value, updateData)
+      message.success('更新成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      await loadBusinessKnowledge()
     } else {
       // 创建操作
       const createData: CreateBusinessKnowledgeDTO = {
@@ -522,18 +501,17 @@ const saveKnowledge = async () => {
         enabled: knowledgeForm.value.enabled,
         modelId: knowledgeForm.value.modelId
       }
-      const response = await createBusinessKnowledge(createData)
-      if (response.code === 0) {
-        message.success('创建成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        await loadBusinessKnowledge()
-      } else {
-        message.error('创建失败')
-      }
+      await createBusinessKnowledge(createData)
+      message.success('创建成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      await loadBusinessKnowledge()
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Form validation failed:', error)
+    if (error?.message) {
+      message.error(error.message)
+    }
   } finally {
     saveLoading.value = false
   }
@@ -551,14 +529,10 @@ const refreshVectorStore = async () => {
     onOk: async () => {
       try {
         refreshLoading.value = true
-        const response = await refreshVectorStoreApi()
-        if (response.code === 0) {
-          message.success('同步到向量库成功')
-        } else {
-          message.error('同步到向量库失败')
-        }
-      } catch (error) {
-        message.error('同步到向量库失败')
+        await refreshVectorStoreApi()
+        message.success('同步到向量库成功')
+      } catch (error: any) {
+        message.error(error?.message || '同步到向量库失败')
         console.error('Failed to refresh vector store:', error)
       } finally {
         refreshLoading.value = false
@@ -575,16 +549,11 @@ const retryEmbedding = async (knowledge: Idnex) => {
 
   try {
     retryLoadingMap.value[knowledge.id] = true
-
-    const response = await retryEmbeddingApi(knowledge.id)
-    if (response.code === 0) {
-      message.success('重试向量化成功')
-      await loadBusinessKnowledge()
-    } else {
-      message.error('重试向量化失败')
-    }
-  } catch (error) {
-    message.error('重试向量化失败')
+    await retryEmbeddingApi(knowledge.id)
+    message.success('重试向量化成功')
+    await loadBusinessKnowledge()
+  } catch (error: any) {
+    message.error(error?.message || '重试向量化失败')
     console.error('Failed to retry vectorization:', error)
   } finally {
     retryLoadingMap.value[knowledge.id] = false

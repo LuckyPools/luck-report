@@ -3,18 +3,16 @@
  * 调用后端 ChatCompactController 的 /chat/compact 接口
  * 将早期对话消息发送给后端，由 LLM 生成结构化摘要
  * 提示词由前端管理，通过请求体传给后端
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 内部已自动解包 ResultVO.data，
+ * 所以这里直接拿到的是业务数据本身，不需要再手动 .data。
  */
 
 import type { ContextMessage } from './index'
 import type { CompactResult } from '@/service/agent/memory/types'
-import { loadPromptDocByEnum, type PromptDocName } from '@/prompt'
-
-/** 后端统一响应结构 */
-interface ApiResponse<T = any> {
-  code: number
-  message: string
-  data: T
-}
+import { loadPromptDocByEnum } from '@/prompt'
+import request from '@/utils/request'
 
 /** 压缩请求体 */
 interface CompactRequestBody {
@@ -62,21 +60,5 @@ export async function compactConversation(
     modelId
   }
 
-  const response = await fetch('/api/chat/compact', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
-  })
-
-  if (!response.ok) {
-    throw new Error(`压缩接口请求失败: HTTP ${response.status}`)
-  }
-
-  const json: ApiResponse<CompactResult> = await response.json()
-
-  if (json.code !== 0) {
-    throw new Error(json.message || '压缩接口返回错误')
-  }
-
-  return json.data
+  return request.post<CompactResult>('/chat/compact', requestBody)
 }

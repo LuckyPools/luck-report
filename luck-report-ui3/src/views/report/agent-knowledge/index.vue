@@ -523,12 +523,8 @@ const loadKnowledgeList = async () => {
   loading.value = true
   try {
     const response = await queryAgentKnowledgeByPage(queryParams)
-    if (response.code === 0) {
-      knowledgeList.value = response.records
-      total.value = response.total
-    } else {
-      message.error('加载知识列表失败')
-    }
+    knowledgeList.value = response.records
+    total.value = response.total
   } catch (error) {
     message.error('加载知识列表失败')
     console.error('Failed to load knowledge list:', error)
@@ -647,15 +643,11 @@ const toggleEnabled = async (knowledge: AgentKnowledge, enabled: boolean) => {
 
   try {
     const response = await enableKnowledge(knowledge.id, enabled)
-    if (response.code === 0) {
-      message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
-      knowledge.enabled = enabled
-      // 如果返回了新的embeddingStatus，也更新
-      if (response.data) {
-        knowledge.embeddingStatus = response.data.embeddingStatus
-      }
-    } else {
-      message.error(`${enabled ? '设为生效' : '设为不生效'}失败`)
+    message.success(`${enabled ? '设为生效' : '设为不生效'}成功`)
+    knowledge.enabled = enabled
+    // 如果返回了新的embeddingStatus，也更新
+    if (response) {
+      knowledge.embeddingStatus = response.embeddingStatus
     }
   } catch (error) {
     message.error(`${enabled ? '设为生效' : '设为不生效'}失败`)
@@ -677,15 +669,11 @@ const deleteKnowledge = async (knowledge: AgentKnowledge) => {
     okType: 'danger',
     onOk: async () => {
       try {
-        const response = await deleteAgentKnowledge(knowledge.id!)
-        if (response.code === 0) {
-          message.success('删除成功')
-          await loadKnowledgeList()
-        } else {
-          message.error('删除失败')
-        }
-      } catch (error) {
-        message.error('删除失败')
+        await deleteAgentKnowledge(knowledge.id!)
+        message.success('删除成功')
+        await loadKnowledgeList()
+      } catch (error: any) {
+        message.error(error?.message || '删除失败')
         console.error('Failed to delete knowledge:', error)
       }
     }
@@ -700,15 +688,11 @@ const retryEmbeddingAction = async (knowledge: AgentKnowledge) => {
 
   try {
     retryLoadingMap.value[knowledge.id] = true
-    const response = await retryEmbeddingApi(knowledge.id)
-    if (response.code === 0) {
-      message.success('重试向量化成功')
-      await loadKnowledgeList()
-    } else {
-      message.error('重试向量化失败')
-    }
-  } catch (error) {
-    message.error('重试向量化失败')
+    await retryEmbeddingApi(knowledge.id)
+    message.success('重试向量化成功')
+    await loadKnowledgeList()
+  } catch (error: any) {
+    message.error(error?.message || '重试向量化失败')
     console.error('Failed to retry vectorization:', error)
   } finally {
     retryLoadingMap.value[knowledge.id] = false
@@ -733,17 +717,13 @@ const saveKnowledge = async () => {
         modelId: knowledgeForm.value.modelId
       }
       const response = await updateAgentKnowledge(currentEditId.value, updateData)
-      if (response.code === 0) {
-        message.success('更新成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        // 清空搜索条件，刷新列表
-        queryParams.title = ''
-        queryParams.pageNum = 1
-        await loadKnowledgeList()
-      } else {
-        message.error('更新失败')
-      }
+      message.success('更新成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      // 清空搜索条件，刷新列表
+      queryParams.title = ''
+      queryParams.pageNum = 1
+      await loadKnowledgeList()
     } else {
       // 创建操作
       const createData: CreateAgentKnowledgeDTO = {
@@ -755,20 +735,17 @@ const saveKnowledge = async () => {
         modelId: knowledgeForm.value.modelId!
       }
       const response = await createAgentKnowledge(createData, uploadFile.value || undefined)
-      if (response.code === 0) {
-        message.success('创建成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        // 清空搜索条件，刷新列表
-        queryParams.title = ''
-        queryParams.pageNum = 1
-        await loadKnowledgeList()
-      } else {
-        message.error('创建失败')
-      }
+      message.success('创建成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      // 清空搜索条件，刷新列表
+      queryParams.title = ''
+      queryParams.pageNum = 1
+      await loadKnowledgeList()
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Form validation failed:', error)
+    message.error(error?.message || '操作失败')
   } finally {
     saveLoading.value = false
   }
@@ -804,12 +781,7 @@ onMounted(() => {
 const loadEmbeddingModels = async () => {
   modelLoading.value = true
   try {
-    const response = await getActiveModelConfigList('EMBEDDING')
-    if (response.code === 0) {
-      embeddingModels.value = response.data || []
-    } else {
-      message.error('加载嵌入模型列表失败')
-    }
+    embeddingModels.value = await getActiveModelConfigList('EMBEDDING')
   } catch (error) {
     message.error('加载嵌入模型列表失败')
     console.error('Failed to load embedding models:', error)

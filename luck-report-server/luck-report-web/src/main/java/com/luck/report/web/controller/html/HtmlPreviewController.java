@@ -1,6 +1,6 @@
 package com.luck.report.web.controller.html;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.build.ReportBuilder;
 import com.luck.report.core.build.paging.Page;
@@ -18,7 +18,6 @@ import com.luck.report.web.service.ReportDefinitionService;
 import com.luck.report.web.utils.UrlParameterUtils;
 import com.luck.report.web.domain.vo.ChartDataVo;
 import com.luck.report.web.exception.ReportDesignException;
-import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
@@ -50,7 +48,7 @@ public class HtmlPreviewController {
     private ReportDefinitionService reportDefinitionService;
 
     @RequestMapping("/loadHtml")
-    public void loadHtml(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public ResultVO<Map<String, Object>> loadHtml(HttpServletRequest req) throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
         HtmlReport htmlReport;
         htmlReport = loadReport(req);
@@ -66,11 +64,11 @@ public class HtmlPreviewController {
             result.put("chartDatas", chartDataVoList);
             result.put("intervalRefreshValue", htmlReport.getHtmlIntervalRefreshValue());
         }
-        ResponseUtils.writeObjectToJson(resp, result);
+        return ResultVO.success(result);
     }
 
     @RequestMapping("/loadPrintPages")
-    public void loadPrintPages(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public ResultVO<Map<String, String>> loadPrintPages(HttpServletRequest req) throws Exception {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
@@ -117,11 +115,11 @@ public class HtmlPreviewController {
         }
         Map<String, String> map = new HashMap<String, String>();
         map.put("html", sb.toString());
-        ResponseUtils.writeObjectToJson(resp, map);
+        return ResultVO.success(map);
     }
 
     @RequestMapping("/loadPagePaper")
-    public void loadPagePaper(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public ResultVO<Paper> loadPagePaper(HttpServletRequest req) throws Exception {
         String mode = req.getParameter("mode");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         String fileName = req.getParameter("reportPath");
@@ -133,11 +131,11 @@ public class HtmlPreviewController {
             reportDefinition = reportRender.getReportDefinition(fileName);
         }
         Paper paper = reportDefinition.getPaper();
-        ResponseUtils.writeObjectToJson(resp, paper);
+        return ResultVO.success(paper);
     }
 
     @RequestMapping("/loadData")
-    public void loadData(HttpServletRequest req, HttpServletResponse resp) throws Exception {
+    public ResultVO<Map<String, Object>> loadData(HttpServletRequest req) throws Exception {
         HtmlReport htmlReport = loadReport(req);
         Map<String, Object> result = new HashMap<>();
         if (htmlReport != null) {
@@ -153,7 +151,7 @@ public class HtmlPreviewController {
             result.put("searchForm", htmlReport.getSearchForm());
             result.put("reportAlign", htmlReport.getReportAlign());
         }
-        ResponseUtils.writeObjectToJson(resp, result);
+        return ResultVO.success(result);
     }
 
 

@@ -10,10 +10,15 @@
  * 4. 进入旧对话 → GET /sessions/{sessionId}/messages 加载历史
  *
  * 注：baseURL='/api' 已在 utils/request.ts 中配置，调用时不需要再加 /api 前缀
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 内部已自动解包 ResultVO.data，
+ * 所以这里直接拿到的是业务数据本身，不需要再手动 .data。
  */
 
 import request from '@/utils/request'
 import { getUserId } from '@/utils/user'
+import type { PageResultVO } from '@/types/api'
 
 /** 消息对象 */
 export interface MessageInfo {
@@ -34,6 +39,16 @@ export interface BatchMessageItem {
   metadata?: string
 }
 
+/** 会话信息 */
+export interface SessionInfo {
+  id: string
+  userId?: number
+  title: string
+  isPinned?: number
+  createTime?: string
+  updateTime?: string
+}
+
 // ==================== 会话管理 ====================
 
 /**
@@ -43,8 +58,7 @@ export interface BatchMessageItem {
  * @returns 会话列表
  */
 export async function listSessionsByUser(userId: number): Promise<SessionInfo[]> {
-  const res = await request.get<SessionInfo[]>(`/sessions/user/${userId}`)
-  return res
+  return request.get<SessionInfo[]>(`/sessions/user/${userId}`)
 }
 
 /**
@@ -69,11 +83,10 @@ export async function listSessionsByUserPage(
   userId: number,
   pageNum: number = 1,
   pageSize: number = 10
-): Promise<PageResult<SessionInfo>> {
-  const res = await request.get<PageResult<SessionInfo>>(
+): Promise<PageResultVO<SessionInfo>> {
+  return request.get<PageResultVO<SessionInfo>>(
     `/sessions/user/${userId}/page?pageNum=${pageNum}&pageSize=${pageSize}`
   )
-  return res
 }
 
 /**
@@ -83,8 +96,7 @@ export async function listSessionsByUserPage(
  * @returns 会话信息
  */
 export async function getSession(sessionId: string): Promise<SessionInfo> {
-  const res = await request.get<SessionInfo>(`/sessions/${sessionId}`)
-  return res
+  return request.get<SessionInfo>(`/sessions/${sessionId}`)
 }
 
 /**
@@ -95,8 +107,7 @@ export async function getSession(sessionId: string): Promise<SessionInfo> {
  * @returns 新建的会话对象
  */
 export async function createSession(title?: string): Promise<SessionInfo> {
-  const res = await request.post<SessionInfo>('/sessions', { title, userId: getUserId() })
-  return res
+  return request.post<SessionInfo>('/sessions', { title, userId: getUserId() })
 }
 
 /**
@@ -138,8 +149,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
  * @returns 消息列表，按创建时间升序
  */
 export async function listMessages(sessionId: string): Promise<MessageInfo[]> {
-  const res = await request.get<MessageInfo[]>(`/sessions/${sessionId}/messages`)
-  return res
+  return request.get<MessageInfo[]>(`/sessions/${sessionId}/messages`)
 }
 
 /**
@@ -159,13 +169,12 @@ export async function saveMessage(
   messageType?: string,
   metadata?: string
 ): Promise<MessageInfo> {
-  const res = await request.post<MessageInfo>(`/sessions/${sessionId}/messages`, {
+  return request.post<MessageInfo>(`/sessions/${sessionId}/messages`, {
     role,
     content,
     messageType,
     metadata
   })
-  return res
 }
 
 /**
@@ -180,8 +189,7 @@ export async function batchSaveMessages(
   sessionId: string,
   messages: BatchMessageItem[]
 ): Promise<number> {
-  const res = await request.post<number>(`/sessions/${sessionId}/messages/batch`, { messages })
-  return res
+  return request.post<number>(`/sessions/${sessionId}/messages/batch`, { messages })
 }
 
 /**

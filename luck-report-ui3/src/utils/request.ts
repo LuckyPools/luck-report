@@ -1,15 +1,10 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import {t, i18n} from "@/locales";
+import {i18n} from "@/locales";
 import { getRequestToken, TOKEN_HEADER } from '@/utils/token'
 import { getApiBaseURL } from '@/utils/api-base'
 
 /** 默认实例的 axios 配置 */
 const defaultRequest: AxiosInstance = axios.create({
-    // API 走独立的 /api 前缀，由 Vite dev 代理（^/api → 后端 /report）和生产 Nginx 转发。
-    // 注意：不要拼接 import.meta.env.BASE_URL，否则 Vite base（如 /luck-report/）会被加到
-    // 请求路径上，导致 dev 代理的 ^/api 匹配不上而 404，生产环境部署子目录也会被错误转发。
-    // lib 模式下通过 setApiBaseURL 动态覆盖（详见 utils/api-base.ts）
-    // 注意：baseURL 在请求拦截器中动态设置，以支持 lib 模式运行时覆盖
     timeout: 60000
 })
 
@@ -60,6 +55,31 @@ defaultRequest.interceptors.response.use(
         return response
     },
     (error: AxiosError) => {
+        // ★ 401 → 通知父页面（保险 2，被动续期）
+        // 父页面监听到 LR_TOKEN_EXPIRED 后会调 /report/auth/token/renew 拿新 token，
+        // 再 postMessage({type:'LR_TOKEN_REFRESH', token}) 推给本 iframe，
+        // 本 iframe 在 main.ts/lib-entry.ts 已挂 message 监听调 setRequestToken 写 sessionStorage
+        if (error.response?.status === 401) {
+            console.warn('[LR-Token] 401, token 失效，通知父页面续期')
+            try {
+                // targetOrigin 优先用 document.referrer 解析父页面 origin；
+                // 生产环境强烈建议改成硬编码的具体父页面 origin（防恶意伪造）
+                let targetOrigin = '*'
+                try {
+                    if (document.referrer) {
+                        targetOrigin = new URL(document.referrer).origin
+                    }
+                } catch {
+                    /* 解析失败兜底 '*' */
+                }
+                window.parent?.postMessage(
+                    { type: 'LR_TOKEN_EXPIRED' },
+                    targetOrigin
+                )
+            } catch (e) {
+                /* 跨域时可能抛错，吞掉 */
+            }
+        }
         if (error.response && error.response.data) {
             const errorData: BizError = error.response.data as BizError
             return dealError(errorData)
@@ -117,6 +137,8 @@ async function del<T = any>(url: string, config: AxiosRequestConfig = {}): Promi
 /**
  * 处理响应结果
  * 提取响应数据，文件下载类型直接返回整个 response 对象
+ * 如果响应是统一的 ResultVO 格式（包含 code 和 data 字段），则自动解包到内层 data。
+ * 这样业务侧可以直接拿到 `resultvo.data`，不再需要手动 `res.data.data`。
  *
  * @param res axios 响应对象
  * @returns 处理后的响应数据
@@ -125,6 +147,11 @@ function dealAxiosResult<T = any>(res: AxiosResponse): Promise<T> {
     let realRes: any = res.data ? res.data : res
     if ((res.request as any)?.responseType === 'blob') {
         return Promise.resolve(res as unknown as T)
+    }
+    // 自动解包后端统一封装的 ResultVO 格式：{ code, message, data }
+    // 当响应是 ResultVO 形态时，把内层 data 暴露给业务方。
+    if (realRes && typeof realRes === 'object' && 'code' in realRes && 'data' in realRes) {
+        realRes = realRes.data
     }
     return Promise.resolve(realRes as T)
 }

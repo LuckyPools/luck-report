@@ -2,26 +2,42 @@
  * 报表预览相关 API
  *
  * 调用方：preview 视图、预览工具栏、PDF 打印对话框、图表工具等
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
  */
 import request from "@/utils/request";
 import {buildQueryString, downloadBlob} from "@/utils/comnon";
 
+/** 报表预览数据 */
+export interface PreviewReportData {
+  searchForm?: string
+  content?: string
+  style?: string
+  reportAlign?: string
+  totalPage?: number
+  totalPageWithCol?: number
+  pageIndex?: number
+  chartDatas?: Array<{ id: string; json: string }>
+  intervalRefreshValue?: number
+}
+
 /**
  * 预览报表数据
  * @param params 查询参数
- * @returns 包含报表预览数据的Promise对象
+ * @returns 包含报表预览数据
  */
-export async function loadHtml(params: Record<string, any>): Promise<any> {
-    return request.get('/html/loadHtml', { params });
+export async function loadHtml(params: Record<string, any>): Promise<PreviewReportData> {
+    return request.get<PreviewReportData>('/html/loadHtml', { params });
 }
 
 /**
  * 加载打印页面数据
  * @param formData 查询参数
- * @returns 包含打印页面数据的Promise对象
+ * @returns 包含打印页面 HTML 内容
  */
-export async function loadPrintPages(formData: FormData): Promise<any> {
-    return request.post('/html/loadPrintPages', formData, {
+export async function loadPrintPages(formData: FormData): Promise<{ html: string }> {
+    return request.post<{ html: string }>('/html/loadPrintPages', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -31,10 +47,10 @@ export async function loadPrintPages(formData: FormData): Promise<any> {
 /**
  * 加载页面纸张信息
  * @param formData 查询参数
- * @returns 包含纸张信息的Promise对象
+ * @returns 包含纸张信息
  */
 export async function loadPagePaper(formData: FormData): Promise<any> {
-    return request.post('/html/loadPagePaper', formData, {
+    return request.post<any>('/html/loadPagePaper', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -138,16 +154,16 @@ export async function getPdfPrintBlob(params: Record<string, any>, paperVo: any 
 /**
  * 加载报表数据
  * @param params 查询参数
- * @returns 包含报表数据的Promise对象
+ * @returns 包含报表数据
  */
-export async function loadReportData(params: Record<string, any>): Promise<any> {
+export async function loadReportData(params: Record<string, any>): Promise<PreviewReportData> {
     const formData = new FormData();
     if (params) {
         for (const [key, value] of Object.entries(params)) {
             formData.append(key, value as any);
         }
     }
-    return request.post('/html/loadData', formData, {
+    return request.post<PreviewReportData>('/html/loadData', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -157,10 +173,9 @@ export async function loadReportData(params: Record<string, any>): Promise<any> 
 /**
  * 存储图表数据
  * @param formData 包含图表数据的参数
- * @returns 存储结果的Promise对象
  */
-export async function storeChartData(formData: FormData): Promise<any> {
-    return request.post('/chart/storeData', formData, {
+export async function storeChartData(formData: FormData): Promise<void> {
+    return request.post<void>('/chart/storeData', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }

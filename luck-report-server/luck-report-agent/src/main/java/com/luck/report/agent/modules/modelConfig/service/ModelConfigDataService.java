@@ -1,6 +1,6 @@
 package com.luck.report.agent.modules.modelConfig.service;
 
-import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigDTO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
 import com.luck.report.agent.modules.modelConfig.domain.entity.ModelConfig;
@@ -101,7 +101,7 @@ public interface ModelConfigDataService {
      * 优先从缓存读取，缓存不存在时从数据库查询并写入缓存
      *
      * @param modelId 模型配置ID，可为null
-     * @return ModelConfig 对话模型配置
+     * @return Index 对话模型配置
      * @throws RuntimeException 当找不到可用的对话模型时抛出
      */
     ModelConfig getChatConfig(Integer modelId);

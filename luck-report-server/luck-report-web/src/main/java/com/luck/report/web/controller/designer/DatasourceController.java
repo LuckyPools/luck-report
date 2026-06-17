@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.designer;
 
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.exception.ReportServiceException;
 import com.luck.report.core.Utils;
 import com.luck.report.core.build.Context;
@@ -16,7 +17,6 @@ import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.core.sql.enums.DbType;
 import com.luck.report.core.sql.DialectFactory;
 import com.luck.report.core.sql.IPageDialect;
-import com.luck.report.web.utils.ResponseUtils;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 import java.beans.PropertyDescriptor;
 import java.io.IOException;
@@ -66,19 +65,19 @@ public class DatasourceController {
      * 加载内置数据源
      */
     @RequestMapping("/loadBuildinDatasources")
-    public void loadBuildinDatasources(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public ResultVO<List<String>> loadBuildinDatasources() {
         List<String> datasources = new ArrayList<>();
         for (BuildinDatasource datasource : Utils.getBuildinDatasources()) {
             datasources.add(datasource.name());
         }
-        ResponseUtils.writeObjectToJson(resp, datasources);
+        return ResultVO.success(datasources);
     }
 
     /**
      * 加载Bean方法
      */
     @RequestMapping("/loadMethods")
-    public void loadMethods(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public ResultVO<List<String>> loadMethods(HttpServletRequest req) {
         String beanId = req.getParameter("beanId");
         Object obj = applicationContext.getBean(beanId);
         Class<?> clazz = obj.getClass();
@@ -103,14 +102,14 @@ public class DatasourceController {
             }
             result.add(method.getName());
         }
-        ResponseUtils.writeObjectToJson(resp, result);
+        return ResultVO.success(result);
     }
 
     /**
      * 构建类字段
      */
     @RequestMapping("/buildClass")
-    public void buildClass(HttpServletRequest req, HttpServletResponse resp) {
+    public ResultVO<List<Field>> buildClass(HttpServletRequest req) {
         String clazz = req.getParameter("clazz");
         List<Field> result = new ArrayList<>();
         try {
@@ -123,7 +122,7 @@ public class DatasourceController {
                 }
                 result.add(new Field(name));
             }
-            ResponseUtils.writeObjectToJson(resp, result);
+            return ResultVO.success(result);
         } catch (Exception ex) {
             throw new ReportDesignException(ex);
         }
@@ -133,7 +132,7 @@ public class DatasourceController {
      * 构建数据库表
      */
     @RequestMapping("/buildDatabaseTables")
-    public void buildDatabaseTables(HttpServletRequest req, HttpServletResponse resp) throws ReportServiceException {
+    public ResultVO<List<Map<String, String>>> buildDatabaseTables(HttpServletRequest req) throws ReportServiceException {
         Connection conn = null;
         ResultSet rs = null;
         try {
@@ -153,7 +152,7 @@ public class DatasourceController {
                 table.put("type", rs.getString("TABLE_TYPE"));
                 tables.add(table);
             }
-            ResponseUtils.writeObjectToJson(resp, tables);
+            return ResultVO.success(tables);
         } catch (Exception ex) {
             throw new ReportServiceException(ex);
         } finally {
@@ -167,7 +166,7 @@ public class DatasourceController {
      * 区分存储过程和普通SQL，普通SQL使用分页查询避免全表扫描
      */
     @RequestMapping("/buildFields")
-    public void buildFields(HttpServletRequest req, HttpServletResponse resp) {
+    public ResultVO<List<Field>> buildFields(HttpServletRequest req) {
         String sql = req.getParameter("sql");
         String parameters = req.getParameter("parameters");
         Connection conn = null;
@@ -211,7 +210,7 @@ public class DatasourceController {
                     }
                 });
             }
-            ResponseUtils.writeObjectToJson(resp, fields);
+            return ResultVO.success(fields);
         } catch (Exception ex) {
             throw new ReportDesignException(ex);
         } finally {
@@ -223,7 +222,7 @@ public class DatasourceController {
      * 预览数据
      */
     @RequestMapping("/previewData")
-    public void previewData(HttpServletRequest req, HttpServletResponse resp) throws ReportServiceException, IOException {
+    public ResultVO<DataResult> previewData(HttpServletRequest req) throws ReportServiceException, IOException {
         String sql = req.getParameter("sql");
         String parameters = req.getParameter("parameters");
         Map<String, Object> map = buildParameters(parameters);
@@ -279,7 +278,7 @@ public class DatasourceController {
             result.setCurrentTotal(currentTotal);
             result.setData(dataList);
             result.setTotal(total);
-            ResponseUtils.writeObjectToJson(resp, result);
+            return ResultVO.success(result);
         } catch (Exception ex) {
             log.error("Preview Data Exception：{}", ex);
             throw new ReportServiceException(ex);
@@ -298,7 +297,7 @@ public class DatasourceController {
      * 测试数据库连接
      */
     @RequestMapping("/testConnection")
-    public void testConnection(HttpServletRequest req, HttpServletResponse resp) throws IOException, SQLException, ClassNotFoundException {
+    public ResultVO<Map<String, Object>> testConnection(HttpServletRequest req) {
         String username = req.getParameter("username");
         String password = req.getParameter("password");
         String driver = req.getParameter("driver");
@@ -309,16 +308,18 @@ public class DatasourceController {
             Class.forName(driver);
             conn = DriverManager.getConnection(url, username, password);
             map.put("result", true);
+        } catch (Exception e) {
+            log.error("Connection Exception", e);
         } finally {
             if (conn != null) {
                 try {
                     conn.close();
                 } catch (SQLException e) {
-                    log.error("Connection Exception",e);
+                    log.error("Connection Exception", e);
                 }
             }
         }
-        ResponseUtils.writeObjectToJson(resp, map);
+        return ResultVO.success(map);
     }
 
     // 辅助方法

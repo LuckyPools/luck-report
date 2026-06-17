@@ -9,7 +9,7 @@ import com.luck.report.agent.modules.agentKnowledgeConfig.domain.entity.AgentKno
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.enums.EmbeddingStatus;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.enums.KnowledgeType;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.agent.domain.vo.PageResultVO;
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.agentKnowledgeConfig.mapper.AgentKnowledgeMapper;
 import com.luck.report.agent.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
 import com.luck.report.agent.modules.vector.domain.entity.VectorDocument;
@@ -490,7 +490,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
             return;
         }
 
-        // 3. 构建 ID -> AgentKnowledge 的映射
+        // 3. 构建 ID -> Index 的映射
         Map<Long, AgentKnowledge> knowledgeMap = knowledgeList.stream()
                 .collect(Collectors.toMap(AgentKnowledge::getId, k -> k));
 

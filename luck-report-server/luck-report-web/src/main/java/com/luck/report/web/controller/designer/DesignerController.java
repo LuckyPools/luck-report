@@ -17,7 +17,6 @@ import com.luck.report.web.domain.vo.ReportDefinitionVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.utils.UrlParameterUtils;
-import com.luck.report.web.utils.ResponseUtils;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -34,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -68,7 +66,8 @@ public class DesignerController implements ApplicationContextAware {
      * 脚本验证
      */
     @RequestMapping("/scriptValidation")
-    public void scriptValidation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    @ResponseBody
+    public ResultVO<List<ErrorInfo>> scriptValidation(HttpServletRequest req) {
         String content = req.getParameter("content");
         CharStream input = CharStreams.fromString(content);
         ReportParserLexer lexer = new ReportParserLexer(input);
@@ -79,14 +78,15 @@ public class DesignerController implements ApplicationContextAware {
         parser.addErrorListener(errorListener);
         parser.expression();
         List<ErrorInfo> infos = errorListener.getInfos();
-        ResponseUtils.writeObjectToJson(resp, infos);
+        return ResultVO.success(infos);
     }
 
     /**
      * 条件脚本验证
      */
     @RequestMapping("/conditionScriptValidation")
-    public void conditionScriptValidation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    @ResponseBody
+    public ResultVO<List<ErrorInfo>> conditionScriptValidation(HttpServletRequest req) {
         String content = req.getParameter("content");
         CharStream input = CharStreams.fromString(content);
         ReportParserLexer lexer = new ReportParserLexer(input);
@@ -97,14 +97,15 @@ public class DesignerController implements ApplicationContextAware {
         parser.addErrorListener(errorListener);
         parser.expr();
         List<ErrorInfo> infos = errorListener.getInfos();
-        ResponseUtils.writeObjectToJson(resp, infos);
+        return ResultVO.success(infos);
     }
 
     /**
      * 解析数据集名称
      */
     @RequestMapping("/parseDatasetName")
-    public void parseDatasetName(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    @ResponseBody
+    public ResultVO<Map<String, String>> parseDatasetName(HttpServletRequest req) {
         String expr = req.getParameter("expr");
         CharStream input = CharStreams.fromString(expr);
         ReportParserLexer lexer = new ReportParserLexer(input);
@@ -115,7 +116,7 @@ public class DesignerController implements ApplicationContextAware {
         String datasetName = ctx.Identifier().getText();
         Map<String, String> result = new HashMap<String, String>();
         result.put("datasetName", datasetName);
-        ResponseUtils.writeObjectToJson(resp, result);
+        return ResultVO.success(result);
     }
 
 
@@ -123,7 +124,8 @@ public class DesignerController implements ApplicationContextAware {
      * 保存预览文件
      */
     @RequestMapping("/savePreviewFile")
-    public void savePreviewFile(HttpServletRequest req, HttpServletResponse resp) {
+    @ResponseBody
+    public ResultVO<Void> savePreviewFile(HttpServletRequest req) {
         String content = req.getParameter("content");
         String fileName = req.getParameter("fileName");
         content = decode(content);
@@ -133,13 +135,15 @@ public class DesignerController implements ApplicationContextAware {
         IOUtils.closeQuietly(inputStream);
         ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
         ReportScopedCache.putObject(fileName, wrapper);
+        return ResultVO.success();
     }
 
     /**
      * 加载报表
      */
     @RequestMapping(value = "/loadReport")
-    public void loadReport(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    @ResponseBody
+    public ResultVO<ReportDefinitionVo> loadReport(HttpServletRequest req) {
         String filePath = req.getParameter("filePath");
         if (filePath == null) {
             throw new ReportDesignException("Report file can not be null.");
@@ -154,14 +158,15 @@ public class DesignerController implements ApplicationContextAware {
         } else {
             reportDefinition = reportRender.parseReport(fileName);
         }
-        ResponseUtils.writeObjectToJson(resp, new ReportDefinitionVo(reportDefinition));
+        return ResultVO.success(new ReportDefinitionVo(reportDefinition));
     }
 
     /**
      * 删除报表文件
      */
     @RequestMapping("/deleteReportFile")
-    public void deleteReportFile(HttpServletRequest req, HttpServletResponse resp) {
+    @ResponseBody
+    public ResultVO<Void> deleteReportFile(HttpServletRequest req) {
         String file = req.getParameter("file");
         if (file == null) {
             throw new ReportDesignException("Report file can not be null.");
@@ -177,13 +182,15 @@ public class DesignerController implements ApplicationContextAware {
             throw new ReportDesignException("File [" + file + "] not found available report provider.");
         }
         targetReportProvider.deleteReport(file);
+        return ResultVO.success();
     }
 
     /**
      * 保存报表文件
      */
     @RequestMapping("/saveReportFile")
-    public void saveReportFile(HttpServletRequest req, HttpServletResponse resp) {
+    @ResponseBody
+    public ResultVO<Void> saveReportFile(HttpServletRequest req) {
         String file = req.getParameter("file");
         file = UrlParameterUtils.doubleDecode(file);
         String content = req.getParameter("content");
@@ -210,16 +217,18 @@ public class DesignerController implements ApplicationContextAware {
         ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
         ReportDefinitionWrapperCache.putObject(file, wrapper);
         targetReportProvider.saveReport(file, content);
+        return ResultVO.success();
     }
 
     /**
      * 加载报表提供者
      */
     @RequestMapping("/loadReportProviders")
-    public void loadReportProviders(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    @ResponseBody
+    public ResultVO<Object> loadReportProviders(HttpServletRequest req) {
         String path = req.getParameter("path");
         if (path == null || path.isEmpty()) {
-            ResponseUtils.writeObjectToJson(resp, reportProviders);
+            return ResultVO.success(reportProviders);
         } else {
             Map<String, Object> result = new HashMap<>();
             for (ReportProvider provider : reportProviders) {
@@ -233,7 +242,7 @@ public class DesignerController implements ApplicationContextAware {
                 providerData.put("reportFiles", provider.getReportFiles(path));
                 result.put(provider.getPrefix(), providerData);
             }
-            ResponseUtils.writeObjectToJson(resp, result);
+            return ResultVO.success(result);
         }
     }
 
@@ -247,7 +256,7 @@ public class DesignerController implements ApplicationContextAware {
      */
     @RequestMapping("/createReport")
     @ResponseBody
-    public ResultVO<Map<String, String>> createReport(HttpServletRequest req, HttpServletResponse resp) {
+    public ResultVO<Map<String, String>> createReport(HttpServletRequest req) {
         try {
             String fileName = req.getParameter("fileName");
             String providerPrefix = req.getParameter("provider");

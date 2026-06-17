@@ -43,6 +43,7 @@ type SimplifyInput = unknown
  * 构建 URL 查询参数（合并 searchFormParameters）
  * - 解析当前 URL 的 query 字符串为对象
  * - 将 searchFormParameters 中的非空值合并进去
+ * - 排除 token 参数（token 应通过 X-Access-Token header 传递，不应作为请求参数）
  * - 重新拼装为 `?key=value&k2=v2` 形式返回
  * @param searchFormParameters 表单提交的参数（值空将不覆盖已有值）
  * @returns 形如 `?a=1&b=2` 的字符串
@@ -53,18 +54,23 @@ export function buildLocationSearchParameters(
   let urlParameters = getUrlQueryString()
   const parameters: Record<string, string> = {}
   const pairs = urlParameters.split('&')
+  // 排除 token 参数，token 应通过 header 传递
+  const excludeKeys = ['token', 'X-Access-Token']
   for (let i = 0; i < pairs.length; i++) {
     const item = pairs[i]
     if (item === '') {
       continue
     }
     const param = item.split('=')
-    parameters[param[0]] = param[1]
+    // 排除 token 相关参数
+    if (!excludeKeys.includes(param[0])) {
+      parameters[param[0]] = param[1]
+    }
   }
   if (searchFormParameters) {
     for (const key in searchFormParameters) {
       const value = searchFormParameters[key]
-      if (value) {
+      if (value && !excludeKeys.includes(key)) {
         parameters[key] = String(value)
       }
     }

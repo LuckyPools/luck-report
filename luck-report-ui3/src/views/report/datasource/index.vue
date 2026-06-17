@@ -539,10 +539,7 @@ const fkForm = ref<{
  */
 const loadDatasourceTypes = async () => {
   try {
-    const response = await getDatasourceTypes()
-    if (response.code === 0) {
-      datasourceTypes.value = response.data
-    }
+    datasourceTypes.value = await getDatasourceTypes()
   } catch (error) {
     console.error('加载数据源类型失败:', error)
   }
@@ -561,24 +558,20 @@ const loadDatasourceList = async () => {
       pageSize: pageSize.value
     }
     const response = await queryDatasourceByPage(queryDTO)
-    if (response.code === 0) {
-      datasourceList.value = response.records
-      total.value = response.total
-      // 从后端返回的initializedTables字段初始化已选中的表，参照data-agent的selectTables回显逻辑
-      for (const ds of response.records) {
-        if (ds.id && ds.initializedTables) {
-          try {
-            const tables: string[] = JSON.parse(ds.initializedTables)
-            if (Array.isArray(tables) && tables.length > 0) {
-              selectedTablesMap[ds.id] = [...tables]
-            }
-          } catch (e) {
-            // JSON解析失败则忽略
+    datasourceList.value = response.records
+    total.value = response.total
+    // 从后端返回的initializedTables字段初始化已选中的表，参照data-agent的selectTables回显逻辑
+    for (const ds of response.records) {
+      if (ds.id && ds.initializedTables) {
+        try {
+          const tables: string[] = JSON.parse(ds.initializedTables)
+          if (Array.isArray(tables) && tables.length > 0) {
+            selectedTablesMap[ds.id] = [...tables]
           }
+        } catch (e) {
+          // JSON解析失败则忽略
         }
       }
-    } else {
-      message.error('加载数据源列表失败')
     }
   } catch (error) {
     message.error('加载数据源列表失败')
@@ -664,28 +657,23 @@ const handleSave = async () => {
     }
 
     if (isEdit.value && currentEditId.value) {
-      const response = await updateDatasource(currentEditId.value, data)
-      if (response.code === 0) {
-        message.success('更新成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        await loadDatasourceList()
-      } else {
-        message.error('更新失败')
-      }
+      await updateDatasource(currentEditId.value, data)
+      message.success('更新成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      await loadDatasourceList()
     } else {
-      const response = await createDatasource(data)
-      if (response.code === 0) {
-        message.success('创建成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        await loadDatasourceList()
-      } else {
-        message.error('创建失败')
-      }
+      await createDatasource(data)
+      message.success('创建成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      await loadDatasourceList()
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('表单验证失败:', error)
+    if (error?.message) {
+      message.error(error.message)
+    }
   } finally {
     saveLoading.value = false
   }
@@ -704,15 +692,11 @@ const handleDelete = (record: Datasource) => {
     okType: 'danger',
     onOk: async () => {
       try {
-        const response = await deleteDatasource(record.id!)
-        if (response.code === 0) {
-          message.success('删除成功')
-          await loadDatasourceList()
-        } else {
-          message.error('删除失败')
-        }
-      } catch (error) {
-        message.error('删除失败')
+        await deleteDatasource(record.id!)
+        message.success('删除成功')
+        await loadDatasourceList()
+      } catch (error: any) {
+        message.error(error?.message || '删除失败')
         console.error('删除失败:', error)
       }
     }
@@ -726,9 +710,9 @@ const handleTestConnection = async (record: Datasource) => {
   if (!record.id) return
   try {
     message.loading('正在测试连接...', 0)
-    const response = await testConnection(record.id)
+    const success = await testConnection(record.id)
     message.destroy()
-    if (response.code === 0 && response.data) {
+    if (success) {
       message.success('连接测试成功')
     } else {
       message.error('连接测试失败')
@@ -748,15 +732,11 @@ const handleTestConnection = async (record: Datasource) => {
 const handleToggleStatus = async (record: Datasource, status: string) => {
   if (!record.id) return
   try {
-    const response = await updateDatasourceStatus(record.id, status)
-    if (response.code === 0) {
-      message.success(`${status === 'active' ? '启用' : '禁用'}成功`)
-      await loadDatasourceList()
-    } else {
-      message.error('操作失败')
-    }
-  } catch (error) {
-    message.error('操作失败')
+    await updateDatasourceStatus(record.id, status)
+    message.success(`${status === 'active' ? '启用' : '禁用'}成功`)
+    await loadDatasourceList()
+  } catch (error: any) {
+    message.error(error?.message || '操作失败')
     console.error('操作失败:', error)
   }
 }
@@ -783,29 +763,25 @@ const loadTables = async (record: Datasource) => {
   tableLoadingMap[record.id] = true
   try {
     const response = await getDatasourceTables(record.id)
-    if (response.code === 0) {
-      tableListMap[record.id] = response.data
-      // 如果尚未初始化已选择的表，则从数据源的initializedTables字段回显
-      if (!selectedTablesMap[record.id] || selectedTablesMap[record.id].length === 0) {
-        if (record.initializedTables) {
-          try {
-            const tables: string[] = JSON.parse(record.initializedTables)
-            if (Array.isArray(tables)) {
-              selectedTablesMap[record.id] = [...tables]
-            } else {
-              selectedTablesMap[record.id] = []
-            }
-          } catch (e) {
+    tableListMap[record.id] = response
+    // 如果尚未初始化已选择的表，则从数据源的initializedTables字段回显
+    if (!selectedTablesMap[record.id] || selectedTablesMap[record.id].length === 0) {
+      if (record.initializedTables) {
+        try {
+          const tables: string[] = JSON.parse(record.initializedTables)
+          if (Array.isArray(tables)) {
+            selectedTablesMap[record.id] = [...tables]
+          } else {
             selectedTablesMap[record.id] = []
           }
-        } else {
+        } catch (e) {
           selectedTablesMap[record.id] = []
         }
+      } else {
+        selectedTablesMap[record.id] = []
       }
-      message.success(`成功加载 ${response.data.length} 个表`)
-    } else {
-      message.error('加载表列表失败')
     }
+    message.success(`成功加载 ${response.length} 个表`)
   } catch (error) {
     message.error('加载表列表失败')
     console.error('加载表列表失败:', error)
@@ -849,14 +825,10 @@ const handleInitSchema = async (record: Datasource) => {
 
   initSchemaLoadingMap[record.id] = true
   try {
-    const response = await initTableSchema(record.id, tables, modelId)
-    if (response.code === 0) {
-      message.success('更新数据表成功')
-    } else {
-      message.error('更新数据表失败')
-    }
-  } catch (error) {
-    message.error('更新数据表失败')
+    await initTableSchema(record.id, tables, modelId)
+    message.success('更新数据表成功')
+  } catch (error: any) {
+    message.error(error?.message || '更新数据表失败')
     console.error('更新数据表失败:', error)
   } finally {
     initSchemaLoadingMap[record.id] = false
@@ -873,20 +845,14 @@ const openForeignKeyDialog = async (record: Datasource) => {
 
   // 加载表列表
   try {
-    const response = await getDatasourceTables(record.id)
-    if (response.code === 0) {
-      fkTableList.value = response.data
-    }
+    fkTableList.value = await getDatasourceTables(record.id)
   } catch (error) {
     console.error('加载表列表失败:', error)
   }
 
   // 加载逻辑外键
   try {
-    const response = await getLogicalRelations(record.id)
-    if (response.code === 0) {
-      foreignKeyList.value = response.data
-    }
+    foreignKeyList.value = await getLogicalRelations(record.id)
   } catch (error) {
     console.error('加载逻辑外键失败:', error)
   }
@@ -904,11 +870,8 @@ const handleSourceTableChange = async (tableName: string) => {
     return
   }
   try {
-    const response = await getTableColumns(currentDatasource.value.id, tableName)
-    if (response.code === 0) {
-      sourceColumnList.value = response.data
-      fkForm.value.sourceColumnName = ''
-    }
+    sourceColumnList.value = await getTableColumns(currentDatasource.value.id, tableName)
+    fkForm.value.sourceColumnName = ''
   } catch (error) {
     console.error('加载字段列表失败:', error)
   }
@@ -924,11 +887,8 @@ const handleTargetTableChange = async (tableName: string) => {
     return
   }
   try {
-    const response = await getTableColumns(currentDatasource.value.id, tableName)
-    if (response.code === 0) {
-      targetColumnList.value = response.data
-      fkForm.value.targetColumnName = ''
-    }
+    targetColumnList.value = await getTableColumns(currentDatasource.value.id, tableName)
+    fkForm.value.targetColumnName = ''
   } catch (error) {
     console.error('加载字段列表失败:', error)
   }
@@ -952,14 +912,12 @@ const editForeignKey = async (fk: LogicalRelation) => {
   // 加载字段列表
   if (fk.sourceTableName && currentDatasource.value?.id) {
     try {
-      const response = await getTableColumns(currentDatasource.value.id, fk.sourceTableName)
-      if (response.code === 0) sourceColumnList.value = response.data
+      sourceColumnList.value = await getTableColumns(currentDatasource.value.id, fk.sourceTableName)
     } catch (error) { console.error(error) }
   }
   if (fk.targetTableName && currentDatasource.value?.id) {
     try {
-      const response = await getTableColumns(currentDatasource.value.id, fk.targetTableName)
-      if (response.code === 0) targetColumnList.value = response.data
+      targetColumnList.value = await getTableColumns(currentDatasource.value.id, fk.targetTableName)
     } catch (error) { console.error(error) }
   }
 }
@@ -1033,15 +991,11 @@ const saveForeignKeyConfig = async () => {
   if (!currentDatasource.value?.id) return
   savingForeignKeys.value = true
   try {
-    const response = await saveLogicalRelations(currentDatasource.value.id, foreignKeyList.value)
-    if (response.code === 0) {
-      message.success('保存成功')
-      foreignKeyDialogVisible.value = false
-    } else {
-      message.error('保存失败')
-    }
-  } catch (error) {
-    message.error('保存失败')
+    await saveLogicalRelations(currentDatasource.value.id, foreignKeyList.value)
+    message.success('保存成功')
+    foreignKeyDialogVisible.value = false
+  } catch (error: any) {
+    message.error(error?.message || '保存失败')
     console.error('保存失败:', error)
   } finally {
     savingForeignKeys.value = false
@@ -1086,12 +1040,7 @@ onMounted(() => {
 const loadEmbeddingModels = async () => {
   modelLoading.value = true
   try {
-    const response = await getActiveModelConfigList('EMBEDDING')
-    if (response.code === 0) {
-      embeddingModels.value = response.data || []
-    } else {
-      message.error('加载嵌入模型列表失败')
-    }
+    embeddingModels.value = await getActiveModelConfigList('EMBEDDING')
   } catch (error) {
     message.error('加载嵌入模型列表失败')
     console.error('Failed to load embedding models:', error)

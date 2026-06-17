@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.importexcel;
 
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.definition.ReportDefinitionWrapper;
 import com.luck.report.core.exception.ReportException;
@@ -39,7 +40,7 @@ public class ImportExcelController {
      * 导入Excel文件并解析为报表定义
      */
     @RequestMapping({"", "/"})
-    public Map<String, Object> importExcel(@RequestParam("_excel_file") MultipartFile file) {
+    public ResultVO<Map<String, Object>> importExcel(@RequestParam("_excel_file") MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
         ReportDefinition reportDefinition = null;
 
@@ -70,6 +71,6 @@ public class ImportExcelController {
             throw new ReportException("Failed to parse Excel file, please verify the file format");
         }
 
-        return result;
+        return ResultVO.success(result);
     }
 }

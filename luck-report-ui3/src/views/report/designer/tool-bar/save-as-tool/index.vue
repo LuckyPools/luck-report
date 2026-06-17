@@ -34,6 +34,7 @@ import SaveDialog from '@/views/report/designer/tool-bar/save-as-tool/save-dialo
 import { useReportStore } from '@/store/modules/report'
 import type { ReportContext } from '@/types/report-def'
 import { useI18n } from 'vue-i18n'
+import { getRequestToken } from '@/utils/token'
 
 defineOptions({ name: 'SaveAsTool' })
 
@@ -46,8 +47,11 @@ const report = useReportStore()
 /** 当前报表上下文（与原组件保留同样字段） */
 const context = computed<ReportContext | null>(() => report.getContext)
 
-/** 监听 SaveDialog 内部的 saveAfter 事件：跳转到新报表 */
+/** 监听 SaveDialog 内部的 saveAfter 事件：跳转到新报表并携带 token */
 function handleSaveAfter(fullFile: string): void {
-  window.location.replace('?reportPath=' + fullFile)
+  // 从 sessionStorage 读取 token（iframe 嵌入场景下已由 captureTokenFromUrl 写入）
+  const token = getRequestToken()
+  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
+  window.location.replace('?reportPath=' + fullFile + tokenParam)
 }
 </script>

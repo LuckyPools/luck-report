@@ -256,6 +256,7 @@ import {
   type ReportFileVO,
   type ReportProviderVO
 } from '@/api/manage'
+import { getRequestToken } from '@/utils/token'
 
 defineOptions({ name: 'ManageReports' })
 
@@ -294,23 +295,22 @@ const createFormRules = {
 
 /**
  * 加载报表来源
+ *
+ * 注：utils/request.ts 已自动解包 ResultVO.data，
+ * 所以 loadReportProviders() 直接返回 ReportProviderVO[] 数组。
  */
 const loadProviders = async (): Promise<void> => {
   providerLoading.value = true
   try {
-    const res = await loadReportProviders()
-    if (res.code === 0 && res.data) {
-      providers.value = res.data
-      if (!selectedProvider.value && res.data.length > 0) {
-        selectedProvider.value = res.data[0].prefix
-        createForm.provider = res.data[0].prefix
-      }
-    } else {
-      message.error(res.message || '加载报表来源失败')
+    const providersData = await loadReportProviders()
+    providers.value = providersData
+    if (!selectedProvider.value && providersData.length > 0) {
+      selectedProvider.value = providersData[0].prefix
+      createForm.provider = providersData[0].prefix
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('Failed to load providers:', e)
-    message.error('加载报表来源失败')
+    message.error(e?.message || '加载报表来源失败')
   } finally {
     providerLoading.value = false
   }
@@ -327,24 +327,20 @@ const loadReports = async (): Promise<void> => {
   }
   loading.value = true
   try {
-    const res = await queryReports({
+    const pageData = await queryReports({
       provider: selectedProvider.value,
       reportName: searchKeyword.value || undefined,
       pageNum: pageNum.value,
       pageSize: pageSize.value
     })
-    if (res.code === 0 && res.data) {
-      // 过滤目录，只保留报表文件
-      reportList.value = (res.data.records || []).filter(r => !r.isDirectory)
-      total.value = res.data.total
-    } else {
-      message.error(res.message || '加载报表列表失败')
-      reportList.value = []
-      total.value = 0
-    }
-  } catch (e) {
+    // 过滤目录，只保留报表文件
+    reportList.value = (pageData.records || []).filter(r => !r.isDirectory)
+    total.value = pageData.total
+  } catch (e: any) {
     console.error('Failed to load reports:', e)
-    message.error('加载报表列表失败')
+    message.error(e?.message || '加载报表列表失败')
+    reportList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -372,12 +368,16 @@ const handleProviderFilterChange = (): void => {
  * - reportPath 已经被 buildEncodedReportPath 做过双层编码，直接拼到 URL 即可，
  *   浏览器解析时会把 %25 还原为 %，得到单层编码后的真实值
  * - target: 'designer'（默认）打开设计器；'preview' 打开预览页（不再附加 mode 参数）
+ * - 自动从 sessionStorage 读取 token 并拼接到 URL，确保设计器/预览页能正常访问后端接口
  */
 function buildReportUrl(encodedPath: string, target: 'designer' | 'preview' = 'designer'): string {
   const search = `reportPath=${encodedPath}`
   const base = (import.meta.env.VITE_PUBLIC_PATH || '/') as string
   const origin = window.location.origin
-  return `${origin}${base.replace(/\/?$/, '/')}report/${target}?${search}`
+  // 从 sessionStorage 读取 token（iframe 嵌入场景下已由 captureTokenFromUrl 写入）
+  const token = getRequestToken()
+  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
+  return `${origin}${base.replace(/\/?$/, '/')}report/${target}?${search}${tokenParam}`
 }
 
 /**
@@ -445,11 +445,7 @@ const handleCreate = async (): Promise<void> => {
     const filePath = provider + fileName
 
     // 先调用后端创建空报表文件
-    const res = await createReport(fileName, provider)
-    if (res.code !== 0) {
-      message.error(res.message || '创建报表失败')
-      return
-    }
+    await createReport(fileName, provider)
 
     // 创建成功后在新标签页打开设计器
     const encoded = buildEncodedReportPath(filePath)
@@ -480,20 +476,16 @@ const handleDelete = (item: ReportFileVO): void => {
     okType: 'danger',
     onOk: async () => {
       try {
-        const res = await deleteReport(item.filePath)
-        if (res.code === 0) {
-          message.success('删除成功')
-          // 若当前页删完，自动回到上一页
-          if (reportList.value.length <= 1 && pageNum.value > 1) {
-            pageNum.value -= 1
-          }
-          await loadReports()
-        } else {
-          message.error(res.message || '删除失败')
+        await deleteReport(item.filePath)
+        message.success('删除成功')
+        // 若当前页删完，自动回到上一页
+        if (reportList.value.length <= 1 && pageNum.value > 1) {
+          pageNum.value -= 1
         }
-      } catch (e) {
+        await loadReports()
+      } catch (e: any) {
         console.error('Failed to delete report:', e)
-        message.error('删除失败')
+        message.error(e?.message || '删除失败')
       }
     }
   })

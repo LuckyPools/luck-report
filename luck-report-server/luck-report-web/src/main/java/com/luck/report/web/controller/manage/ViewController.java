@@ -115,38 +115,6 @@ public class ViewController {
         renderTemplate("index", request, response);
     }
 
-    // ==================== 兼容路径 /view/**（供第三方 iframe 嵌入） ====================
-
-    /**
-     * 兼容路径：工作台首页入口。
-     * <p>匹配 {@code /view}、{@code /view/index} 及任意子路径，
-     * 全部渲染 {@code classpath:/html/index.html}。
-     * <p>推荐给第三方系统 iframe 嵌入使用，配合 {@code ?token=xxx} 透传身份。
-     */
-    @GetMapping({"/view", "/view/", "/view/index", "/view/index/**"})
-    public void viewIndex(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        renderTemplate("index", request, response);
-    }
-
-    /**
-     * 兼容路径：报表设计器入口。
-     * <p>匹配 {@code /view/designer} 及任意子路径（如携带 {@code ?reportPath=xxx}），
-     * 全部渲染 {@code classpath:/html/designer.html}。
-     */
-    @GetMapping({"/view/designer", "/view/designer/**"})
-    public void viewDesigner(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        renderTemplate("designer", request, response);
-    }
-
-    /**
-     * 兼容路径：报表预览入口。
-     * <p>匹配 {@code /view/preview} 及任意子路径，全部渲染 {@code classpath:/html/preview.html}。
-     */
-    @GetMapping({"/view/preview", "/view/preview/**"})
-    public void viewPreview(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        renderTemplate("preview", request, response);
-    }
-
     /**
      * 使用独立的 Thymeleaf 模板引擎渲染页面。
      * <p>

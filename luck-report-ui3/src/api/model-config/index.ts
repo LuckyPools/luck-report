@@ -1,5 +1,11 @@
+/**
+ * 模型配置相关 API
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
+ */
 import request from '@/utils/request'
-import type { ResultVO, PageResultVO } from '@/types/api'
+import type { PageResultVO } from '@/types/api'
 
 /**
  * 模型配置接口定义
@@ -49,9 +55,8 @@ export interface ModelConfigQueryDTO {
  * 获取模型配置列表
  * @returns Promise包含模型配置列表
  */
-export async function getModelConfigList(): Promise<ResultVO<Index[]>> {
-  const response = await request.get('/model-config/list')
-  return response as ResultVO<Index[]>
+export async function getModelConfigList(): Promise<Index[]> {
+  return request.get<Index[]>('/model-config/list')
 }
 
 /**
@@ -62,8 +67,7 @@ export async function getModelConfigList(): Promise<ResultVO<Index[]>> {
 export async function queryModelConfigByPage(
   queryDTO: ModelConfigQueryDTO
 ): Promise<PageResultVO<Index>> {
-  const response = await request.post('/model-config/query/page', queryDTO)
-  return response as PageResultVO<Index>
+  return request.post<PageResultVO<Index>>('/model-config/query/page', queryDTO)
 }
 
 /**
@@ -71,9 +75,8 @@ export async function queryModelConfigByPage(
  * @param data 模型配置对象
  * @returns Promise包含操作结果
  */
-export async function addModelConfig(data: Index): Promise<ResultVO<string>> {
-  const response = await request.post('/model-config/add', data)
-  return response as ResultVO<string>
+export async function addModelConfig(data: Index): Promise<string> {
+  return request.post<string>('/model-config/add', data)
 }
 
 /**
@@ -81,9 +84,8 @@ export async function addModelConfig(data: Index): Promise<ResultVO<string>> {
  * @param data 模型配置对象
  * @returns Promise包含操作结果
  */
-export async function updateModelConfig(data: Index): Promise<ResultVO<string>> {
-  const response = await request.put('/model-config/update', data)
-  return response as ResultVO<string>
+export async function updateModelConfig(data: Index): Promise<string> {
+  return request.put<string>('/model-config/update', data)
 }
 
 /**
@@ -91,9 +93,8 @@ export async function updateModelConfig(data: Index): Promise<ResultVO<string>> 
  * @param id 配置ID
  * @returns Promise包含操作结果
  */
-export async function deleteModelConfig(id: number): Promise<ResultVO<string>> {
-  const response = await request.del(`/model-config/${id}`)
-  return response as ResultVO<string>
+export async function deleteModelConfig(id: number): Promise<string> {
+  return request.del<string>(`/model-config/${id}`)
 }
 
 /**
@@ -101,9 +102,8 @@ export async function deleteModelConfig(id: number): Promise<ResultVO<string>> {
  * @param id 配置ID
  * @returns Promise包含操作结果
  */
-export async function activateModelConfig(id: number): Promise<ResultVO<string>> {
-  const response = await request.post(`/model-config/activate/${id}`)
-  return response as ResultVO<string>
+export async function activateModelConfig(id: number): Promise<string> {
+  return request.post<string>(`/model-config/activate/${id}`)
 }
 
 /**
@@ -112,9 +112,8 @@ export async function activateModelConfig(id: number): Promise<ResultVO<string>>
  * @param id 配置ID
  * @returns Promise包含操作结果
  */
-export async function deactivateModelConfig(id: number): Promise<ResultVO<string>> {
-  const response = await request.post(`/model-config/deactivate/${id}`)
-  return response as ResultVO<string>
+export async function deactivateModelConfig(id: number): Promise<string> {
+  return request.post<string>(`/model-config/deactivate/${id}`)
 }
 
 /**
@@ -123,16 +122,14 @@ export async function deactivateModelConfig(id: number): Promise<ResultVO<string
  * @param modelType 模型类型(CHAT/EMBEDDING)
  * @returns Promise包含激活的模型配置列表
  */
-export async function getActiveModelConfigList(modelType: string): Promise<ResultVO<Index[]>> {
-  const response = await request.get(`/model-config/active-list/${modelType}`)
-  return response as ResultVO<Index[]>
+export async function getActiveModelConfigList(modelType: string): Promise<Index[]> {
+  return request.get<Index[]>(`/model-config/active-list/${modelType}`)
 }
 
 /**
  * 检查模型配置是否就绪
  * @returns Promise包含检查结果
  */
-export async function checkModelConfigReady(): Promise<ResultVO<ModelCheckResult>> {
-  const response = await request.get('/model-config/check-ready')
-  return response as ResultVO<ModelCheckResult>
+export async function checkModelConfigReady(): Promise<ModelCheckResult> {
+  return request.get<ModelCheckResult>('/model-config/check-ready')
 }

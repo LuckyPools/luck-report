@@ -145,7 +145,7 @@ public class EmbeddingService {
     /**
      * 获取嵌入模型配置（使用默认激活的第一个嵌入模型）
      *
-     * @return ModelConfig 嵌入模型配置
+     * @return Index 嵌入模型配置
      * @throws RuntimeException 当找不到可用的嵌入模型时抛出
      */
     private ModelConfig getEmbeddingConfig() {
@@ -157,7 +157,7 @@ public class EmbeddingService {
      * 指定 modelId 时按ID查找，未指定时使用默认激活的第一个嵌入模型
      *
      * @param modelId 嵌入模型配置ID，为null时使用默认激活的第一个
-     * @return ModelConfig 嵌入模型配置
+     * @return Index 嵌入模型配置
      * @throws RuntimeException 当找不到指定的嵌入模型或无可用嵌入模型时抛出
      */
     private ModelConfig getEmbeddingConfig(Long modelId) {

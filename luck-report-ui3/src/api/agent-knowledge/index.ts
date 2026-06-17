@@ -1,5 +1,11 @@
+/**
+ * 智能体知识相关 API
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
+ */
 import request from '@/utils/request'
-import type { ResultVO, PageResultVO } from '@/types/api'
+import type { PageResultVO } from '@/types/api'
 
 /**
  * 智能体知识接口定义
@@ -58,9 +64,8 @@ export interface UpdateAgentKnowledgeDTO {
  */
 export async function getAgentKnowledgeById(
   id: number
-): Promise<ResultVO<AgentKnowledge>> {
-  const response = await request.get(`/agent-knowledge/detail/${id}`)
-  return response as ResultVO<AgentKnowledge>
+): Promise<AgentKnowledge> {
+  return request.get<AgentKnowledge>(`/agent-knowledge/detail/${id}`)
 }
 
 /**
@@ -72,7 +77,7 @@ export async function getAgentKnowledgeById(
 export async function createAgentKnowledge(
   data: CreateAgentKnowledgeDTO,
   file?: File
-): Promise<ResultVO<AgentKnowledge>> {
+): Promise<AgentKnowledge> {
   const formData = new FormData()
   formData.append('title', data.title)
   formData.append('type', data.type)
@@ -91,10 +96,9 @@ export async function createAgentKnowledge(
   if (file) {
     formData.append('file', file)
   }
-  const response = await request.post('/agent-knowledge/create', formData, {
+  return request.post<AgentKnowledge>('/agent-knowledge/create', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
-  return response as ResultVO<AgentKnowledge>
 }
 
 /**
@@ -106,9 +110,8 @@ export async function createAgentKnowledge(
 export async function updateAgentKnowledge(
   id: number,
   data: UpdateAgentKnowledgeDTO
-): Promise<ResultVO<AgentKnowledge>> {
-  const response = await request.put(`/agent-knowledge/update/${id}`, data)
-  return response as ResultVO<AgentKnowledge>
+): Promise<AgentKnowledge> {
+  return request.put<AgentKnowledge>(`/agent-knowledge/update/${id}`, data)
 }
 
 /**
@@ -120,11 +123,10 @@ export async function updateAgentKnowledge(
 export async function enableKnowledge(
   id: number,
   enabled: boolean
-): Promise<ResultVO<AgentKnowledge>> {
-  const response = await request.post(`/agent-knowledge/enable/${id}`, null, {
+): Promise<AgentKnowledge> {
+  return request.post<AgentKnowledge>(`/agent-knowledge/enable/${id}`, null, {
     params: { enabled }
   })
-  return response as ResultVO<AgentKnowledge>
 }
 
 /**
@@ -134,9 +136,8 @@ export async function enableKnowledge(
  */
 export async function deleteAgentKnowledge(
   id: number
-): Promise<ResultVO<boolean>> {
-  const response = await request.del(`/agent-knowledge/delete/${id}`)
-  return response as ResultVO<boolean>
+): Promise<boolean> {
+  return request.del<boolean>(`/agent-knowledge/delete/${id}`)
 }
 
 /**
@@ -147,8 +148,7 @@ export async function deleteAgentKnowledge(
 export async function queryAgentKnowledgeByPage(
   queryDTO: AgentKnowledgeQueryDTO
 ): Promise<PageResultVO<AgentKnowledge>> {
-  const response = await request.post('/agent-knowledge/query/page', queryDTO)
-  return response as PageResultVO<AgentKnowledge>
+  return request.post<PageResultVO<AgentKnowledge>>('/agent-knowledge/query/page', queryDTO)
 }
 
 /**
@@ -158,7 +158,6 @@ export async function queryAgentKnowledgeByPage(
  */
 export async function retryEmbedding(
   id: number
-): Promise<ResultVO<boolean>> {
-  const response = await request.post(`/agent-knowledge/retry-embedding/${id}`)
-  return response as ResultVO<boolean>
+): Promise<boolean> {
+  return request.post<boolean>(`/agent-knowledge/retry-embedding/${id}`)
 }

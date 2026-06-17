@@ -630,13 +630,8 @@ const loadConfigs = async () => {
       pageSize: pageSize.value
     }
     const response = await queryModelConfigByPage(queryDTO)
-    if (response.code === 0) {
-      configs.value = response.records
-      total.value = response.total
-    } else {
-      message.error('获取模型配置列表失败')
-      configs.value = []
-    }
+    configs.value = response.records
+    total.value = response.total
   } catch (error) {
     message.error('获取模型配置列表失败,请检查网络!')
     configs.value = []
@@ -704,29 +699,24 @@ const handleSubmit = async () => {
 
     if (isEditMode.value) {
       // 更新配置
-      const result = await updateModelConfig(formData.value)
-      if (result.code === 0) {
-        message.success('配置更新成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        loadConfigs()
-      } else {
-        message.error(result.message || '配置更新失败')
-      }
+      await updateModelConfig(formData.value)
+      message.success('配置更新成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      loadConfigs()
     } else {
       // 新增配置
-      const result = await addModelConfig(formData.value)
-      if (result.code === 0) {
-        message.success('配置添加成功')
-        formRef.value?.clearValidate()
-        dialogVisible.value = false
-        loadConfigs()
-      } else {
-        message.error(result.message || '配置添加失败')
-      }
+      await addModelConfig(formData.value)
+      message.success('配置添加成功')
+      formRef.value?.clearValidate()
+      dialogVisible.value = false
+      loadConfigs()
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('表单验证失败:', error)
+    if (error?.message) {
+      message.error(error.message)
+    }
   } finally {
     submitting.value = false
   }
@@ -745,12 +735,12 @@ const handleDelete = (config: Index) => {
     okType: 'danger',
     onOk: async () => {
       if (config.id) {
-        const result = await deleteModelConfig(config.id)
-        if (result.code === 0) {
+        try {
+          await deleteModelConfig(config.id)
           message.success('配置删除成功')
           loadConfigs()
-        } else {
-          message.error(result.message || '配置删除失败')
+        } catch (error: any) {
+          message.error(error?.message || '配置删除失败')
         }
       }
     }
@@ -766,15 +756,11 @@ const handleActivate = async (id?: number) => {
 
   activatingId.value = id
   try {
-    const result = await activateModelConfig(id)
-    if (result.code === 0) {
-      message.success('模型启用成功!')
-      loadConfigs()
-    } else {
-      message.error(result.message || '启用失败,请检查配置是否正确')
-    }
-  } catch (error) {
-    message.error('启用失败,请检查配置是否正确')
+    await activateModelConfig(id)
+    message.success('模型启用成功!')
+    loadConfigs()
+  } catch (error: any) {
+    message.error(error?.message || '启用失败,请检查配置是否正确')
   } finally {
     activatingId.value = null
   }
@@ -790,15 +776,11 @@ const handleDeactivate = async (id?: number) => {
 
   activatingId.value = id
   try {
-    const result = await deactivateModelConfig(id)
-    if (result.code === 0) {
-      message.success('模型禁用成功!')
-      loadConfigs()
-    } else {
-      message.error(result.message || '禁用失败')
-    }
-  } catch (error) {
-    message.error('禁用失败')
+    await deactivateModelConfig(id)
+    message.success('模型禁用成功!')
+    loadConfigs()
+  } catch (error: any) {
+    message.error(error?.message || '禁用失败')
   } finally {
     activatingId.value = null
   }

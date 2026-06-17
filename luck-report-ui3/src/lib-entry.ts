@@ -44,6 +44,21 @@ export function mount(el: HTMLElement | string, options: LuckReportOptions = {})
   if (options.baseURL) setApiBaseURL(options.baseURL)
   captureTokenFromUrl()
 
+  // ★ 监听父页面推送的 LR_TOKEN_REFRESH / LR_TOKEN_EXPIRED
+  // 父页面通过 postMessage 推新 token 时，本 iframe 写入 sessionStorage，
+  // 后续 axios 拦截器从 sessionStorage 读 → 注入 X-Access-Token header（不重载 iframe）
+  // origin 校验必须做（防恶意页面伪造 token 推送）
+  if (typeof window !== 'undefined') {
+    window.addEventListener('message', (e: MessageEvent) => {
+      // 父页面 origin 来源：优先从 document.referrer 解析（dev 时常见），
+      // 生产环境第三方业务方按需改成硬编码的具体父页面 origin
+      if (e.data?.type === 'LR_TOKEN_REFRESH' && typeof e.data.token === 'string' && e.data.token) {
+        console.info('[LR-Token] 收到父页面推送的新 token，写入 sessionStorage')
+        setRequestToken(e.data.token)
+      }
+    })
+  }
+
   const app = createApp(App)
   // 把 embed / defaultRoute 通过 provide 注入，组件用 inject 读取，
   // 避免直接改 window.location 触发 router 重新匹配

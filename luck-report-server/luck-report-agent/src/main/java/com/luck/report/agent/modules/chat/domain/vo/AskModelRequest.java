@@ -35,7 +35,7 @@ public class AskModelRequest {
     /**
      * 构造函数
      *
-     * @param chatConfig 模型配置，包含 baseUrl、apiKey、modelName 等，类型：ModelConfig，不可为空
+     * @param chatConfig 模型配置，包含 baseUrl、apiKey、modelName 等，类型：Index，不可为空
      * @param messages OpenAI 格式的消息列表，类型：List<Map<String, Object>>，不可为空
      */
     public AskModelRequest(ModelConfig chatConfig, List<Map<String, Object>> messages) {
@@ -112,7 +112,7 @@ public class AskModelRequest {
     /**
      * 获取模型配置
      *
-     * @return 模型配置，类型：ModelConfig
+     * @return 模型配置，类型：Index
      */
     public ModelConfig getChatConfig() { return chatConfig; }
 

@@ -16,10 +16,14 @@
 package com.luck.report.web.config;
 
 import com.luck.report.web.filter.RequestHolderFilter;
+import com.luck.report.web.security.TokenInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -38,6 +42,13 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Value("${luck-report.servletPrefix:report}")
     private String servletPrefix;
+
+    /**
+     * 报表 Token 拦截器（{@code enabled=false} 时内部直接放行，不影响本地调试）。
+     */
+    @Autowired
+    @Qualifier("bean.tokenInterceptor")
+    private TokenInterceptor tokenInterceptor;
 
     /**
      * 注册RequestHolderFilter，确保在所有请求处理过程中设置和清理RequestHolder
@@ -77,5 +88,39 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/html/assets/");
         registry.addResourceHandler("/" + prefix + "/lib/**")
                 .addResourceLocations("classpath:/html/lib/");
+    }
+
+    /**
+     * 注册报表 Token 拦截器，覆盖所有业务路径，<b>排除</b> {@code /<prefix>/auth/**}。
+     * <p>拦截器由 {@code luck-report.token.enabled} 控制总开关：
+     * <ul>
+     *   <li>{@code enabled=true}：走完整校验链（解析 token → 验签 → scope → 写上下文）</li>
+     *   <li>{@code enabled=false}：直接放行（本地 ui3 项目联调）</li>
+     * </ul>
+     *
+     * <p>覆盖路径：{@code /<prefix>/{manage,api,chart,designer,excel,pdf,word,image,importexcel,html}/**}
+     * <br>排除路径：{@code /<prefix>/auth/**}（由第三方业务系统登录过滤器管）
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        String prefix = servletPrefix == null || servletPrefix.isEmpty() ? "report" : servletPrefix;
+        registry.addInterceptor(tokenInterceptor)
+                .addPathPatterns(
+                        "/" + prefix + "/manage/**",
+                        "/" + prefix + "/api/**",
+                        "/" + prefix + "/chart/**",
+                        "/" + prefix + "/designer/**",
+                        "/" + prefix + "/excel/**",
+                        "/" + prefix + "/pdf/**",
+                        "/" + prefix + "/word/**",
+                        "/" + prefix + "/image/**",
+                        "/" + prefix + "/importexcel/**",
+                        "/" + prefix + "/html/**"
+                )
+                .excludePathPatterns(
+                        // /auth/** 不归 TokenInterceptor 管，由第三方业务系统登录过滤器管
+                        "/" + prefix + "/auth/**"
+                );
+        // 静态资源由 ResourceHandler 单独处理，不进 MVC
     }
 }

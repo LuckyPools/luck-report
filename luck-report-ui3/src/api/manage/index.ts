@@ -5,9 +5,11 @@
  *
  * 后端控制器：com.luck.report.web.controller.manage.ManageController
  * 接口前缀：/report/manage  （前端经 Vite 代理以 /api 转发）
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
  */
 import request from '@/utils/request'
-import type { ResultVO } from '@/types/api'
 
 /**
  * 报表文件记录
@@ -53,9 +55,8 @@ export interface QueryReportsDTO {
  * 加载报表来源（provider）列表
  * @returns 报表来源数组
  */
-export async function loadReportProviders(): Promise<ResultVO<ReportProviderVO[]>> {
-  const response = await request.get('/manage/loadReportProviders')
-  return response as ResultVO<ReportProviderVO[]>
+export async function loadReportProviders(): Promise<ReportProviderVO[]> {
+  return request.get<ReportProviderVO[]>('/manage/loadReportProviders')
 }
 
 /**
@@ -63,19 +64,16 @@ export async function loadReportProviders(): Promise<ResultVO<ReportProviderVO[]
  * @param query 查询条件
  * @returns 分页结果
  */
-export async function queryReports(query: QueryReportsDTO): Promise<ResultVO<ReportPageVO>> {
-  const response = await request.get('/manage/queryReports', { params: query })
-  return response as ResultVO<ReportPageVO>
+export async function queryReports(query: QueryReportsDTO): Promise<ReportPageVO> {
+  return request.get<ReportPageVO>('/manage/queryReports', { params: query })
 }
 
 /**
  * 删除报表
  * @param file 报表完整路径（带 provider 前缀，例如 file:xxx.ureport.xml）
- * @returns 删除结果
  */
-export async function deleteReport(file: string): Promise<ResultVO<void>> {
-  const response = await request.get('/manage/deleteReport', { params: { file } })
-  return response as ResultVO<void>
+export async function deleteReport(file: string): Promise<void> {
+  return request.get<void>('/manage/deleteReport', { params: { file } })
 }
 
 /**
@@ -95,9 +93,8 @@ export interface CreateReportResultVO {
  * @param provider 报表来源前缀（例如 file:）
  * @returns 创建结果
  */
-export async function createReport(fileName: string, provider: string): Promise<ResultVO<CreateReportResultVO>> {
-  const response = await request.get('/designer/createReport', {
+export async function createReport(fileName: string, provider: string): Promise<CreateReportResultVO> {
+  return request.get<CreateReportResultVO>('/designer/createReport', {
     params: { fileName, provider }
   })
-  return response as ResultVO<CreateReportResultVO>
 }

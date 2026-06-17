@@ -1,3 +1,9 @@
+/**
+ * 向量检索相关 API
+ *
+ * 后端统一响应结构：{ code, message, data }
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
+ */
 import request from '@/utils/request'
 
 /**
@@ -37,15 +43,20 @@ export interface VectorSearchResultItem {
  * @param params - 检索参数，包含 query、vectorType、topK 等
  * @returns 检索结果列表
  */
-export async function vectorSearch(params: VectorSearchParams): Promise<VectorSearchResultItem[]> {
-  const res: any = await request.post('/vector/search', params)
-  if (res.code === 0 && res.data) {
-    return res.data.map((item: any) => ({
-      id: item.id,
-      content: item.content,
-      score: item.score,
-      metadata: item.metadata
-    }))
+export async function vectorSearch(
+  params: VectorSearchParams
+): Promise<VectorSearchResultItem[]> {
+  const data = await request.post<VectorSearchResultItem[]>(
+    '/vector/search',
+    params
+  )
+  if (!Array.isArray(data)) {
+    return []
   }
-  throw new Error(res.message || '向量检索失败')
+  return data.map((item) => ({
+    id: item.id,
+    content: item.content,
+    score: item.score,
+    metadata: item.metadata
+  }))
 }

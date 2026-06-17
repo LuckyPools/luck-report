@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.chart;
 
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.cache.ChartScopeCache;
 import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.utils.UnitUtils;
@@ -22,11 +23,11 @@ public class ChartController {
      * 存储图表数据
      */
     @RequestMapping("/storeData")
-    public void storeData(HttpServletRequest req) {
+    public ResultVO<Void> storeData(HttpServletRequest req) {
         String chartId = req.getParameter("_chartId");
         ChartData chartData = ChartScopeCache.getChartData(chartId);
         if (chartData == null) {
-            return;
+            return ResultVO.success();
         }
         String base64Data = req.getParameter("_base64Data");
         String prefix = "data:image/png;base64,";
@@ -41,6 +42,7 @@ public class ChartController {
         chartData.setHeight(UnitUtils.pixelToPoint(Integer.parseInt(height)));
         chartData.setWidth(UnitUtils.pixelToPoint(Integer.parseInt(width)));
         ChartScopeCache.putChartData(chartId, chartData);
+        return ResultVO.success();
     }
 
 }

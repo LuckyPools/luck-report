@@ -1,6 +1,6 @@
 package com.luck.report.web.handler;
 
-import com.luck.report.web.utils.ResponseUtils;
+import com.luck.report.common.domain.vo.ResultVO;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -28,28 +26,20 @@ public class ReportExceptionHandler {
     /**
      * 处理 RuntimeException 及其子类异常
      * 仅处理报表模块抛出的异常，不会影响业务系统的异常处理
-     *
-     * @param ex       RuntimeException
-     * @param response HttpServletResponse响应对象
-     * @throws IOException IO异常
      */
     @ExceptionHandler(RuntimeException.class)
     @ResponseBody
-    public void handleException(RuntimeException ex, HttpServletResponse response) throws IOException {
-        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    public ResultVO<Object> handleException(RuntimeException ex) {
         String errorMessage = getRootErrorMessage(ex);
         String auxCode = generateAuxCode();
-        if(StringUtils.isBlank(errorMessage)){
+        if (StringUtils.isBlank(errorMessage)) {
             errorMessage = "Unknown Error";
         }
         logger.error("Report Exception [auxCode={}]: {}", auxCode, errorMessage, ex);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("data", null);
-        result.put("code", 500);
-        result.put("msg", errorMessage);
-        result.put("auxCode", auxCode);
-        ResponseUtils.writeObjectToJson(response, result);
+        Map<String, Object> data = new HashMap<>();
+        data.put("auxCode", auxCode);
+        return ResultVO.error(500, errorMessage).setData(data);
     }
 
     /**

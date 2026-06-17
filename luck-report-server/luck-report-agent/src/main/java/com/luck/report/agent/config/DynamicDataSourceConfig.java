@@ -1,8 +1,8 @@
 package com.luck.report.agent.config;
 
+import com.luck.report.agent.domain.dto.DataSourceItem;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,42 +34,19 @@ import java.util.Map;
         org.springframework.boot.autoconfigure.jdbc.DataSourceProperties.class})
 public class DynamicDataSourceConfig {
 
-    /**
-     * 主数据源（HikariCP）
-     * 从标准 spring.datasource.* 配置创建，供 ChatSessionMapper 等默认 Mapper 使用
-     *
-     * @param springDataSourceProperties Spring Boot 标准数据源配置，绑定 spring.datasource.* 前缀
-     * @return MySQL HikariDataSource
-     */
-    @Bean(name = "mainDbDataSource")
-    public DataSource mainDbDataSource(org.springframework.boot.autoconfigure.jdbc.DataSourceProperties springDataSourceProperties) {
-        return springDataSourceProperties
+    @Bean(name = "dynamicDataSource")
+    @Primary
+    public DataSource dynamicDataSource(
+            org.springframework.boot.autoconfigure.jdbc.DataSourceProperties springDataSourceProperties,
+            DataSourceProperties dataSourceProperties) {
+
+        DataSource mainDbDataSource = springDataSourceProperties
                 .initializeDataSourceBuilder()
                 .type(HikariDataSource.class)
                 .build();
-    }
 
-    /**
-     * 向量存储数据源（可选注入）
-     * 由 PgVectorStoreAutoConfiguration 条件创建，当 enabled=false 时不存在
-     * 使用 required=false 避免第三方不使用 vector 时启动报错
-     */
-    @Autowired(required = false)
-    @Qualifier("vectorDataSource")
-    private DataSource vectorDataSource;
+        DataSource vectorDataSource = createVectorDataSource(dataSourceProperties);
 
-    /**
-     * 动态路由数据源
-     * 根据 DataSourceContextHolder 中的标识选择目标数据源
-     * 默认指向主数据源，@DataSource("vector") 注解可切换到 vector
-     * 当 vectorDataSource 不存在时（第三方自定义实现），仅注册主数据源
-     *
-     * @param mainDbDataSource 主数据源（来自 spring.datasource.*）
-     * @return 路由数据源
-     */
-    @Bean(name = "dynamicDataSource")
-    @Primary
-    public DataSource dynamicDataSource(@Qualifier("mainDbDataSource") DataSource mainDbDataSource) {
         AbstractRoutingDataSource routing = new AbstractRoutingDataSource() {
             @Override
             protected Object determineCurrentLookupKey() {
@@ -80,7 +57,6 @@ public class DynamicDataSourceConfig {
         Map<Object, Object> targetDataSources = new HashMap<>(2);
         targetDataSources.put(DataSourceContextHolder.DEFAULT, mainDbDataSource);
 
-        // 仅当 vector 数据源存在时注册，第三方自定义实现时无需 vector 数据源
         if (vectorDataSource != null) {
             targetDataSources.put(DataSourceContextHolder.VECTOR, vectorDataSource);
         }
@@ -88,6 +64,21 @@ public class DynamicDataSourceConfig {
         routing.setTargetDataSources(targetDataSources);
         routing.setDefaultTargetDataSource(mainDbDataSource);
         return routing;
+    }
+
+    private DataSource createVectorDataSource(DataSourceProperties dataSourceProperties) {
+        DataSourceItem item = dataSourceProperties.getVector();
+        if (item == null || item.getUrl() == null) {
+            return null;
+        }
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(item.getUrl());
+        config.setUsername(item.getUsername());
+        config.setPassword(item.getPassword());
+        config.setDriverClassName(item.getDriverClassName());
+        config.setMaximumPoolSize(item.getMaximumPoolSize());
+        config.setPoolName("vector-pool");
+        return new HikariDataSource(config);
     }
 
 }
