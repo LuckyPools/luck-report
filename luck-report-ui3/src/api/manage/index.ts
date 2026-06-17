@@ -77,3 +77,27 @@ export async function deleteReport(file: string): Promise<ResultVO<void>> {
   const response = await request.get('/manage/deleteReport', { params: { file } })
   return response as ResultVO<void>
 }
+
+/**
+ * 新建报表的返回结果
+ */
+export interface CreateReportResultVO {
+  fileName: string
+  filePath: string
+  provider: string
+}
+
+/**
+ * 新建报表（使用空白模板在指定 provider 下创建报表文件）
+ * - 后端从 classpath:template/template.ureport.xml 读取空白模板
+ * - 在指定 provider 下创建 fileName（完整路径 = provider + fileName）
+ * @param fileName 报表名（含 .ureport.xml 后缀）
+ * @param provider 报表来源前缀（例如 file:）
+ * @returns 创建结果
+ */
+export async function createReport(fileName: string, provider: string): Promise<ResultVO<CreateReportResultVO>> {
+  const response = await request.get('/designer/createReport', {
+    params: { fileName, provider }
+  })
+  return response as ResultVO<CreateReportResultVO>
+}

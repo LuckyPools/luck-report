@@ -11,8 +11,8 @@
  * 路由分层：
  * - 顶层独立路由：/report/designer、/report/preview —— 独立全屏页，
  *   菜单点击会通过 window.open 打开新标签，不在 workspace 内嵌渲染
- * - workspace 子路由：/（首页）、/report/datasource、/report/model-config 等后台管理页
- *   全部由 WorkspaceLayout 包裹，含顶栏/侧栏
+ * - workspace 子路由：/report/datasource、/report/model-config、/report/manage 等后台管理页
+ *   全部由 WorkspaceLayout 包裹，含顶栏/侧栏；/ 默认重定向到 /report/manage
  */
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
@@ -22,8 +22,8 @@ export const rootPath: string = '/report'
 /**
  * 路由表
  * - 顶层独立路由（designer/preview）走全屏渲染，菜单点击新标签打开
- * - 顶层 / 走 WorkspaceLayout（菜单 + 顶栏）
- * - workspace 下挂 WorkspaceHome（仪表盘）+ 后台管理子路由
+ * - 顶层 / 走 WorkspaceLayout（菜单 + 顶栏），默认重定向到 /report/manage
+ * - workspace 下挂后台管理子路由
  */
 const routes: RouteRecordRaw[] = [
   // —— 顶层独立路由：报表设计/预览（全屏，不嵌在 workspace 内） ——
@@ -40,20 +40,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '报表预览' }
   },
 
-  // —— 工作台：/ 走 WorkspaceLayout（菜单 + 顶栏） ——
+  // —— 工作台：/ 走 WorkspaceLayout（菜单 + 顶栏），/ 默认重定向到报表管理 ——
   {
     path: '/',
-    name: 'Workspace',
     component: () => import('@/layouts/WorkspaceLayout.vue'),
+    redirect: rootPath + '/manage',
     children: [
-      {
-        path: '',
-        name: 'WorkspaceHome',
-        component: () => import('@/views/WorkspaceHome.vue'),
-        meta: { title: '工作台首页' }
-      },
-
-      // —— 后台管理：数据源/模型/知识库（workspace 内显示） ——
       {
         path: rootPath + '/datasource',
         name: 'ManageDatasource',
@@ -87,10 +79,10 @@ const routes: RouteRecordRaw[] = [
     ]
   },
 
-  // —— 兜底：未匹配路径回到工作台首页 ——
+  // —— 兜底：未匹配路径回到报表管理 ——
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/'
+    redirect: rootPath + '/manage'
   }
 ]
 

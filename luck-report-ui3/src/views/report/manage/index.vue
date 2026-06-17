@@ -59,20 +59,6 @@
       <!-- 卡片区域 -->
       <div class="card-section" v-if="!loading">
         <a-card :bordered="true">
-          <div class="card-toolbar">
-            <span class="card-toolbar__total">共 {{ total }} 条</span>
-            <a-pagination
-              v-model:current="pageNum"
-              v-model:pageSize="pageSize"
-              :total="total"
-              :page-size-options="['10', '20', '50']"
-              :show-size-changer="true"
-              :show-quick-jumper="true"
-              size="small"
-              @change="loadReports"
-            />
-          </div>
-
           <div v-if="reportList.length > 0" class="card-grid">
             <div
               v-for="item in reportList"
@@ -105,10 +91,6 @@
                 <a-tooltip :title="item.fileName">
                   <span class="report-card__name">{{ item.fileName }}</span>
                 </a-tooltip>
-                <span class="report-card__status" :class="`is-${getStatus(item).type}`">
-                  <span class="report-card__status-dot"></span>
-                  {{ getStatus(item).label }}
-                </span>
                 <a-tooltip title="编辑">
                   <a-button
                     type="text"
@@ -144,33 +126,6 @@
                 </a-dropdown>
               </div>
             </div>
-
-            <!-- 新建报表卡片 -->
-            <div class="report-card report-card--create" @click="openCreateDialog">
-              <div class="report-card__cover report-card__cover--create">
-                <div class="report-card__window-bar">
-                  <span class="dot dot--red"></span>
-                  <span class="dot dot--green"></span>
-                </div>
-                <div class="report-card__create-area">
-                  <PlusOutlined class="report-card__plus" />
-                  <div class="report-card__create-text">新建报表</div>
-                </div>
-              </div>
-              <div class="report-card__body">
-                <span class="report-card__name report-card__name--create">点击创建新报表</span>
-                <span class="report-card__status" style="visibility: hidden;">
-                  <span class="report-card__status-dot"></span>
-                  占位
-                </span>
-                <a-button type="text" size="small" class="report-card__btn" disabled>
-                  <template #icon><ArrowRightOutlined /></template>
-                </a-button>
-                <a-button type="text" size="small" class="report-card__btn" disabled>
-                  <template #icon><MoreOutlined /></template>
-                </a-button>
-              </div>
-            </div>
           </div>
 
           <a-empty
@@ -183,6 +138,21 @@
               新建报表
             </a-button>
           </a-empty>
+
+          <!-- 底部分页 -->
+          <div v-if="total > 0" class="card-footer">
+            <span class="card-footer__total">共 {{ total }} 条</span>
+            <a-pagination
+              v-model:current="pageNum"
+              v-model:pageSize="pageSize"
+              :total="total"
+              :page-size-options="['10', '20', '50']"
+              :show-size-changer="true"
+              :show-quick-jumper="true"
+              size="small"
+              @change="loadReports"
+            />
+          </div>
         </a-card>
       </div>
 
@@ -282,6 +252,7 @@ import {
   loadReportProviders,
   queryReports,
   deleteReport,
+  createReport,
   type ReportFileVO,
   type ReportProviderVO
 } from '@/api/manage'
@@ -319,19 +290,6 @@ const createFormRules = {
     { required: true, message: '请输入报表名称', trigger: 'blur' },
     { max: 100, message: '名称长度不能超过 100', trigger: 'blur' }
   ]
-}
-
-/**
- * 根据报表记录推断发布状态
- * - 后端未提供状态字段，这里用文件名做简单区分（仅用于卡片展示）
- *   例如文件名包含 "已发布"、"publish" 视为已发布，否则默认未发布
- */
-const getStatus = (item: ReportFileVO): { label: string; type: 'published' | 'unpublished' } => {
-  const name = (item.fileName || '').toLowerCase()
-  if (name.includes('已发布') || name.includes('publish') || name.includes('online')) {
-    return { label: '已发布', type: 'published' }
-  }
-  return { label: '未发布', type: 'unpublished' }
 }
 
 /**
@@ -413,16 +371,13 @@ const handleProviderFilterChange = (): void => {
  * - 与 open-tool/open-dialog 中 `?reportPath=` + encodeURI(encodeURI(file)) 行为保持一致
  * - reportPath 已经被 buildEncodedReportPath 做过双层编码，直接拼到 URL 即可，
  *   浏览器解析时会把 %25 还原为 %，得到单层编码后的真实值
+ * - target: 'designer'（默认）打开设计器；'preview' 打开预览页（不再附加 mode 参数）
  */
-function buildReportUrl(encodedPath: string, mode?: 'preview'): string {
-  const params: string[] = [`reportPath=${encodedPath}`]
-  if (mode) {
-    params.push(`mode=${mode}`)
-  }
-  const search = params.join('&')
+function buildReportUrl(encodedPath: string, target: 'designer' | 'preview' = 'designer'): string {
+  const search = `reportPath=${encodedPath}`
   const base = (import.meta.env.VITE_PUBLIC_PATH || '/') as string
   const origin = window.location.origin
-  return `${origin}${base.replace(/\/?$/, '/')}report/${mode ? 'preview' : 'designer'}?${search}`
+  return `${origin}${base.replace(/\/?$/, '/')}report/${target}?${search}`
 }
 
 /**
@@ -471,7 +426,10 @@ const openCreateDialog = (): void => {
 }
 
 /**
- * 提交新建：构造新报表完整路径后跳转至设计器
+ * 提交新建：
+ * 1. 先调用后端 createReport 接口，基于空白模板在指定 provider 下创建报表文件
+ *    （否则直接打开设计器会因为报表文件不存在而报错）
+ * 2. 创建成功后，再在新标签页打开设计器加载该报表
  */
 const handleCreate = async (): Promise<void> => {
   if (!createFormRef.value) return
@@ -485,15 +443,26 @@ const handleCreate = async (): Promise<void> => {
     }
     const provider = createForm.provider
     const filePath = provider + fileName
+
+    // 先调用后端创建空报表文件
+    const res = await createReport(fileName, provider)
+    if (res.code !== 0) {
+      message.error(res.message || '创建报表失败')
+      return
+    }
+
+    // 创建成功后在新标签页打开设计器
     const encoded = buildEncodedReportPath(filePath)
     const url = buildReportUrl(encoded)
-
-    // 关闭弹窗后在新标签页打开
     createDialogVisible.value = false
     window.open(url, '_blank', 'noopener,noreferrer')
-    message.success('已打开设计器，请在保存后刷新本页面')
-  } catch (e) {
-    console.warn('Form validation failed or create cancelled:', e)
+    message.success('已创建报表并打开设计器，保存后请刷新本页面')
+  } catch (e: any) {
+    if (e?.message) {
+      message.error(e.message)
+    } else {
+      console.warn('Form validation failed or create cancelled:', e)
+    }
   } finally {
     createLoading.value = false
   }
@@ -603,14 +572,14 @@ onMounted(async () => {
   margin-bottom: 24px;
 }
 
-.card-toolbar {
+.card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-top: 16px;
 }
 
-.card-toolbar__total {
+.card-footer__total {
   color: #666;
   font-size: 14px;
 }
@@ -752,25 +721,6 @@ onMounted(async () => {
   background: #409eff;
 }
 
-/* 新建报表占位 */
-.report-card__create-area {
-  height: 130px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #fafbfc;
-  gap: 8px;
-}
-.report-card__plus {
-  font-size: 32px;
-  color: #409eff;
-}
-.report-card__create-text {
-  color: #409eff;
-  font-size: 14px;
-}
-
 /* ========== 卡片底部 ========== */
 .report-card__body {
   display: flex;
@@ -789,37 +739,6 @@ onMounted(async () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-}
-.report-card__name--create {
-  color: #909399;
-}
-
-.report-card__status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #606266;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-.report-card__status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.report-card__status.is-published {
-  color: #67c23a;
-}
-.report-card__status.is-published .report-card__status-dot {
-  background: #67c23a;
-}
-.report-card__status.is-unpublished {
-  color: #e6a23c;
-}
-.report-card__status.is-unpublished .report-card__status-dot {
-  background: #e6a23c;
 }
 
 .report-card__btn {

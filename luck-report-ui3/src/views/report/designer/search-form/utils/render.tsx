@@ -158,22 +158,39 @@ export default defineComponent({
   setup(props) {
     return () => {
       const confClone: FormField = JSON.parse(JSON.stringify(props.conf))
+      // #region debug-point switch-radio-unselectable
+      if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
+        // eslint-disable-next-line no-console
+        console.log('[render.tsx][render start]', {
+          tag: confClone.tag,
+          confDefaultValue: props.conf.defaultValue,
+          cloneDefaultValue: confClone.defaultValue,
+          confRef: props.conf
+        })
+      }
+      // #endregion debug-point switch-radio-unselectable
       const component = componentOf(confClone.tag)
       if (!component) {
         return h('span', { class: 'render-error' }, `未知组件: ${confClone.tag}`)
       }
-      const dataObject: {
-        attrs: Record<string, unknown>
-        props: Record<string, unknown>
-        on: Record<string, (...args: unknown[]) => void>
-        style: Record<string, string | number>
-      } = {
-        attrs: {},
-        props: {},
-        on: {},
-        style: {}
-      }
+      // Vue 3 h 函数的第二个参数直接是 props 对象，不需要分层
+      const dataObject: Record<string, unknown> = {}
       const children: VNode[] = []
+
+      // #region debug-point switch-radio-unselectable
+      // 在根元素挂 onClick,看 click 事件是否真的到 switch/radio 根节点
+      if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
+        dataObject.onClick = (e: MouseEvent) => {
+          // eslint-disable-next-line no-console
+          console.log('[render.tsx][root onClick]', {
+            tag: confClone.tag,
+            target: (e.target as HTMLElement)?.tagName,
+            targetClass: (e.target as HTMLElement)?.className,
+            currentDefault: (props.conf as Record<string, unknown>).defaultValue
+          })
+        }
+      }
+      // #endregion debug-point switch-radio-unselectable
 
       // 子组件
       const childObjs = componentChild[confClone.tag]
@@ -191,32 +208,47 @@ export default defineComponent({
       }
 
       Object.keys(confClone).forEach(key => {
-        if (key === 'options' || key === 'children' || key === 'regList' || key === 'vModel' || key === 'tagIcon' || key === '__key' || key === 'formId' || key === 'layout') {
-          // 这些字段不直接渲染到组件 prop
+        // 这些字段不直接渲染到组件 prop
+        if (
+          key === 'options' ||
+          key === 'children' ||
+          key === 'regList' ||
+          key === 'vModel' ||
+          key === 'tagIcon' ||
+          key === '__key' ||
+          key === 'formId' ||
+          key === 'layout' ||
+          key === 'tag' ||
+          key === 'document' ||
+          key === 'renderKey' ||
+          key === 'defaultValue' ||
+          key === 'label' ||
+          key === 'required'
+        ) {
           return
         }
         const val = confClone[key]
         if (key === 'prefixIcon' || key === 'prepend') {
-          if (val) dataObject.props.prefix = val
+          if (val) dataObject.prefix = val
           return
         }
         if (key === 'suffixIcon' || key === 'append') {
-          if (val) dataObject.props.suffix = val
+          if (val) dataObject.suffix = val
           return
         }
         if (key === 'size') {
           const mapped = aSizeOf(val as string)
-          if (mapped) dataObject.props.size = mapped
+          if (mapped) dataObject.size = mapped
           return
         }
         if (key === 'placeholder' || key === 'clearable' || key === 'disabled' || key === 'readonly' || key === 'maxlength') {
           if (val !== undefined && val !== null && val !== '') {
-            dataObject.props[key] = val
+            dataObject[key] = val
           }
           return
         }
         if (key === 'span') {
-          if (val !== 24) dataObject.props.span = val
+          if (val !== 24) dataObject.span = val
           return
         }
         // a-checkbox-group 不直接接受 border（border 在子项上）
@@ -226,40 +258,37 @@ export default defineComponent({
         // a-switch 字段重命名（activeText → checked-children 等）
         if (confClone.tag === 'a-switch') {
           if (key === 'activeText' && val) {
-            dataObject.props['checked-children'] = val
+            dataObject['checked-children'] = val
             return
           }
           if (key === 'inactiveText' && val) {
-            dataObject.props['un-checked-children'] = val
+            dataObject['un-checked-children'] = val
             return
           }
           if (key === 'activeValue' && val !== undefined) {
-            dataObject.props['checked-value'] = val
+            dataObject['checked-value'] = val
             return
           }
           if (key === 'inactiveValue' && val !== undefined) {
-            dataObject.props['un-checked-value'] = val
+            dataObject['un-checked-value'] = val
             return
           }
           if (key === 'activeColor' && val) {
-            dataObject.props['checked-color'] = val
+            dataObject['checked-color'] = val
             return
           }
           if (key === 'inactiveColor' && val) {
-            dataObject.props['un-checked-color'] = val
+            dataObject['un-checked-color'] = val
             return
           }
         }
-        // a-checkbox-group / a-radio-group 的 border 在组级（checkbox） / 子项级（radio） 透传
-        // 与原版 render.js 对齐：dataObject 上已存在的字段（style/on/class 等）直接挂到 dataObject 上，
-        // 避免把组件根 style 误塞进 attrs，导致 a-input/a-select 等容器宽度不生效（演示区只显示一部分）
-        const obj = dataObject as Record<string, unknown>
-        if (obj[key] !== undefined) {
-          obj[key] = val
+        // 其他属性直接赋值到 dataObject
+        if (dataObject[key] !== undefined) {
+          dataObject[key] = val
         } else if (!isAttr(key)) {
-          dataObject.props[key] = val
+          dataObject[key] = val
         } else {
-          dataObject.attrs[key] = val
+          dataObject[key] = val
         }
       })
 
@@ -267,12 +296,48 @@ export default defineComponent({
       // 关键：必须改写 props.conf.defaultValue（draggable-item 中的 el），而不是 confClone.defaultValue。
       // 否则开关/单选点击后只更新了本渲染函数内的深拷贝，组件内部 checked 状态没真正被外部更新，
       // 下次重渲又被初始值覆盖，导致"点击没反应"。
+      // #region debug-point switch-radio-unselectable
+      if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
+        // eslint-disable-next-line no-console
+        console.log('[render.tsx][v-model check]', {
+          tag: confClone.tag,
+          vModel: confClone.vModel,
+          hasVModel: confClone.vModel !== undefined,
+          confKeys: Object.keys(confClone)
+        })
+      }
+      // #endregion debug-point switch-radio-unselectable
       if (confClone.vModel !== undefined) {
         const vKey = vModelBind(confClone.tag)
-        dataObject.props[vKey] = confClone.defaultValue
-        dataObject.on['update:' + vKey] = (val: unknown) => {
+        dataObject[vKey] = confClone.defaultValue
+        // Vue 3 h 函数中，事件监听器使用 onUpdate:value 或 onUpdate:checked 格式（带冒号）
+        const eventKey = 'onUpdate:' + vKey
+        dataObject[eventKey] = (val: unknown) => {
+          // #region debug-point switch-radio-unselectable
+          if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
+            // eslint-disable-next-line no-console
+            console.log('[render.tsx][update:' + vKey + ']', {
+              tag: confClone.tag,
+              oldVal: props.conf.defaultValue,
+              newVal: val,
+              confRef: props.conf
+            })
+          }
+          // #endregion debug-point switch-radio-unselectable
           props.conf.defaultValue = val
         }
+        // #region debug-point switch-radio-unselectable
+        if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
+          // eslint-disable-next-line no-console
+          console.log('[render.tsx][bind v-model]', {
+            tag: confClone.tag,
+            vKey,
+            eventKey,
+            currentDefaultValue: confClone.defaultValue,
+            boundPropsKeys: Object.keys(dataObject)
+          })
+        }
+        // #endregion debug-point switch-radio-unselectable
       }
 
       return h(component, dataObject, children.length ? { default: () => children } : null)

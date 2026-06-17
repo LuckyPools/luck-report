@@ -1,0 +1,36 @@
+<!doctype html>
+<!--
+  报表预览 - Thymeleaf 壳模板
+  - 由 ViewController#preview 返回的视图名 'preview' 解析到此文件
+  - 路径前缀 classpath:/html/ + 视图名 preview + 后缀 .html ⇒ classpath:/html/preview.html
+  - @{...} 由 Thymeleaf 自动拼当前请求 contextPath，与 luck-report.servletPrefix 解耦
+  - 加载顺序：vendor.js (UI 依赖全局) -> lib UMD -> mount(/preview)
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>报表预览</title>
+    <!-- vite lib 打包产物的全部 CSS -->
+    <link rel="stylesheet" th:href="@{'/' + ${servletPrefix} + '/lib/style.css'}" />
+    <link rel="icon" th:href="@{'/' + ${servletPrefix} + '/lib/favicon.ico'}" />
+  </head>
+  <body>
+    <!-- Vue3 SPA 挂载点 -->
+    <div id="app"></div>
+    <!-- 1) vendor：UI 依赖全局 -->
+    <script th:src="@{'/' + ${servletPrefix} + '/lib/vendor.js'}"></script>
+    <!-- 2) lib UMD -->
+    <script th:src="@{'/' + ${servletPrefix} + '/lib/luck-report-ui.umd.js'}"></script>
+    <!-- 3) mount 到预览路由（embed 模式隐藏 chrome） -->
+    <script th:inline="javascript">
+      window.__PAGE__ = 'preview'
+      LuckReport.mount('#app', {
+        token:         /*[[${token}]]*/         '',
+        baseURL:       /*[[${baseURL}]]*/       '',
+        defaultRoute:  '/report/preview',
+        embed:         true
+      })
+    </script>
+  </body>
+</html>

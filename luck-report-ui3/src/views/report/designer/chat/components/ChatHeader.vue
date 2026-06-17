@@ -33,11 +33,6 @@
           </a-button>
         </a-tooltip>
       </a-popconfirm>
-      <a-tooltip title="关闭">
-        <a-button type="text" size="small" @click.stop="emit('close')">
-          <template #icon><CloseOutlined /></template>
-        </a-button>
-      </a-tooltip>
     </div>
   </div>
 </template>
@@ -46,7 +41,6 @@
 import { ref, computed, watch } from 'vue'
 import { Button as AButton, Tooltip as ATooltip, Popconfirm as APopconfirm, Select as ASelect, SelectOption as ASelectOption } from 'ant-design-vue'
 import {
-  CloseOutlined,
   DeleteOutlined,
   UnorderedListOutlined
 } from '@ant-design/icons-vue'
@@ -57,9 +51,8 @@ import type { LLMModel } from '../types/chat'
  * 对话框头部，对照 HiveChat ChatHeader 精简功能
  * - 显示模型选择下拉框，用户可以选择不同的模型
  * - 删除聊天按钮（对应 HiveChat 的 deleteChat）
- * - 关闭按钮
- * 已移除：星标按钮、清空按钮（清空在 InputArea 工具栏中已有）
- * 根元素直接绑定 mousedown 实现拖动，close 按钮 stop 防止触发拖动
+ * 已移除：星标按钮、清空按钮（清空在 InputArea 工具栏中已有）、关闭按钮（由外层 ai-dialog-header 处理）
+ * 根元素直接绑定 mousedown 实现拖动，按钮 stop 防止触发拖动
  */
 
 interface Props {
@@ -74,7 +67,6 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'close'): void
   (e: 'mousedown', event: MouseEvent): void
   (e: 'deleteChat'): void
   (e: 'openChatList'): void

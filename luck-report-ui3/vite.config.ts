@@ -3,19 +3,16 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
 /**
- * Vite 配置
- * 迁移自原 vue.config.js：保留了 devServer proxy、publicPath、@ alias、langchain chunk 拆分
- *
- * 入口 HTML 放在项目根 index.html，由 Vite 的 transformIndexHtml 处理 base 注入。
- * 访问 http://localhost:<port>/<VITE_PUBLIC_PATH> 即可进入应用。
+ * 支持两种构建模式（通过 --mode 切换）：
+ * - SPA 模式（默认 / dev / prod）：输出到 ../luck-report-server/luck-report-web/src/main/resources/html/luck-report
+ * - lib 模式（--mode lib）：输出 UMD + ES 包到 dist/luck-report-ui/，第三方依赖 external
  */
 export default defineConfig(({ mode }) => {
-  // 第三参数传空字符串 '' 表示不限制前缀（白名单为「空字符串」会匹配所有变量），
-  // 这样 `port=8081` 这类无前缀变量也能被读取
+  // 第三个参数 '' 表示读取所有变量（含无前缀的 port=8081）
   const env = loadEnv(mode, process.cwd(), '')
 
-  // 取 base 路径（如 '/luck-report/'）
-  const base = env.VITE_PUBLIC_PATH || '/'
+  const isLib = mode === 'lib'
+  const base = isLib ? './' : env.VITE_PUBLIC_PATH || '/'
 
   return {
     plugins: [vue()],
@@ -25,38 +22,22 @@ export default defineConfig(({ mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
-    server: {
-      port: Number(env.port) || 3000,
-      host: '0.0.0.0',
-      proxy: {
-        '^/api': {
-          target: env.VITE_API_BASE_URL,
-          rewrite: (path) => path.replace(/^\/api/, '/report'),
-          ws: true,
-          changeOrigin: true
-        }
-      },
-      open: false
-    },
-    build: {
-      // 与 webpack outDir 保持一致：dist/<mode>
-      outDir: `dist/${mode === 'prod' ? 'prod' : 'dev'}`,
-      assetsDir: 'assets',
-      cssCodeSplit: true,
-      rollupOptions: {
-        output: {
-          // 将 langchain 拆出为独立 chunk，避免主包膨胀
-          manualChunks(id) {
-            if (id.includes('node_modules/@langchain/')) {
-              return 'langchain'
+    server: isLib
+      ? undefined
+      : {
+          port: Number(env.port) || 3000,
+          host: '0.0.0.0',
+          proxy: {
+            '^/api': {
+              target: env.VITE_API_BASE_URL,
+              rewrite: (path) => path.replace(/^\/api/, '/report'),
+              ws: true,
+              changeOrigin: true
             }
-          }
-        }
-      },
-      // 提升对大库的 warn 阈值
-      chunkSizeWarningLimit: 2000
-    },
-    // 兼容浏览器侧流式 API：Vite 不内置 polyfill，按需引入
+          },
+          open: false
+        },
+    build: isLib ? buildLibOptions() : buildSpaOptions(),
     optimizeDeps: {
       include: [
         'vue',
@@ -75,3 +56,67 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
+
+function buildSpaOptions() {
+  return {
+    outDir: `../luck-report-server/luck-report-web/src/main/resources/html/luck-report`,
+    emptyOutDir: true,
+    assetsDir: 'assets',
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        // langchain 拆出独立 chunk，避免主包膨胀
+        manualChunks(id: string) {
+          if (id.includes('node_modules/@langchain/')) {
+            return 'langchain'
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 2000
+  } as const
+}
+
+function buildLibOptions() {
+  return {
+    outDir: 'dist/luck-report-ui',
+    emptyOutDir: true,
+    cssCodeSplit: false,
+    lib: {
+      entry: fileURLToPath(new URL('./src/lib-entry.ts', import.meta.url)),
+      name: 'LuckReport',
+      formats: ['es', 'umd'] as ('es' | 'umd')[],
+      fileName: (format: string) => `luck-report-ui.${format}.js`
+    },
+    rollupOptions: {
+      external: [
+        'vue',
+        'vue-router',
+        'pinia',
+        'ant-design-vue',
+        'axios',
+        '@ant-design/icons-vue',
+        'vue-i18n',
+        'marked',
+        'dompurify',
+        'highlight.js'
+      ],
+      output: {
+        // UMD 模式下为 external 依赖提供全局变量名
+        globals: {
+          vue: 'Vue',
+          'vue-router': 'VueRouter',
+          pinia: 'Pinia',
+          'ant-design-vue': 'antd',
+          axios: 'axios',
+          '@ant-design/icons-vue': 'antdIcons',
+          'vue-i18n': 'VueI18n',
+          marked: 'marked',
+          dompurify: 'DOMPurify',
+          'highlight.js': 'hljs'
+        }
+      }
+    },
+    chunkSizeWarningLimit: 2000
+  } as const
+}

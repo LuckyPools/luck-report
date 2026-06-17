@@ -86,6 +86,17 @@ export default defineComponent({
             span: el.span,
             class: finalClass,
             onClick: (e: MouseEvent) => {
+              // #region debug-point switch-radio-unselectable
+              if (el.tag === 'a-switch' || el.tag === 'a-radio-group') {
+                // eslint-disable-next-line no-console
+                console.log('[draggable-item][col onClick]', {
+                  tag: el.tag,
+                  target: (e.target as HTMLElement)?.tagName,
+                  targetClass: (e.target as HTMLElement)?.className,
+                  defaultValue: el.defaultValue
+                })
+              }
+              // #endregion debug-point switch-radio-unselectable
               emit('active-item', el)
               e.stopPropagation()
             }

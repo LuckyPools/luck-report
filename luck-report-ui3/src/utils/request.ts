@@ -1,12 +1,15 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import {t, i18n} from "@/locales";
+import { getRequestToken, TOKEN_HEADER } from '@/utils/token'
+import { getApiBaseURL } from '@/utils/api-base'
 
 /** 默认实例的 axios 配置 */
 const defaultRequest: AxiosInstance = axios.create({
     // API 走独立的 /api 前缀，由 Vite dev 代理（^/api → 后端 /report）和生产 Nginx 转发。
     // 注意：不要拼接 import.meta.env.BASE_URL，否则 Vite base（如 /luck-report/）会被加到
-    // 请求路径上，导致 dev 代理的 ^/api 匹配不上而 404，生产环境部署子路径也会被错误转发。
-    baseURL: '/api',
+    // 请求路径上，导致 dev 代理的 ^/api 匹配不上而 404，生产环境部署子目录也会被错误转发。
+    // lib 模式下通过 setApiBaseURL 动态覆盖（详见 utils/api-base.ts）
+    // 注意：baseURL 在请求拦截器中动态设置，以支持 lib 模式运行时覆盖
     timeout: 60000
 })
 
@@ -36,7 +39,15 @@ function dealError(error: any): Promise<never> {
 }
 
 defaultRequest.interceptors.request.use(
-    config => config,
+    config => {
+        // 动态获取 baseURL，支持 lib 模式运行时覆盖
+        config.baseURL = getApiBaseURL()
+        const token = getRequestToken()
+        if (token && config.headers) {
+            config.headers[TOKEN_HEADER] = token
+        }
+        return config
+    },
     error => dealError(error)
 )
 

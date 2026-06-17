@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.designer;
 
+import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.cache.ReportDefinitionWrapperCache;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.definition.ReportDefinitionWrapper;
@@ -9,6 +10,7 @@ import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.expression.ErrorInfo;
 import com.luck.report.core.expression.ScriptErrorListener;
 import com.luck.report.core.parser.ReportParser;
+import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.domain.vo.ReportDefinitionVo;
@@ -26,8 +28,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -48,6 +52,11 @@ public class DesignerController implements ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
     private final List<ReportProvider> reportProviders = new ArrayList<>();
+
+    /**
+     * 新建报表的空白模板（位于 classpath:template/template.ureport.xml）
+     */
+    private static final String DEFAULT_REPORT_TEMPLATE = "template/template.ureport.xml";
 
     @Autowired
     private ReportRender reportRender;
@@ -225,6 +234,104 @@ public class DesignerController implements ApplicationContextAware {
                 result.put(provider.getPrefix(), providerData);
             }
             ResponseUtils.writeObjectToJson(resp, result);
+        }
+    }
+
+    /**
+     * 新建报表
+     * - 接收 fileName（报表名，含 .ureport.xml 后缀）与 provider（报表来源前缀，例如 file:）
+     * - 使用 classpath:template/template.ureport.xml 空白模板在指定 provider 下创建报表
+     * - 完整文件路径 = provider + fileName（例如 file:xxx.ureport.xml）
+     * - 返回 ResultVO{ code=0, data={ fileName, filePath, provider } } 成功
+     * - 失败：ResultVO{ code≠0, message=错误信息 }
+     */
+    @RequestMapping("/createReport")
+    @ResponseBody
+    public ResultVO<Map<String, String>> createReport(HttpServletRequest req, HttpServletResponse resp) {
+        try {
+            String fileName = req.getParameter("fileName");
+            String providerPrefix = req.getParameter("provider");
+            if (fileName == null || fileName.trim().isEmpty()) {
+                return ResultVO.error(400, "File name can not be empty.");
+            }
+            if (providerPrefix == null || providerPrefix.trim().isEmpty()) {
+                return ResultVO.error(400, "Report provider can not be empty.");
+            }
+            fileName = fileName.trim();
+            providerPrefix = providerPrefix.trim();
+
+            // 找到对应的 ReportProvider
+            ReportProvider targetReportProvider = null;
+            for (ReportProvider provider : reportProviders) {
+                if (provider.disabled() || provider.getName() == null) {
+                    continue;
+                }
+                String prefix = provider.getPrefix();
+                if (prefix == null) {
+                    continue;
+                }
+                if (providerPrefix.equals(prefix) || providerPrefix.startsWith(prefix)) {
+                    targetReportProvider = provider;
+                    break;
+                }
+            }
+            if (targetReportProvider == null) {
+                return ResultVO.error(404, "Provider [" + providerPrefix + "] not found available report provider.");
+            }
+
+            // 拼接完整文件路径（包含 provider 前缀）
+            String fullFilePath = providerPrefix + fileName;
+
+            // 检查报表是否已存在，避免覆盖已有文件
+            List<ReportFile> existingFiles = targetReportProvider.getReportFiles();
+            for (ReportFile rf : existingFiles) {
+                if (!rf.isDirectory() && (fullFilePath.endsWith(rf.getName()) || fullFilePath.equals(providerPrefix + rf.getName()))) {
+                    return ResultVO.error(409, "Report [" + fileName + "] already exists in provider [" + providerPrefix + "].");
+                }
+            }
+
+            // 读取空白模板
+            String content;
+            InputStream templateStream = null;
+            try {
+                ClassPathResource resource = new ClassPathResource(DEFAULT_REPORT_TEMPLATE);
+                if (!resource.exists()) {
+                    return ResultVO.error(500, "Default report template not found: " + DEFAULT_REPORT_TEMPLATE);
+                }
+                templateStream = resource.getInputStream();
+                content = IOUtils.toString(templateStream, "utf-8");
+            } catch (IOException e) {
+                logger.error("Failed to load default report template", e);
+                return ResultVO.error(500, "Failed to load default report template: " + e.getMessage());
+            } finally {
+                IOUtils.closeQuietly(templateStream);
+            }
+
+            // 解析模板，验证格式合法
+            InputStream contentStream = null;
+            try {
+                contentStream = IOUtils.toInputStream(content, "utf-8");
+                ReportDefinition reportDef = reportParser.parse(contentStream, fullFilePath);
+                ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
+                ReportDefinitionWrapperCache.putObject(fullFilePath, wrapper);
+            } catch (Exception e) {
+                logger.error("Failed to parse default report template", e);
+                return ResultVO.error(500, "Failed to parse default report template: " + e.getMessage());
+            } finally {
+                IOUtils.closeQuietly(contentStream);
+            }
+
+            // 写入到 provider 存储
+            targetReportProvider.saveReport(fullFilePath, content);
+
+            Map<String, String> data = new HashMap<>();
+            data.put("fileName", fileName);
+            data.put("filePath", fullFilePath);
+            data.put("provider", providerPrefix);
+            return ResultVO.success("Created", data);
+        } catch (Exception e) {
+            logger.error("Create report exception", e);
+            return ResultVO.error(500, "Create report failed: " + e.getMessage());
         }
     }
 

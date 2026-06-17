@@ -1,0 +1,36 @@
+<!doctype html>
+<!--
+  报表工作台首页 - Thymeleaf 壳模板
+  - 由 ViewController#index 返回的视图名 'index' 解析到此文件
+  - 路径前缀 classpath:/html/ + 视图名 index + 后缀 .html ⇒ classpath:/html/index.html
+  - @{...} 由 Thymeleaf 自动拼当前请求 contextPath，与 luck-report.servletPrefix 解耦
+  - 加载顺序：vendor.js (UI 依赖全局) -> lib UMD -> mount()
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>报表工作台</title>
+    <!-- vite lib 打包产物的全部 CSS（含 antd reset + iconfont + 公共样式） -->
+    <link rel="stylesheet" th:href="@{'/' + ${servletPrefix} + '/lib/style.css'}" />
+    <!-- favicon -->
+    <link rel="icon" th:href="@{'/' + ${servletPrefix} + '/lib/favicon.ico'}" />
+  </head>
+  <body>
+    <!-- Vue3 SPA 挂载点 -->
+    <div id="app"></div>
+    <!-- 1) vendor：把 vue / antd / pinia / axios 等 external 依赖挂到 window 全局 -->
+    <script th:src="@{'/' + ${servletPrefix} + '/lib/vendor.js'}"></script>
+    <!-- 2) lib UMD：依赖上述全局 -->
+    <script th:src="@{'/' + ${servletPrefix} + '/lib/luck-report-ui.umd.js'}"></script>
+    <!-- 3) 命令式挂载：进入工作台首页（embed=true 隐藏 chrome，纯内容区） -->
+    <script th:inline="javascript">
+      window.__PAGE__ = 'index'
+      LuckReport.mount('#app', {
+        token:   /*[[${token}]]*/   '',
+        baseURL: /*[[${baseURL}]]*/ '',
+        embed:   true
+      })
+    </script>
+  </body>
+</html>

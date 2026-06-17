@@ -9,7 +9,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
  */
 export function useDrag(panelWidth = 360, panelHeight = 500) {
   const isDragging = ref(false)
-  const panelPosition = ref({ x: 0, y: 0 })
+  const panelPosition = ref({
+    x: window.innerWidth - panelWidth - 50,
+    y: (window.innerHeight - panelHeight) / 2
+  })
   const dragStart = ref({ x: 0, y: 0 })
 
   /**

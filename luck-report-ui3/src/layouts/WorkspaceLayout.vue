@@ -58,30 +58,6 @@
               <template #icon><ReloadOutlined /></template>
             </a-button>
           </a-tooltip>
-          <a-dropdown trigger="click" placement="bottomRight">
-            <div class="ws-header__user">
-              <a-avatar :size="30" class="ws-header__avatar">U</a-avatar>
-              <span class="ws-header__username">{{ userName }}</span>
-              <DownOutlined class="ws-header__caret" />
-            </div>
-            <template #overlay>
-              <a-menu class="ws-header__user-menu">
-                <a-menu-item key="profile" @click="onUserAction('profile')">
-                  <UserOutlined />
-                  <span>个人中心</span>
-                </a-menu-item>
-                <a-menu-item key="settings" @click="onUserAction('settings')">
-                  <SettingOutlined />
-                  <span>系统设置</span>
-                </a-menu-item>
-                <a-menu-divider />
-                <a-menu-item key="logout" @click="onUserAction('logout')">
-                  <LogoutOutlined />
-                  <span>退出登录</span>
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
         </div>
       </a-layout-header>
 
@@ -157,7 +133,7 @@
  * 3. 选中态：当前路由 path 精确匹配时高亮
  * 4. 展开态：根据 meta.openByDefault 控制子菜单默认展开
  */
-import { computed, ref, type Component } from 'vue'
+import { computed, inject, ref, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BarChartOutlined,
@@ -165,28 +141,21 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ReloadOutlined,
-  DownOutlined,
-  UserOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  EditOutlined,
-  EyeOutlined,
-  ExportOutlined,
   DatabaseOutlined,
   ApartmentOutlined,
   BookOutlined,
   ExperimentOutlined,
-  AppstoreOutlined,
+  SettingOutlined,
   ProfileOutlined
 } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
 
 const route = useRoute()
 const router = useRouter()
 const collapsed = ref(false)
 
-/** 嵌入模式：URL 上带 ?view=embed 时隐藏所有 chrome */
-const isEmbed = computed(() => route.query.view === 'embed')
+/** 嵌入模式：优先用 lib-entry 注入的标志，兼容 URL ?view=embed（独立打开场景） */
+const injectedEmbed = inject<boolean>('luckReportEmbed', false)
+const isEmbed = computed(() => injectedEmbed.value === true || route.query.view === 'embed')
 
 /** 当前路由 path（用于菜单高亮） */
 const currentPath = computed(() => route.path)
@@ -225,23 +194,15 @@ interface MenuGroup {
 
 const menuGroups: MenuGroup[] = [
   {
-    key: 'workspace',
-    title: '工作台',
-    icon: AppstoreOutlined,
-    children: [
-      { path: '/', title: '首页', icon: AppstoreOutlined }
-    ]
-  },
-  {
     key: 'reports',
     title: '报表中心',
     icon: BarChartOutlined,
     children: [
       // 报表管理：workspace 内的后台管理页
-      { path: '/report/manage', title: '报表管理', icon: ProfileOutlined },
-      // 报表设计 / 报表预览：顶层独立路由，点击新标签打开
-      { path: '/report/designer', title: '报表设计', icon: EditOutlined, target: '_blank' },
-      { path: '/report/preview', title: '报表预览', icon: EyeOutlined, target: '_blank' }
+      // 注：报表设计/预览为顶层独立路由，原本以 _blank 模式挂在工作台菜单中。
+      // 第三方系统 iframe 嵌入时，菜单项已移除（菜单跳转由 manage 卡片上的
+      // "编辑/预览" 按钮通过 window.open 触发，避免 iframe 内 window.open 被浏览器拦截）。
+      { path: '/report/manage', title: '报表管理', icon: ProfileOutlined }
     ]
   },
   {
@@ -259,14 +220,14 @@ const menuGroups: MenuGroup[] = [
 
 /**
  * 默认展开的子菜单 key 集合
- * - 工作台分组、报表中心、系统配置 都默认展开
+ * - 报表中心、系统配置 都默认展开
  * - 用户手动收起的子菜单不记忆（保持简单，刷新即重置）
  */
 const openKeys = ref<string[]>(menuGroups.map(g => g.key))
 
-/** 跳转到首页 */
+/** 跳转到报表管理（默认入口） */
 const goHome = (): void => {
-  router.push('/')
+  router.push('/report/manage')
 }
 
 /** 刷新当前页：触发整页重新渲染（简单可靠） */
@@ -294,24 +255,6 @@ const onMenuSelect = ({ key }: { key: string }): void => {
     router.push(key)
   }
 }
-
-/** 用户菜单动作 */
-const onUserAction = (key: string | number): void => {
-  switch (key) {
-    case 'profile':
-      message.info('个人中心（待实现）')
-      break
-    case 'settings':
-      message.info('系统设置（待实现）')
-      break
-    case 'logout':
-      message.success('已退出登录（演示）')
-      break
-  }
-}
-
-/** 当前用户名（演示态） */
-const userName = ref('管理员')
 </script>
 
 <style scoped>
@@ -506,15 +449,6 @@ const userName = ref('管理员')
   background: var(--ws-primary) !important;
   color: #fff !important;
   position: relative;
-}
-.ws-sider :deep(.ant-menu-item-selected)::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: #ffd54f;
 }
 
 .ws-sider__footer {

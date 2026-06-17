@@ -1,16 +1,35 @@
 <template>
-  <div class="agent-container">
-    <div class="float-button" @click="toggleChat">
+  <div class="ai-iframe-container">
+    <div
+      v-if="!chatVisible"
+      class="float-button"
+      :style="{ transform: `translate(${panelPosition.x + 330}px, ${panelPosition.y + 255}px)` }"
+      @click="toggleChat"
+    >
       <CustomerServiceOutlined />
     </div>
 
-    <div v-if="chatVisible" class="chat-panel" :style="{ left: panelPosition.x + 'px', top: panelPosition.y + 'px' }">
+    <div
+      v-if="chatVisible"
+      class="ai-dialog-wrapper"
+      :style="{ transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)` }"
+    >
+      <div
+        class="ai-dialog-header"
+        @mousedown="onHeaderMouseDown"
+        :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
+      >
+        <span class="ai-dialog-title">AI 助手</span>
+        <div class="ai-dialog-actions"></div>
+        <button class="ai-dialog-close" @click="toggleChat">×</button>
+      </div>
+
+      <div class="chat-panel">
       <ChatHeader
         :model-list="modelList"
         :current-model="currentModelInfo"
         :is-pending="isPending"
         :current-session-id="currentSessionId"
-        @close="toggleChat"
         @mousedown="onHeaderMouseDown"
         @delete-chat="handleDeleteChat"
         @open-chat-list="chatListVisible = true"
@@ -122,6 +141,7 @@
         @change-history-settings="handleChangeHistorySettings"
         @toggle-search="handleToggleSearch"
       />
+      </div>
     </div>
 
     <a-modal
@@ -164,7 +184,7 @@ const chatVisible = ref(false)
 const chatBodyRef = ref<HTMLElement | null>(null)
 const chatListVisible = ref(false)
 const chatListRef = ref<InstanceType<typeof ChatList> | null>(null)
-const { panelPosition, resetPosition, handleMouseDown } = useDrag(380, 560)
+const { isDragging, panelPosition, resetPosition, handleMouseDown } = useDrag(380, 560)
 
 const {
   messageList,
@@ -327,9 +347,6 @@ onMounted(() => {
 
 const toggleChat = () => {
   chatVisible.value = !chatVisible.value
-  if (chatVisible.value) {
-    resetPosition()
-  }
 }
 
 /**
@@ -567,15 +584,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.agent-container {
-  padding: 20px;
+.ai-iframe-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
 }
 
 .float-button {
   position: fixed;
-  right: 50px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  left: 0;
   width: 50px;
   height: 50px;
   background-color: var(--primary-color);
@@ -589,27 +608,78 @@ onUnmounted(() => {
   transition: all 0.3s;
 }
 
+.ai-dialog-wrapper {
+  width: 380px;
+  height: 560px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.ai-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ai-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ai-dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.ai-dialog-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.2s;
+  line-height: 1;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.ai-dialog-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.chat-panel {
+  flex: 1;
+  min-height: 0;
+  background-color: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .float-button:hover {
   background-color: var(--primary-hover-color);
-  transform: translateY(-50%) scale(1.1);
+  transform: scale(1.1);
 }
 
 .float-button :deep(.anticon) {
   font-size: 24px;
   color: #fff;
-}
-
-.chat-panel {
-  position: fixed;
-  width: 380px;
-  height: 560px;
-  background-color: var(--background-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow-color);
-  z-index: 1001;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .chat-body {

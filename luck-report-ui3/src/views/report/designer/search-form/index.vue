@@ -299,8 +299,11 @@ function onEnd(obj: any) {
     to_list_kind: obj.to?.classList?.contains('components-draggable') ? 'left-board' : (obj.to?.classList?.contains('drawing-board') ? 'center-board' : 'unknown'),
     oldIndex: obj.oldIndex,
     newIndex: obj.newIndex,
+    oldDraggableIndex: obj.oldDraggableIndex,
+    newDraggableIndex: obj.newDraggableIndex,
     item: obj.item?.outerHTML?.slice(0, 80),
-    drawingListLen: drawingList.value.length
+    drawingListLen: drawingList.value.length,
+    drawingList: JSON.parse(JSON.stringify(drawingList.value.map((item: FormField) => ({ formId: item.formId, label: item.label }))))
   })
   // 只在跨列表拖拽时才把新克隆的元素置为激活项，
   // 画布内排序时 vue-draggable-plus 也会调用 clone 函数，tempActiveData 会被赋值，
@@ -707,6 +710,9 @@ function updateDrawingList(newTag: FormField) {
 }
 .drawing-board .ant-form-item {
   margin-bottom: 15px;
+}
+.drag-item-wrapper {
+  width: 100%;
 }
 .drawing-item {
   position: relative;

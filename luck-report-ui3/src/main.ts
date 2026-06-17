@@ -21,9 +21,12 @@ import i18n from './locales'
 
 import '@/assets/css/iconfont/iconfont.css'
 import './assets/css/common/index.css'
+import { captureTokenFromUrl } from '@/utils/token'
 
 // 创建应用实例
 const app = createApp(App)
+
+captureTokenFromUrl()
 
 // 注册全局依赖（顺序：pinia 需先于 router，保证路由守卫中能正常访问 store）
 app.use(pinia)

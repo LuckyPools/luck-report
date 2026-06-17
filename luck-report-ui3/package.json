@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vite --mode dev",
-    "build:dev": "vite build --mode dev",
-    "build:prod": "vite build --mode prod",
+    "prod": "vite build --mode prod",
+    "lib": "vite build --mode lib && node scripts/build-vendor.mjs && node scripts/publish.mjs",
     "preview": "vite preview",
     "lint": "eslint --ext .ts,.js,.vue ./src"
   },
