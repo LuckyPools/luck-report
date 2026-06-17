@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    username: root
+    password: root
+    url: jdbc:mysql://localhost:3306/luck_report?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    password: root
+    timeout: PT1800S
+    jedis:
+      pool:
+        max-idle: 100
+        min-idle: 1
+        max-active: 100
+        max-wait: -1
+    expire: 7200
+
+luck-report:
+  # 调试日志
+  debug: true
+  # 自动扫描组件
+  autoConfig: true
+  # 请求前缀
+  servletPrefix: report
+  # 报表存储路径
+  fileStoreDir: E:/luckStudio/IO/report
+  # 采用自定义 redis 缓存，禁用本地缓存
+  disableLocalReportCache: true
+  # 打印启动标语
+  banner:
+    enable: true
+  # Token 鉴权配置
+  # 向量数据库
+  datasource:
+    vector:
+      url: jdbc:postgresql://localhost:5432/postgres?currentSchema=luck_report_vector
+      username: postgres
+      password: root
+      driver-class-name: org.postgresql.Driver
+      maximum-pool-size: 5
+  token:
+    # 总开关：生产环境必须开启
+    enabled: true
+    # JWT 签名密钥（必须从环境变量注入）
+    secret: luck-report-auth
+    # 默认过期秒数（5分钟）
+    ttl-seconds: 300
+    # 时钟偏移容忍（秒）
+    clock-skew-seconds: 30
+    # token header
+    header-name: X-Access-Token
+    # 是否允许 URL 上传 token（iframe 首次 GET 需要）
+    allow-query-token: true

@@ -1,0 +1,99 @@
+.use-sub-menu {
+    background-color: transparent;
+}
+
+.ant-drawer-content{
+    --un-bg-opacity: 1;
+    background-color: rgb(var(--drawer-bg-color) / var(--un-bg-opacity));
+}
+
+.ant-drawer-header{
+    --un-bg-opacity: 1;
+    background-color: rgb(var(--drawer-bg-color) / var(--un-bg-opacity));
+}
+
+/*#webpack-dev-server-client-overlay {*/
+/*    display: none !important;*/
+/*}*/
+
+.dark .ant-drawer-content{
+    background-color: var(--background-color-dark);
+}
+
+.dark .ant-drawer-header{
+    background-color: var(--background-color-dark);
+    border-bottom: 1px solid rgba(253, 253, 253, 0.12);/** 颜色许可 **/
+}
+
+.dark .ant-divider::before{
+    border-color: #2d2d2d !important;/** 颜色许可 **/
+}
+
+.dark .ant-divider::after{
+    border-color: #2d2d2d !important;/** 颜色许可 **/
+}
+
+.dark .ant-select-selection{
+    background-color: var(--background-color-dark);
+}
+
+.dark .ant-input-number-input-wrap{
+    background-color: var(--background-color-dark);
+}
+
+.dark .ant-card{
+    background-color: var(--background-color-dark);
+}
+
+.dark .ant-table-header{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-table-tbody{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-table-thead > tr > th{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-input{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-form-item-label > label{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-modal-header{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-modal-body{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-modal-footer{
+    background-color: var(--background-color-dark);
+    color: var(--text-color-dark);
+}
+
+.dark .ant-table-tbody > tr.ant-table-row-selected td{
+    background-color: var(--background-color-dark) !important;
+    color: var(--text-color-dark);
+}
+
+.dark .ant-table-tbody > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected) > td {
+    background-color: var(--background-color-dark) !important;
+}
+
+.dark .expand-btn{
+    background-color: var(--background-color-dark) !important;
+}

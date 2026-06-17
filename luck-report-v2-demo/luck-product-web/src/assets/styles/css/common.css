@@ -1,0 +1,11 @@
+.a-tip {
+    padding: 8px 16px;
+    background-color: #ecf8ff;
+    border-radius: 4px;
+    border-left: 5px solid rgb(var(--primary-color) / var(--un-bg-opacity));
+    margin-bottom: 16px;
+}
+
+.a-error-code{
+    font-weight: bold;
+}

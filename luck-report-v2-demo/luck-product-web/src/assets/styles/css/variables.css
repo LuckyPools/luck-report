@@ -1,0 +1,9 @@
+
+:root{
+    --un-text-opacity: 1;
+    --un-bg-opacity: 1;
+    --un-color-opacity: 1;
+    --text-opacity-color: rgb(var(--text-color) / var(--un-text-opacity));
+    --background-color-dark: #1f1f1f;/** 暗背景颜色 **/
+    --text-color-dark: white; /** 文本颜色 **/
+}
