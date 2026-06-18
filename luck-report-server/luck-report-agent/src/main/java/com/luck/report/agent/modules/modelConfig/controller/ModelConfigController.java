@@ -9,9 +9,11 @@ import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.agent.modules.modelConfig.service.ModelConfigDataService;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 模型配置Controller
@@ -34,7 +36,8 @@ public class ModelConfigController {
     @GetMapping("/list")
     public ResultVO<List<ModelConfigDTO>> list() {
         try {
-            return ResultVO.success("获取模型配置列表成功", modelConfigDataService.listConfigs());
+            List<ModelConfigDTO> configs = modelConfigDataService.listConfigs();
+            return ResultVO.success("获取模型配置列表成功", sanitizeList(configs));
         } catch (Exception e) {
             return ResultVO.error("获取模型配置列表失败: " + e.getMessage());
         }
@@ -49,7 +52,11 @@ public class ModelConfigController {
     @PostMapping("/query/page")
     public PageResultVO<ModelConfigDTO> queryByPage(@Valid @RequestBody ModelConfigQueryDTO queryDTO) {
         try {
-            return modelConfigDataService.queryByPage(queryDTO);
+            PageResultVO<ModelConfigDTO> pageResult = modelConfigDataService.queryByPage(queryDTO);
+            if (pageResult.getRecords() != null) {
+                pageResult.setRecords(sanitizeList(pageResult.getRecords()));
+            }
+            return pageResult;
         } catch (Exception e) {
             return PageResultVO.error("分页查询失败: " + e.getMessage());
         }
@@ -151,7 +158,8 @@ public class ModelConfigController {
                 return ResultVO.error("无效的模型类型: " + modelType);
             }
             List<ModelConfigDTO> activeConfigs = modelConfigDataService.listActiveConfigsByType(type);
-            return ResultVO.success("获取激活模型列表成功", activeConfigs);
+            // 复制后置空 apiKey，避免污染缓存对象，同时不泄露敏感信息给前端
+            return ResultVO.success("获取激活模型列表成功", sanitizeList(activeConfigs));
         } catch (Exception e) {
             return ResultVO.error("获取激活模型列表失败: " + e.getMessage());
         }
@@ -180,5 +188,35 @@ public class ModelConfigController {
                         .embeddingModelReady(embeddingModelReady)
                         .ready(ready)
                         .build());
+    }
+
+    /**
+     * 批量脱敏：复制 DTO 列表并置空 apiKey，避免污染缓存对象和泄露敏感信息
+     *
+     * @param configs 原始 DTO 列表
+     * @return 脱敏后的 DTO 列表（新对象，apiKey 为 null）
+     */
+    private List<ModelConfigDTO> sanitizeList(List<ModelConfigDTO> configs) {
+        if (configs == null) {
+            return null;
+        }
+        return configs.stream().map(this::sanitize).collect(Collectors.toList());
+    }
+
+    /**
+     * 单个脱敏：用 BeanUtils 复制 DTO 后置空 apiKey
+     * 使用复制而非原对象操作，确保缓存中的对象不受影响
+     *
+     * @param config 原始 DTO
+     * @return 脱敏后的 DTO（新对象，apiKey 为 null）
+     */
+    private ModelConfigDTO sanitize(ModelConfigDTO config) {
+        if (config == null) {
+            return null;
+        }
+        ModelConfigDTO copy = new ModelConfigDTO();
+        BeanUtils.copyProperties(config, copy);
+        copy.setApiKey(null);
+        return copy;
     }
 }

@@ -129,6 +129,12 @@ export interface FormField {
   /** row 布局相关 */
   type?: RowLayoutType | DatePickerType | string
   format?: string
+  /**
+   * 与后端实体类字段对应，必须保留，值为 'format' 时表示"用 format 字段的值做值格式"。
+   * 注意：antd-vue DatePicker 虽有 valueFormat prop，但期望的是 dayjs 格式串（如 'YYYY-MM-DD'），
+   * 传入 'format' 会被当作 dayjs 模板，导致显示乱码（如 for57amt）。
+   * 因此渲染（render.tsx）与代码生成（html.ts）均会跳过该字段，不透传给组件。
+   */
   valueFormat?: 'format' | string
   optionType?: OptionType
   border?: boolean

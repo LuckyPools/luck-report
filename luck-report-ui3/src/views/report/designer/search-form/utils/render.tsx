@@ -28,6 +28,7 @@ import {
   Row,
   Col
 } from 'ant-design-vue'
+import dayjs from 'dayjs'
 import type { FormField, SelectOption as Option } from './types'
 import { makeMap } from './index'
 
@@ -223,7 +224,8 @@ export default defineComponent({
           key === 'renderKey' ||
           key === 'defaultValue' ||
           key === 'label' ||
-          key === 'required'
+          key === 'required' ||
+          key === 'valueFormat'
         ) {
           return
         }
@@ -241,9 +243,64 @@ export default defineComponent({
           if (mapped) dataObject.size = mapped
           return
         }
-        if (key === 'placeholder' || key === 'clearable' || key === 'disabled' || key === 'readonly' || key === 'maxlength') {
+        // ---- tag 专属属性映射：config 字段（与后端实体类对齐）→ ant-design-vue prop ----
+        // 与 html.ts 代码生成保持一致：config 保留后端字段名，渲染时映射为 a-xxx 真实 prop
+        // a-select: multiple→mode, clearable→allowClear, filterable→showSearch
+        if (confClone.tag === 'a-select') {
+          if (key === 'multiple') {
+            if (val) dataObject.mode = 'multiple'
+            return
+          }
+          if (key === 'clearable') {
+            if (val) dataObject.allowClear = val
+            return
+          }
+          if (key === 'filterable') {
+            if (val) dataObject.showSearch = val
+            return
+          }
+        }
+        // a-input: clearable→allowClear, showWordLimit→showCount
+        if (confClone.tag === 'a-input') {
+          if (key === 'clearable') {
+            if (val) dataObject.allowClear = val
+            return
+          }
+          if (key === 'showWordLimit') {
+            if (val) dataObject.showCount = val
+            return
+          }
+        }
+        // a-date-picker: clearable→allowClear, type→picker（datetime 拆分为 picker=date + showTime）
+        // 注意：antd DatePicker 的 allowClear 默认值是 true（与 a-input/a-select 默认 false 不同），
+        // 因此 clearable=false 时必须显式传 allowClear=false，否则会被默认值覆盖导致"永远可清空"。
+        if (confClone.tag === 'a-date-picker') {
+          if (key === 'clearable') {
+            dataObject.allowClear = val
+            return
+          }
+          if (key === 'type') {
+            if (val === 'datetime') {
+              dataObject.picker = 'date'
+              dataObject.showTime = true
+            } else if (val) {
+              dataObject.picker = val
+            }
+            return
+          }
+        }
+        if (key === 'placeholder' || key === 'clearable' || key === 'readonly' || key === 'maxlength') {
           if (val !== undefined && val !== null && val !== '') {
             dataObject[key] = val
+          }
+          return
+        }
+        // disabled：仅当字段自身显式禁用时才传 prop；
+        // 为 false 时不传，让组件从父级 a-form 的 disabled 注入继承，
+        // 否则会覆盖表单级禁用配置。
+        if (key === 'disabled') {
+          if (val === true) {
+            dataObject.disabled = true
           }
           return
         }
@@ -309,7 +366,25 @@ export default defineComponent({
       // #endregion debug-point switch-radio-unselectable
       if (confClone.vModel !== undefined) {
         const vKey = vModelBind(confClone.tag)
-        dataObject[vKey] = confClone.defaultValue
+        let defaultVal = confClone.defaultValue
+        // a-select 多选模式下 value 必须为数组，否则 ant-design-vue 不生效/报错
+        if (confClone.tag === 'a-select' && confClone.multiple && !Array.isArray(defaultVal)) {
+          defaultVal = defaultVal === undefined || defaultVal === null || defaultVal === ''
+            ? []
+            : [defaultVal]
+        }
+        if (confClone.tag === 'a-date-picker' || confClone.tag === 'a-time-picker') {
+          const raw = props.conf.defaultValue
+          if (raw === undefined || raw === null || raw === '') {
+            defaultVal = undefined
+          } else if (dayjs.isDayjs(raw)) {
+            defaultVal = raw
+          } else {
+            const fmt = (confClone.format as string) || undefined
+            defaultVal = fmt ? dayjs(raw as string, fmt) : dayjs(raw as string)
+          }
+        }
+        dataObject[vKey] = defaultVal
         // Vue 3 h 函数中，事件监听器使用 onUpdate:value 或 onUpdate:checked 格式（带冒号）
         const eventKey = 'onUpdate:' + vKey
         dataObject[eventKey] = (val: unknown) => {

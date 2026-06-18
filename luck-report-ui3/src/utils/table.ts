@@ -633,7 +633,8 @@ export function tableToXml(context: any): string {
     }
     xml+=`></paper>`;
     if(context.reportDef.searchForm){
-        const searchFormXml = objToXml(context.reportDef.searchForm);
+        const plainSearchForm = JSON.parse(JSON.stringify(context.reportDef.searchForm));
+        const searchFormXml = objToXml(plainSearchForm, 0, 'form');
         xml+=searchFormXml;
     }
     xml+=`</ureport>`;
@@ -968,9 +969,9 @@ export function objToXml(obj: any, indent: number = 0, defaultTag: string | null
         }
     }
 
-    if (tagName === 'u-option' || tagName === 'option') {
+    if (tagName === 'option' || tagName === 'a-select-option') {
         tagName = 'option';
-    } else if (tagName.startsWith('u-')) {
+    } else if (tagName.startsWith('u-') || tagName.startsWith('a-')) {
         tagName = tagName.substring(2);
     }
 
@@ -979,6 +980,9 @@ export function objToXml(obj: any, indent: number = 0, defaultTag: string | null
         if (specialArrays.includes(key)) continue;
 
         const value = obj[key];
+        // 跳过 undefined / null，避免输出 defaultValue="undefined" 之类的无效属性
+        if (value === undefined || value === null) continue;
+
         if (Array.isArray(value) || typeof value === 'object') {
             const jsonStr = JSON.stringify(value);
             attributes += ` ${key}="${jsonStr.replace(/"/g, '&quot;')}" `;

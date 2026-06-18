@@ -42,7 +42,7 @@ public class DatasourceVO {
     /** 用户名 */
     private String username;
 
-    /** 密码（仅写入时使用，查询时不返回） */
+    /** 密码（仅写入时使用，toVO 不设置此字段，响应中为 null） */
     private String password;
 
     /** 完整JDBC连接URL */

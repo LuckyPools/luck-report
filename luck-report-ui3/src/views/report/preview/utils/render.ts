@@ -35,6 +35,7 @@ import {
 import emitter from '@/utils/emitter'
 import { getUrlQueryString } from '@/utils/url'
 import { i18n } from '@/locales'
+import { useI18n } from 'vue-i18n'
 
 /** 简化对象方法入参 */
 type SimplifyInput = unknown
@@ -198,8 +199,12 @@ export function simplifyObject(obj: SimplifyInput): SimplifyInput {
  * @returns 解析后的组件配置
  */
 function parseComponentStr(componentStr: string): ParsedComponentOptions | null {
+  console.log('[parseComponentStr] 入参 componentStr 长度:', componentStr?.length)
+  console.log('[parseComponentStr] 入参 componentStr 前 500 字符:', componentStr?.slice(0, 500))
   const templateMatch = componentStr.match(/<template[^>]*>([\s\S]*?)<\/template>/)
   const scriptMatch = componentStr.match(/<script[^>]*>([\s\S]*?)<\/script>/)
+  console.log('[parseComponentStr] templateMatch 是否命中:', !!templateMatch)
+  console.log('[parseComponentStr] scriptMatch 是否命中:', !!scriptMatch)
 
   if (!templateMatch) {
     console.error('组件字符串中未找到template部分')
@@ -207,6 +212,8 @@ function parseComponentStr(componentStr: string): ParsedComponentOptions | null 
   }
 
   const template = templateMatch[1].trim()
+  console.log('[parseComponentStr] template 长度:', template.length)
+  console.log('[parseComponentStr] template 前 300 字符:', template.slice(0, 300))
   const componentOptions: ParsedComponentOptions = {
     template,
     components: { ...aComponents }
@@ -215,12 +222,15 @@ function parseComponentStr(componentStr: string): ParsedComponentOptions | null 
   if (scriptMatch) {
     try {
       const scriptContent = scriptMatch[1].trim()
+      console.log('[parseComponentStr] scriptContent 长度:', scriptContent.length)
       const cleanedScript = scriptContent
-        .replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '')
+        .replace(/import\s+[\s\S]*?from\s+['"][\s\S]*?['"];?\s*/g, '')
         .replace(/export\s+default\s+/, '')
+      console.log('[parseComponentStr] cleanedScript 前 300 字符:', cleanedScript.slice(0, 300))
 
-      const importFunction = new Function(`return ${cleanedScript}`)
-      const scriptResult = importFunction() as ParsedComponentOptions
+      const importFunction = new Function('useI18n', `return ${cleanedScript}`)
+      const scriptResult = importFunction(useI18n) as ParsedComponentOptions
+      console.log('[parseComponentStr] scriptResult keys:', Object.keys(scriptResult || {}))
 
       if (scriptResult.data && typeof scriptResult.data === 'function') {
         const originalData =
@@ -248,11 +258,13 @@ function parseComponentStr(componentStr: string): ParsedComponentOptions | null 
           componentOptions[key] = (scriptResult as Record<string, unknown>)[key]
         }
       }
+      console.log('[parseComponentStr] 合并后 componentOptions keys:', Object.keys(componentOptions))
     } catch (error) {
       console.error('解析组件script部分时出错:', error)
     }
   }
 
+  console.log('[parseComponentStr] 返回 componentOptions.template 长度:', componentOptions.template?.length)
   return componentOptions
 }
 
@@ -276,11 +288,19 @@ export function renderTemplateToComponent(
       return null
     }
   }
+  console.log('[renderTemplateToComponent] 挂载节点:', node, 'componentStr 长度:', componentStr?.length)
 
   const componentOptions = parseComponentStr(componentStr)
   if (!componentOptions) {
+    console.error('[renderTemplateToComponent] parseComponentStr 返回 null，终止渲染')
     return null
   }
+  console.log('[renderTemplateToComponent] componentOptions:', {
+    templateLen: componentOptions.template?.length,
+    hasData: !!componentOptions.data,
+    hasMethods: !!componentOptions.methods,
+    componentsCount: Object.keys(componentOptions.components || {}).length
+  })
 
   // 子组件本体（仍然支持 Options API 写法，包括 this.$emit）
   const componentDef = defineComponent({
@@ -310,6 +330,9 @@ export function renderTemplateToComponent(
 
   // 挂载
   const proxy = app.mount(node)
+  console.log('[renderTemplateToComponent] 挂载完成，proxy:', proxy)
+  console.log('[renderTemplateToComponent] 挂载后节点 innerHTML 长度:', node.innerHTML?.length)
+  console.log('[renderTemplateToComponent] 挂载后节点 innerHTML 前 500 字符:', node.innerHTML?.slice(0, 500))
 
   const handle: PreviewRenderInstance = {
     instance: (proxy as unknown as Record<string, unknown>) || null,

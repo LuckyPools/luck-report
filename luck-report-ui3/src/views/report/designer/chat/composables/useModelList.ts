@@ -103,8 +103,9 @@ export function useModelList() {
     isPending.value = true
     try {
       const response = await getActiveModelConfigList('CHAT')
-      if (response.code === 0 && response.data) {
-        const models = response.data.map(convertToLLMModel)
+      // request.ts 已自动解包 ResultVO.data，response 直接是 Index[] 数组
+      if (response && response.length > 0) {
+        const models = response.map(convertToLLMModel)
         initModelList(models)
       }
     } catch (error) {

@@ -132,25 +132,37 @@ watch(
   border: none !important;
 }
 
-.resource-tabs /deep/ .nav{
+.resource-tabs :deep(.ant-tabs-nav) {
   height: 50px;
+  margin: 0 !important;
   background: var(--color-primary) !important;
 }
 
-.resource-tabs /deep/ .nav li{
+.resource-tabs :deep(.ant-tabs-nav-list) {
+  height: 50px;
+}
+
+.resource-tabs :deep(.ant-tabs-tab) {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 50px;
+  margin: 0 !important;
+  padding: 0 16px !important;
   color: white;
+  background: transparent !important;
   border: none !important;
+  border-radius: 0 !important;
 }
 
-.resource-tabs /deep/ .nav li:hover {
+.resource-tabs :deep(.ant-tabs-tab:hover) {
   color: grey !important;
 }
 
-.resource-tabs /deep/ .nav li:active {
+.resource-tabs :deep(.ant-tabs-tab-active .ant-tabs-tab-btn),
+.resource-tabs :deep(.ant-tabs-tab-active) {
   color: var(--color-primary) !important;
+  background: #ffffff !important;
 }
 
 </style>

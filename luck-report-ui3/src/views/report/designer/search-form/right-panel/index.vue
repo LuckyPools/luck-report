@@ -201,7 +201,7 @@
             <a-divider />
           </template>
 
-          <a-form-item v-if="activeData.optionType !== undefined" :label="t('searchForm.optionStyle')">
+          <a-form-item v-if="activeData.optionType !== undefined && activeData.tag === 'a-radio-group'" :label="t('searchForm.optionStyle')">
             <a-radio-group v-model:value="activeData.optionType" option-type="button" button-style="solid">
               <a-radio-button value="default" size="small">
                 {{ t('searchForm.default') }}
@@ -212,27 +212,24 @@
             </a-radio-group>
           </a-form-item>
           <a-form-item
-            v-if="activeData.border !== undefined && activeData.optionType === 'default'"
+            v-if="activeData.border !== undefined && activeData.optionType === 'default' && hasBorderProp(activeData.tag)"
             :label="t('searchForm.bordered')"
           >
             <a-switch v-model:checked="activeData.border" />
           </a-form-item>
           <a-form-item
-            v-if="
-              activeData.size !== undefined &&
-              (activeData.optionType === 'button' || activeData.border)
-            "
+            v-if="activeData.size !== undefined && activeData.optionType === 'button' && hasSizeProp(activeData.tag)"
             :label="t('searchForm.optionSize')"
           >
             <a-radio-group v-model:value="activeData.size" option-type="button" button-style="solid">
-              <a-radio-button value="medium" size="small">
-                {{ t('searchForm.medium') }}
+              <a-radio-button value="large" size="small">
+                {{ t('searchForm.large') }}
+              </a-radio-button>
+              <a-radio-button value="default" size="small">
+                {{ t('searchForm.default') }}
               </a-radio-button>
               <a-radio-button value="small" size="small">
                 {{ t('searchForm.small') }}
-              </a-radio-button>
-              <a-radio-button value="mini" size="small">
-                {{ t('searchForm.mini') }}
               </a-radio-button>
             </a-radio-group>
           </a-form-item>
@@ -243,7 +240,7 @@
             <a-switch v-model:checked="activeData.showTip" />
           </a-form-item>
 
-          <a-form-item v-if="activeData.readonly !== undefined" :label="t('searchForm.readonly')">
+          <a-form-item v-if="activeData.readonly !== undefined && !isDatePickerTag(activeData.tag)" :label="t('searchForm.readonly')">
             <a-switch v-model:checked="activeData.readonly" />
           </a-form-item>
           <a-form-item v-if="activeData.disabled !== undefined" :label="t('searchForm.disabled')">
@@ -258,10 +255,10 @@
 
           <template v-if="activeData.layoutTree">
             <a-divider>{{ t('searchForm.layoutStructureTree') }}</a-divider>
-            <a-tree :data="layoutTree" node-key="__key">
-              <template #default="{ node, data }">
+            <a-tree :tree-data="layoutTree">
+              <template #title="item">
                 <span class="node-label">
-                  {{ data.componentName || `${data.label}: ${data.vModel}` }}
+                  {{ item.componentName || `${item.label}: ${item.vModel}` }}
                 </span>
               </template>
             </a-tree>
@@ -386,7 +383,31 @@ const tagList = computed(() => [
   { label: t('searchForm.selectComponents') as string, options: selectComponents }
 ])
 
-const layoutTree = computed(() => deepCopy([props.activeData]))
+const layoutTree = computed(() => {
+  const toTreeNode = (item: FormField): Record<string, unknown> => ({
+    key: item.__key || String(item.formId),
+    title: item.componentName || `${item.label || ''}: ${item.vModel || ''}`,
+    componentName: item.componentName,
+    label: item.label,
+    vModel: item.vModel,
+    children: Array.isArray(item.children) ? item.children.map(toTreeNode) : undefined
+  })
+  return [toTreeNode(props.activeData)]
+})
+
+// antd-vue 组件是否支持 border / size prop（用于决定右侧面板是否显示对应配置项）
+// RadioGroup: 支持 size（large/default/small），不支持 border
+// CheckboxGroup: 既不支持 size 也不支持 border
+function hasBorderProp(tag: string): boolean {
+  return false
+}
+function hasSizeProp(tag: string): boolean {
+  return tag === 'a-radio-group'
+}
+// antd DatePicker/TimePicker 没有 readonly prop（只有 inputReadOnly），隐藏"是否只读"
+function isDatePickerTag(tag: string): boolean {
+  return tag === 'a-date-picker' || tag === 'a-time-picker'
+}
 
 function addSelectItem(): void {
   // eslint-disable-next-line vue/no-mutating-props
@@ -401,6 +422,11 @@ function setDefaultValue(val: unknown): string | unknown {
   if (Array.isArray(val)) return val.join(',')
   if (typeof val === 'string' || typeof val === 'number') return val
   if (typeof val === 'boolean') return `${val}`
+  // dayjs 对象按 format 格式化为字符串显示
+  if (val && typeof val === 'object' && typeof (val as { format?: unknown }).format === 'function') {
+    const fmt = (props.activeData.format as string) || 'YYYY-MM-DD'
+    return (val as { format: (f: string) => string }).format(fmt)
+  }
   return val
 }
 

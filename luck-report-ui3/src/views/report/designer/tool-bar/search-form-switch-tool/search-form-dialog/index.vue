@@ -14,7 +14,7 @@
       />
     </div>
     <template #footer>
-      <a-button type="primary" style="margin-right: 10px;" @click="handleClose">
+      <a-button style="margin-right: 10px;" @click="handleClose">
         {{ t('dialog.common.cancel') }}
       </a-button>
       <a-button type="primary" @click="handleOk">
@@ -54,7 +54,7 @@ defineOptions({ name: 'SearchFormDialog' })
 
 /** SearchForm 子组件实例上需要调用的方法（子组件仍为 Options API，这里以 any 访问） */
 interface SearchFormDesignerInstance {
-  AssembleFormData(): void
+  assembleFormData(): void
   formData: Record<string, unknown>
 }
 
@@ -105,7 +105,7 @@ watch(
 function buildData(): void {
   const designer = searchFormDesigner.value
   if (!designer) return
-  designer.AssembleFormData()
+  designer.assembleFormData()
   const formData = designer.formData as ReportSearchForm
   const ctx = context.value
   if (!ctx) return

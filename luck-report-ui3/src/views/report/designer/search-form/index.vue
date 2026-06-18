@@ -106,9 +106,10 @@
         <a-row class="center-board-row" :gutter="formConf.gutter">
           <a-form
             :size="formSize"
-            :label-position="formConf.labelPosition"
+            :layout="formLayout"
             :disabled="formConf.disabled"
-            :label-width="formConf.labelWidth"
+            :label-col="formLabelCol"
+            :label-align="formLabelAlign"
           >
             <VueDraggable
               v-model="drawingList"
@@ -199,6 +200,25 @@ const inputComponents = ref<FormField[]>(deepCopy(inputComponentsSrc))
 const selectComponents = ref<FormField[]>(deepCopy(selectComponentsSrc))
 const layoutComponents = ref<FormField[]>(deepCopy(layoutComponentsSrc))
 const drawingList = ref<FormField[]>(deepCopy(drawingDefaultValue))
+
+// 生成唯一字段名：field + 数字，数字从 101 起步；
+// 遍历当前画布所有组件（含 row 容器的 children），找出 field 后数字最大的，+1。
+// 避免删除/重复添加导致字段名冲突。
+function nextFieldName(): string {
+  let max = 100
+  const walk = (list: FormField[]) => {
+    for (const el of list) {
+      const m = /^field(\d+)$/.exec(el.vModel || '')
+      if (m) {
+        const n = parseInt(m[1], 10)
+        if (n > max) max = n
+      }
+      if (Array.isArray(el.children)) walk(el.children)
+    }
+  }
+  walk(drawingList.value)
+  return `field${max + 1}`
+}
 const activeId = ref<number>(drawingDefaultValue[0]?.formId ?? 0)
 const activeData = ref<FormField>(deepCopy(drawingDefaultValue[0] ?? ({} as FormField)))
 const dialogVisible = ref(false)
@@ -283,6 +303,15 @@ watch(
     })
     Object.assign(formConf, restCopy)
     drawingList.value = deepCopy(fields || [])
+    // 重置激活态：优先选第一个组件，否则置空
+    const first = drawingList.value[0]
+    if (first) {
+      activeData.value = first
+      activeId.value = first.formId
+    } else {
+      activeData.value = {} as FormField
+      activeId.value = 0
+    }
   },
   { immediate: true, deep: true }
 )
@@ -313,6 +342,28 @@ const formSize = computed(() => {
   if (s === 'mini') return 'small'
   if (s === 'medium') return 'middle'
   return s
+})
+
+// ant-design-vue Form 布局映射：
+// - labelPosition: 'top' -> layout: 'vertical'（标签在上方，无需 labelCol）
+// - labelPosition: 'left'/'right' -> layout: 'horizontal'，用 labelCol 控制标签宽度
+const formLayout = computed<'horizontal' | 'vertical' | 'inline'>(() => {
+  return formConf.labelPosition === 'top' ? 'vertical' : 'horizontal'
+})
+
+// ant-design-vue 用 label-col（栅格对象）控制标签宽度，不识别 label-width 数值。
+// 将 formConf.labelWidth（数值）转为 { style: { width: 'Npx' } }
+const formLabelCol = computed(() => {
+  const w = formConf.labelWidth
+  if (w === undefined || w === null || formConf.labelPosition === 'top') return undefined
+  return { style: { width: `${w}px` } }
+})
+
+// ant-design-vue 用 label-align 控制标签文字在标签栏内的对齐方式：
+// - labelPosition: 'right' -> 'right'（标签文字右对齐）
+// - labelPosition: 'left'/'top' -> 'left'
+const formLabelAlign = computed<'left' | 'right'>(() => {
+  return formConf.labelPosition === 'right' ? 'right' : 'left'
 })
 
 function activeFormItem(element: FormField) {
@@ -423,7 +474,7 @@ function cloneComponent(origin: FormField): FormField {
   clone.renderKey = +new Date()
   if (!clone.layout) clone.layout = 'colFormItem'
   if (clone.layout === 'colFormItem') {
-    clone.vModel = `field${idGlobal.value}`
+    clone.vModel = nextFieldName()
     if (clone.placeholder !== undefined) clone.placeholder += clone.label
     // 为 colFormItem 也设置唯一的 __key，避免相同类型组件 key 冲突导致渲染位置错误
     clone.__key = `${clone.tag}-${idGlobal.value}-${clone.renderKey}`
@@ -444,6 +495,9 @@ function assembleFormData() {
   Object.assign(formData, formConf)
 }
 
+// 暴露给父组件（如 SearchFormDialog）通过 ref 调用
+defineExpose({ assembleFormData, formData })
+
 function generate(data: { type: 'file' | 'dialog'; fileName?: string }) {
   generateConf.value = data
   switch (operationType.value) {
@@ -462,7 +516,7 @@ function generate(data: { type: 'file' | 'dialog'; fileName?: string }) {
 }
 
 function execRun() {
-  assembleFormData()
+  AssembleFormData()
   // drawerVisible：vue2 中是抽屉打开；vue3 暂保留占位
   // drawerVisible.value = true
 }
@@ -487,6 +541,8 @@ function execCopy() {
 function empty() {
   showConfirm(t('searchForm.confirmClear') as string, { type: 'warning' }).then(() => {
     drawingList.value = []
+    activeData.value = {} as FormField
+    activeId.value = 0
     cleanDrawingDefaultValue()
   })
 }
@@ -504,7 +560,7 @@ function createIdAndKey(item: FormField): FormField {
   item.renderKey = +new Date()
   item.__key = `${item.__key || item.tag}-${idGlobal.value}-${item.renderKey}`
   if (item.layout === 'colFormItem') {
-    item.vModel = `field${idGlobal.value}`
+    item.vModel = nextFieldName()
   } else if (item.layout === 'rowFormItem') {
     item.componentName = `row${idGlobal.value}`
   }
@@ -548,11 +604,9 @@ function tagChange(newTag: FormField) {
   replaced.vModel = activeData.value.vModel
   replaced.formId = activeId.value
   replaced.span = activeData.value.span
-  // 副作用改在 replaced 上操作，避免在 drawingList 引用上 delete 引发中间态
-  delete (replaced as Record<string, unknown>).tag
-  delete (replaced as Record<string, unknown>).tagIcon
-  delete (replaced as Record<string, unknown>).document
+  // tag / tagIcon / document 是组件身份标识，切换类型时必须保留新值，不参与旧值覆盖
   Object.keys(replaced).forEach(key => {
+    if (key === 'tag' || key === 'tagIcon' || key === 'document') return
     const oldVal = (activeData.value as Record<string, unknown>)[key]
     const newVal = (replaced as Record<string, unknown>)[key]
     if (oldVal !== undefined && typeof oldVal === typeof newVal) {

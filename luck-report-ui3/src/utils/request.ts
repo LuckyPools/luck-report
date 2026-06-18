@@ -149,8 +149,19 @@ function dealAxiosResult<T = any>(res: AxiosResponse): Promise<T> {
         return Promise.resolve(res as unknown as T)
     }
     // 自动解包后端统一封装的 ResultVO 格式：{ code, message, data }
-    // 当响应是 ResultVO 形态时，把内层 data 暴露给业务方。
+    // code=0 表示成功，非 0 表示业务失败，需走异常处理（携带 auxCode 供前端展示）
     if (realRes && typeof realRes === 'object' && 'code' in realRes && 'data' in realRes) {
+        if (realRes.code !== 0) {
+            // 后端业务失败：HTTP 200 但 code 非 0，构造错误对象并 reject
+            // 字段映射：后端 message → 前端 msg；auxCode 嵌套在 data.auxCode 中
+            const dataObj = (realRes.data && typeof realRes.data === 'object') ? realRes.data : {}
+            const err: BizError = {
+                auxCode: dataObj.auxCode,
+                msg: realRes.message,
+                ...realRes
+            }
+            return dealError(err)
+        }
         realRes = realRes.data
     }
     return Promise.resolve(realRes as T)

@@ -80,6 +80,18 @@ export default defineComponent({
         const finalClass = props.formConf.unFocusedComponentBorder
           ? className + ' unfocus-bordered'
           : className
+        // ant-design-vue a-form-item 用 label-col 控制标签宽度，不识别 label-width 数值
+        // 字段级 labelWidth 覆盖表单级 labelWidth；为空时不传 labelCol，让 a-form-item 从父级 a-form 继承
+        const fieldLabelWidth = el.labelWidth !== undefined && el.labelWidth !== null
+          ? Number(el.labelWidth)
+          : null
+        const formItemProps: Record<string, unknown> = {
+          label: el.label,
+          required: el.required
+        }
+        if (fieldLabelWidth !== null) {
+          formItemProps.labelCol = { style: { width: `${fieldLabelWidth}px` } }
+        }
         return h(
           Col,
           {
@@ -104,11 +116,7 @@ export default defineComponent({
           () => [
             h(
               FormItem,
-              {
-                labelWidth: el.labelWidth ? Number(el.labelWidth) : null,
-                label: el.label,
-                required: el.required
-              },
+              formItemProps,
               () => [
                 h(RenderField, {
                   key: el.__key,

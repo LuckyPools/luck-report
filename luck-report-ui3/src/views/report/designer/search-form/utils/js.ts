@@ -81,10 +81,11 @@ function mixinMethod(type: 'file' | 'dialog'): string[] {
       ? {
           submitForm: `submitForm() {
         let that = this;
-        this.$refs['${formRef}'].validate(valid => {
-          if(!valid) return
+        this.$refs['${formRef}'].validate().then(() => {
           that.$emit('on-submit', that.formData)
           // TODO 提交表单
+        }).catch(() => {
+          // 校验失败，不提交
         })
       },`,
           resetForm: `resetForm() {
@@ -101,9 +102,10 @@ function mixinMethod(type: 'file' | 'dialog'): string[] {
         this.$emit('update:visible', false)
       },`,
       handleConfirm: `handleConfirm() {
-        this.$refs['${formRef}'].validate(valid => {
-          if(!valid) return
+        this.$refs['${formRef}'].validate().then(() => {
           this.close()
+        }).catch(() => {
+          // 校验失败，不关闭
         })
       },`
     }

@@ -64,6 +64,7 @@ export const inputComponents: FormField[] = [
     placeholder: '请输入',
     defaultValue: undefined,
     span: 24,
+    labelWidth: null,
     style: { width: '100%' },
     clearable: true,
     prepend: '',
@@ -72,9 +73,11 @@ export const inputComponents: FormField[] = [
     'suffixIcon': '',
     maxlength: undefined,
     'showWordLimit': false,
-    type: 'text',
-    regList: [],
+    readonly: false,
+    disabled: false,
     required: true,
+    regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/input-cn'
   },
   {
@@ -87,6 +90,7 @@ export const inputComponents: FormField[] = [
     placeholder: '请输入',
     defaultValue: undefined,
     span: 24,
+    labelWidth: null,
     style: { width: '100%' },
     min: undefined,
     max: undefined,
@@ -94,8 +98,10 @@ export const inputComponents: FormField[] = [
     'stepStrictly': false,
     precision: undefined,
     'controlsPosition': '',
-    regList: [],
+    disabled: false,
     required: true,
+    regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/input-number-cn'
   }
 ]
@@ -112,17 +118,20 @@ export const selectComponents: FormField[] = [
     placeholder: '请选择',
     defaultValue: undefined,
     span: 24,
+    labelWidth: null,
     style: { width: '100%' },
     clearable: true,
-    multiple: false,
-    filterable: false,
+    disabled: false,
     required: true,
+    filterable: false,
+    multiple: false,
     options: [
       { value: 'Beijing', label: '北京' },
       { value: 'Shanghai', label: '上海' },
       { value: 'Guangzhou', label: '广州' }
     ],
     regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/select-cn'
   },
   {
@@ -134,16 +143,19 @@ export const selectComponents: FormField[] = [
     vModel: 'field5',
     defaultValue: undefined,
     span: 24,
+    labelWidth: null,
     style: {},
     size: 'small',
     optionType: 'default',
     border: false,
+    disabled: false,
     required: true,
     options: [
       { value: '选项1', label: '选项1' },
       { value: '选项2', label: '选项2' }
     ],
     regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/radio-cn'
   },
   {
@@ -155,16 +167,19 @@ export const selectComponents: FormField[] = [
     vModel: 'field6',
     defaultValue: [],
     span: 24,
+    labelWidth: null,
     style: {},
     size: 'small',
     optionType: 'default',
     border: false,
+    disabled: false,
     required: true,
     options: [
       { value: '选项1', label: '选项1' },
       { value: '选项2', label: '选项2' }
     ],
     regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/checkbox-cn'
   },
   {
@@ -176,7 +191,10 @@ export const selectComponents: FormField[] = [
     vModel: 'field7',
     defaultValue: false,
     span: 24,
+    labelWidth: null,
     style: {},
+    disabled: false,
+    required: true,
     'activeText': '',
     'inactiveText': '',
     'activeColor': '',
@@ -184,6 +202,7 @@ export const selectComponents: FormField[] = [
     'activeValue': true,
     'inactiveValue': false,
     regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/switch-cn'
   },
   {
@@ -196,6 +215,7 @@ export const selectComponents: FormField[] = [
     placeholder: '请选择',
     defaultValue: undefined,
     span: 24,
+    labelWidth: null,
     style: { width: '100%' },
     type: 'date',
     format: 'YYYY-MM-DD',
@@ -203,10 +223,12 @@ export const selectComponents: FormField[] = [
     'start-placeholder': '开始日期',
     'end-placeholder': '结束日期',
     'range-separator': '至',
+    disabled: false,
     readonly: false,
     clearable: true,
-    regList: [],
     required: true,
+    regList: [],
+    changeTag: true,
     document: 'https://www.antdv.com/components/date-picker-cn'
   }
 ]
@@ -227,20 +249,25 @@ export const layoutComponents: FormField[] = [
     align: 'top',
     gutter: 0,
     children: [],
+    layoutTree: true,
     regList: [],
     document: ''
   },
   {
     __key: 'a-button',
     formId: 12,
+    layout: 'colFormItem',
     tag: 'a-button',
     tagIcon: 'button',
     label: '按钮',
     span: 24,
+    labelWidth: null,
     defaultValue: '按钮',
     type: 'primary',
     icon: '',
     size: 'small',
+    disabled: false,
+    changeTag: true,
     document: 'https://www.antdv.com/components/button-cn'
   }
 ]

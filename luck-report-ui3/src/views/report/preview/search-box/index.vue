@@ -61,18 +61,28 @@ let submitHandler: ((payload?: unknown) => void) | null = null
  * @param searchFormConfig 表单配置
  */
 function init(searchFormConfig: SearchFormConfigShape): void {
+  console.log('[search-box init] 入参 searchFormConfig:', searchFormConfig)
+  console.log('[search-box init] searchFormConfig.fields:', searchFormConfig?.fields)
   destroyFormInstance()
   if (!searchFormRef.value) {
+    console.error('[search-box init] searchFormRef.value 为空，终止渲染')
     return
   }
+  console.log('[search-box init] searchFormRef.value:', searchFormRef.value)
 
   const generateType = 'file'
   const script = vueScript(makeUpJs(searchFormConfig as never, generateType))
   const html = vueTemplate(makeUpHtml(searchFormConfig as never, generateType))
   const css = cssStyle(makeUpCss(searchFormConfig))
+  console.log('[search-box init] 生成 script 长度:', script?.length, '前 200 字符:', script?.slice(0, 200))
+  console.log('[search-box init] 生成 html 长度:', html?.length, '前 200 字符:', html?.slice(0, 200))
+  console.log('[search-box init] 生成 css 长度:', css?.length)
   const formJs = beautifier.html(html + script + css, beautifierConf.html)
+  console.log('[search-box init] formJs 长度:', formJs?.length)
+  console.log('[search-box init] formJs 前 500 字符:', formJs?.slice(0, 500))
 
   formInstance.value = renderTemplateToComponent(formJs, searchFormRef.value)
+  console.log('[search-box init] formInstance:', formInstance.value)
   // 在 formInstance 创建之后再注册 emitter 监听，与实例生命周期对齐，
   // 避免在父组件 v-if 反复挂载时出现重复监听
   registerSubmitHandler()

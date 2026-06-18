@@ -19,7 +19,9 @@ export default defineConfig(({ mode }) => {
     base,
     resolve: {
       alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url))
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        // 运行时模板编译需要带 compiler 的版本（render.ts 中通过 new Function 动态渲染 template 字符串）
+        vue: 'vue/dist/vue.esm-bundler.js'
       }
     },
     server: isLib

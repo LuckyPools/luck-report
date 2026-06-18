@@ -60,12 +60,15 @@ export function cssStyle(cssStr: string): string {
 }
 
 function buildFormTemplate(conf: FormConf, child: string, type: string): string {
-  let labelPosition = ''
-  if (conf.labelPosition !== 'right') {
-    labelPosition = `label-position="${conf.labelPosition}"`
+ const labelPositionAttr = `label-position="${conf.labelPosition}"`
+  const labelWidthAttr = `:label-width="${conf.labelWidth}"`
+  const layout = conf.labelPosition === 'top' ? 'vertical' : 'horizontal'
+  let labelColAttr = ''
+  if (conf.labelPosition !== 'top' && conf.labelWidth !== undefined && conf.labelWidth !== null) {
+    labelColAttr = `:label-col="{ style: { width: '${conf.labelWidth}px' } }"`
   }
   const disabled = conf.disabled ? ':disabled="true"' : ''
-  let str = `<a-form ref="${conf.formRef}" :model="${conf.formModel}" :rules="${conf.formRules}" size="${aSizeOf(conf.size) || 'middle'}" ${disabled} :label-width="${conf.labelWidth}" ${labelPosition}>
+  let str = `<a-form ref="${conf.formRef}" :model="${conf.formModel}" :rules="${conf.formRules}" size="${aSizeOf(conf.size) || 'middle'}" ${disabled} ${labelWidthAttr} ${labelPositionAttr} layout="${layout}" ${labelColAttr}>
       ${child}
       ${buildFromBtns(conf, type)}
     </a-form>`
@@ -114,13 +117,17 @@ function colWrapper(element: FormField, str: string): string {
 
 const layouts: Record<string, (el: FormField) => string> = {
   colFormItem(element) {
+    // 后端通过 element.attributeValue("labelWidth") 解析，保留 :label-width 属性
+    // 同时 ant-design-vue 用 label-col 控制实际宽度，需额外输出
     let labelWidth = ''
+    let labelColAttr = ''
     if (element.labelWidth && element.labelWidth !== confGlobal!.labelWidth) {
       labelWidth = `:label-width="${element.labelWidth}"`
+      labelColAttr = `:label-col="{ style: { width: '${element.labelWidth}px' } }"`
     }
     const required = !trigger[element.tag as keyof typeof trigger] && element.required ? 'required' : ''
     const tagDom = tags[element.tag] ? tags[element.tag](element) : ''
-    let str = `<a-form-item ${labelWidth} label="${element.label}" name="${element.vModel}" ${required}>
+    let str = `<a-form-item ${labelWidth} ${labelColAttr} label="${element.label}" name="${element.vModel}" ${required}>
         ${tagDom}
       </a-form-item>`
     str = colWrapper(element, str)
@@ -218,25 +225,39 @@ const tags: Record<string, (el: FormField) => string> = {
   'a-date-picker': el => {
     const { disabled, vModel, clearable, placeholder } = attrBuilder(el)
     const format = el.format ? `format="${el.format}"` : ''
-    const valueFormat = el['valueFormat'] && el['valueFormat'] !== 'format' ? `value-format="${el['valueFormat']}"` : ''
-    const type = el.type === 'date' ? '' : `picker="${el.type}"`
+    // ant-design-vue DatePicker 的 picker 仅支持 date/week/month/quarter/year，
+    // 不支持 datetime。datetime 类型需拆分为 picker="date" + show-time，
+    // 与 render.tsx 画布预览保持一致。
+    let pickerAttr = ''
+    let showTimeAttr = ''
+    if (el.type === 'datetime') {
+      pickerAttr = 'picker="date"'
+      showTimeAttr = 'show-time'
+    } else if (el.type && el.type !== 'date') {
+      pickerAttr = `picker="${el.type}"`
+    }
     const readonly = el.readonly ? 'readonly' : ''
 
-    return `<${el.tag} ${type} ${vModel} ${format} ${valueFormat} ${placeholder} ${clearable} ${readonly} ${disabled}></${el.tag}>`
+    return `<${el.tag} ${pickerAttr} ${showTimeAttr} ${vModel} ${format} ${placeholder} ${clearable} ${readonly} ${disabled}></${el.tag}>`
   },
   'a-time-picker': el => {
     const { disabled, vModel, clearable, placeholder } = attrBuilder(el)
     const format = el.format ? `format="${el.format}"` : ''
-    const valueFormat = el['valueFormat'] && el['valueFormat'] !== 'format' ? `value-format="${el['valueFormat']}"` : ''
+    // ant-design-vue TimePicker 同样没有 value-format 属性，
+    // v-model 绑定 dayjs 对象，需在业务层自行格式化。
 
-    return `<${el.tag} ${vModel} ${format} ${valueFormat} ${placeholder} ${clearable} ${disabled}></${el.tag}>`
+    return `<${el.tag} ${vModel} ${format} ${placeholder} ${clearable} ${disabled}></${el.tag}>`
   }
 }
 
 function attrBuilder(el: FormField) {
   return {
     vModel: `${vModelOf(el.tag)}="${confGlobal!.formModel}.${el.vModel}"`,
-    clearable: el.clearable ? 'allow-clear' : '',
+    // antd DatePicker 的 allow-clear 默认值是 true，clearable=false 时必须显式输出 :allow-clear="false"；
+    // a-input / a-select 默认值是 false，clearable=false 时不输出即可。
+    clearable: el.clearable
+      ? 'allow-clear'
+      : (el.tag === 'a-date-picker' ? ':allow-clear="false"' : ''),
     placeholder: el.placeholder ? `placeholder="${el.placeholder}"` : '',
     disabled: el.disabled ? ':disabled="true"' : ''
   }

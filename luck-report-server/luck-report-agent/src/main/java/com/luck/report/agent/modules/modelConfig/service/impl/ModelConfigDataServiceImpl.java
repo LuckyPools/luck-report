@@ -271,8 +271,9 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
         oldEntity.setProxyUsername(dto.getProxyUsername());
         oldEntity.setProxyPassword(dto.getProxyPassword());
 
-        // 只有当前端传来的Key不包含"****"时,才说明用户真的改了Key,否则保持原样
-        if (dto.getApiKey() != null && !dto.getApiKey().contains("****")) {
+        // apiKey 为空时不更新（保留原值），非空时才更新
+        // 前端编辑表单中 apiKey 默认为空（后端不返回），用户不填则保持原密钥不变
+        if (dto.getApiKey() != null && !dto.getApiKey().isEmpty()) {
             oldEntity.setApiKey(dto.getApiKey());
         }
     }
