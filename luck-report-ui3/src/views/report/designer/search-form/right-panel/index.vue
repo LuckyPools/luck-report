@@ -100,7 +100,7 @@
             <a-input
               :value="setDefaultValue(activeData.defaultValue)"
               :placeholder="t('searchForm.enterDefaultValue')"
-              @input="onDefaultValueInput"
+              @input="onDefaultValueInput($event.target.value)"
             />
           </a-form-item>
           <a-form-item
@@ -128,14 +128,14 @@
             <a-input
               :value="setDefaultValue(activeData['activeValue'])"
               :placeholder="t('searchForm.enterActiveValue')"
-              @input="onSwitchValueInput($event, 'activeValue')"
+              @input="onSwitchValueInput($event.target.value, 'activeValue')"
             />
           </a-form-item>
           <a-form-item v-if="activeData['inactiveValue'] !== undefined" :label="t('searchForm.inactiveValue')">
             <a-input
               :value="setDefaultValue(activeData['inactiveValue'])"
               :placeholder="t('searchForm.enterInactiveValue')"
-              @input="onSwitchValueInput($event, 'inactiveValue')"
+              @input="onSwitchValueInput($event.target.value, 'inactiveValue')"
             />
           </a-form-item>
           <a-form-item
@@ -162,7 +162,7 @@
             <a-input
               :value="activeData.format"
               :placeholder="t('searchForm.enterTimeFormat')"
-              @input="setTimeValue($event)"
+              @input="setTimeValue($event.target.value)"
             />
           </a-form-item>
           <template v-if="['a-checkbox-group', 'a-radio-group', 'a-select'].indexOf(activeData.tag) > -1">
@@ -186,7 +186,7 @@
                   :placeholder="t('searchForm.optionValue')"
                   size="small"
                   :value="item.value"
-                  @input="setOptionValue(item, $event)"
+                  @input="setOptionValue(item, $event.target.value)"
                 />
                 <div class="close-btn select-line-icon" @click="activeData.options.splice(index, 1)">
                   <i class="iconfont icon-delete" />

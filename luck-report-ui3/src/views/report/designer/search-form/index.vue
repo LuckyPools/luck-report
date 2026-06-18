@@ -826,6 +826,8 @@ function updateDrawingList(newTag: FormField) {
 }
 .drawing-row-item .drag-wrapper {
   min-height: 80px;
+  width: 100%;
+  flex: 1;
 }
 .drawing-row-item.active-from-item {
   border: 1px dashed #409eff;
