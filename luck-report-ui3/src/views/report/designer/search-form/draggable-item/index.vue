@@ -158,7 +158,24 @@ export default defineComponent({
                 {
                   modelValue: el.children ?? [],
                   'onUpdate:modelValue': (val: FormField[]) => {
-                    el.children = val
+                    console.log('[draggable-item][row onUpdate:modelValue] 触发', {
+                      rowFormId: el.formId,
+                      rowComponentName: el.componentName,
+                      beforeLen: el.children?.length ?? 0,
+                      beforeChildren: el.children?.map((c: FormField) => ({ formId: c.formId, tag: c.tag, label: c.label })),
+                      afterLen: val.length,
+                      afterChildren: val.map((c: FormField) => ({ formId: c.formId, tag: c.tag, label: c.label }))
+                    })
+                    if (!el.children) {
+                      el.children = val
+                    } else {
+                      el.children.splice(0, el.children.length, ...val)
+                    }
+                    console.log('[draggable-item][row onUpdate:modelValue] 更新后', {
+                      rowFormId: el.formId,
+                      childrenLen: el.children?.length,
+                      children: el.children?.map((c: FormField) => ({ formId: c.formId, tag: c.tag, label: c.label }))
+                    })
                   },
                   animation: 340,
                   group: 'componentsGroup',
