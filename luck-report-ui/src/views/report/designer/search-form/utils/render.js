@@ -75,8 +75,8 @@ const componentChild = {
       const list = []
       if (conf.options && Array.isArray(conf.options)) {
         conf.options.forEach(item => {
-          if (conf.optionType === 'button') list.push(<u-radio-button label={item.value}>{item.label}</u-radio-button>)
-          else list.push(<u-radio label={item.value} border={conf.border}>{item.label}</u-radio>)
+          if (conf.optionType === 'button') list.push(<u-radio-button label={item.value} size={conf.size}>{item.label}</u-radio-button>)
+          else list.push(<u-radio label={item.value} border={conf.border} size={conf.size}>{item.label}</u-radio>)
         })
       }
       return list
@@ -88,9 +88,9 @@ const componentChild = {
       if (conf.options && Array.isArray(conf.options)) {
         conf.options.forEach(item => {
           if (conf.optionType === 'button') {
-            list.push(<u-checkbox-button label={item.value}>{item.label}</u-checkbox-button>)
+            list.push(<u-checkbox-button label={item.value} size={conf.size}>{item.label}</u-checkbox-button>)
           } else {
-            list.push(<u-checkbox label={item.value} border={conf.border}>{item.label}</u-checkbox>)
+            list.push(<u-checkbox label={item.value} border={conf.border} size={conf.size}>{item.label}</u-checkbox>)
           }
         })
       }

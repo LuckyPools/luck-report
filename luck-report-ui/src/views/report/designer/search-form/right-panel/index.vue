@@ -48,10 +48,16 @@
         <u-form-item v-if="activeData.layout==='rowFormItem'" :label="$t('searchForm.gridSpacing')">
           <u-input-number v-model="activeData.gutter" :min="0" :placeholder="$t('searchForm.gridSpacing')" />
         </u-form-item>
+        <!-- 行容器暂不开放布局模式/水平排列/垂直排列配置项，按需放开 -->
+        <!--
         <u-form-item v-if="activeData.layout==='rowFormItem'" :label="$t('searchForm.layoutMode')">
           <u-radio-group  v-model="activeData.type" button>
-            <u-radio label="default" size="small" />
-            <u-radio label="flex" size="small" />
+            <u-radio label="default" size="small">
+              {{ $t('searchForm.layoutModeDefault') }}
+            </u-radio>
+            <u-radio label="flex" size="small">
+              {{ $t('searchForm.layoutModeFlex') }}
+            </u-radio>
           </u-radio-group>
         </u-form-item>
         <u-form-item v-if="activeData.justify!==undefined&&activeData.type==='flex'" :label="$t('searchForm.horizontalAlignment')">
@@ -66,11 +72,18 @@
         </u-form-item>
         <u-form-item v-if="activeData.align!==undefined&&activeData.type==='flex'" :label="$t('searchForm.verticalAlignment')">
           <u-radio-group v-model="activeData.align" button>
-            <u-radio label="top" size="small" />
-            <u-radio label="middle" size="small" />
-            <u-radio label="bottom" size="small" />
+            <u-radio label="top" size="small">
+              {{ $t('searchForm.alignTop') }}
+            </u-radio>
+            <u-radio label="middle" size="small">
+              {{ $t('searchForm.alignMiddle') }}
+            </u-radio>
+            <u-radio label="bottom" size="small">
+              {{ $t('searchForm.alignBottom') }}
+            </u-radio>
           </u-radio-group>
         </u-form-item>
+        -->
         <u-form-item v-if="activeData.labelWidth!==undefined" :label="$t('searchForm.labelWidth')">
           <u-input-number v-model="activeData.labelWidth"  :placeholder="$t('searchForm.enterLabelWidth')" />
         </u-form-item>
@@ -219,7 +232,11 @@
             <u-divider />
           </template>
 
-          <u-form-item v-if="activeData.optionType !== undefined" :label="$t('searchForm.optionStyle')">
+          <u-form-item
+            v-if="activeData.optionType !== undefined &&
+              ['u-radio-group', 'u-checkbox-group'].indexOf(activeData.tag) === -1"
+            :label="$t('searchForm.optionStyle')"
+          >
             <u-radio-group v-model="activeData.optionType" button>
               <u-radio label="default" size="small">
                 {{ $t('searchForm.default') }}
@@ -237,7 +254,8 @@
           </u-form-item>
           <u-form-item
             v-if="activeData.size !== undefined &&
-              (activeData.optionType === 'button' || activeData.border)"
+              (activeData.optionType === 'button' || activeData.border) &&
+              ['u-radio-group', 'u-checkbox-group'].indexOf(activeData.tag) === -1"
             :label="$t('searchForm.optionSize')"
           >
             <u-radio-group v-model="activeData.size" button>

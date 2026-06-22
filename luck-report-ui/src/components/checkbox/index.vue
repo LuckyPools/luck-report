@@ -1,13 +1,13 @@
 <template>
   <label
       class="u-checkbox"
-      :class="{
-      'u-checkbox-checked': checked,
-      'u-checkbox-disabled': forbidden,
-      [`u-checkbox-${size}-border`]: border,
-      [`u-checkbox-${size}-button`]: button,
-      'u-checkbox-checked-button': checked && button
-    }"
+    :class="{
+    'u-checkbox-checked': checked,
+    'u-checkbox-disabled': forbidden,
+    [`u-checkbox-${localSize}-border`]: border,
+    [`u-checkbox-${localSize}-button`]: button,
+    'u-checkbox-checked-button': checked && button
+  }"
   >
     <input
         type="checkbox"
@@ -45,9 +45,10 @@ export default {
   data() {
     return {
       checked: false, // 是否被选中
-      myDisabled: false, // 是否被禁用，该属性由父级控制
+      localDisabled: false, // 是否被禁用，该属性由父级控制
       limitDisabled: false, // 是否因为父级数量限制而被禁用
-      button: false // 是否渲染成按钮样式
+      button: false, // 是否渲染成按钮样式
+      localSize: "medium" // 真实用于渲染的尺寸，由父级同步（避开 prop 警告）
     };
   },
   props: {
@@ -91,11 +92,18 @@ export default {
         this.checked = newVal;
       },
       immediate: true
+    },
+    // 把 prop 同步到内部 data，组组件直接改 localSize 不再触发 prop 警告
+    size: {
+      handler(newVal) {
+        this.localSize = newVal;
+      },
+      immediate: true
     }
   },
   computed: {
     forbidden() {
-      return this.disabled || this.myDisabled || this.limitDisabled;
+      return this.disabled || this.localDisabled || this.limitDisabled;
     }
   },
   mounted() {
