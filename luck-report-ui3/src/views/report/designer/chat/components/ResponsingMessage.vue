@@ -6,9 +6,11 @@
         :src="currentProvider.providerLogo"
         class="assistant-avatar-img"
       />
-      <div v-else class="assistant-avatar">
-        {{ currentProvider?.providerName?.charAt(0) || 'AI' }}
-      </div>
+      <a-avatar
+        v-else
+        :src="aiAvatarUrl"
+        class="assistant-avatar-img"
+      />
       <div class="message-content">
         <!-- 联网搜索状态 -->
         <div v-if="searchStatus === 'searching'" class="search-status">
@@ -135,6 +137,7 @@ import {
 } from '@ant-design/icons-vue'
 import { Avatar as AAvatar, Button as AButton } from 'ant-design-vue'
 import type { ToolCall } from '@/service/agent/tools/types'
+import aiAvatarUrl from '@/assets/images/ai/agent-header.png'
 
 /**
  * ResponsingMessage 组件

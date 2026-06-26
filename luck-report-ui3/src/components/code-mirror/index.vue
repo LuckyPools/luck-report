@@ -15,8 +15,30 @@
  */
 import { ref, onMounted, onBeforeUnmount, watch, shallowRef, computed } from 'vue'
 import { Compartment, EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
-import { basicSetup as basicSetupExt } from 'codemirror'
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  drawSelection,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor,
+  highlightActiveLine,
+  placeholder as placeholderExt
+} from '@codemirror/view'
+import { history, defaultKeymap, historyKeymap } from '@codemirror/commands'
+import {
+  foldGutter,
+  indentOnInput,
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  bracketMatching,
+  foldKeymap
+} from '@codemirror/language'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+import { closeBrackets } from '@codemirror/autocomplete'
 
 defineOptions({ name: 'CodeMirror' })
 
@@ -49,20 +71,38 @@ const hostStyle = computed(() => ({
   height: typeof props.height === 'number' ? `${props.height}px` : props.height
 }))
 
-const placeholderExtension = (text: string) =>
-  EditorView.theme({
-    '&:not(.cm-focused) .cm-content::before': {
-      content: `"${text.replace(/"/g, '\\"')}"`,
-      color: '#aaa',
-      float: 'left',
-      height: '100%',
-      pointerEvents: 'none'
-    }
-  })
+const placeholderExtension = (text: string) => placeholderExt(text)
 
 const buildExtensions = () => {
   const list: any[] = []
-  if (props.basicSetup) list.push(basicSetupExt)
+  if (props.basicSetup) {
+    // 手动展开 basicSetup 的各项基础扩展，显式不包含 autocompletion。
+    // 本组件是"自定义表达式编辑器"，没有 SQL/JS 语法包，
+    // 默认的关键词补全会出现误导性的"推荐值"（inline ghost text）。
+    list.push(
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightSpecialChars(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      dropCursor(),
+      indentOnInput(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      bracketMatching(),
+      closeBrackets(),
+      highlightActiveLine(),
+      highlightSelectionMatches(),
+      rectangularSelection(),
+      crosshairCursor(),
+      keymap.of([
+        ...defaultKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...searchKeymap
+      ])
+    )
+  }
   list.push(EditorView.lineWrapping)
   list.push(
     EditorView.updateListener.of((u: any) => {
@@ -134,6 +174,7 @@ defineExpose({
   border-radius: 2px;
   overflow: hidden;
   background: #fff;
+  transition: border-color 0.2s ease;
 }
 .cm-host .cm-editor {
   height: 100%;
@@ -146,6 +187,14 @@ defineExpose({
   outline: none;
 }
 .cm-host:focus-within {
-  border-color: #4096ff;
+  border-color: var(--color-primary, #00554a);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 0, 85, 74), 0.1);
+}
+.cm-host .cm-activeLine,
+.cm-host .cm-activeLineGutter {
+  background-color: rgba(var(--color-primary-rgb, 0, 85, 74), 0.08) !important;
+}
+.cm-host .cm-activeLine {
+  border-left: 2px solid var(--color-primary, #00554a);
 }
 </style>

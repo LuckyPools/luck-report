@@ -193,7 +193,7 @@ const handleSaveAfter = (payload: { group: ConditionGroup; operation: 'add' | 'e
 }
 
 .group-list :deep(.list-item-active) {
-  background-color: #e6f7ff;
-  color: #1890ff;
+  background-color: #f5f5f5;
+  color: var(--color-primary);
 }
 </style>

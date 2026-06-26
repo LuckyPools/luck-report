@@ -111,7 +111,7 @@ public class ChatSessionController {
      * @param request   请求体，包含 title 字段
      * @return 操作结果
      */
-    @PutMapping("/{sessionId}/rename")
+    @PostMapping("/{sessionId}/rename")
     public ResultVO<Void> renameSession(
             @PathVariable String sessionId,
             @RequestBody Map<String, String> request) {
@@ -130,7 +130,7 @@ public class ChatSessionController {
      * @param request   请求体，包含 isPinned 字段（0-否，1-是）
      * @return 操作结果
      */
-    @PutMapping("/{sessionId}/pin")
+    @PostMapping("/{sessionId}/pin")
     public ResultVO<Void> pinSession(
             @PathVariable String sessionId,
             @RequestBody Map<String, Integer> request) {

@@ -48,7 +48,7 @@
         </div>
 
         <div class="property-section">
-          <a-form :label-col="{ style: { width: '80px' } }" :colon="false">
+          <a-form :label-col="{ style: { width: '80px' } }" >
             <a-form-item :label="t('tools.border.lineStyle')">
               <a-select v-model:value="currentBorderStyle.style">
                 <a-select-option

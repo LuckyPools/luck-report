@@ -1,6 +1,6 @@
 <template>
   <div class="axis-config">
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
 
       <div class="property-quote">
         {{ t('chart.xAxis') }}

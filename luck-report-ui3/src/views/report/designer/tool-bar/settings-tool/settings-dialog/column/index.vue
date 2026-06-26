@@ -1,5 +1,5 @@
 <template>
-  <a-form :label-col="{ style: { width: '100px' } }">
+  <a-form>
     <div class="form-desc">{{ t('dialog.setting.colDesc') }}</div>
 
     <a-row>
@@ -122,7 +122,7 @@ export default {
 
 <style scoped>
 .form-desc {
-  margin: 0 5px 10px 5px;
+  margin-bottom: 10px;
   color: #999999;
   font-size: 12px;
 }

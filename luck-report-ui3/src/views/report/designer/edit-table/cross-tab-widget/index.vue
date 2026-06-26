@@ -19,7 +19,7 @@
  * - props 通过 defineProps 声明，$refs → 模板 ref
  * - 渲染逻辑、API 调用保持原样
  */
-import { defineComponent, ref, onMounted, onBeforeUnmount, defineExpose, type Ref } from 'vue'
+import { defineComponent, ref, onMounted, onBeforeUnmount, type Ref } from 'vue'
 import Raphael from 'raphael'
 import saveSvgAsPng from 'save-svg-as-png'
 import { getCell, setCell } from '@/utils/contextActions'
@@ -62,7 +62,7 @@ export default defineComponent({
     colIndex: { type: Number, required: true },
     value: { type: String, default: '' }
   },
-  setup(props) {
+  setup(props, { expose }) {
     const containerRef: Ref<HTMLElement | null> = ref(null)
     const slashData: Ref<string[]> = ref([])
     const rowSpan = ref(1)
@@ -373,10 +373,13 @@ export default defineComponent({
 
     /**
      * 暴露 doDraw / refreshCell 给 class.ts 调用
-     * - vue2 时代通过 vueInstance.$children[0] 访问；vue3 中改为 defineExpose
+     * - vue2 时代通过 vueInstance.$children[0] 访问；vue3 中改为 expose
+     * - 注意：本组件使用 <script lang="ts">（defineComponent），
+     *   不能用 defineExpose 编译时宏（仅在 <script setup> 中有效），
+     *   必须用 setup 上下文中解构出的 expose 函数
      * - 斜线表属性面板（slash-value-editor）的"刷新"按钮依赖 doDraw() 触发 Raphael 重绘
      */
-    defineExpose({ doDraw, refreshCell })
+    expose({ doDraw, refreshCell })
 
     return {
       containerRef,

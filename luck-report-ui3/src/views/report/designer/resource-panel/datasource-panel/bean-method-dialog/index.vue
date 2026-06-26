@@ -13,7 +13,6 @@
         :model="formData"
         :rules="rules"
         :label-col="{ style: { width: '120px' } }"
-        :colon="false"
       >
         <a-form-item :label="t('dialog.bean.datasetName')" name="name">
           <a-input v-model:value="formData.name" style="width: 400px" />

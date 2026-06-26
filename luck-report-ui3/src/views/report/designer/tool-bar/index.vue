@@ -210,15 +210,9 @@ onMounted(() => {
   background-color: rgba(0, 119, 103, 0.9) !important;
 }
 
-.info-button {
-  font-size: 16px;
-  margin: 2px 0;
-  border: none;
-}
-
 /* 内容栏按钮：统一尺寸、间距、hover 背景 */
 .toolbar-box :deep(.info-button) {
-  font-size: 16px;
+  font-size: 14px;
   margin: 4px;
   height: 28px;
   padding: 0 6px;

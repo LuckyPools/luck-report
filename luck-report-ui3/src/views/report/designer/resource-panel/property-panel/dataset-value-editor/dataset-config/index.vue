@@ -1,6 +1,6 @@
 <template>
   <div>
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('property.dataset.dataset')" style="margin-top: 10px">
         <a-select
             v-model:value="localDataset"

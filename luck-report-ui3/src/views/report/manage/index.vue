@@ -13,6 +13,20 @@
       <div class="action-section">
         <a-card :bordered="true">
           <div class="action-content">
+            <div class="search-box">
+              <a-input
+                  v-model:value="searchKeyword"
+                  placeholder="请输入报表名称搜索"
+                  style="width: 280px"
+                  allow-clear
+                  @clear="handleSearch"
+                  @press-enter="handleSearch"
+              >
+                <template #prefix>
+                  <SearchOutlined />
+                </template>
+              </a-input>
+            </div>
             <div class="action-buttons">
               <a-button type="primary" @click="openCreateDialog">
                 <template #icon><PlusOutlined /></template>
@@ -37,20 +51,6 @@
                   {{ p.name }}
                 </a-select-option>
               </a-select>
-            </div>
-            <div class="search-box">
-              <a-input
-                v-model:value="searchKeyword"
-                placeholder="请输入报表名称搜索"
-                style="width: 280px"
-                allow-clear
-                @clear="handleSearch"
-                @press-enter="handleSearch"
-              >
-                <template #prefix>
-                  <SearchOutlined />
-                </template>
-              </a-input>
             </div>
           </div>
         </a-card>
@@ -168,6 +168,8 @@
       title="新建报表"
       width="500px"
       :confirm-loading="createLoading"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
       @ok="handleCreate"
       @cancel="createDialogVisible = false"
     >
@@ -257,6 +259,7 @@ import {
   type ReportProviderVO
 } from '@/api/manage'
 import { getRequestToken } from '@/utils/token'
+import {t} from "@/locales";
 
 defineOptions({ name: 'ManageReports' })
 

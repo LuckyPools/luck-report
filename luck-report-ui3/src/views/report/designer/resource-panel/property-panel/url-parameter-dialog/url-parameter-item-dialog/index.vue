@@ -11,7 +11,6 @@
       :model="formData"
       :rules="rules"
       :label-col="{ style: { width: '120px' } }"
-      :colon="false"
     >
       <a-form-item :label="t('dialog.paramItem.name')" name="name">
         <a-input

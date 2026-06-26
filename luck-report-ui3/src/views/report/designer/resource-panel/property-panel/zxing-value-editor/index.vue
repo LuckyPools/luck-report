@@ -5,7 +5,7 @@
       {{ t('property.zxing.config') }}
     </div>
 
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('property.zxing.width')">
         <a-input-number
           v-model:value="width"

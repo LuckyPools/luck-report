@@ -136,7 +136,7 @@ export async function pinSession(sessionId: string, isPinned: number): Promise<v
  * @param sessionId - 会话ID
  */
 export async function deleteSession(sessionId: string): Promise<void> {
-  await request.get<void>(`/sessions/${sessionId}`, undefined, { method: 'DELETE' as any })
+  await request.del<void>(`/sessions/${sessionId}`)
 }
 
 // ==================== 消息管理 ====================

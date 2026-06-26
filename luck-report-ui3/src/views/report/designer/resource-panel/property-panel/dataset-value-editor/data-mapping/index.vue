@@ -1,6 +1,6 @@
 <template>
   <div class="data-mapping-tab">
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <div style="padding-top: 10px">
         <div v-if="!showMappingOptions" class="alert alert-info" style="margin-bottom: 10px;">
         </div>
@@ -216,18 +216,18 @@ const mappingColumns = computed(() => [
     title: t('property.dataset.realValue'),
     dataIndex: 'value',
     key: 'value',
-    width: 130
+    width: 120
   },
   {
     title: t('property.dataset.displayValue'),
     dataIndex: 'label',
     key: 'label',
-    width: 150
+    width: 120
   },
   {
     title: t('property.dataset.op'),
     key: 'op',
-    width: 80
+    width: 120
   }
 ])
 

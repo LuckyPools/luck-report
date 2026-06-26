@@ -1,6 +1,6 @@
 <template>
   <div class="expression-value-editor" ref="containerRef">
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
 
       <div class="property-quote">
         {{ t('property.expr.config') }}

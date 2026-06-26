@@ -1,9 +1,18 @@
 <template>
   <div ref="sidePanel" class="ud-panel">
-      <a-tabs v-model:active-key="activeTab" type="card" class="resource-tabs" @tab-change="handleTabChange">
-          <a-tab-pane :key="'property'" :tab="t('panel.property')" />
-          <a-tab-pane :key="'datasource'" :tab="t('panel.datasource')" />
-      </a-tabs>
+      <div class="resource-tabs">
+          <div class="resource-tabs-nav">
+              <div
+                  v-for="tab in tabs"
+                  :key="tab.key"
+                  class="resource-tabs-tab"
+                  :class="{ 'resource-tabs-tab-active': activeTab === tab.key }"
+                  @click="handleTabClick(tab.key)"
+              >
+                  {{ tab.label }}
+              </div>
+          </div>
+      </div>
       <div class="tab-content" ref="tabContent">
           <PropertyPanel v-show="activeTab === 'property'" ref="propertyPanel" :row-index="rowIndex" :col-index="colIndex" :row2-index="row2Index" :col2-index="col2Index" :refresh-trigger="refreshTrigger" @refresh="handlePropertyPanelRefresh" />
           <DatasourcePanel v-show="activeTab === 'datasource'" />
@@ -13,18 +22,12 @@
 
 <script setup lang="ts">
 /**
- * ResourcePanel 资源侧边栏（vue3 + TS + ant-design-vue）
+ * ResourcePanel 资源侧边栏（vue3 + TS + 自定义 tabs）
  *
  * 工作流程：
- * 1. 通过 a-tabs 在「属性面板 / 数据源面板」之间切换
+ * 1. 通过自定义 tabs 在「属性面板 / 数据源面板」之间切换
  * 2. 监听父组件传入的 selectedCells，更新当前选区索引并触发 PropertyPanel 刷新
  * 3. PropertyPanel 内部 emit('refresh') 时同步自增 refreshTrigger
- *
- * 迁移说明：
- * - Options API → vue3 <script setup>
- * - u-tabs（自定义）→ a-tabs + a-tab-pane（ant-design-vue）
- * - mapGetters / Vuex → useReportStore
- * - 移除未使用的 context 计算属性（原 vuex 版 getContext 派生但模板未引用）
  */
 import { ref, watch } from 'vue'
 import DatasourcePanel from './datasource-panel/index.vue'
@@ -50,6 +53,12 @@ const props = defineProps({
     })
   }
 })
+
+/** tab 配置 */
+const tabs = [
+  { key: 'property', label: t('panel.property') },
+  { key: 'datasource', label: t('panel.datasource') }
+]
 
 /** 当前激活的 tab key */
 const activeTab = ref<string>('property')
@@ -79,9 +88,14 @@ function refreshPropertyPanel(r: number, c: number, r2: number, c2: number): voi
   refreshTrigger.value++
 }
 
-/** tab 切换：切回 property 时触发刷新 */
-function handleTabChange(): void {
-  if (activeTab.value === 'property') {
+/**
+ * tab 点击切换
+ * @param key 被点击的 tab key
+ */
+function handleTabClick(key: string): void {
+  if (activeTab.value === key) return
+  activeTab.value = key
+  if (key === 'property') {
     refreshTrigger.value++
   }
 }
@@ -132,35 +146,35 @@ watch(
   border: none !important;
 }
 
-.resource-tabs :deep(.ant-tabs-nav) {
+.resource-tabs-nav {
+  display: flex;
   height: 50px;
-  margin: 0 !important;
-  background: var(--color-primary) !important;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--color-primary);
 }
 
-.resource-tabs :deep(.ant-tabs-nav-list) {
-  height: 50px;
-}
-
-.resource-tabs :deep(.ant-tabs-tab) {
+.resource-tabs-tab {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 50px;
-  margin: 0 !important;
-  padding: 0 16px !important;
+  margin: 0;
+  padding: 0 16px;
   color: white;
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
 }
 
-.resource-tabs :deep(.ant-tabs-tab:hover) {
-  color: grey !important;
+.resource-tabs-tab:hover {
+  color: #d0d0d0;
 }
 
-.resource-tabs :deep(.ant-tabs-tab-active .ant-tabs-tab-btn),
-.resource-tabs :deep(.ant-tabs-tab-active) {
+.resource-tabs-tab-active {
   color: var(--color-primary) !important;
   background: #ffffff !important;
 }

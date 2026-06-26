@@ -390,10 +390,6 @@ export default {
   height: 400px;
 }
 
-.tab-content {
-  padding: 10px 0;
-}
-
 .div-footer-align {
   text-align: right;
 }

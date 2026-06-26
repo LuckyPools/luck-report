@@ -64,9 +64,11 @@
             :src="currentProvider.providerLogo"
             class="assistant-avatar-img"
           />
-          <div v-else class="assistant-avatar">
-            {{ currentProvider?.providerName?.charAt(0) || 'AI' }}
-          </div>
+          <a-avatar
+            v-else
+            :src="aiAvatarUrl"
+            class="assistant-avatar-img"
+          />
         </div>
         <div class="assistant-content">
           <!-- 根据错误类型显示不同的提示 -->
@@ -128,9 +130,11 @@
             :src="currentProvider.providerLogo"
             class="assistant-avatar-img"
           />
-          <div v-else class="assistant-avatar">
-            {{ currentProvider?.providerName?.charAt(0) || 'AI' }}
-          </div>
+          <a-avatar
+            v-else
+            :src="aiAvatarUrl"
+            class="assistant-avatar-img"
+          />
         </div>
         <div class="assistant-content">
           <div class="agent-tool-call" :class="`tool-status-${message.agentToolCall.status}`">
@@ -182,9 +186,11 @@
             :src="currentProvider.providerLogo"
             class="assistant-avatar-img"
           />
-          <div v-else class="assistant-avatar">
-            {{ currentProvider?.providerName?.charAt(0) || 'AI' }}
-          </div>
+          <a-avatar
+            v-else
+            :src="aiAvatarUrl"
+            class="assistant-avatar-img"
+          />
           <div v-if="isConsecutive" class="connection-line"></div>
         </div>
         <div class="assistant-content">
@@ -306,6 +312,7 @@ import {
   StopOutlined
 } from '@ant-design/icons-vue'
 import type { Message, Attachment, ModelProvider } from '../types/chat'
+import aiAvatarUrl from '@/assets/images/ai/agent-header.png'
 import MarkdownRender from './MarkdownRender.vue'
 import TaskProgressDisplay from './TaskProgressDisplay.vue'
 
@@ -482,6 +489,15 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   gap: 0;
   opacity: 0;
   transition: opacity 0.2s;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.action-bar,
+.action-bar :deep(*) {
+  border: none;
+  outline: none;
 }
 
 .message-item:hover .action-bar {

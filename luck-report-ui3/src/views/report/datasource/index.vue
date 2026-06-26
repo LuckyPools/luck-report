@@ -14,6 +14,29 @@
       <div class="action-section">
         <a-card :bordered="true">
           <div class="action-content">
+            <div class="search-box">
+              <a-select
+                  v-model:value="filterType"
+                  placeholder="按类型筛选"
+                  style="width: 160px"
+                  allow-clear
+                  @change="handleFilter"
+              >
+                <a-select-option v-for="t in datasourceTypes" :key="t.typeName" :value="t.typeName">
+                  {{ t.displayName }}
+                </a-select-option>
+              </a-select>
+              <a-select
+                  v-model:value="filterStatus"
+                  placeholder="按状态筛选"
+                  style="width: 140px; margin-left: 12px"
+                  allow-clear
+                  @change="handleFilter"
+              >
+                <a-select-option value="active">启用</a-select-option>
+                <a-select-option value="inactive">禁用</a-select-option>
+              </a-select>
+            </div>
             <div class="action-buttons">
               <a-button type="primary" @click="openCreateDialog">
                 <template #icon><PlusOutlined /></template>
@@ -23,29 +46,6 @@
                 <template #icon><ReloadOutlined /></template>
                 刷新
               </a-button>
-            </div>
-            <div class="search-box">
-              <a-select
-                v-model:value="filterType"
-                placeholder="按类型筛选"
-                style="width: 160px"
-                allow-clear
-                @change="handleFilter"
-              >
-                <a-select-option v-for="t in datasourceTypes" :key="t.typeName" :value="t.typeName">
-                  {{ t.displayName }}
-                </a-select-option>
-              </a-select>
-              <a-select
-                v-model:value="filterStatus"
-                placeholder="按状态筛选"
-                style="width: 140px; margin-left: 12px"
-                allow-clear
-                @change="handleFilter"
-              >
-                <a-select-option value="active">启用</a-select-option>
-                <a-select-option value="inactive">禁用</a-select-option>
-              </a-select>
             </div>
           </div>
         </a-card>
@@ -197,6 +197,8 @@
       v-model:open="dialogVisible"
       :title="isEdit ? '编辑数据源' : '添加数据源'"
       width="800px"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
       @ok="handleSave"
       @cancel="handleCancel"
       :confirmLoading="saveLoading"
@@ -418,6 +420,7 @@ import {
   getActiveModelConfigList,
   type Index
 } from '@/api/model-config'
+import {t} from "@/locales";
 
 /**
  * 数据源管理页面

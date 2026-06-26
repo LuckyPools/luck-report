@@ -14,6 +14,20 @@
       <div class="action-section">
         <a-card :bordered="true">
           <div class="action-content">
+            <div class="search-box">
+              <a-input
+                  v-model:value="queryParams.title"
+                  placeholder="请输入知识标题搜索"
+                  style="width: 280px"
+                  allow-clear
+                  @clear="handleSearch"
+                  @press-enter="handleSearch"
+              >
+                <template #prefix>
+                  <SearchOutlined />
+                </template>
+              </a-input>
+            </div>
             <div class="action-buttons">
               <a-button type="primary" @click="openCreateDialog">
                 <template #icon><PlusOutlined /></template>
@@ -30,20 +44,6 @@
                 <template #icon><FilterOutlined /></template>
                 筛选
               </a-button>
-            </div>
-            <div class="search-box">
-              <a-input
-                v-model:value="queryParams.title"
-                placeholder="请输入知识标题搜索"
-                style="width: 280px"
-                allow-clear
-                @clear="handleSearch"
-                @press-enter="handleSearch"
-              >
-                <template #prefix>
-                  <SearchOutlined />
-                </template>
-              </a-input>
             </div>
           </div>
         </a-card>
@@ -185,6 +185,8 @@
       width="800px"
       @ok="saveKnowledge"
       @cancel="handleCancel"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
       :confirmLoading="saveLoading"
     >
       <a-form
@@ -392,6 +394,7 @@ import {
   getActiveModelConfigList,
   type Index
 } from '@/api/model-config'
+import {t} from "@/locales";
 
 /**
  * 智能体知识管理页面

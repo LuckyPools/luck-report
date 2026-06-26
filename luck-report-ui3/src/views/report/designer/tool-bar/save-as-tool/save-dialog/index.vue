@@ -7,8 +7,8 @@
     @cancel="handleClose"
   >
     <div class="save-dialog-content">
-      <a-form :label-col="{ style: { width: '90px' } }" :colon="false">
-        <a-form-item :label="t('dialog.save.fileName')">
+      <a-form :label-col="{ style: { width: '90px' } }" label-align="left">
+        <a-form-item :label="t('dialog.save.fileName')" class="property-label">
           <a-input
             v-model:value="fileName"
             ref="fileNameInput"
@@ -16,10 +16,11 @@
           />
         </a-form-item>
 
-        <a-form-item :label="t('dialog.save.source')">
+        <a-form-item :label="t('dialog.save.source')" class="property-label">
           <a-select
             v-model:value="selectedProvider"
             @change="handleProviderChange"
+            style="width: 200px"
           >
             <a-select-option
               v-for="option in providerOptions"
@@ -31,7 +32,7 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item :label="t('dialog.save.currentPath')">
+        <a-form-item :label="t('dialog.save.currentPath')" class="property-label">
           <div class="path-content">
             <div class="path-breadcrumb">
               <span class="path-segment" @click="navigateToPath(-1)">/</span>
@@ -97,7 +98,7 @@
     </div>
 
     <template #footer>
-      <a-button @click="handleClose" type="primary" style="margin-right: 10px;">
+      <a-button @click="handleClose" style="margin-right: 10px;">
         {{ t('dialog.common.cancel') }}
       </a-button>
       <a-button type="primary" @click="handleSave">
@@ -479,9 +480,6 @@ function handleClose(): void {
 </script>
 
 <style scoped>
-.save-dialog-content {
-  padding: 15px;
-}
 .file-list-container {
   height: 300px;
   overflow-y: auto;

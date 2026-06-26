@@ -18,6 +18,20 @@
             <div class="action-section">
               <a-card :bordered="true">
                 <div class="action-content">
+                  <div class="search-box">
+                    <a-input
+                      v-model:value="searchModelName"
+                      placeholder="按模型名称搜索（回车搜索）"
+                      allow-clear
+                      style="width: 280px"
+                      @press-enter="handleSearch"
+                      @clear="handleSearch"
+                    >
+                      <template #prefix>
+                        <SearchOutlined />
+                      </template>
+                    </a-input>
+                  </div>
                   <div class="action-buttons">
                     <a-button type="primary" @click="showAddDialog">
                       <template #icon><PlusOutlined /></template>
@@ -110,6 +124,20 @@
             <div class="action-section">
               <a-card :bordered="true">
                 <div class="action-content">
+                  <div class="search-box">
+                    <a-input
+                      v-model:value="searchModelName"
+                      placeholder="按模型名称搜索（回车搜索）"
+                      allow-clear
+                      style="width: 280px"
+                      @press-enter="handleSearch"
+                      @clear="handleSearch"
+                    >
+                      <template #prefix>
+                        <SearchOutlined />
+                      </template>
+                    </a-input>
+                  </div>
                   <div class="action-buttons">
                     <a-button type="primary" @click="showAddDialog">
                       <template #icon><PlusOutlined /></template>
@@ -386,7 +414,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import {
   Button as AButton,
   Card as ACard,
@@ -420,6 +448,7 @@ import {
   type Index,
   type ModelConfigQueryDTO
 } from '@/api/model-config'
+import {t} from "@/locales";
 
 /**
  * 模型配置管理页面
@@ -440,6 +469,9 @@ const formRef = ref<FormInstance>()
 const pageNum = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+// 搜索：按模型名称（对应后端 model_name 字段模糊查询）
+const searchModelName = ref('')
 
 // 表单数据
 const formData = ref<Index>({
@@ -619,6 +651,15 @@ const handleTabChange = () => {
 }
 
 /**
+ * 搜索：重置页码到 1 并重新加载，带上当前搜索关键字
+ * （输入框上绑定了 @press-enter / @clear，无需额外按钮）
+ */
+const handleSearch = () => {
+  pageNum.value = 1
+  loadConfigs()
+}
+
+/**
  * 加载模型配置列表
  */
 const loadConfigs = async () => {
@@ -628,6 +669,11 @@ const loadConfigs = async () => {
       modelType: activeTab.value,
       pageNum: pageNum.value,
       pageSize: pageSize.value
+    }
+    // 仅当关键字非空时才传递，避免后端做无效的 LIKE
+    const keyword = searchModelName.value.trim()
+    if (keyword) {
+      queryDTO.modelName = keyword
     }
     const response = await queryModelConfigByPage(queryDTO)
     configs.value = response.records
@@ -853,6 +899,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .action-buttons {

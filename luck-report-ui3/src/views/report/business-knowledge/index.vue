@@ -14,6 +14,20 @@
       <div class="action-section">
         <a-card :bordered="true">
           <div class="action-content">
+            <div class="search-box">
+              <a-input
+                  v-model:value="searchKeyword"
+                  placeholder="请输入关键词搜索"
+                  style="width: 280px"
+                  allow-clear
+                  @clear="handleSearch"
+                  @press-enter="handleSearch"
+              >
+                <template #prefix>
+                  <SearchOutlined />
+                </template>
+              </a-input>
+            </div>
             <div class="action-buttons">
               <a-button type="primary" @click="openCreateDialog">
                 <template #icon><PlusOutlined /></template>
@@ -32,20 +46,6 @@
                 同步到向量库
               </a-button>
               <a-button v-else type="default" loading>同步中...</a-button>
-            </div>
-            <div class="search-box">
-              <a-input
-                v-model:value="searchKeyword"
-                placeholder="请输入关键词搜索"
-                style="width: 280px"
-                allow-clear
-                @clear="handleSearch"
-                @press-enter="handleSearch"
-              >
-                <template #prefix>
-                  <SearchOutlined />
-                </template>
-              </a-input>
             </div>
           </div>
         </a-card>
@@ -147,6 +147,8 @@
       v-model:open="dialogVisible"
       :title="isEdit ? '编辑业务知识' : '添加业务知识'"
       width="800px"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
       @ok="saveKnowledge"
       @cancel="handleCancel"
       :confirmLoading="saveLoading"
@@ -249,6 +251,7 @@ import {
   getActiveModelConfigList,
   type Index
 } from '@/api/model-config'
+import {t} from "@/locales";
 
 /**
  * 业务知识管理页面

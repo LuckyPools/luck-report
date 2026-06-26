@@ -12,7 +12,6 @@
         :model="formData"
         :rules="rules"
         :label-col="{ style: { width: '120px' } }"
-        :colon="false"
       >
         <a-form-item :label="t('dialog.mapping.key')" name="value">
           <a-input

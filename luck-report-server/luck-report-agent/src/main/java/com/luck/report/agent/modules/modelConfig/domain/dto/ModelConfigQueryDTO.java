@@ -22,6 +22,9 @@ public class ModelConfigQueryDTO {
     /** 配置名称（模糊查询） */
     private String configName;
 
+    /** 模型名称（模糊查询，例如 gpt-4、deepseek-chat） */
+    private String modelName;
+
     /** 模型类型：CHAT, EMBEDDING */
     private String modelType;
 

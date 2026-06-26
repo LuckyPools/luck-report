@@ -2,14 +2,8 @@
 :root {
   --color-primary: #00554a;
   --color-primary-rgb: 0, 85, 74;
-  /* ===== AI Agent 聊天模块补充变量（自 luck-report-vue3 合并） ===== */
-  --primary-color: #1677ff;
-  --primary-hover-color: #4096ff;
-  --primary-light-color: #f5f5f5;
-  --text-color: #ffffff;
-  --background-color: #ffffff;
-  --border-color: #e8e8e8;
-  --shadow-color: rgba(0, 0, 0, 0.15);
+  --color-primary-hover: #006b5d;
+  --color-primary-dark: #003d35;
 }
 
 ::-webkit-scrollbar {
@@ -198,4 +192,44 @@ label {
 .table-container-btn{
     vertical-align: middle;
     text-align: center;
+}
+
+.ant-modal .ant-modal-content {
+    padding: 0;
+}
+
+.ant-modal .ant-modal-body{
+    padding: 20px 24px;
+}
+
+.ant-modal .ant-modal-footer{
+    padding: 20px 24px;
+}
+
+.ant-modal .ant-modal-header {
+    background-color: var(--color-primary);
+    border-bottom: 1px solid var(--color-primary);
+    border-radius: 6px 6px 0 0;
+    padding: 10px 24px;
+    margin: 0;
+}
+.ant-modal .ant-modal-header .ant-modal-title {
+    color: #ffffff;
+    background-color: var(--color-primary);
+    margin: 0;
+    line-height: 1.5;
+}
+.ant-modal .ant-modal-close {
+    color: rgba(255, 255, 255, 0.85);
+    top: 12px;
+}
+.ant-modal .ant-modal-close:hover {
+    color: #ffffff;
+}
+
+.select-btn.ant-btn-link {
+  color: #999;
+}
+.select-btn.ant-btn-link:hover {
+  color: var(--color-primary);
 }

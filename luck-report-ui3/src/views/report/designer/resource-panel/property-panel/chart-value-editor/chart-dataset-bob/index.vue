@@ -1,6 +1,6 @@
 <template>
   <div class="chart-dataset-bob">
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('chart.dataset')">
         <a-select
           v-model:value="localDatasetName"

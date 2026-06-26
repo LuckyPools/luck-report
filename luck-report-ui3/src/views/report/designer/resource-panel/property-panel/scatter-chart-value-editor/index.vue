@@ -1,7 +1,7 @@
 <template>
   <div class="scatter-chart-value-editor" ref="container">
     <!-- 选项卡导航 -->
-    <a-tabs v-model:active-key="activeTab" type="line">
+    <a-tabs v-model:active-key="activeTab" type="card">
       <a-tab-pane :key="'dataset'" :tab="t('chart.datasetBind')">
         <!-- 数据集绑定选项卡 -->
         <ChartDataConfig

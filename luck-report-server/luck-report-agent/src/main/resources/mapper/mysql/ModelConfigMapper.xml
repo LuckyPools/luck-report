@@ -86,6 +86,10 @@
             <bind name="configNamePattern" value="'%' + queryDTO.configName + '%'" />
             AND config_name LIKE #{configNamePattern}
         </if>
+        <if test="queryDTO.modelName != null and queryDTO.modelName != ''">
+            <bind name="modelNamePattern" value="'%' + queryDTO.modelName + '%'" />
+            AND model_name LIKE #{modelNamePattern}
+        </if>
         <if test="queryDTO.modelType != null and queryDTO.modelType != ''">
             AND model_type = #{queryDTO.modelType}
         </if>
@@ -103,6 +107,10 @@
         <if test="queryDTO.configName != null and queryDTO.configName != ''">
             <bind name="configNamePattern" value="'%' + queryDTO.configName + '%'" />
             AND config_name LIKE #{configNamePattern}
+        </if>
+        <if test="queryDTO.modelName != null and queryDTO.modelName != ''">
+            <bind name="modelNamePattern" value="'%' + queryDTO.modelName + '%'" />
+            AND model_name LIKE #{modelNamePattern}
         </if>
         <if test="queryDTO.modelType != null and queryDTO.modelType != ''">
             AND model_type = #{queryDTO.modelType}

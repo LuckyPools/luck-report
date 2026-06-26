@@ -1,14 +1,14 @@
 <template>
   <div style="width: 210px; height: 450px;">
     <div>
-      <div class="u-inline">
+      <div class="u-inline" style="vertical-align: middle;">
         <a-input
           v-model:value="searchKeyword"
           :placeholder="t('dialog.sql.search')"
           style="width: 160px;"
         />
       </div>
-      <div class="u-inline" style="vertical-align: middle;margin-left: 5px">
+      <div class="u-inline" style="vertical-align: middle; margin-left: 5px">
           <a-button
               type="primary"
               class="search-bth"
@@ -19,10 +19,10 @@
     </div>
     <div class="table-wrapper" style="margin-top: 5px;">
       <a-spin :spinning="loading">
-        <table class="table-container" style="font-size: 12px;">
+        <table class="table-container">
           <thead>
             <tr>
-              <th style="width: 160px;"><span>{{ t('dialog.sql.tableName') }}</span></th>
+              <th style="width: 120px;"><span>{{ t('dialog.sql.tableName') }}</span></th>
               <th style="width: 35px;"><span>{{ t('dialog.sql.type') }}</span></th>
             </tr>
           </thead>
@@ -173,6 +173,18 @@ async function loadDatabaseTables(): Promise<void> {
 
 <style scoped>
 
+.table-container {
+  table-layout: fixed;
+  width: 100%;
+  font-size: 12px;
+  width: 100%;
+}
+.table-container th,
+.table-container td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .table-container td {
     padding: 4px;
     word-wrap: break-word;

@@ -870,11 +870,14 @@ export function pixelToPoint(pixel: number): number {
  * @returns 格式化后的字符串
  */
 export function formatDate(date: Date | number | string, format: string): string {
-    if(typeof date === 'number'){
-        date=new Date(date);
+    if(typeof date === 'string'){
+        date = new Date(date);
     }
-    if(typeof date==='string'){
-        return date;
+    if(typeof date === 'number'){
+        date = new Date(date);
+    }
+    if(!(date instanceof Date) || isNaN(date.getTime())){
+        return '';
     }
     var o: Record<string, number> = {
         "M+" : date.getMonth()+1,

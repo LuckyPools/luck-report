@@ -18,6 +18,14 @@
       />
       <div class="input-toolbar">
         <div class="toolbar-left">
+          <ModelSelect
+            v-if="currentModel"
+            :model-list="modelList"
+            :current-model="currentModel"
+            :is-pending="isPending"
+            @model-change="handleModelChange"
+          />
+          <DeepThinkButton @toggle="handleDeepThinkToggle" />
           <SearchButton
             :search-enable="searchEnable"
             :local-search-enable="localSearchEnable"
@@ -51,12 +59,12 @@
               </a-button>
             </a-tooltip>
           </a-popover>
-          <a-tooltip v-if="currentModelSupportVision" title="上传图片" placement="bottom">
+          <a-tooltip v-if="false && currentModelSupportVision" title="上传图片" placement="bottom">
             <a-button type="text" size="small" class="toolbar-btn" @click="handleImageUpload()">
               <template #icon><PictureOutlined /></template>
             </a-button>
           </a-tooltip>
-          <a-tooltip v-else title="当前模型不支持图片理解" placement="bottom">
+          <a-tooltip v-else-if="false" title="当前模型不支持图片理解" placement="bottom">
             <a-button type="text" size="small" class="toolbar-btn" disabled>
               <template #icon><PictureOutlined /></template>
             </a-button>
@@ -96,7 +104,6 @@
           </a-tooltip> -->
         </div>
         <div class="toolbar-right">
-          <span class="shortcut-hint">{{ shortcutHint }}</span>
           <a-button
             v-if="responseStatus === 'pending'"
             type="primary"
@@ -134,10 +141,12 @@ import {
   PictureOutlined,
   ApiOutlined
 } from '@ant-design/icons-vue'
-import type { ResponseStatus, Attachment, HistoryType } from '../types/chat'
+import type { ResponseStatus, Attachment, HistoryType, LLMModel } from '../types/chat'
 import { useImageUpload } from '../composables/useImageUpload'
 import { useUserSettings } from '../composables/useUserSettings'
 import ImagePreviewArea from './ImagePreviewArea.vue'
+import ModelSelect from './ModelSelect.vue'
+import DeepThinkButton from './DeepThinkButton.vue'
 import SearchButton from './SearchButton.vue'
 import McpServerSelect from './McpServerSelect.vue'
 import HistorySettings from './HistorySettings.vue'
@@ -173,6 +182,12 @@ interface Props {
   historyType?: HistoryType
   /** 历史消息条数 */
   historyCount?: number
+  /** 模型列表 */
+  modelList?: LLMModel[]
+  /** 当前模型 */
+  currentModel?: LLMModel
+  /** 是否正在加载模型列表 */
+  isPending?: boolean
 }
 
 interface Emits {
@@ -181,8 +196,10 @@ interface Emits {
   (e: 'clear'): void
   (e: 'clearMemory'): void
   (e: 'toggleSearch', enabled: boolean): void
+  (e: 'toggleDeepThink', enabled: boolean): void
   (e: 'changeMcpSelect', name: string, selected: boolean): void
   (e: 'changeHistorySettings', type: HistoryType, count: number): void
+  (e: 'modelChange', modelId: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -195,7 +212,9 @@ const props = withDefaults(defineProps<Props>(), {
   currentModelSupportVision: false,
   currentModelSupportTool: false,
   historyType: 'count',
-  historyCount: 5
+  historyCount: 5,
+  modelList: () => [],
+  isPending: false
 })
 
 const emit = defineEmits<Emits>()
@@ -234,6 +253,14 @@ const toggleSearch = () => {
 }
 
 /**
+ * 处理深度思考按钮切换
+ * @param enabled 是否启用深度思考
+ */
+const handleDeepThinkToggle = (enabled: boolean) => {
+  emit('toggleDeepThink', enabled)
+}
+
+/**
  * 监听全局搜索开关变化
  * 当管理员关闭联网搜索时，重置本地搜索状态
  */
@@ -261,6 +288,14 @@ const handleChangeMcpSelect = (name: string, selected: boolean) => {
 const handleHistorySave = (type: HistoryType, count: number) => {
   emit('changeHistorySettings', type, count)
   historyPopoverOpen.value = false
+}
+
+/**
+ * 处理模型选择变化
+ * @param modelId 选中的模型ID
+ */
+const handleModelChange = (modelId: string) => {
+  emit('modelChange', modelId)
 }
 
 /**
@@ -378,7 +413,7 @@ onUnmounted(() => {
 
 <style scoped>
 .input-area {
-  padding: 8px 12px 12px;
+  padding: 20px 12px;
   background-color: #fff;
   flex-shrink: 0;
 }
@@ -388,7 +423,14 @@ onUnmounted(() => {
   flex-direction: column;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
+  box-shadow: 0 2px 12px 0 #0000000f;
   overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-container:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .input-container.pending {

@@ -24,36 +24,33 @@
     <!-- ===== 工作台模式：顶栏 + 侧栏 + 内容 ===== -->
     <template v-else>
       <a-layout-header class="ws-header">
-        <div class="ws-header__left">
+        <div class="ws-header__left" :class="{ 'ws-header__left--collapsed': collapsed }">
           <div class="ws-header__brand" @click="goHome">
             <div class="ws-header__logo">
-              <BarChartOutlined />
+              <img src="@/assets/images/designer/logo.png" alt="logo" />
             </div>
-            <div class="ws-header__brand-text">
-              <div class="ws-header__title">报表工作台</div>
-              <div class="ws-header__subtitle">Luck Report</div>
+            <div class="ws-header__brand-text" v-show="!collapsed">
+              <div class="ws-header__title">Luck Report</div>
             </div>
           </div>
-          <div class="ws-header__divider" />
           <div class="ws-header__welcome">
-            <ThunderboltFilled class="ws-header__welcome-icon" />
-            <span>欢迎进入报表工作台</span>
+            <!--<span>欢迎进入报表工作台</span>-->
           </div>
         </div>
+        <a-tooltip :title="'折叠侧栏'">
+          <a-button
+            type="text"
+            class="ws-header__action ws-header__collapse-btn"
+            @click="collapsed = !collapsed"
+          >
+            <template #icon>
+              <MenuFoldOutlined v-if="!collapsed" />
+              <MenuUnfoldOutlined v-else />
+            </template>
+          </a-button>
+        </a-tooltip>
         <div class="ws-header__right">
-          <a-tooltip :title="'折叠侧栏'">
-            <a-button
-              type="text"
-              class="ws-header__action"
-              @click="collapsed = !collapsed"
-            >
-              <template #icon>
-                <MenuFoldOutlined v-if="!collapsed" />
-                <MenuUnfoldOutlined v-else />
-              </template>
-            </a-button>
-          </a-tooltip>
-          <a-tooltip :title="'刷新当前页'">
+          <a-tooltip :title="'刷新当前页'" placement="bottomRight">
             <a-button type="text" class="ws-header__action" @click="reload">
               <template #icon><ReloadOutlined /></template>
             </a-button>
@@ -69,14 +66,13 @@
           collapsible
           :trigger="null"
           class="ws-sider"
-          theme="dark"
+          theme="light"
         >
           <a-menu
             mode="inline"
-            theme="dark"
+            theme="light"
             :selected-keys="selectedKeys"
             :open-keys="openKeys"
-            :inline-collapsed="collapsed"
             class="ws-menu"
             @select="onMenuSelect"
           >
@@ -137,7 +133,6 @@ import { computed, inject, ref, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BarChartOutlined,
-  ThunderboltFilled,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ReloadOutlined,
@@ -213,7 +208,7 @@ const menuGroups: MenuGroup[] = [
       { path: '/report/datasource', title: '数据源', icon: DatabaseOutlined },
       { path: '/report/model-config', title: '模型管理', icon: ApartmentOutlined },
       { path: '/report/business-knowledge', title: '业务知识库', icon: BookOutlined },
-      { path: '/report/agent-knowledge', title: 'Agent 知识库', icon: ExperimentOutlined }
+      { path: '/report/agent-knowledge', title: '智能体知识库', icon: ExperimentOutlined }
     ]
   }
 ]
@@ -265,11 +260,12 @@ const onMenuSelect = ({ key }: { key: string }): void => {
   --ws-primary: #00554a;
   --ws-primary-hover: #00695f;
   --ws-primary-active: #004d40;
-  --ws-sider-bg: #001529;
-  --ws-sider-bg-light: #1f2d3d;
   --ws-header-h: 56px;
   --ws-sider-w: 220px;
   --ws-sider-w-collapsed: 64px;
+  /* 顶栏分隔线水平位置：默认对齐展开态的侧栏右边界 */
+  --ws-divider-left: var(--ws-sider-w);
+  overflow: hidden;
 }
 
 /* ===================== 顶栏 ===================== */
@@ -277,18 +273,29 @@ const onMenuSelect = ({ key }: { key: string }): void => {
   position: relative;
   z-index: 10;
   height: var(--ws-header-h);
-  padding: 0 20px;
+  padding: 0 !important;
   background: linear-gradient(135deg, var(--ws-primary) 0%, var(--ws-primary-hover) 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0;
+  box-sizing: border-box;
 }
 
 .ws-header__left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-start;
+  padding-left: 24px;
+  width: var(--ws-sider-w);
+  transition: width 0.2s ease, padding-left 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ws-header__left--collapsed {
+  width: var(--ws-sider-w-collapsed);
+  padding-left: 0;
+  justify-content: center;
 }
 
 .ws-header__brand {
@@ -301,17 +308,26 @@ const onMenuSelect = ({ key }: { key: string }): void => {
 }
 .ws-header__brand:hover { opacity: 0.85; }
 
+.ws-header__collapse-btn {
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
 .ws-header__logo {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-size: 20px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
+}
+
+.ws-header__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .ws-header__brand-text {
@@ -332,19 +348,18 @@ const onMenuSelect = ({ key }: { key: string }): void => {
   letter-spacing: 1px;
 }
 
-.ws-header__divider {
-  width: 1px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 0 4px;
-}
-
 .ws-header__welcome {
+  /* 与竖线共用锚点 var(--ws-divider-left)，保证文字始终位于侧栏右边界右侧 */
+  position: absolute;
+  top: 50%;
+  left: calc(var(--ws-divider-left) + 16px);
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 6px;
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .ws-header__welcome-icon {
@@ -356,6 +371,8 @@ const onMenuSelect = ({ key }: { key: string }): void => {
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
+  padding-right: 20px;
 }
 
 .ws-header__action {
@@ -409,18 +426,17 @@ const onMenuSelect = ({ key }: { key: string }): void => {
 }
 
 .ws-sider {
-  background: var(--ws-sider-bg) !important;
   position: relative;
 }
 
 .ws-sider :deep(.ant-menu) {
-  background: transparent;
   border-inline-end: 0 !important;
   padding-top: 8px;
 }
 
-.ws-sider :deep(.ant-menu-sub) {
-  background: var(--ws-sider-bg-light) !important;
+/* 移除二级菜单的灰色背景 */
+.ws-sider :deep(.ant-menu-light.ant-menu-inline .ant-menu-sub.ant-menu-inline) {
+  background: transparent;
 }
 
 /* 顶层独立路由的菜单项右侧"外链"小图标 */
@@ -428,26 +444,15 @@ const onMenuSelect = ({ key }: { key: string }): void => {
   float: right;
   font-size: 11px;
   margin-top: 2px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(0, 0, 0, 0.45);
   transition: color 0.2s;
 }
 .ws-sider :deep(.ant-menu-item:hover) .ws-menu__external,
 .ws-sider :deep(.ant-menu-item-selected) .ws-menu__external {
-  color: #ffd54f;
-}
-
-.ws-sider :deep(.ant-menu-item),
-.ws-sider :deep(.ant-menu-submenu-title) {
-  color: rgba(255, 255, 255, 0.75) !important;
-}
-.ws-sider :deep(.ant-menu-item:hover),
-.ws-sider :deep(.ant-menu-submenu-title:hover) {
-  color: #fff !important;
+  color: var(--ws-primary);
 }
 
 .ws-sider :deep(.ant-menu-item-selected) {
-  background: var(--ws-primary) !important;
-  color: #fff !important;
   position: relative;
 }
 
@@ -457,10 +462,10 @@ const onMenuSelect = ({ key }: { key: string }): void => {
   left: 0;
   right: 0;
   padding: 12px 20px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 0, 0, 0.45);
   font-size: 12px;
   text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #f0f0f0;
 }
 
 .ws-sider__version {

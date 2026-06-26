@@ -5,7 +5,7 @@
       {{ t('property.simple.config') }}
     </div>
 
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('property.simple.lineHeight')">
         <a-input-number
           v-model:value="lineHeight"

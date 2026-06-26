@@ -3,8 +3,10 @@
     <div
       v-if="!chatVisible"
       class="float-button"
-      :style="{ transform: `translate(${panelPosition.x + 330}px, ${panelPosition.y + 255}px)` }"
-      @click="toggleChat"
+      :class="{ 'is-dragging': isDragging }"
+      :style="{ transform: `translate(${panelPosition.x + 870}px, ${panelPosition.y}px)` }"
+      @mousedown="onFloatButtonMouseDown"
+      @click="onFloatButtonClick"
     >
       <CustomerServiceOutlined />
     </div>
@@ -19,152 +21,143 @@
         @mousedown="onHeaderMouseDown"
         :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
       >
-        <span class="ai-dialog-title">AI 助手</span>
+        <div class="ai-dialog-title-wrapper">
+          <img class="ai-dialog-logo" :src="logoUrl" alt="智能助手" />
+          <span class="ai-dialog-title">智能助手</span>
+        </div>
         <div class="ai-dialog-actions"></div>
         <button class="ai-dialog-close" @click="toggleChat">×</button>
       </div>
 
       <div class="chat-panel">
-      <ChatHeader
-        :model-list="modelList"
-        :current-model="currentModelInfo"
-        :is-pending="isPending"
-        :current-session-id="currentSessionId"
-        @mousedown="onHeaderMouseDown"
-        @delete-chat="handleDeleteChat"
-        @open-chat-list="chatListVisible = true"
-        @model-change="handleModelChange"
-      />
+        <!-- 左侧历史对话栏（参考 HiveChat ChatList 样式） -->
+        <aside class="chat-sidebar">
+          <ChatList
+            ref="chatListRef"
+            :current-session-id="currentSessionId"
+            @select="handleSessionSelect"
+            @deleted="handleSessionDeleted"
+            @new-chat="handleNewChat"
+          />
+        </aside>
 
-      <div ref="chatBodyRef" class="chat-body" @scroll="throttledHandleScroll">
-        <div v-if="messageList.length === 0 && responseStatus === 'done'" class="empty-state">
-          <template v-if="showGuideAlert">
-            <a-alert
-              message="请先配置 API Key 或添加模型"
-              type="warning"
-              show-icon
-              class="guide-alert"
+        <!-- 右侧主聊天区 -->
+        <div class="chat-main">
+          <ChatHeader @mousedown="onHeaderMouseDown" />
+
+          <div ref="chatBodyRef" class="chat-body" @scroll="throttledHandleScroll">
+            <div v-if="messageList.length === 0 && responseStatus === 'done'" class="empty-state">
+              <template v-if="showGuideAlert">
+                <a-alert
+                  message="请先配置 API Key 或添加模型"
+                  type="warning"
+                  show-icon
+                  class="guide-alert"
+                />
+              </template>
+              <template v-else>
+                <span class="greeting-emoji">👋</span>
+                <h2 class="greeting-text">{{ greetingText }}，欢迎使用 AI 助手</h2>
+                <p class="greeting-notice">输入您的问题，开始对话吧</p>
+              </template>
+            </div>
+            <template v-else>
+              <MessageItem
+                v-for="(msg, idx) in messageList"
+                :key="msg.id"
+                :message="msg"
+                :index="idx"
+                :is-consecutive="isConsecutiveMessage(idx)"
+                :all-provider-list-by-key="allProviderListByKey"
+                @retry="handleRetry"
+                @delete="handleDelete"
+              />
+              <ResponsingMessage
+                :response-status="responseStatus"
+                :response-message="responseMessage"
+                :response-reasoning="responseReasoning"
+                :search-status="searchStatus"
+                :mcp-tools="mcpTools"
+                :provider-id="currentProviderId"
+                :all-provider-list-by-key="allProviderListByKey"
+                :pending-confirm-tool-call="pendingConfirmToolCall"
+                :task-list-manager="taskListManager"
+                @confirm-tool="confirmAgentTool"
+                @reject-tool="rejectAgentTool"
+              />
+            </template>
+            <ScrollToBottomButton
+              :visible="showScrollButton"
+              @click="scrollToBottom"
             />
-          </template>
-          <template v-else>
-            <span class="greeting-emoji">👋</span>
-            <h2 class="greeting-text">{{ greetingText }}，欢迎使用 AI 助手</h2>
-            <p class="greeting-notice">输入您的问题，开始对话吧</p>
-          </template>
-        </div>
-        <template v-else>
-          <MessageItem
-            v-for="(msg, idx) in messageList"
-            :key="msg.id"
-            :message="msg"
-            :index="idx"
-            :is-consecutive="isConsecutiveMessage(idx)"
-            :all-provider-list-by-key="allProviderListByKey"
-            @retry="handleRetry"
-            @delete="handleDelete"
-          />
-          <ResponsingMessage
+          </div>
+
+          <!-- ask_user 中断提示：Agent 主动询问补充信息，提示用户在下方输入框回复 -->
+          <transition name="user-prompt-slide">
+            <div v-if="awaitingUserPrompt" class="user-prompt-hint">
+              <div class="user-prompt-hint-icon">💬</div>
+              <div class="user-prompt-hint-body">
+                <div class="user-prompt-hint-label">Agent 在询问：</div>
+                <div class="user-prompt-hint-question">{{ awaitingUserPrompt.question }}</div>
+              </div>
+              <a-button
+                v-if="awaitingUserPrompt.options && awaitingUserPrompt.options.length"
+                type="link"
+                size="small"
+                class="user-prompt-hint-toggle"
+                @click="showOptions = !showOptions"
+              >{{ showOptions ? '收起选项' : '查看选项' }}</a-button>
+              <a-button
+                type="text"
+                size="small"
+                class="user-prompt-hint-dismiss"
+                title="忽略此问题"
+                @click="handleDismissUserPrompt"
+              >×</a-button>
+            </div>
+          </transition>
+          <div v-if="awaitingUserPrompt && awaitingUserPrompt.options && awaitingUserPrompt.options.length && showOptions" class="user-prompt-options-bar">
+            <a-tag
+              v-for="opt in awaitingUserPrompt.options"
+              :key="opt"
+              class="user-prompt-option-pill"
+              @click="fillOption(opt)"
+            >{{ opt }}</a-tag>
+          </div>
+
+          <InputArea
             :response-status="responseStatus"
-            :response-message="responseMessage"
-            :response-reasoning="responseReasoning"
-            :search-status="searchStatus"
-            :mcp-tools="mcpTools"
-            :provider-id="currentProviderId"
-            :all-provider-list-by-key="allProviderListByKey"
-            :pending-confirm-tool-call="pendingConfirmToolCall"
-            :task-list-manager="taskListManager"
-            @confirm-tool="confirmAgentTool"
-            @reject-tool="rejectAgentTool"
+            :message-count="messageList.length"
+            :search-enable="searchEnable"
+            :has-use-mcp="hasUseMcp"
+            :has-mcp-selected="hasMcpSelected"
+            :mcp-servers="mcpServers"
+            :current-model-support-vision="currentModelSupportVision"
+            :current-model-support-tool="currentModelSupportTool"
+            :history-type="historyType"
+            :history-count="historyCount"
+            :model-list="modelList"
+            :current-model="currentModelInfo"
+            :is-pending="isPending"
+            @send="handleSend"
+            @stop="stopChat"
+            @clear="handleClear"
+            @clear-memory="handleClearMemory"
+            @change-mcp-select="handleChangeMcpSelect"
+            @change-history-settings="handleChangeHistorySettings"
+            @toggle-search="handleToggleSearch"
+            @toggle-deep-think="handleToggleDeepThink"
+            @model-change="handleModelChange"
           />
-          <div v-if="responseStatus === 'done' && messageList.length > 0" class="new-chat-area">
-            <a-button type="default" size="small" @click="handleNewChat">
-              <template #icon><PlusOutlined /></template>
-              新对话
-            </a-button>
-          </div>
-        </template>
-        <ScrollToBottomButton
-          :visible="showScrollButton"
-          @click="scrollToBottom"
-        />
-      </div>
-
-      <!-- ask_user 中断提示：Agent 主动询问补充信息，提示用户在下方输入框回复 -->
-      <transition name="user-prompt-slide">
-        <div v-if="awaitingUserPrompt" class="user-prompt-hint">
-          <div class="user-prompt-hint-icon">💬</div>
-          <div class="user-prompt-hint-body">
-            <div class="user-prompt-hint-label">Agent 在询问：</div>
-            <div class="user-prompt-hint-question">{{ awaitingUserPrompt.question }}</div>
-          </div>
-          <a-button
-            v-if="awaitingUserPrompt.options && awaitingUserPrompt.options.length"
-            type="link"
-            size="small"
-            class="user-prompt-hint-toggle"
-            @click="showOptions = !showOptions"
-          >{{ showOptions ? '收起选项' : '查看选项' }}</a-button>
-          <a-button
-            type="text"
-            size="small"
-            class="user-prompt-hint-dismiss"
-            title="忽略此问题"
-            @click="handleDismissUserPrompt"
-          >×</a-button>
         </div>
-      </transition>
-      <div v-if="awaitingUserPrompt && awaitingUserPrompt.options && awaitingUserPrompt.options.length && showOptions" class="user-prompt-options-bar">
-        <a-tag
-          v-for="opt in awaitingUserPrompt.options"
-          :key="opt"
-          class="user-prompt-option-pill"
-          @click="fillOption(opt)"
-        >{{ opt }}</a-tag>
-      </div>
-
-      <InputArea
-        :response-status="responseStatus"
-        :message-count="messageList.length"
-        :search-enable="searchEnable"
-        :has-use-mcp="hasUseMcp"
-        :has-mcp-selected="hasMcpSelected"
-        :mcp-servers="mcpServers"
-        :current-model-support-vision="currentModelSupportVision"
-        :current-model-support-tool="currentModelSupportTool"
-        :history-type="historyType"
-        :history-count="historyCount"
-        @send="handleSend"
-        @stop="stopChat"
-        @clear="handleClear"
-        @clear-memory="handleClearMemory"
-        @change-mcp-select="handleChangeMcpSelect"
-        @change-history-settings="handleChangeHistorySettings"
-        @toggle-search="handleToggleSearch"
-      />
       </div>
     </div>
-
-    <a-modal
-      v-model:open="chatListVisible"
-      title="历史对话"
-      :footer="null"
-      width="360px"
-      :body-style="{ padding: '0', height: '250px' }"
-      @after-open-change="handleChatListOpenChange"
-    >
-      <ChatList
-        ref="chatListRef"
-        :current-session-id="currentSessionId"
-        @select="handleSessionSelect"
-        @deleted="handleSessionDeleted"
-      />
-    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Alert as AAlert, Button as AButton, Modal as AModal, Modal, Tag as ATag } from 'ant-design-vue'
+import { Alert as AAlert, Button as AButton, Modal, Tag as ATag } from 'ant-design-vue'
 import { CustomerServiceOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import '@/assets/css/common/index.css'
 import { useDrag } from './drag.ts'
@@ -179,12 +172,13 @@ import InputArea from './components/InputArea.vue'
 import ScrollToBottomButton from './components/ScrollToBottomButton.vue'
 import ChatList from './components/ChatList.vue'
 import type { Attachment } from './types/chat'
+import logoUrl from '@/assets/images/ai/agent-header.png'
 
 const chatVisible = ref(false)
 const chatBodyRef = ref<HTMLElement | null>(null)
-const chatListVisible = ref(false)
 const chatListRef = ref<InstanceType<typeof ChatList> | null>(null)
-const { isDragging, panelPosition, resetPosition, handleMouseDown } = useDrag(380, 560)
+/** 弹窗尺寸：含左侧历史对话栏 240px + 右侧主区 680px = 920 总宽，高度 560 */
+const { isDragging, dragMoved, panelPosition, resetPosition, handleMouseDown } = useDrag(920, 560, 50, 50)
 
 const {
   messageList,
@@ -212,7 +206,6 @@ const {
   confirmAgentTool,
   rejectAgentTool,
   dismissUserPrompt,
-  removeCurrentSession,
   loadSession,
   taskListManager
 } = useChat()
@@ -247,6 +240,9 @@ const showScrollButton = ref(false)
 
 /** ask_user 中断提示条：是否展开查看 options */
 const showOptions = ref(false)
+
+/** 是否启用深度思考（影响后续发送消息时是否传入 deepThink 参数） */
+const deepThinkEnabled = ref(false)
 
 /** 监听 awaitingUserPrompt 变化：进入提问时默认收起 options，离开时清空 */
 watch(awaitingUserPrompt, (val) => {
@@ -346,6 +342,23 @@ onMounted(() => {
 })
 
 const toggleChat = () => {
+  if (dragMoved.value) return
+  chatVisible.value = !chatVisible.value
+}
+
+/**
+ * 悬浮按钮 mousedown：开始拖动按钮
+ * @param e 鼠标事件
+ */
+const onFloatButtonMouseDown = (e: MouseEvent) => {
+  handleMouseDown(e, 'button')
+}
+
+/**
+ * 悬浮按钮 click：仅在未发生真实拖动时切换弹窗显示
+ */
+const onFloatButtonClick = () => {
+  if (dragMoved.value) return
   chatVisible.value = !chatVisible.value
 }
 
@@ -375,29 +388,12 @@ const handleClearMemory = () => {
 }
 
 /**
- * 删除聊天
- * 调用后端接口软删除会话，同时清空前端状态
- */
-const handleDeleteChat = () => {
-  Modal.confirm({
-    title: '确认删除',
-    content: '确定要删除当前聊天吗？删除后不可恢复。',
-    okText: '确定',
-    cancelText: '取消',
-    onOk() {
-      removeCurrentSession()
-    }
-  })
-}
-
-/**
  * 选择历史会话
- * 关闭弹窗，加载选中会话的所有消息
+ * 加载选中会话的所有消息
  *
  * @param sessionId - 选中的会话ID
  */
 const handleSessionSelect = (sessionId: string) => {
-  chatListVisible.value = false
   // 获取当前模型的 ID 和 maxTokens，确保压缩时使用正确的模型配置
   const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
   const maxTokens = currentModelInfo.value?.maxTokens
@@ -413,18 +409,6 @@ const handleSessionSelect = (sessionId: string) => {
  */
 const handleSessionDeleted = (_sessionId: string) => {
   clearHistory()
-}
-
-/**
- * ChatList 弹窗打开/关闭后回调
- * 打开时刷新会话列表
- *
- * @param open - 是否打开
- */
-const handleChatListOpenChange = (open: boolean) => {
-  if (open && chatListRef.value) {
-    chatListRef.value.refresh()
-  }
 }
 
 /**
@@ -453,12 +437,22 @@ const handleToggleSearch = (enabled: boolean) => {
 }
 
 /**
+ * InputArea 深度思考切换事件
+ * 更新 deepThinkEnabled 状态，供后续发送消息时使用
+ *
+ * @param enabled - 是否启用深度思考
+ */
+const handleToggleDeepThink = (enabled: boolean) => {
+  deepThinkEnabled.value = enabled
+}
+
+/**
  * ChatHeader mousedown 事件处理
  * 将事件转发给 useDrag 的 handleMouseDown 实现拖动
  * @param e - 鼠标事件对象
  */
 const onHeaderMouseDown = (e: MouseEvent) => {
-  handleMouseDown(e)
+  handleMouseDown(e, 'dialog')
 }
 
 /**
@@ -499,10 +493,11 @@ const handleChangeHistorySettings = (type: string, count: number) => {
 
 /**
  * 新对话
- * 清空当前对话，回到初始状态
+ * 清空当前对话，回到初始状态，并刷新左侧历史对话列表
  */
 const handleNewChat = () => {
   clearHistory()
+  chatListRef.value?.refresh()
 }
 
 /**
@@ -597,19 +592,25 @@ onUnmounted(() => {
   left: 0;
   width: 50px;
   height: 50px;
-  background-color: var(--primary-color);
+  background-color: var(--color-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px var(--shadow-color);
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  transition: all 0.3s;
+  transition: background-color 0.3s;
+  user-select: none;
+  touch-action: none;
+}
+
+.float-button.is-dragging {
+  cursor: grabbing;
 }
 
 .ai-dialog-wrapper {
-  width: 380px;
+  width: 920px;
   height: 560px;
   background: #fff;
   border-radius: 12px;
@@ -626,9 +627,22 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
   flex-shrink: 0;
+}
+
+.ai-dialog-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-dialog-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .ai-dialog-title {
@@ -666,15 +680,36 @@ onUnmounted(() => {
 .chat-panel {
   flex: 1;
   min-height: 0;
-  background-color: var(--background-color);
+  background-color: #fff;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* 左侧历史对话栏 */
+.chat-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
+  border-right: 1px solid #e5e7eb;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 右侧主聊天区 */
+.chat-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .float-button:hover {
-  background-color: var(--primary-hover-color);
-  transform: scale(1.1);
+  background-color: var(--color-primary-hover);
 }
 
 .float-button :deep(.anticon) {
@@ -722,12 +757,6 @@ onUnmounted(() => {
 .guide-alert {
   width: 100%;
   max-width: 300px;
-}
-
-.new-chat-area {
-  display: flex;
-  justify-content: center;
-  padding: 12px 0;
 }
 
 .chat-body::-webkit-scrollbar {

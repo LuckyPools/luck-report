@@ -285,7 +285,7 @@ watch(selectedConditionIndex, (newVal) => {
 }
 
 .condition-list :deep(.list-item-active) {
-  background-color: #e6f7ff;
-  color: #1890ff;
+  background-color: #f5f5f5;
+  color: var(--color-primary);
 }
 </style>

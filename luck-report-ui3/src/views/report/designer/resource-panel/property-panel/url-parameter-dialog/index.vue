@@ -4,6 +4,8 @@
     :width="660"
     :open="visible"
     :mask-closable="false"
+    :okText="t('common.confirm')"
+    :cancelText="t('common.cancel')"
     @ok="handleClose"
     @cancel="handleClose"
   >

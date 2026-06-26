@@ -5,7 +5,7 @@
       <span>{{ t('property.slash.config') }}</span>
     </div>
 
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
 
       <a-form-item class="property-label">
         <a-button

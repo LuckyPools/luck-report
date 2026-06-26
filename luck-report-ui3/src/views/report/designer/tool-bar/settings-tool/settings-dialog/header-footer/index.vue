@@ -1,19 +1,18 @@
 <template>
-  <a-form :label-col="{ style: { width: '50px' } }">
+  <a-form>
     <div class="form-desc">{{ t('dialog.setting.hfdesc') }}</div>
 
     <a-row>
-      <a-col :span="12">
-        <a-form-item class="property-label" :label="t('dialog.setting.header')">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.header')" >
           <a-button
-            type="link"
             @click="handleOpenHeaderFontDialog">
             {{ t('dialog.setting.fontStyleSetting') }}
           </a-button>
         </a-form-item>
       </a-col>
-      <a-col :span="12">
-        <a-form-item class="property-label" :label="t('dialog.setting.headerMargin')" :label-col="{ style: { width: '140px' } }">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.headerMargin')" >
           <a-input-number
             v-model:value="localHeaderMargin"
             @change="handleHeaderMarginChange"
@@ -24,7 +23,7 @@
 
     <a-row style="margin-top: 5px;">
       <a-col :span="8">
-        <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" :label-col="{ style: { width: '80px' } }">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')">
           <a-textarea
             ref="leftHeaderRef"
             v-model:value="localHeader.left"
@@ -34,7 +33,7 @@
         </a-form-item>
       </a-col>
       <a-col :span="8">
-        <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" :label-col="{ style: { width: '80px' } }">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')">
           <a-textarea
             ref="centerHeaderRef"
             v-model:value="localHeader.center"
@@ -44,7 +43,7 @@
         </a-form-item>
       </a-col>
       <a-col :span="8">
-        <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" :label-col="{ style: { width: '80px' } }">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfRight')">
           <a-textarea
             ref="rightHeaderRef"
             v-model:value="localHeader.right"
@@ -56,17 +55,16 @@
     </a-row>
 
     <a-row style="margin-top: 10px;">
-      <a-col :span="12">
-        <a-form-item class="property-label" :label="t('dialog.setting.footer')">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.footer')" >
           <a-button
-            type="link"
             @click="handleOpenFooterFontDialog">
             {{ t('dialog.setting.fontStyleSetting') }}
           </a-button>
         </a-form-item>
       </a-col>
-      <a-col :span="12">
-        <a-form-item class="property-label" :label="t('dialog.setting.footerMargin')" :label-col="{ style: { width: '140px' } }">
+      <a-col :span="8">
+        <a-form-item class="property-label" :label="t('dialog.setting.footerMargin')" >
           <a-input-number
             v-model:value="localFooterMargin"
             @change="handleFooterMarginChange"
@@ -77,7 +75,7 @@
 
     <a-row style="margin-top: 5px;">
       <a-col :span="8">
-        <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" :label-col="{ style: { width: '80px' } }">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfLeft')" >
           <a-textarea
             ref="leftFooterRef"
             v-model:value="localFooter.left"
@@ -87,7 +85,7 @@
         </a-form-item>
       </a-col>
       <a-col :span="8">
-        <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" :label-col="{ style: { width: '80px' } }">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfCenter')" >
           <a-textarea
             ref="centerFooterRef"
             v-model:value="localFooter.center"
@@ -97,7 +95,7 @@
         </a-form-item>
       </a-col>
       <a-col :span="8">
-        <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" :label-col="{ style: { width: '80px' } }">
+        <a-form-item class="property-label" :label="t('dialog.setting.hfRight')" >
           <a-textarea
             ref="rightFooterRef"
             v-model:value="localFooter.right"
@@ -253,7 +251,7 @@ export default {
 
 <style scoped>
 .form-desc {
-  margin: 0 5px 10px 5px;
+  margin-bottom: 10px;
   color: #999999;
   font-size: 12px;
 }

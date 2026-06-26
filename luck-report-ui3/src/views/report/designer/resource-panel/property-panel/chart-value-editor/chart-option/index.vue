@@ -3,7 +3,7 @@
     <div class="property-quote">
       {{ t('chart.titleConfig') }}
     </div>
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('chart.display')">
         <a-radio-group
           v-model:value="localChartConfig.title.display"
@@ -39,7 +39,7 @@
     <div class="property-quote">
       {{ t('chart.legendConfig') }}
     </div>
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('chart.display')">
         <a-radio-group
           v-model:value="localChartConfig.legend.display"
@@ -68,7 +68,7 @@
       <div class="property-quote">
         {{ t('chart.dataLabelConfig') }}
       </div>
-      <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form :label-col="{ style: { width: '100px' } }" >
         <a-form-item class="property-label" :label="t('chart.display')">
           <a-radio-group
             v-model:value="localChartConfig.dataLabels.display"
@@ -89,7 +89,7 @@
     <div class="property-quote">
       {{ t('chart.motionConfig') }}
     </div>
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
       <a-form-item class="property-label" :label="t('chart.motionDelay')">
         <a-input-number
           v-model:value="localChartConfig.animation.duration"
@@ -111,7 +111,7 @@
       <div class="property-quote">
         {{ t('chart.layout') }}
       </div>
-      <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+      <a-form :label-col="{ style: { width: '100px' } }" >
         <a-form-item class="property-label" :label="t('chart.up')">
           <a-input-number
             v-model:value="localChartConfig.layout.top"

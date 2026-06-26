@@ -11,7 +11,6 @@
       :model="formData"
       :rules="rules"
       :label-col="{ style: { width: '120px' } }"
-      :colon="false"
     >
       <a-form-item :label="t('dialog.datasource.name')" name="dsName">
         <a-input v-model:value="formData.dsName" style="width: 600px" />

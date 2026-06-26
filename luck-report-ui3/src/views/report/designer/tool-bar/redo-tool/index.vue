@@ -36,7 +36,7 @@ function handleClick(): void {
   if (undoManager.hasRedo()) {
     undoManager.redo()
   } else {
-    showAlert(t('tools.redo.noRedo'))
+    showAlert(t('tools.redo.noRedo'),{closable: true})
   }
 }
 </script>

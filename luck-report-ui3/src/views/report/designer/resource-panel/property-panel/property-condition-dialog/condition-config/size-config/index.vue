@@ -10,7 +10,7 @@
         <a-input-number
             v-show="rowHeightChecked"
             v-model:value="localRowHeight"
-            :min="1"
+            :min="0"
             @change="onRowHeightValueChange"
         />
       </a-col>
@@ -28,7 +28,7 @@
         <a-input-number
             v-show="colWidthChecked"
             v-model:value="localColWidth"
-            :min="1"
+            :min="0"
             @change="onColWidthValueChange"
         />
       </a-col>

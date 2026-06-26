@@ -40,8 +40,11 @@ export const useChatStore = defineStore('chat', () => {
   /** 会话列表加载状态 */
   const sessionListLoading = ref(false)
 
-  /** 是否还有更多数据 */
+  /** 是否还有更多数据：根据总数与当前已加载数量比较得出 */
   const sessionListHasMore = ref(true)
+
+  /** 会话总数（来自后端分页结果） */
+  const sessionListTotal = ref(0)
 
   /** 当前页码 */
   const sessionListPageNum = ref(1)
@@ -114,7 +117,8 @@ export const useChatStore = defineStore('chat', () => {
       const userId = getUserId()
       const result = await listSessionsByUserPage(userId, 1, PAGE_SIZE)
       sessionList.value = result.records
-      sessionListHasMore.value = result.records.length >= PAGE_SIZE
+      sessionListTotal.value = result.total
+      sessionListHasMore.value = sessionList.value.length < result.total
       sessionListPageNum.value = result.pageNum
     } catch (e) {
       console.error('[chatStore] 加载会话列表失败:', e)
@@ -127,6 +131,7 @@ export const useChatStore = defineStore('chat', () => {
   /**
    * 加载更多会话（分页追加）
    * 滚动到底部时调用，追加下一页数据到列表末尾
+   * 使用 total 字段精确判断是否还有更多数据
    */
   const loadMoreSessionList = async () => {
     if (sessionListLoading.value || !sessionListHasMore.value) {
@@ -137,8 +142,12 @@ export const useChatStore = defineStore('chat', () => {
       const userId = getUserId()
       const nextPage = sessionListPageNum.value + 1
       const result = await listSessionsByUserPage(userId, nextPage, PAGE_SIZE)
-      sessionList.value = [...sessionList.value, ...result.records]
-      sessionListHasMore.value = result.records.length >= PAGE_SIZE
+      if (result.records.length > 0) {
+        sessionList.value = [...sessionList.value, ...result.records]
+      }
+      sessionListTotal.value = result.total
+      // 以"已加载数 < 总数"为准，避免单页不足 PAGE_SIZE 时误判
+      sessionListHasMore.value = sessionList.value.length < result.total
       sessionListPageNum.value = result.pageNum
     } catch (e) {
       console.error('[chatStore] 加载更多会话失败:', e)
@@ -401,6 +410,7 @@ export const useChatStore = defineStore('chat', () => {
     sessionList,
     sessionListLoading,
     sessionListHasMore,
+    sessionListTotal,
     fetchSessionList,
     loadMoreSessionList,
     deleteSession,

@@ -1,6 +1,6 @@
 <template>
   <div class="cell-value-editor">
-    <a-form :label-col="{ style: { width: '100px' } }" :colon="false">
+    <a-form :label-col="{ style: { width: '100px' } }" >
 
       <!-- 父单元格配置 -->
       <div v-show="showParentGroup" ref="parentGroup">
@@ -18,7 +18,7 @@
             </a-radio>
           </a-radio-group>
         </a-form-item>
-        <a-form-item class="property-label">
+        <a-form-item class="property-label" label=" ">
           <a-select
             v-model:value="leftParentCellName"
             :disabled="leftParentType !== 'custom'"
@@ -53,7 +53,7 @@
             </a-radio>
           </a-radio-group>
         </a-form-item>
-        <a-form-item class="property-label">
+        <a-form-item class="property-label" label=" ">
           <a-select
             v-model:value="topParentCellName"
             :disabled="topParentType !== 'custom'"

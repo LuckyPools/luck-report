@@ -68,7 +68,7 @@ const routes: RouteRecordRaw[] = [
         path: rootPath + '/agent-knowledge',
         name: 'ManageAgentKnowledge',
         component: () => import('@/views/report/agent-knowledge/index.vue'),
-        meta: { title: 'Agent 知识库' }
+        meta: { title: '智能体知识库' }
       },
       {
         path: rootPath + '/manage',

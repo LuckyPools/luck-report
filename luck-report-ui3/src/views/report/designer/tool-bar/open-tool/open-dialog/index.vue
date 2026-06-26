@@ -3,16 +3,16 @@
     :title="t('dialog.open.title')"
     :width="800"
     :open="visible"
-    :footer="null"
     :mask-closable="false"
     @cancel="handleClose"
   >
     <div class="open-dialog-content">
-      <a-form :label-col="{ style: { width: '80px' } }" :colon="false">
-        <a-form-item :label="t('dialog.open.source')">
+      <a-form :label-col="{ style: { width: '80px' } }" label-align="left">
+        <a-form-item :label="t('dialog.open.source')" class="property-label">
           <a-select
             v-model:value="selectedProvider"
             @change="handleProviderChange"
+            style="width: 200px"
           >
             <a-select-option
               v-for="option in providerOptions"
@@ -24,7 +24,7 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item :label="t('dialog.save.currentPath')">
+        <a-form-item :label="t('dialog.save.currentPath')" class="property-label">
           <div class="path-content">
             <div class="path-breadcrumb">
               <span class="path-segment" @click="navigateToPath(-1)">/</span>
@@ -90,6 +90,12 @@
         </a-spin>
       </div>
     </div>
+
+    <template #footer>
+      <a-button @click="handleClose" style="margin-right: 10px;">
+        {{ t('dialog.common.cancel') }}
+      </a-button>
+    </template>
   </a-modal>
 </template>
 
@@ -375,9 +381,6 @@ function handleClose(): void {
 </script>
 
 <style scoped>
-.open-dialog-content {
-  padding: 15px;
-}
 .file-list-container {
   height: 300px;
   overflow-y: auto;

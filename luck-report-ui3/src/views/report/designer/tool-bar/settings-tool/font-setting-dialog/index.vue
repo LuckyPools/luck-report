@@ -3,6 +3,8 @@
     :title="t('dialog.fontSetting.title')"
     width="400px"
     :open="visible"
+    :okText="t('common.confirm')"
+    :cancelText="t('common.cancel')"
     @cancel="handleClose"
     @ok="handleOk"
   >

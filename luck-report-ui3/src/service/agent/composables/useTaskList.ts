@@ -1,6 +1,6 @@
-import { ref, computed } from 'vue'
-import type { Task } from '../tools/types'
-import type { WorkflowStepRecord } from '../workflow/state.ts'
+import {computed, ref} from 'vue'
+import type {Task} from '../tools/types'
+import type {WorkflowStepRecord} from '../workflow/state.ts'
 
 /**
  * 任务列表管理 Hook，负责 Task 对象的创建、更新、查询
@@ -35,7 +35,7 @@ export function useTaskList() {
    * @param activeStepId - 当前正在执行的步骤ID，可选
    */
   const syncFromWorkflow = (stepRecords: WorkflowStepRecord[], activeStepId?: string) => {
-    const newTasks: Task[] = stepRecords.map(record => ({
+    tasks.value = stepRecords.map(record => ({
       id: record.stepId,
       content: record.stepName,
       status: mapWorkflowStatusToTaskStatus(record.status),
@@ -43,7 +43,6 @@ export function useTaskList() {
       timestamp: Date.now(),
       parentStepId: record.parentStepId // 传递父步骤ID，用于前端展示层级关系
     }))
-    tasks.value = newTasks
 
     // 更新当前工作流节点
     const activeStep = stepRecords.find(r => r.stepId === activeStepId || r.status === 'in_progress')

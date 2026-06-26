@@ -20,7 +20,7 @@
             v-if="resultData.fields && resultData.fields.length > 0"
             class="preview-body-content table-wrapper"
           >
-            <table class="table-container" style="table-layout: fixed;">
+            <table class="table-container" style="table-layout: fixed; width: 100%;">
               <thead>
                 <tr>
                   <th
@@ -171,7 +171,7 @@ async function loadPreviewData(): Promise<void> {
 .preview-body-content {
   min-height: 0;
   max-height: var(--dialog-height);
-  overflow-x: scroll;
+  overflow-x: auto;
   margin-top: 2px;
 }
 

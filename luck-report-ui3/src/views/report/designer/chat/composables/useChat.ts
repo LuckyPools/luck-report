@@ -564,25 +564,6 @@ export function useChat() {
   }
 
   /**
-   * 删除当前会话
-   * 通过 store 统一删除（自动从列表移除 + 清空会话数据）
-   * 额外清理 Agent 记忆状态和持久化数据
-   */
-  const removeCurrentSession = async () => {
-    if (currentSessionId.value) {
-      agentEngine.removeSession(currentSessionId.value)
-      try {
-        await store.deleteSession(currentSessionId.value)
-      } catch (e) {
-        console.warn('删除会话失败:', e)
-      }
-    }
-    // store.deleteSession 已清空会话数据，这里只清理 Agent 状态
-    agentEngine.clearMemory()
-    agentEngine.setSessionId(null)
-  }
-
-  /**
    * 重试消息
    * 删除指定索引及之后的消息，重新发送该索引处的用户消息
    *
@@ -696,7 +677,6 @@ export function useChat() {
     confirmAgentTool,
     rejectAgentTool,
     dismissUserPrompt,
-    removeCurrentSession,
     loadSession,
     getFilteredMessages,
 

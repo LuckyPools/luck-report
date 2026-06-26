@@ -45,6 +45,7 @@ export interface ModelCheckResult {
  */
 export interface ModelConfigQueryDTO {
   configName?: string
+  modelName?: string
   modelType?: string
   isActive?: boolean
   pageNum: number

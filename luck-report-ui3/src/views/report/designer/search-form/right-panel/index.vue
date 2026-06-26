@@ -1,7 +1,7 @@
 <template>
   <!-- eslint-disable -->
   <div class="right-board">
-    <a-tabs v-model:active-key="currentTab" type="text" class="center-tabs">
+    <a-tabs v-model:active-key="currentTab" type="text" :tab-bar-gutter="0" class="center-tabs">
       <a-tab-pane :key="'field'" :tab="t('searchForm.componentProperties')" />
       <a-tab-pane :key="'form'" :tab="t('searchForm.formProperties')" />
     </a-tabs>
@@ -9,7 +9,7 @@
     <div class="field-box">
       <div class="right-scrollbar">
         <!-- 组件属性 -->
-        <a-form v-show="currentTab === 'field' && showField" size="medium" :label-width="90">
+        <a-form v-show="currentTab === 'field' && showField" size="medium" :label-col="{ style: { width: '80px' } }">
           <a-form-item v-if="activeData.changeTag" :label="t('searchForm.componentType')">
             <a-select
               v-model:value="activeData.tagIcon"
@@ -265,7 +265,7 @@
           </template>
         </a-form>
         <!-- 表单属性 -->
-        <a-form v-show="currentTab === 'form'" size="medium" :label-width="90">
+        <a-form v-show="currentTab === 'form'" size="medium" :label-col="{ style: { width: '80px' } }">
           <a-form-item :label="t('searchForm.formName')">
             <a-input v-model:value="formConf.formRef" :placeholder="t('searchForm.enterFormName')" />
           </a-form-item>
@@ -488,6 +488,34 @@ function tagChange(tagIcon: string): void {
   right: 0;
   top: 0;
   padding-top: 3px;
+}
+.right-board :deep(.center-tabs .ant-tabs-nav) {
+  margin-bottom: 8px;
+}
+.right-board :deep(.center-tabs .ant-tabs-nav-list) {
+  display: flex;
+  width: 100%;
+}
+.right-board :deep(.center-tabs .ant-tabs-tab) {
+  flex: 1 1 50%;
+  margin: 0;
+  padding: 8px 0;
+  justify-content: center;
+}
+.right-board :deep(.center-tabs .ant-tabs-nav-operations),
+.right-board :deep(.center-tabs .ant-tabs-nav-more) {
+  display: none !important;
+}
+.right-board :deep(.ant-radio-group) {
+  display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.right-board :deep(.ant-radio-group .ant-radio-button-wrapper) {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
+  text-align: center;
 }
 .right-board .field-box {
   position: relative;

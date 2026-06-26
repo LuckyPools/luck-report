@@ -1,5 +1,5 @@
 <template>
-  <a-form :label-col="{ style: { width: '100px' } }">
+  <a-form>
     <a-row>
       <a-col :span="24">
         <a-form-item class="property-label" :label="t('dialog.setting.pagingType')">

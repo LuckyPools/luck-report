@@ -1,7 +1,7 @@
 <template>
   <div class="chart-value-editor" ref="container">
 
-    <a-tabs v-model:active-key="activeTab" type="line">
+    <a-tabs v-model:active-key="activeTab" type="card">
       <a-tab-pane :key="'dataset'" :tab="t('chart.datasetBind')">
         <!-- 数据集绑定选项卡 -->
         <ChartDataset

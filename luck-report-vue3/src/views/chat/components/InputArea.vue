@@ -388,6 +388,7 @@ onUnmounted(() => {
   flex-direction: column;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
+  box-shadow: 0 2px 12px 0 #0000000f;
   overflow: hidden;
 }
 
