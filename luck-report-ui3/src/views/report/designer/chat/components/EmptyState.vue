@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { Alert as AAlert } from 'ant-design-vue'
-import chatHeaderImg from '@/assets/images/chat-header.png'
+import chatHeaderImg from '@/assets/images/ai/agent-header.png'
 
 interface QuickQuestion {
   icon: string

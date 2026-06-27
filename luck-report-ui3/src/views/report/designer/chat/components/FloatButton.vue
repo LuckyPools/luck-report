@@ -7,12 +7,12 @@
     @mousedown="handleMouseDown"
     @click="handleClick"
   >
-    <CustomerServiceOutlined />
+    <img class="float-button__icon" :src="agentHeader" alt="AI助手" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { CustomerServiceOutlined } from '@ant-design/icons-vue'
+import agentHeader from '@/assets/images/ai/agent-header.png'
 
 interface Props {
   visible: boolean
@@ -45,7 +45,6 @@ const handleClick = () => {
   left: 0;
   width: 50px;
   height: 50px;
-  background-color: var(--color-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -64,11 +63,18 @@ const handleClick = () => {
 }
 
 .float-button:hover {
-  background-color: var(--color-primary-hover);
+
 }
 
 .float-button :deep(.anticon) {
   font-size: 24px;
   color: #fff;
+}
+
+.float-button__icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 </style>
