@@ -35,7 +35,7 @@ const marked = new Marked(
 
 const renderedHtml = computed(() => {
   if (!props.content) return ''
-  const rawHtml = marked.parse(props.content) as string
+  const rawHtml = marked.parseInline(props.content) as string
   return DOMPurify.sanitize(rawHtml)
 })
 </script>
@@ -48,6 +48,8 @@ const renderedHtml = computed(() => {
   line-height: 1.6;
   color: #374151;
   word-wrap: break-word;
+  word-break: keep-all;
+  white-space: pre-wrap;
 }
 
 .markdown-render p {

@@ -422,14 +422,20 @@ defineExpose({
 
 .chat-list-body::-webkit-scrollbar {
   width: 6px;
+  background: transparent;
 }
 
 .chat-list-body::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
+  background-color: transparent;
   border-radius: 3px;
+  transition: background-color 0.2s;
 }
 
-.chat-list-body::-webkit-scrollbar-thumb:hover {
+.chat-list-body:hover::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+}
+
+.chat-list-body:hover::-webkit-scrollbar-thumb:hover {
   background-color: #9ca3af;
 }
 

@@ -174,7 +174,6 @@ const getStepStatus = (task: Task) => {
 
 /* 覆盖 a-card 默认样式，与 tool-call 保持一致 */
 .task-progress-display :deep(.ant-card) {
-  border: 1px solid #1677ff;
   border-radius: 8px;
 }
 
@@ -199,6 +198,8 @@ const getStepStatus = (task: Task) => {
 
 .task-progress-display :deep(.ant-card-head-title .anticon) {
   font-size: 16px;
+  margin-left: 4px;
+  margin-right: 15px;
 }
 
 .card-title-text {

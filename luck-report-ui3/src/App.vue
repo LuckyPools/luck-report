@@ -1,5 +1,5 @@
 <template>
-  <a-config-provider :theme="themeConfig">
+  <a-config-provider :theme="themeConfig" :locale="antdLocale">
     <div id="app">
       <router-view />
     </div>
@@ -7,9 +7,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
+import enUS from 'ant-design-vue/es/locale/en_US'
 import type { ThemeConfig } from 'ant-design-vue/es/config-provider/context'
 
 defineOptions({ name: 'App' })
+
+const { locale } = useI18n()
+
+/** 根据当前 i18n 语言切换 antd 组件内置文案（分页、表格等） */
+const antdLocale = computed(() => (locale.value === 'zh' ? zhCN : enUS))
 
 const themeConfig: ThemeConfig = {
   token: {

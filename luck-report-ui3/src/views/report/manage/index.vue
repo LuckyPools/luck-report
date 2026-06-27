@@ -71,21 +71,9 @@
                   <span class="dot dot--green"></span>
                 </div>
                 <div class="report-card__preview">
-                  <div class="preview-dashboard">
-                    <div class="preview-dashboard__chart preview-dashboard__chart--1"></div>
-                    <div class="preview-dashboard__chart preview-dashboard__chart--2"></div>
-                    <div class="preview-dashboard__map"></div>
-                    <div class="preview-dashboard__chart preview-dashboard__chart--3"></div>
-                  </div>
+                  <img :src="excelIcon" alt="Excel" class="report-card__icon" />
                 </div>
-                <div class="report-card__pagination">
-                  <span
-                    v-for="i in 8"
-                    :key="i"
-                    class="report-card__page-dot"
-                    :class="{ 'is-active': i === 1 }"
-                  ></span>
-                </div>
+  
               </div>
               <div class="report-card__body">
                 <a-tooltip :title="item.fileName">
@@ -141,7 +129,7 @@
 
           <!-- 底部分页 -->
           <div v-if="total > 0" class="card-footer">
-            <span class="card-footer__total">共 {{ total }} 条</span>
+            <span class="card-footer__total">{{ t('common.totalRecords', { total }) }}</span>
             <a-pagination
               v-model:current="pageNum"
               v-model:pageSize="pageSize"
@@ -260,6 +248,7 @@ import {
 } from '@/api/manage'
 import { getRequestToken } from '@/utils/token'
 import {t} from "@/locales";
+import excelIcon from '@/assets/icons/excel.svg'
 
 defineOptions({ name: 'ManageReports' })
 
@@ -640,59 +629,14 @@ onMounted(async () => {
   padding: 8px;
   background: #f5f7fa;
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: center;
 }
 
-.preview-dashboard {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 4px;
-  border-radius: 3px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #0f1d3a 0%, #1e3a6f 100%);
-  padding: 4px;
-}
-
-.preview-dashboard__chart {
-  border-radius: 2px;
-  position: relative;
-  overflow: hidden;
-}
-.preview-dashboard__chart--1 {
-  grid-row: 1;
-  grid-column: 1;
-  background:
-    linear-gradient(180deg, transparent 60%, rgba(64, 158, 255, 0.4) 60%, rgba(64, 158, 255, 0.4) 70%, transparent 70%),
-    linear-gradient(180deg, transparent 30%, rgba(82, 196, 26, 0.5) 30%, rgba(82, 196, 26, 0.5) 45%, transparent 45%),
-    linear-gradient(180deg, transparent 50%, rgba(245, 154, 35, 0.45) 50%, rgba(245, 154, 35, 0.45) 80%, transparent 80%);
-}
-.preview-dashboard__chart--2 {
-  grid-row: 1;
-  grid-column: 2;
-  background:
-    radial-gradient(circle at 30% 60%, rgba(64, 158, 255, 0.5) 0%, transparent 35%),
-    radial-gradient(circle at 70% 40%, rgba(82, 196, 26, 0.4) 0%, transparent 30%),
-    radial-gradient(circle at 50% 80%, rgba(245, 154, 35, 0.4) 0%, transparent 30%);
-}
-.preview-dashboard__map {
-  grid-row: 1 / span 2;
-  grid-column: 3;
-  background:
-    radial-gradient(ellipse at center, rgba(82, 196, 26, 0.5) 0%, transparent 60%),
-    radial-gradient(circle at 30% 40%, rgba(64, 158, 255, 0.4) 0%, transparent 25%),
-    radial-gradient(circle at 60% 60%, rgba(82, 196, 26, 0.3) 0%, transparent 25%),
-    linear-gradient(135deg, #1e3a6f 0%, #0f1d3a 100%);
-  border-radius: 2px;
-}
-.preview-dashboard__chart--3 {
-  grid-row: 2;
-  grid-column: 1 / span 2;
-  background:
-    linear-gradient(90deg, transparent 0%, rgba(64, 158, 255, 0.5) 30%, transparent 30%, transparent 40%, rgba(82, 196, 26, 0.4) 40%, transparent 40%),
-    linear-gradient(90deg, transparent 50%, rgba(245, 154, 35, 0.4) 50%, transparent 50%, transparent 65%, rgba(64, 158, 255, 0.4) 65%);
+.report-card__icon {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
 
 /* 分页指示点 */

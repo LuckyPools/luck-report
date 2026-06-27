@@ -74,7 +74,8 @@ public class ChatServiceImpl implements ChatService {
                         .stream(true)
                         .tools(openaiTools)
                         .toolChoice(effectiveToolChoice)
-                        .streamOptions(streamOptions);
+                        .streamOptions(streamOptions)
+                        .deepThink(request.getDeepThink());
 
                 // 计算输入消息的文本总长度，用于 token 估算
                 int inputTextLength = 0;

@@ -1,33 +1,24 @@
 <template>
   <div class="ai-iframe-container">
-    <div
-      v-if="!chatVisible"
-      class="float-button"
-      :class="{ 'is-dragging': isDragging }"
-      :style="{ transform: `translate(${panelPosition.x + 870}px, ${panelPosition.y}px)` }"
+    <FloatButton
+      :visible="chatVisible"
+      :is-dragging="isDragging"
+      :position-x="panelPosition.x + 870"
+      :position-y="panelPosition.y"
       @mousedown="onFloatButtonMouseDown"
       @click="onFloatButtonClick"
-    >
-      <CustomerServiceOutlined />
-    </div>
+    />
 
     <div
       v-if="chatVisible"
       class="ai-dialog-wrapper"
       :style="{ transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)` }"
     >
-      <div
-        class="ai-dialog-header"
+      <DialogHeader
+        :is-dragging="isDragging"
         @mousedown="onHeaderMouseDown"
-        :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
-      >
-        <div class="ai-dialog-title-wrapper">
-          <img class="ai-dialog-logo" :src="logoUrl" alt="智能助手" />
-          <span class="ai-dialog-title">智能助手</span>
-        </div>
-        <div class="ai-dialog-actions"></div>
-        <button class="ai-dialog-close" @click="toggleChat">×</button>
-      </div>
+        @close="toggleChat"
+      />
 
       <div class="chat-panel">
         <!-- 左侧历史对话栏（参考 HiveChat ChatList 样式） -->
@@ -46,21 +37,15 @@
           <ChatHeader @mousedown="onHeaderMouseDown" />
 
           <div ref="chatBodyRef" class="chat-body" @scroll="throttledHandleScroll">
-            <div v-if="messageList.length === 0 && responseStatus === 'done'" class="empty-state">
-              <template v-if="showGuideAlert">
-                <a-alert
-                  message="请先配置 API Key 或添加模型"
-                  type="warning"
-                  show-icon
-                  class="guide-alert"
-                />
-              </template>
-              <template v-else>
-                <span class="greeting-emoji">👋</span>
-                <h2 class="greeting-text">{{ greetingText }}，欢迎使用 AI 助手</h2>
-                <p class="greeting-notice">输入您的问题，开始对话吧</p>
-              </template>
+            <div v-if="messagesLoading" class="messages-loading">
+              <DotLoading />
             </div>
+            <EmptyState
+              v-else-if="messageList.length === 0 && responseStatus === 'done'"
+              :show-guide-alert="showGuideAlert"
+              :quick-questions="quickQuestions"
+              @send-question="sendQuickQuestion"
+            />
             <template v-else>
               <MessageItem
                 v-for="(msg, idx) in messageList"
@@ -92,38 +77,11 @@
             />
           </div>
 
-          <!-- ask_user 中断提示：Agent 主动询问补充信息，提示用户在下方输入框回复 -->
-          <transition name="user-prompt-slide">
-            <div v-if="awaitingUserPrompt" class="user-prompt-hint">
-              <div class="user-prompt-hint-icon">💬</div>
-              <div class="user-prompt-hint-body">
-                <div class="user-prompt-hint-label">Agent 在询问：</div>
-                <div class="user-prompt-hint-question">{{ awaitingUserPrompt.question }}</div>
-              </div>
-              <a-button
-                v-if="awaitingUserPrompt.options && awaitingUserPrompt.options.length"
-                type="link"
-                size="small"
-                class="user-prompt-hint-toggle"
-                @click="showOptions = !showOptions"
-              >{{ showOptions ? '收起选项' : '查看选项' }}</a-button>
-              <a-button
-                type="text"
-                size="small"
-                class="user-prompt-hint-dismiss"
-                title="忽略此问题"
-                @click="handleDismissUserPrompt"
-              >×</a-button>
-            </div>
-          </transition>
-          <div v-if="awaitingUserPrompt && awaitingUserPrompt.options && awaitingUserPrompt.options.length && showOptions" class="user-prompt-options-bar">
-            <a-tag
-              v-for="opt in awaitingUserPrompt.options"
-              :key="opt"
-              class="user-prompt-option-pill"
-              @click="fillOption(opt)"
-            >{{ opt }}</a-tag>
-          </div>
+          <UserPromptBar
+            :prompt="awaitingUserPrompt"
+            @dismiss="handleDismissUserPrompt"
+            @select-option="fillOption"
+          />
 
           <InputArea
             :response-status="responseStatus"
@@ -158,21 +116,30 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Alert as AAlert, Button as AButton, Modal, Tag as ATag } from 'ant-design-vue'
-import { CustomerServiceOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import DotLoading from '@/components/dot-loading/index.vue'
 import '@/assets/css/common/index.css'
 import { useDrag } from './drag.ts'
 import { useChat } from './composables/useChat.ts'
 import { useModelList } from './composables/useModelList.ts'
 import { useGlobalConfig } from './composables/useGlobalConfig.ts'
 import { useMcpServer } from './composables/useMcpServer.ts'
+import { useScroll } from './composables/useScroll.ts'
+import { useChatStore } from '@/store/modules/chat'
+import { storeToRefs } from 'pinia'
 import ChatHeader from './components/ChatHeader.vue'
 import MessageItem from './components/MessageItem.vue'
 import ResponsingMessage from './components/ResponsingMessage.vue'
 import InputArea from './components/InputArea.vue'
 import ScrollToBottomButton from './components/ScrollToBottomButton.vue'
 import ChatList from './components/ChatList.vue'
+import EmptyState from './components/EmptyState.vue'
+import FloatButton from './components/FloatButton.vue'
+import UserPromptBar from './components/UserPromptBar.vue'
+import DialogHeader from './components/DialogHeader.vue'
 import type { Attachment } from './types/chat'
-import logoUrl from '@/assets/images/ai/agent-header.png'
+
+const chatStore = useChatStore()
+const { messagesLoading } = storeToRefs(chatStore)
 
 const chatVisible = ref(false)
 const chatBodyRef = ref<HTMLElement | null>(null)
@@ -232,26 +199,44 @@ const {
   changeMcpServerSelect
 } = useMcpServer()
 
+const {
+  showScrollButton,
+  scrollToBottom,
+  throttledHandleScroll
+} = useScroll(
+  chatBodyRef,
+  messageList,
+  responseMessage,
+  responseStatus,
+  setIsUserScrolling,
+  isUserScrolling
+)
+
 /** 问候语文本，根据时间段动态生成 */
 const greetingText = ref('')
 
-/** 是否显示滚动到底部按钮，综合判断滚动位置和响应状态 */
-const showScrollButton = ref(false)
+/** 快捷问题列表 */
+const quickQuestions = [
+  { icon: '✨', text: '制作一个用户报表' },
+  { icon: '📈', text: '生成一个折线图' },
+  { icon: '📋', text: '分析一下报表' }
+]
 
-/** ask_user 中断提示条：是否展开查看 options */
-const showOptions = ref(false)
+/**
+ * 发送快捷问题
+ * @param item 快捷问题项
+ */
+const sendQuickQuestion = (item: { icon: string; text: string }) => {
+  const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
+  const maxTokens = currentModelInfo.value?.maxTokens
+  sendMessage(item.text, undefined, undefined, modelId, maxTokens)
+}
 
 /** 是否启用深度思考（影响后续发送消息时是否传入 deepThink 参数） */
 const deepThinkEnabled = ref(false)
 
-/** 监听 awaitingUserPrompt 变化：进入提问时默认收起 options，离开时清空 */
-watch(awaitingUserPrompt, (val) => {
-  showOptions.value = false
-})
-
 /** 忽略 ask_user 中断：清空 awaitingUserPrompt，状态切回 done */
 const handleDismissUserPrompt = () => {
-  showOptions.value = false
   dismissUserPrompt()
 }
 
@@ -423,7 +408,7 @@ const handleSend = (content: string, attachments?: Attachment[], searchEnabled?:
   // 获取当前模型的 ID（转换为数字类型）和 maxTokens
   const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
   const maxTokens = currentModelInfo.value?.maxTokens
-  sendMessage(content, attachments, searchEnabled, modelId, maxTokens)
+  sendMessage(content, attachments, searchEnabled, modelId, maxTokens, deepThinkEnabled.value)
 }
 
 /**
@@ -499,83 +484,6 @@ const handleNewChat = () => {
   clearHistory()
   chatListRef.value?.refresh()
 }
-
-/**
- * 滚动到底部
- * 平滑滚动聊天区域到最底部
- */
-const scrollToBottom = () => {
-  if (chatBodyRef.value) {
-    chatBodyRef.value.scrollTo({
-      top: chatBodyRef.value.scrollHeight,
-      behavior: 'smooth'
-    })
-    setIsUserScrolling(false)
-    showScrollButton.value = false
-  }
-}
-
-/**
- * 处理滚动事件（节流版本）
- * 判断用户是否手动上滚，综合判断滚动到底部按钮的显示
- * 对应 HiveChat MessageList.tsx 的 handleScroll 逻辑：
- * - 距底部不超过 20px 视为"接近底部"
- * - 内容不足以滚动时不显示按钮
- * - AI 回复中不显示按钮
- */
-const handleScrollRaw = () => {
-  const el = chatBodyRef.value
-  if (!el) return
-
-  const isNearBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 20
-  const shouldShowButton = !isNearBottom
-    && el.scrollHeight > el.clientHeight + 50
-    && responseStatus.value !== 'pending'
-
-  setIsUserScrolling(!isNearBottom)
-  showScrollButton.value = shouldShowButton
-}
-
-/** 节流滚动处理，100ms 间隔 */
-let scrollThrottleTimer: ReturnType<typeof setTimeout> | null = null
-const throttledHandleScroll = () => {
-  if (scrollThrottleTimer) return
-  scrollThrottleTimer = setTimeout(() => {
-    handleScrollRaw()
-    scrollThrottleTimer = null
-  }, 100)
-}
-
-/**
- * 防抖自动滚动到底部
- * 对应 HiveChat MessageList.tsx 的 debouncedScrollToBottom
- * 仅在用户未手动上滚时自动滚动
- */
-let autoScrollTimer: ReturnType<typeof setTimeout> | null = null
-const debouncedAutoScroll = () => {
-  if (autoScrollTimer) clearTimeout(autoScrollTimer)
-  autoScrollTimer = setTimeout(() => {
-    if (!isUserScrolling.value && chatBodyRef.value) {
-      requestAnimationFrame(() => {
-        if (chatBodyRef.value) {
-          chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight
-        }
-      })
-    }
-  }, 50)
-}
-
-watch(
-  () => [messageList.value.length, responseMessage.value],
-  () => {
-    debouncedAutoScroll()
-  }
-)
-
-onUnmounted(() => {
-  if (scrollThrottleTimer) clearTimeout(scrollThrottleTimer)
-  if (autoScrollTimer) clearTimeout(autoScrollTimer)
-})
 </script>
 
 <style scoped>
@@ -584,29 +492,7 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   z-index: 1000;
-}
-
-.float-button {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 50px;
-  height: 50px;
-  background-color: var(--color-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  transition: background-color 0.3s;
-  user-select: none;
-  touch-action: none;
-}
-
-.float-button.is-dragging {
-  cursor: grabbing;
+  pointer-events: none;
 }
 
 .ai-dialog-wrapper {
@@ -620,61 +506,6 @@ onUnmounted(() => {
   overflow: hidden;
   pointer-events: auto;
   user-select: none;
-}
-
-.ai-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.ai-dialog-title-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ai-dialog-logo {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.ai-dialog-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.ai-dialog-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: 12px;
-}
-
-.ai-dialog-close {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  color: #fff;
-  font-size: 18px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: background 0.2s;
-  line-height: 1;
-  padding: 0;
-  font-family: Arial, sans-serif;
-}
-
-.ai-dialog-close:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 .chat-panel {
@@ -708,15 +539,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.float-button:hover {
-  background-color: var(--color-primary-hover);
-}
-
-.float-button :deep(.anticon) {
-  font-size: 24px;
-  color: #fff;
-}
-
 .chat-body {
   flex: 1;
   min-height: 0;
@@ -726,37 +548,11 @@ onUnmounted(() => {
   user-select: text;
 }
 
-.empty-state {
+.messages-loading {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 8px;
-  padding: 0 24px;
-}
-
-.greeting-emoji {
-  font-size: 32px;
-}
-
-.greeting-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-  text-align: center;
-}
-
-.greeting-notice {
-  color: #9ca3af;
-  font-size: 14px;
-  margin: 0;
-}
-
-.guide-alert {
-  width: 100%;
-  max-width: 300px;
 }
 
 .chat-body::-webkit-scrollbar {
@@ -770,85 +566,5 @@ onUnmounted(() => {
 
 .chat-body::-webkit-scrollbar-track {
   background: transparent;
-}
-
-.user-prompt-hint {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  margin: 8px 12px 0;
-  background: linear-gradient(135deg, #fff7e6 0%, #fff1d6 100%);
-  border: 1px solid #ffd591;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(255, 159, 67, 0.08);
-}
-.user-prompt-hint-icon {
-  font-size: 18px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.user-prompt-hint-body {
-  flex: 1;
-  min-width: 0;
-}
-.user-prompt-hint-label {
-  font-size: 12px;
-  color: #d48806;
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-.user-prompt-hint-question {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #5c2e00;
-  word-break: break-word;
-}
-.user-prompt-hint-toggle,
-.user-prompt-hint-dismiss {
-  flex-shrink: 0;
-  padding: 0 6px;
-  height: 24px;
-  font-size: 12px;
-}
-.user-prompt-hint-dismiss {
-  color: #999;
-  font-size: 18px;
-  line-height: 1;
-}
-.user-prompt-hint-dismiss:hover {
-  color: #666;
-}
-
-.user-prompt-options-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 14px 0;
-  margin: 0 12px;
-}
-.user-prompt-option-pill {
-  cursor: pointer;
-  padding: 2px 10px;
-  border-radius: 12px;
-  background: #fafafa;
-  border-color: #d9d9d9;
-  font-size: 12px;
-  transition: all 0.15s;
-}
-.user-prompt-option-pill:hover {
-  color: #fa8c16;
-  border-color: #ffd591;
-  background: #fff7e6;
-}
-
-.user-prompt-slide-enter-active,
-.user-prompt-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.user-prompt-slide-enter-from,
-.user-prompt-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
 }
 </style>

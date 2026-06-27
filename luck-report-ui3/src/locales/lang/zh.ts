@@ -1021,7 +1021,8 @@ const zh = {
         failed: '操作失败',
         loading: '加载中...',
         noData: '暂无数据',
-        tip: '提示'
+        tip: '提示',
+        totalRecords: '共 {total} 条'
     },
     chat: {
         title: 'AI 报表助手',

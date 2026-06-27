@@ -60,7 +60,7 @@
                     total: total,
                     showSizeChanger: true,
                     showQuickJumper: true,
-                    showTotal: (t: number) => `共 ${t} 条`
+                    showTotal: (total: number) => t('common.totalRecords', { total })
                   }"
                   @change="(pag: any) => { pageNum = pag.current; pageSize = pag.pageSize; loadConfigs() }"
                 >
@@ -166,7 +166,7 @@
                     total: total,
                     showSizeChanger: true,
                     showQuickJumper: true,
-                    showTotal: (t: number) => `共 ${t} 条`
+                    showTotal: (total: number) => t('common.totalRecords', { total })
                   }"
                   @change="(pag: any) => { pageNum = pag.current; pageSize = pag.pageSize; loadConfigs() }"
                 >
@@ -238,6 +238,8 @@
       v-model:open="dialogVisible"
       :title="dialogTitle"
       width="800px"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
       @ok="handleSubmit"
       @cancel="handleCancel"
       :confirmLoading="submitting"

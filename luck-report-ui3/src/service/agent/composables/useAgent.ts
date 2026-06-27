@@ -21,6 +21,8 @@ export interface AgentEngineConfig {
   sessionId?: string
   /** 工作流模式下每个步骤内 LLM 的最大循环轮次，默认 5 */
   maxIterationsPerStep?: number
+  /** 是否启用深度思考，启用后模型会先生成推理过程再生成回复 */
+  deepThink?: boolean
 }
 
 /**
@@ -72,11 +74,14 @@ export class AgentEngine {
   private _compacting = false
   /** 工作流模式下每个步骤内 LLM 的最大循环轮次 */
   private maxIterationsPerStep: number
+  /** 是否启用深度思考 */
+  private deepThink?: boolean
 
   constructor(config: AgentEngineConfig = {}) {
     this.onToolConfirmFn = config.onToolConfirm
     this.sessionId = config.sessionId
     this.maxIterationsPerStep = config.maxIterationsPerStep ?? 5
+    this.deepThink = config.deepThink
     this.contextManager = new ContextManager(this.memoryManager, this.toolRegistry)
   }
 
@@ -102,7 +107,8 @@ export class AgentEngine {
     onEvent: (event: AgentEvent) => void,
     signal?: AbortSignal,
     modelId?: number,
-    maxTokens?: number
+    maxTokens?: number,
+    deepThink?: boolean
   ): Promise<void> {
     if (this._running) return
 
@@ -114,6 +120,9 @@ export class AgentEngine {
       this._maxTokens = maxTokens
       this.memoryManager.setContextWindowTokens(maxTokens)
     }
+
+    // 优先使用参数中的 deepThink，否则使用构造时的 deepThink
+    const effectiveDeepThink = deepThink !== undefined ? deepThink : this.deepThink
 
     // 清空上一轮的任务列表，避免新消息显示旧任务进度
     this.taskListManager.clearTasks()
@@ -133,6 +142,7 @@ export class AgentEngine {
       onAutoCompact: (mm) => this.autoCompact(mm),
       modelId,
       maxIterationsPerStep: this.maxIterationsPerStep,
+      deepThink: effectiveDeepThink,
       // 通过回调同步步骤记录到任务列表
       onStepRecordsChange: (stepRecords, activeStepId) => this.taskListManager.syncFromWorkflow(stepRecords, activeStepId)
     }

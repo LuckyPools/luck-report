@@ -46,6 +46,8 @@ export interface LLMCallOptions {
   sessionId?: string
   /** 大模型配置ID */
   modelId?: number
+  /** 是否启用深度思考 */
+  deepThink?: boolean
 }
 
 /**
@@ -72,6 +74,8 @@ export class WorkflowRuntime {
   readonly sessionId?: string
   /** 大模型配置ID */
   readonly modelId?: number
+  /** 是否启用深度思考 */
+  readonly deepThink?: boolean
   /** 当前执行 ID（fork 时子 runtime 继承并扩展） */
   readonly runId: string
   /** gather_requirements 阶段最大询问轮次（达到后强制收敛，禁止继续 ask_user） */
@@ -94,6 +98,7 @@ export class WorkflowRuntime {
     this.onEvent = options.onEvent
     this.sessionId = options.sessionId
     this.modelId = options.modelId
+    this.deepThink = options.deepThink
     this.runId = options.runId ?? generateRunId()
     this.gatherMaxRounds = options.gatherMaxRounds ?? 5
   }
@@ -123,6 +128,7 @@ export class WorkflowRuntime {
       onEvent: this.onEvent,
       sessionId: this.sessionId,
       modelId: this.modelId,
+      deepThink: this.deepThink,
       runId: `${this.runId}_f${this.forkCounter}`,
       gatherMaxRounds: this.gatherMaxRounds
     })
@@ -156,6 +162,8 @@ export interface WorkflowRuntimeOptions {
   runId?: string
   /** gather_requirements 阶段最大询问轮次，默认 5 */
   gatherMaxRounds?: number
+  /** 是否启用深度思考 */
+  deepThink?: boolean
 }
 
 /**

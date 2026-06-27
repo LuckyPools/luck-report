@@ -138,6 +138,20 @@ public class ChatUtils {
             body.put("stream_options", request.getStreamOptions());
         }
 
+        // 深度思考配置
+        // 启用后，大模型会先生成推理过程（reasoning_content），再生成最终回复
+        // 适用于阿里百炼 Qwen 等支持 thinking 参数的模型
+        if (Boolean.TRUE.equals(request.getDeepThink())) {
+            // 构建 extra_body 配置，启用思考过程
+            Map<String, Object> extraBody = new LinkedHashMap<>(1);
+            Map<String, Object> thinking = new LinkedHashMap<>(2);
+            thinking.put("type", "thinking");
+            thinking.put("budget_tokens", 3000); // 思考 token 预算，可根据需要调整
+            extraBody.put("thinking", thinking);
+            body.put("extra_body", extraBody);
+            log.info("[ChatUtils] 已启用深度思考模式");
+        }
+
         try {
             String jsonBody = objectMapper.writeValueAsString(body);
             log.info("[ChatUtils] 实际发送给LLM的请求体: {}", jsonBody);

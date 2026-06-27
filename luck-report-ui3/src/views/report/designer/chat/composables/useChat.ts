@@ -338,18 +338,19 @@ export function useChat() {
   }
 
   /**
-   * Agent 模式下的发送消息
-   * 通过 AgentEngine 启动 Agentic Loop，替代直接调 chatStream
-   *
-   * @param content - 用户输入消息
-   * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
-   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
-   */
-  const sendMessageViaAgent = async (content: string, modelId?: number, maxTokens?: number) => {
+ * Agent 模式下的发送消息
+ * 通过 AgentEngine 启动 Agentic Loop，替代直接调 chatStream
+ *
+ * @param content - 用户输入消息
+ * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
+ * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
+ * @param deepThink - 可选，是否启用深度思考
+ */
+const sendMessageViaAgent = async (content: string, modelId?: number, maxTokens?: number, deepThink?: boolean) => {
     abortController = new AbortController()
 
     try {
-      await agentEngine.start(content, handleAgentEvent, abortController.signal, modelId, maxTokens)
+      await agentEngine.start(content, handleAgentEvent, abortController.signal, modelId, maxTokens, deepThink)
     } catch (error: unknown) {
       const err = error as Error
       if (err.name === 'AbortError') {
@@ -392,23 +393,25 @@ export function useChat() {
   }
 
   /**
-   * 发送消息
-   * 通过 AgentEngine 启动 Agentic Loop，LLM 可调用工具操作报表
-   * 首次发送时自动创建会话，Loop 结束后批量保存消息
-   *
-   * @param content - 用户输入的消息内容
-   * @param attachments - 可选，图片附件列表
-   * @param searchEnabled - 可选，是否启用联网搜索
-   * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
-   * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
-   */
-  const sendMessage = async (
-      content: string,
-      attachments?: Attachment[],
-      searchEnabled?: boolean,
-      modelId?: number,
-      maxTokens?: number
-  ) => {
+ * 发送消息
+ * 通过 AgentEngine 启动 Agentic Loop，LLM 可调用工具操作报表
+ * 首次发送时自动创建会话，Loop 结束后批量保存消息
+ *
+ * @param content - 用户输入的消息内容
+ * @param attachments - 可选，图片附件列表
+ * @param searchEnabled - 可选，是否启用联网搜索
+ * @param modelId - 可选，大模型配置ID，用于指定使用哪个大模型
+ * @param maxTokens - 可选，当前模型的上下文窗口 token 上限，用于判断是否超量
+ * @param deepThinkEnabled - 可选，是否启用深度思考
+ */
+const sendMessage = async (
+    content: string,
+    attachments?: Attachment[],
+    searchEnabled?: boolean,
+    modelId?: number,
+    maxTokens?: number,
+    deepThinkEnabled?: boolean
+) => {
     if (!content.trim() || responseStatus.value === 'pending') return
 
     // 首次发送消息时自动创建会话
@@ -466,7 +469,7 @@ export function useChat() {
     mcpTools.value = []
     pendingConfirmToolCall.value = null
 
-    await sendMessageViaAgent(enrichedContent, modelId, maxTokens)
+    await sendMessageViaAgent(enrichedContent, modelId, maxTokens, deepThinkEnabled)
   }
 
   /**

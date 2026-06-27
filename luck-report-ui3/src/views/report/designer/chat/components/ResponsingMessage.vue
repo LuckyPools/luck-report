@@ -94,7 +94,8 @@
           <template v-if="responseReasoning">
             <div class="reasoning-section">
               <div class="reasoning-header">
-                <BulbOutlined class="reasoning-icon" />
+                <FlowLoading v-if="!responseMessage" class="reasoning-flow-icon" />
+                <i v-else class="iconfont icon-think think-icon" />
                 <span class="reasoning-label">{{ responseMessage ? '已深度思考' : '正在思考...' }}</span>
               </div>
               <div class="reasoning-body">
@@ -127,8 +128,8 @@ import MarkdownRender from './MarkdownRender.vue'
 import DotsLoading from './loading/DotsLoading.vue'
 import BallsLoading from './loading/BallsLoading.vue'
 import TaskProgressDisplay from './TaskProgressDisplay.vue'
+import FlowLoading from '@/components/flow-loading/index.vue'
 import {
-  BulbOutlined,
   LoadingOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -239,7 +240,6 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   padding: 10px 14px;
   border-radius: 14px;
   color: #374151;
-  max-width: 85%;
   word-wrap: break-word;
   margin-top: 2px;
 }
@@ -388,18 +388,31 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
 }
 
 .reasoning-header {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: 6px;
-  background-color: #e5e7eb;
   font-size: 12px;
   color: #374151;
 }
 
-.reasoning-icon {
+.reasoning-flow-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.reasoning-flow-icon :deep(.rotate-icon) {
+  width: 14px;
+  height: 14px;
+}
+
+.think-icon {
   font-size: 14px;
-  color: #f59e0b;
   margin-right: 4px;
 }
 
@@ -412,6 +425,7 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   border-left: 2px solid #e5e7eb;
   padding: 8px 12px;
   margin-top: 8px;
+  margin-left: 11px;
   color: #9ca3af;
   line-height: 1.6;
   font-size: 13px;

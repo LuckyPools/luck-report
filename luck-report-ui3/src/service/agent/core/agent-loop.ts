@@ -59,6 +59,8 @@ export interface AgentLoopConfig {
   modelId?: number
   /** 工作流模式下每个步骤内 LLM 的最大循环轮次，默认 5 */
   maxIterationsPerStep?: number
+  /** 是否启用深度思考，启用后模型会先生成推理过程再生成回复 */
+  deepThink?: boolean
   /** 步骤记录变更回调，用于同步任务进度到前端 */
   onStepRecordsChange?: (stepRecords: WorkflowStepRecord[], activeStepId?: string) => void
 }
@@ -159,6 +161,7 @@ async function runWorkflowMode(
       onToolConfirm: config.onToolConfirm,
       sessionId: config.sessionId,
       modelId: config.modelId,
+      deepThink: config.deepThink,
       onEvent: (streamEvent: StreamEvent) => {
         // 节点内 emitEvent 发出的事件直接转换为 AgentEvent
         if (streamEvent.mode === 'updates') {
@@ -363,7 +366,8 @@ async function analyzeIntent(
     tools,
     config.sessionId,
     config.modelId,
-    toolChoice
+    toolChoice,
+    config.deepThink
   )
 
   // 优先使用 Function Calling 结果，兜底解析文本

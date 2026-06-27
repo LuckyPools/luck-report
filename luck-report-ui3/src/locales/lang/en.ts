@@ -1020,7 +1020,8 @@ const en = {
         failed: 'Failed',
         loading: 'Loading...',
         noData: 'No Data',
-        tip: 'Tip'
+        tip: 'Tip',
+        totalRecords: 'Total {total} items'
     },
     chat: {
         title: 'AI Report Assistant',

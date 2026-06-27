@@ -33,6 +33,13 @@ public class AskModelRequest {
     private Map<String, Object> streamOptions;
 
     /**
+     * 是否启用深度思考
+     * 启用后，大模型会先生成推理过程（reasoning_content），再生成最终回复
+     * 部分模型（如 Qwen）需要通过 extra_params 配置
+     */
+    private Boolean deepThink = false;
+
+    /**
      * 构造函数
      *
      * @param chatConfig 模型配置，包含 baseUrl、apiKey、modelName 等，类型：Index，不可为空
@@ -110,6 +117,17 @@ public class AskModelRequest {
     }
 
     /**
+     * 设置是否启用深度思考
+     *
+     * @param deepThink 是否启用深度思考，类型：Boolean，可为空
+     * @return 当前对象，支持链式调用
+     */
+    public AskModelRequest deepThink(Boolean deepThink) {
+        this.deepThink = deepThink;
+        return this;
+    }
+
+    /**
      * 获取模型配置
      *
      * @return 模型配置，类型：Index
@@ -161,7 +179,14 @@ public class AskModelRequest {
     /**
      * 获取流式选项
      *
-     * @return 流式选项，类型：Map<String, Object>，可为空
+     * @return 流式选项，类型：Map<String, Object>，可为 null
      */
     public Map<String, Object> getStreamOptions() { return streamOptions; }
+
+    /**
+     * 是否启用深度思考
+     *
+     * @return 是否启用深度思考，类型：Boolean
+     */
+    public Boolean getDeepThink() { return deepThink; }
 }

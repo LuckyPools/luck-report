@@ -60,6 +60,9 @@ export const useChatStore = defineStore('chat', () => {
   /** 当前会话的消息列表 */
   const messageList = ref<Message[]>([])
 
+  /** 消息列表加载状态（切换历史会话时的加载中状态） */
+  const messagesLoading = ref(false)
+
   /** 本轮新增消息的起始索引，用于批量保存时只提交新增部分 */
   let roundStartIndex = 0
 
@@ -225,6 +228,7 @@ export const useChatStore = defineStore('chat', () => {
    * @param sessionId - 要加载的会话ID
    */
   const loadSession = async (sessionId: string) => {
+    messagesLoading.value = true
     messageList.value = []
     roundStartIndex = 0
 
@@ -263,6 +267,8 @@ export const useChatStore = defineStore('chat', () => {
     } catch (e) {
       console.warn('[chatStore] 加载会话历史失败:', e)
       throw e
+    } finally {
+      messagesLoading.value = false
     }
   }
 
@@ -424,6 +430,7 @@ export const useChatStore = defineStore('chat', () => {
     createNewSession,
     loadSession,
     clearCurrentSession,
+    messagesLoading,
 
     // 消息
     messageList,

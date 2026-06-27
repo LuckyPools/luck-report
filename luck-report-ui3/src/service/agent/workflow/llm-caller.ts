@@ -109,9 +109,9 @@ export function createLLMCaller(
       apiMessages,
       tools,
       options?.sessionId,
-      options?.modelId
-      // 关键决策点：thinking mode 下后端禁止 tool_choice=required/object（OpenAI 限制），
-      // 传了直接 400；强制 LLM 调工具的职责改由"完整 schema + maxIterations 重试 + 系统强制提示"承担
+      options?.modelId,
+      undefined,
+      options?.deepThink
     )
 
     // 从队列中 yield 事件

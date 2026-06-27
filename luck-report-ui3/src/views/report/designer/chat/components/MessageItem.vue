@@ -211,7 +211,7 @@
           </div>
 
           <!-- 任务进度展示 -->
-          <TaskProgressDisplay 
+          <TaskProgressDisplay
             v-if="message.taskProgress"
             :tasks="message.taskProgress.tasks"
             :current-workflow-node="message.taskProgress.currentWorkflowNode"
@@ -221,9 +221,9 @@
             <!-- 深度思考折叠区 -->
             <details v-if="message.reasoningContent" :open="true" class="reasoning-details">
               <summary class="reasoning-summary">
-                <BulbOutlined class="reasoning-icon" />
+                <i class="iconfont icon-think think-icon" />
                 <span class="reasoning-label">已深度思考</span>
-                <DownOutlined class="reasoning-arrow" />
+                <RightOutlined class="reasoning-arrow" />
               </summary>
               <div class="reasoning-content">
                 <MarkdownRender :content="message.reasoningContent" />
@@ -303,8 +303,7 @@ import {
   CopyOutlined,
   SyncOutlined,
   DeleteOutlined,
-  DownOutlined,
-  BulbOutlined,
+  RightOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
@@ -396,6 +395,12 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   justify-content: flex-end;
 }
 
+.user-wrapper .user-content {
+  margin-left: 38px;
+  max-width: calc(100% - 38px);
+  min-width: 0;
+}
+
 .assistant-wrapper {
   justify-content: flex-start;
 }
@@ -441,6 +446,8 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .assistant-content {
@@ -464,6 +471,8 @@ const getUserImages = (attachments: Attachment[]): string[] => {
 
 .message-bubble {
   word-wrap: break-word;
+  word-break: keep-all;
+  white-space: pre-wrap;
 }
 
 .user-bubble {
@@ -471,7 +480,7 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   color: #374151;
   padding: 10px 14px;
   border-radius: 14px;
-  max-width: 85%;
+  max-width: 100%;
 }
 
 .assistant-bubble {
@@ -480,6 +489,7 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   border-radius: 14px;
   color: #374151;
   margin-top: 2px;
+  max-width: 100%;
 }
 
 .action-bar {
@@ -596,28 +606,24 @@ const getUserImages = (attachments: Attachment[]): string[] => {
 
 /* 深度思考样式 */
 .reasoning-details {
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .reasoning-summary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: 4px 0;
   border-radius: 6px;
-  background-color: #e5e7eb;
   cursor: pointer;
   font-size: 12px;
   color: #374151;
   list-style: none;
+  user-select: none;
 }
 
-.reasoning-summary:hover {
-  background-color: #d1d5db;
-}
 
-.reasoning-icon {
+.think-icon {
   font-size: 14px;
-  color: #f59e0b;
   margin-right: 4px;
 }
 
@@ -627,21 +633,22 @@ const getUserImages = (attachments: Attachment[]): string[] => {
 }
 
 .reasoning-arrow {
-  margin-left: auto;
+  margin-left: 2px;
   font-size: 10px;
   color: #9ca3af;
   transition: transform 0.2s;
 }
 
 .reasoning-details[open] .reasoning-arrow {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 }
 
 .reasoning-content {
-  border-left: 2px solid #e5e7eb;
-  padding: 8px 12px;
-  margin-top: 8px;
+  margin-top: 5px;
+  margin-left: 6px;
+  padding: 0 12px;
   color: #9ca3af;
+  border-left: 2px solid #e5e7eb;
   line-height: 1.6;
   font-size: 13px;
 }
@@ -726,26 +733,6 @@ const getUserImages = (attachments: Attachment[]): string[] => {
   border-radius: 8px;
   overflow: hidden;
   transition: border-color 0.2s;
-}
-
-.agent-tool-call.tool-status-running {
-  border-color: #3b82f6;
-}
-
-.agent-tool-call.tool-status-confirming {
-  border-color: #f59e0b;
-}
-
-.agent-tool-call.tool-status-done {
-  border-color: #22c55e;
-}
-
-.agent-tool-call.tool-status-error {
-  border-color: #ef4444;
-}
-
-.agent-tool-call.tool-status-rejected {
-  border-color: #9ca3af;
 }
 
 .tool-call-header {

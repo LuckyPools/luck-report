@@ -66,4 +66,11 @@ public class ChatRequest {
      * 不传时由后端根据 tools 是否为空自动决定
      */
     private Object toolChoice;
+
+    /**
+     * 是否启用深度思考
+     * 启用后，大模型会先生成推理过程（reasoning_content），再生成最终回复
+     * 部分模型（如 Qwen）需要通过 extra_params 配置
+     */
+    private Boolean deepThink = false;
 }
