@@ -48,6 +48,11 @@ export function buildIntentToolChoice(): string {
 /**
  * 意图分析的输出 JSON Schema
  * 用于约束 LLM 的输出格式，确保可解析
+ *
+ * 设计原则：意图阶段只判相关性，不判具体要改报表哪些部分。
+ * needsBusinessKnowledge / needsAgentKnowledge / needsSchemaSearch 是前置 search_knowledge 节点的输入，
+ * requiredDocs 是前置 load_docs 节点的输入，二者必须由意图阶段决定。
+ * 涉及具体报表部位（cell/form/page/row/col/datasource）的判定交给后续 understand_and_plan 节点。
  */
 export const INTENT_ANALYSIS_SCHEMA = {
   type: 'object',
@@ -56,30 +61,6 @@ export const INTENT_ANALYSIS_SCHEMA = {
       type: 'string',
       enum: ['report_agent', 'create_report', 'irrelevant'],
       description: '用户意图类型：report_agent 统一接管所有报表相关需求（读+改由 Planner 自主规划），create_report 让用户先手动建报表，irrelevant 表示与报表无关'
-    },
-    needsDatasourceOperation: {
-      type: 'boolean',
-      description: '是否涉及数据源/数据集的操作（读取或修改）'
-    },
-    needsCellOperation: {
-      type: 'boolean',
-      description: '是否涉及单元格的操作（读取或修改）'
-    },
-    needsFormOperation: {
-      type: 'boolean',
-      description: '是否涉及查询表单的操作（读取或修改）'
-    },
-    needsPageConfigOperation: {
-      type: 'boolean',
-      description: '是否涉及页面配置的操作（纸张设置、页眉、页脚等）'
-    },
-    needsRowOperation: {
-      type: 'boolean',
-      description: '是否涉及行操作（行高调整、插入/删除行等）'
-    },
-    needsColOperation: {
-      type: 'boolean',
-      description: '是否涉及列操作（列宽调整、插入/删除列等）'
     },
     needsBusinessKnowledge: {
       type: 'boolean',
@@ -114,9 +95,9 @@ export const INTENT_ANALYSIS_SCHEMA = {
     }
   },
   required: [
-    'intentType', 'needsDatasourceOperation', 'needsCellOperation', 'needsFormOperation',
-    'needsPageConfigOperation', 'needsRowOperation', 'needsColOperation',
-    'needsBusinessKnowledge', 'needsAgentKnowledge', 'needsSchemaSearch', 'requiredDocs', 'taskDescription'
+    'intentType',
+    'needsBusinessKnowledge', 'needsAgentKnowledge', 'needsSchemaSearch',
+    'requiredDocs', 'taskDescription'
   ]
 }
 

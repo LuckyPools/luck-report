@@ -7,19 +7,36 @@
  *       输出 TaskPlan，不再经过 RequirementsSpec 中间层
  *
  * 关键设计：
- * - LLM 可调工具：plan_tasks（提交 TaskPlan）、ask_user（中断型追问）、load_report_introduce（辅助理解）
+ * - LLM 可调工具：plan_tasks（提交 TaskPlan）、ask_user（中断型追问）、load_report_doc（辅助理解）
  * - ask_user 走 interruptOnCall 中断路径，不执行 execute
  * - gatherMaxRounds 在 runtime 上，llm-decide-node 在调 ask_user 前自检；超限给 LLM 错误反馈
  * - 节点结束条件：
- *   1. LLM 调 plan_tasks → state.taskResults 写入 → collect_plan 后处理
+ *   1. LLM 调 plan_tasks → state.taskResults 写入 → validate_plan 后处理
  *   2. LLM 调 ask_user（未超轮次）→ AskUserInterrupt → 重启 runAgentLoop
  *   3. 必填工具未执行 + maxIterations 耗尽 → plannerError → 主图条件边路由到 summary
+ *
+ * validate_plan 节点（原 collect_plan）：
+ * - 改名原因：原 collect_plan 实际上是个"校验关卡"，不是单纯收集
+ * - 职责（#4 升级后）：
+ *   1. 读 LLM 输出的 TaskPlan
+ *   2. 标准化 task
+ *   3. 校验结构（id 唯一、dependsOn 存在、无环）
+ *   4. 依赖拓扑自动补全（inferMissingDependsOn）
+ *   5. 覆盖度校验（checkPlanCoverage）
+ *   6. 失败时 set plannerError（#3 之后无兜底；#A 之后会触发重规划）
+ *   7. 成功时写 state.taskPlan
  */
 
 import { createLLMDecideNode } from './llm-decide-node.ts'
 import { withInput } from '../node-wrapper.ts'
-import { PLANNER_TOOL_NAME, EXECUTABLE_ACTIONS, validateTaskPlan, generateFallbackPlan } from '../task-plan.ts'
-import type { TaskPlan, TaskNode } from '../task-plan.ts'
+import {
+  PLANNER_TOOL_NAME,
+  EXECUTABLE_ACTIONS,
+  validateTaskPlan,
+  inferMissingDependsOn,
+  checkPlanCoverage
+} from '../task-plan.ts'
+import type { TaskPlan } from '../task-plan.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 import type { WorkflowRuntime } from '../runtime.ts'
 import { resetGatherRounds } from '../gather-state.ts'
@@ -52,32 +69,53 @@ function getUnderstandPlanDescription(): string {
  * @param options - 配置
  * @param options.maxIterations - LLM Decider 单次 run 的最大迭代次数（默认 8）
  * @returns LangGraph 节点函数
+ *
+ * #A 改动：description 改为函数形式，按 state.replanRound 动态拼接"上一轮被拒"反馈，
+ *         让重规划时 LLM 看到具体的失败原因（plannerError），而不是空白重试。
  */
 export function buildUnderstandPlanNode(options?: { maxIterations?: number }) {
+  const baseDescription = getUnderstandPlanDescription()
   return createLLMDecideNode({
     nodeId: 'understand_and_plan',
-    allowedTools: [PLANNER_TOOL_NAME, 'ask_user', 'load_report_introduce'],
+    allowedTools: [PLANNER_TOOL_NAME, 'ask_user', 'load_report_doc'],
     requiredToolResultsAny: [PLANNER_TOOL_NAME],
+    // 关键决策点：首轮强制 LLM 调 plan_tasks（不许先 ask_user 也不许摆烂）
+    // plan_tasks 的 validate 会拒绝空输入，触发 hasToolError → LLM 自动重试
+    // 第 2 轮起放开 toolChoice，LLM 仍可选择 ask_user
+    forceToolChoiceFirst: true,
     // 给 LLM 足够空间：先可能多轮 ask_user，最后 plan_tasks
     maxIterations: options?.maxIterations ?? 8,
     resultKey: 'taskResults',
     resultKeyAsObject: true,
-    description: getUnderstandPlanDescription()
+    description: (state) => {
+      const replan = state.replanRound ?? 0
+      if (replan <= 0) return baseDescription
+      const err = state.plannerError ?? '未知错误'
+      return `${baseDescription}\n\n【重规划反馈 — 第 ${replan} 次重试】\n你上一轮提交的计划被系统拒绝：\n${err}\n\n请基于此反馈重新规划 plan_tasks，确保：\n1. 严格满足【modify_cell 触发条件】、【动作依赖拓扑】等规划约束\n2. 修正上一轮被指出的所有问题\n3. 如有不确定的字段，参考 search_results/search_schema 里已加载的数据结构`
+    }
   })
 }
 
 /**
- * collect_plan 后处理节点（纯函数节点）
+ * validate_plan 后处理节点（纯函数节点，原 collect_plan）
  *
- * 从 state.taskResults[PLANNER_TOOL_NAME] 读 LLM 提交的 TaskPlan
- * - 校验 TaskPlan 合法性（id 唯一、dependsOn 存在、无环）
- * - 校验失败 → 用 generateFallbackPlan 兜底
- * - 校验成功 → 写 state.taskPlan
- * - 主图条件边根据 state.taskPlan / state.plannerError 决定路由
+ * 职责升级（#4 改动）：
+ * - 原 collect_plan：读 LLM 输出 → 标准化 → 校验结构 → 兜底
+ * - 现 validate_plan：读 LLM 输出 → 标准化 → 校验结构 → 依赖拓扑补全 → 覆盖度校验 → 失败 set plannerError
+ *
+ * 失败行为（#3 改动后）：
+ * - LLM 未调 plan_tasks / 报 error / 空任务 / 结构校验失败 → 直接 set plannerError
+ * - 覆盖度校验失败（userMessage 含"展示"但 plan 缺 modify_cell 等）→ set plannerError
+ * - 不再有任何兜底场景，LLM 是规划的唯一来源
+ *
+ * plannerError 路由：
+ * - 失败时同时 +1 replanRound（#A 改动）
+ * - validate_plan 条件边：replanRound<2 → understand_and_plan（回灌重规划）；否则 → summary
  */
-export function buildCollectPlanNode() {
-  return withInput(async (state: ReportState, _config, runtime: WorkflowRuntime): Promise<ReportStateUpdate> => {
+export function buildValidatePlanNode() {
+  return withInput(async (state: ReportState): Promise<ReportStateUpdate> => {
     const planResult = state.taskResults?.[PLANNER_TOOL_NAME] as { tasks?: any[] } | undefined
+    const currentReplan = state.replanRound ?? 0
 
     // LLM 没调 plan_tasks
     const submitErr = (state.errors as string[] | undefined)?.find(
@@ -88,37 +126,23 @@ export function buildCollectPlanNode() {
       const msg = submitErr
         ? `规划阶段未提交任务计划: ${submitErr}`
         : '规划阶段未提交任务计划（LLM 未调用 plan_tasks）'
-      // 兜底：用 intent 生成默认 plan
-      const fallback = generateFallbackPlan(state.intent, state.userMessage)
-      if (fallback.length > 0) {
-        console.log(`[collect_plan] 使用兜底 TaskPlan（${fallback.length} 个任务）`)
-        resetGatherRounds(runtime.sessionId ?? 'default')
-        return { taskPlan: fallback, plannerError: null } as ReportStateUpdate
-      }
-      return { plannerError: msg } as ReportStateUpdate
+      console.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+      return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
     }
 
     // plan_tasks 返回了 error
     if ((planResult as any).error) {
-      const fallback = generateFallbackPlan(state.intent, state.userMessage)
-      if (fallback.length > 0) {
-        console.log(`[collect_plan] plan_tasks 报错，使用兜底 TaskPlan: ${(planResult as any).error}`)
-        resetGatherRounds(runtime.sessionId ?? 'default')
-        return { taskPlan: fallback, plannerError: null } as ReportStateUpdate
-      }
-      return { plannerError: `plan_tasks 失败: ${(planResult as any).error}` } as ReportStateUpdate
+      const msg = `plan_tasks 失败: ${(planResult as any).error}`
+      console.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+      return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
     }
 
     // 解析 tasks
     let tasks = planResult.tasks
     if (!Array.isArray(tasks) || tasks.length === 0) {
-      const fallback = generateFallbackPlan(state.intent, state.userMessage)
-      if (fallback.length > 0) {
-        console.log(`[collect_plan] plan_tasks 返回空任务，使用兜底 TaskPlan`)
-        resetGatherRounds(runtime.sessionId ?? 'default')
-        return { taskPlan: fallback, plannerError: null } as ReportStateUpdate
-      }
-      return { plannerError: 'plan_tasks 返回空任务列表' } as ReportStateUpdate
+      const msg = 'plan_tasks 返回空任务列表'
+      console.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+      return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
     }
 
     // 标准化每个 task
@@ -133,10 +157,10 @@ export function buildCollectPlanNode() {
       retryCount: 0
     }))
 
-    // 校验
+    // 结构校验
     const validationErrors = validateTaskPlan(plan)
     if (validationErrors.length > 0) {
-      console.warn(`[collect_plan] TaskPlan 校验失败: ${validationErrors.join('; ')}`)
+      console.warn(`[validate_plan] TaskPlan 校验失败: ${validationErrors.join('; ')}`)
       // 尝试修复：过滤掉引用不存在依赖的 dependsOn
       const validIds = new Set(plan.map(t => t.id))
       const fixedPlan: TaskPlan = plan.map(t => ({
@@ -145,20 +169,47 @@ export function buildCollectPlanNode() {
       }))
       const recheck = validateTaskPlan(fixedPlan)
       if (recheck.length > 0) {
-        const fallback = generateFallbackPlan(state.intent, state.userMessage)
-        if (fallback.length > 0) {
-          console.log(`[collect_plan] 修复后仍校验失败，使用兜底 TaskPlan`)
-          resetGatherRounds(runtime.sessionId ?? 'default')
-          return { taskPlan: fallback, plannerError: null } as ReportStateUpdate
-        }
-        return { plannerError: `TaskPlan 校验失败: ${recheck.join('; ')}` } as ReportStateUpdate
+        const msg = `TaskPlan 校验失败: ${recheck.join('; ')}`
+        console.warn(`[validate_plan] 修复后仍校验失败: ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+        return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
       }
-      resetGatherRounds(runtime.sessionId ?? 'default')
-      return { taskPlan: fixedPlan, plannerError: null } as ReportStateUpdate
+      // 修复成功 → 继续走后续校验（拓扑补全 + 覆盖度）
+      return finalizePlan(state, fixedPlan)
     }
 
-    console.log(`[collect_plan] 任务计划已确认: ${plan.length} 个任务`, plan.map(t => `${t.id}:${t.action}`).join(', '))
-    resetGatherRounds(runtime.sessionId ?? 'default')
-    return { taskPlan: plan, plannerError: null } as ReportStateUpdate
-  }, { nodeName: 'collect_plan' })
+    console.log(`[validate_plan] 任务计划已确认: ${plan.length} 个任务`, plan.map(t => `${t.id}:${t.action}`).join(', '))
+    return finalizePlan(state, plan)
+  }, { nodeName: 'validate_plan' })
 }
+
+/**
+ * 校验后处理：依赖拓扑补全 + 覆盖度校验
+ * - 拓扑补全：按 ACTION_DEPENDENCY_TOPOLOGY 自动补 LLM 没显式写的 dependsOn
+ * - 覆盖度校验：userMessage 意图与 plan 动作的语义对齐
+ *   失败时 set plannerError（当前路由到 summary；#A 之后回灌 understand_and_plan）
+ */
+function finalizePlan(
+  state: ReportState,
+  plan: TaskPlan
+): ReportStateUpdate {
+  // 1) 依赖拓扑自动补全
+  inferMissingDependsOn(plan)
+
+  // 2) 覆盖度校验
+  const coverageErrors = checkPlanCoverage(state.userMessage ?? '', plan)
+  if (coverageErrors.length > 0) {
+    const errMsg = `规划未覆盖用户需求: ${coverageErrors.join('; ')}`
+    const currentReplan = state.replanRound ?? 0
+    console.warn(`[validate_plan] ${errMsg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+    return { taskPlan: plan, plannerError: errMsg, replanRound: currentReplan + 1 } as ReportStateUpdate
+  }
+
+  return { taskPlan: plan, plannerError: null, replanRound: state.replanRound ?? 0 } as ReportStateUpdate
+}
+
+/**
+ * 向后兼容：原 buildCollectPlanNode 别名
+ * 内部委托给 buildValidatePlanNode，便于 #A 改完主图后逐步清理
+ * @deprecated 请改用 buildValidatePlanNode
+ */
+export const buildCollectPlanNode = buildValidatePlanNode

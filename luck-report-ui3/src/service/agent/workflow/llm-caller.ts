@@ -77,6 +77,9 @@ export function createLLMCaller(
         onReasoning: (data: string) => {
           pushEvent({ type: 'reasoning', content: data })
         },
+        onTokenUsage: (usage) => {
+          pushEvent({ type: 'token_usage', usage })
+        },
         onToolUse: (toolCall: SseToolCall) => {
           pushEvent({
             type: 'tool_call',

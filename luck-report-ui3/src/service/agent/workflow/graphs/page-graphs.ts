@@ -40,16 +40,16 @@ export function modifyPageGraph(): CompiledReportGraph {
     // 节点2：修改并写入页面配置（含页眉页脚）
     const modifyAndWritePage = createLLMDecideNode({
         nodeId: 'modify_and_write_page',
-        allowedTools: ['update_paper', 'update_header', 'update_footer', 'get_paper_config_template', 'get_header_footer_template', 'load_report_introduce'],
+        allowedTools: ['update_paper', 'update_header', 'update_footer', 'get_paper_config_template', 'get_header_footer_template', 'load_report_doc'],
         requiredToolResults: ['update_paper', 'update_header', 'update_footer'],
         maxIterations: 6,
         description:
-            'pageConfig、headerConfig、footerConfig 已在 context 中，禁止重读。按以下流程处理：\n' +
+            'pageConfig、headerConfig、footerConfig 已在 context 中。按以下流程处理：\n' +
             '1. 纸张配置：读 pageConfig → 空配置先调 get_paper_config_template 取模板 / 基于原数据调整 → 调 update_paper 写入\n' +
             '2. 页眉配置：读 headerConfig → 空配置先调 get_header_footer_template({type:"header"}) 取模板 / 基于原数据调整 → 调 update_header 写入\n' +
             '3. 页脚配置：读 footerConfig → 空配置先调 get_header_footer_template({type:"footer"}) 取模板 / 基于原数据调整 → 调 update_footer 写入\n' +
             '【重要】header 和 footer 是 reportDef 的独立字段，与 paper 平级，禁止把 header/footer 放进 paper 对象中。\n' +
-            '失败必须按 message 修正后重试对应工具，禁止换工具。'
+            '失败必须按 message 修正后重试对应工具。'
     })
 
     const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)

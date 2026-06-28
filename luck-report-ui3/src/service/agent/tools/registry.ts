@@ -1,6 +1,6 @@
 import type { ToolDefinition, ToolApiFormat } from './types'
 
-import { loadReportIntroduceTool } from './doc-tools.ts'
+import { loadReportDocTool } from './doc-tools.ts'
 import { askUserTool } from './ask-user-tool.ts'
 import {
   saveReportTool,
@@ -183,7 +183,7 @@ export function createDefaultRegistry(): ToolRegistry {
     askUserTool,
     searchBusinessKnowledgeTool,
     searchAgentKnowledgeTool,
-    loadReportIntroduceTool,
+    loadReportDocTool,
     readCellsTool,
     writeCellsTool,
     getDatasourcesTool,

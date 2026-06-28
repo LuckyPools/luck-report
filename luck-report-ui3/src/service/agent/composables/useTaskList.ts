@@ -1,6 +1,8 @@
 import {computed, ref} from 'vue'
 import type {Task} from '../tools/types'
 import type {WorkflowStepRecord} from '../workflow/state.ts'
+import type {TaskNode, TaskStatus} from '../workflow/task-plan.ts'
+import {getActionLabel} from '../workflow/task-plan.ts'
 
 /**
  * 任务列表管理 Hook，负责 Task 对象的创建、更新、查询
@@ -23,6 +25,27 @@ export function useTaskList() {
     tasks.value = newTasks
     if (workflowNode) {
       currentWorkflowNode.value = workflowNode
+    }
+  }
+
+  /**
+   * 从 LLM 规划的 TaskPlan 同步任务列表（v2 主路径）
+   * 取代旧 syncFromWorkflow，避免把 LangGraph 主图节点（load_docs / dispatch_task / summary…）渲染到 UI
+   *
+   * @param plan - LLM 通过 plan_tasks 提交的任务计划
+   * @param activeNodeId - 当前正在执行的 LangGraph 节点（validate_plan / dispatch_task），仅日志使用
+   */
+  const updateFromTaskPlan = (plan: TaskNode[], activeNodeId?: string) => {
+    tasks.value = plan.map(t => ({
+      id: t.id,
+      content: buildTaskContent(t),
+      status: mapTaskNodeStatus(t.status),
+      timestamp: Date.now()
+    }))
+    // 卡片标题写死为"任务规划"，activeNodeId 仅保留供未来扩展
+    currentWorkflowNode.value = '任务规划'
+    if (activeNodeId) {
+      console.log(`[useTaskList] 任务计划更新 from=${activeNodeId}, 任务数=${plan.length}`)
     }
   }
 
@@ -85,9 +108,51 @@ export function useTaskList() {
     tasks,
     currentWorkflowNode,
     updateTasks,
+    updateFromTaskPlan,
     syncFromWorkflow,
     getTaskProgress,
     clearTasks
+  }
+}
+
+/**
+ * 把 LLM 规划的 TaskNode 映射成 UI Task 的 content 文本
+ * 格式：`<action 中文标签>` 或 `<action 中文标签> - <params 短描述>`
+ *
+ * params 短描述按以下顺序取第一个非空值：
+ * purpose → name → description → cellAddress → cellAddresses(取首项)
+ */
+function buildTaskContent(t: TaskNode): string {
+  const label = getActionLabel(t.action)
+  const params = t.params ?? {}
+  const short =
+    (typeof params.purpose === 'string' && params.purpose) ||
+    (typeof params.name === 'string' && params.name) ||
+    (typeof params.description === 'string' && params.description) ||
+    (typeof params.cellAddress === 'string' && params.cellAddress) ||
+    (Array.isArray(params.cellAddresses) && params.cellAddresses[0])
+  return short ? `${label} - ${short}` : label
+}
+
+/**
+ * TaskPlan 的 TaskNode.status → UI Task['status'] 映射
+ * @param status - TaskNode 状态（pending/in_progress/success/failed/skipped）
+ * @returns UI Task 状态
+ */
+function mapTaskNodeStatus(
+  status: TaskStatus | string | undefined
+): Task['status'] {
+  switch (status) {
+    case 'success':
+      return 'completed'
+    case 'failed':
+    case 'skipped':
+      return 'cancelled'
+    case 'in_progress':
+      return 'in_progress'
+    case 'pending':
+    default:
+      return 'pending'
   }
 }
 

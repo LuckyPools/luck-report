@@ -9,9 +9,9 @@
  * - row-col-graphs.ts            行/列结构（modify_row / modify_col / read_rows / read_cols）
  * - form-graphs.ts          查询表单/页面配置（modify / read_form / read_page）
  * - dataset-shared-builders.ts   数据集工作流共享节点构造器
- * - unified-report-graph.ts      顶层唯一主图（read + write 自由混排）
+ * - unit-report-graph.ts      顶层唯一主图（read + write 自由混排）
  *
- * 关键约定：read_* 工厂不在 index.ts 单独导出，仅由 unified-report-graph.ts 的 ActionRegistry 内部调用
+ * 关键约定：read_* 工厂不在 index.ts 单独导出，仅由 unit-report-graph.ts 的 ActionRegistry 内部调用
  */
 
 export {
@@ -35,4 +35,4 @@ export { modifyFormGraph } from './form-graphs.ts'
 export { modifyPageGraph } from './page-graphs.ts'
 
 /** 统一报表主图（顶层唯一入口，read + write 自由混排） */
-export { buildUnifiedReportGraph } from './unified-report-graph.ts'
+export { buildUnifiedReportGraph } from './unit-report-graph.ts'

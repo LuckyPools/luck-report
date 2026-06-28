@@ -33,10 +33,23 @@ const marked = new Marked(
   })
 )
 
+marked.setOptions({
+  breaks: true,
+  gfm: true
+})
+
 const renderedHtml = computed(() => {
   if (!props.content) return ''
-  const rawHtml = marked.parseInline(props.content) as string
-  return DOMPurify.sanitize(rawHtml)
+  // 软换行归一化已转移到 InputArea.handlePaste（粘贴阶段处理）。
+  // 这里只做轻量规范化：折叠多个连续空行，避免 marked 把多 \n\n 渲染成空 <p>。
+  const normalized = props.content
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+  const rawHtml = marked.parse(normalized) as string
+  const safeHtml = DOMPurify.sanitize(rawHtml)
+  // marked 解析后总会输出 "</p>\n"，v-html 注入后这个 \n 在父元素
+  // white-space: normal 下被合并（不再渲染成空白行），但为安全起见仍剥一次。
+  return safeHtml.replace(/\n+$/, '')
 })
 </script>
 
@@ -48,8 +61,8 @@ const renderedHtml = computed(() => {
   line-height: 1.6;
   color: #374151;
   word-wrap: break-word;
-  word-break: keep-all;
-  white-space: pre-wrap;
+  word-break: normal;
+  white-space: normal;
 }
 
 .markdown-render p {

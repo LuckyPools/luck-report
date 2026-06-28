@@ -233,6 +233,9 @@ const shortcutHint = computed(() => getShortcutHint())
 
 /** 动态 placeholder，包含快捷键提示 */
 const placeholderText = computed(() => {
+  if (props.responseStatus === 'awaiting_user') {
+    return '请回复 Agent 的问题，Enter 发送'
+  }
   return props.placeholder || `请输入消息，${shortcutHint.value}`
 })
 

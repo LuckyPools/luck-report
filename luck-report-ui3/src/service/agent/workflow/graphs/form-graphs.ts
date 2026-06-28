@@ -39,11 +39,11 @@ export function modifyFormGraph(): CompiledReportGraph {
   // 节点2：修改并写入查询表单
   const modifyAndWriteForm = createLLMDecideNode({
     nodeId: 'modify_and_write_form',
-    allowedTools: ['set_search_form', 'get_search_form_template', 'load_report_introduce'],
+    allowedTools: ['set_search_form', 'get_search_form_template', 'load_report_doc'],
     requiredToolResults: ['set_search_form'],
     maxIterations: 4,
     description:
-      'searchForm 已在 context 中，禁止重读。按"读 searchForm → 场景判断（空表单先调 get_search_form_template 取模板 / 基于原数据调整）→ 调 set_search_form 写入"流程处理。\n' +
+      'searchForm 已在 context 中。按"读 searchForm → 场景判断（空表单先调 get_search_form_template 取模板 / 基于原数据调整）→ 调 set_search_form 写入"流程处理。\n' +
       '【数据集参数同步】如果 state.dataset 存在且包含 parameters 数组，说明前序 create_dataset/modify_dataset 任务已生成带查询参数的数据集，' +
       '此时必须将 dataset.parameters 中的每个参数作为查询条件添加到表单中（参数名即条件名，参数类型决定控件类型）。' +
       '如果 state.dataset 不存在或无 parameters，则按用户描述的 taskParams 调整表单。'

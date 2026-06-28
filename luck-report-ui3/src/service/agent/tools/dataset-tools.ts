@@ -196,7 +196,7 @@ export const getDatasetTemplateTool: ToolDefinition<{
   name: 'get_dataset_template',
   description: `获取符合规范的SQL数据集模板。返回完整的数据集定义模板，包含所有必填字段。
 【参数】name: 数据集名称（可选）；sql: SQL语句（可选）。
-【重要】fields 必须通过 build_fields 工具生成，禁止自行编造；dataset 参数必须是JSON对象。`,
+【重要】fields 必须通过 build_fields 工具生成，禁止自行编造。`,
   inputSchema: {
     type: 'object',
     properties: {

@@ -8,6 +8,7 @@ import type { ToolRegistry } from '../tools/registry.ts'
 import type { MemoryManager } from '../memory/memory-manager.ts'
 import type { ContextManager } from '../core/context-manager.ts'
 import type { StreamEvent } from './stream-mode.ts'
+import type { TokenUsage } from '@/api/chat'
 
 /**
  * LLM 调用事件
@@ -18,6 +19,7 @@ export type LLMEvent =
   | { type: 'reasoning'; content: string }
   | { type: 'tool_call'; toolCallId: string; toolName: string; input: Record<string, any> }
   | { type: 'tool_result'; toolCallId: string; toolName: string; result: any; error?: string }
+  | { type: 'token_usage'; usage: TokenUsage }
   | { type: 'done' }
   | { type: 'error'; message: string }
 

@@ -3,11 +3,11 @@
  * 业务节点通过 import { extractDocsMap, runToolWithEvent, ... } from '../utils' 使用
  */
 
-// 兼容旧版 load_report_introduce 返回字符串的兜底分隔
+// 兼容旧版 load_report_doc 返回字符串的兜底分隔
 export const DOC_SEPARATOR = /\n*---- 分界线 ----\n*/
 
 /**
- * 从 load_report_introduce 工具返回结果中提取 { docName: content } 映射
+ * 从 load_report_doc 工具返回结果中提取 { docName: content } 映射
  * @param result - 工具返回的原始结果
  * @param fallbackNames - 字符串模式的兜底 docName 列表
  * @returns 文档名到内容的映射
@@ -392,6 +392,13 @@ export function inferDatasetName(userMessage: string, template: any): string {
 /** 为 LLM 节点注入已就绪的工作流 state（避免 LLM 编造 default_datasource 等） */
 export function buildWorkflowStateContext(state: Record<string, any>): string {
   const parts: string[] = []
+  // 注入报表状态：让 understand_and_plan 等规划类节点感知"是否有打开的报表"，
+  // 用于消歧 report_agent / create_report（仅作辅助信息，不影响意图阶段的相关性判定）
+  if (state.reportState) {
+    parts.push('reportState: 已有打开的报表')
+  } else {
+    parts.push('reportState: 没有打开的报表（如需新建报表请明确告知）')
+  }
   if (state.targetDatasourceName) {
     parts.push(`targetDatasourceName: ${JSON.stringify(state.targetDatasourceName)}`)
   }
@@ -466,15 +473,31 @@ export async function runToolWithEvent<T>(runtime: any, stepId: string, toolName
     event: { nodeId: stepId, output: { type: 'tool_call', toolCallId, toolName, input }, status: 'running' },
     timestamp: Date.now()
   })
-  const result = await runtime?.toolRegistry.executeTool(toolName, input)
-  runtime?.emitEvent({
-    mode: 'updates',
-    event: {
-      nodeId: stepId,
-      output: { type: 'tool_result', toolCallId, toolName, result },
-      status: result !== null && result !== undefined ? 'success' : 'failed'
-    },
-    timestamp: Date.now()
-  })
-  return result as T
+  try {
+    const result = await runtime?.toolRegistry.executeTool(toolName, input)
+    runtime?.emitEvent({
+      mode: 'updates',
+      event: {
+        nodeId: stepId,
+        output: { type: 'tool_result', toolCallId, toolName, result },
+        status: result !== null && result !== undefined ? 'success' : 'failed'
+      },
+      timestamp: Date.now()
+    })
+    return result as T
+  } catch (err: any) {
+    // 关键决策点：工具执行失败时必须发 tool_result(failed) 事件，否则 UI 卡在"执行中..."
+    // 错误信息封装成 { success: false, message } 供上层 nodes 解析
+    const errPayload = { success: false, message: err?.message ?? String(err), error: err }
+    runtime?.emitEvent({
+      mode: 'updates',
+      event: {
+        nodeId: stepId,
+        output: { type: 'tool_result', toolCallId, toolName, result: errPayload, error: errPayload },
+        status: 'failed'
+      },
+      timestamp: Date.now()
+    })
+    throw err
+  }
 }

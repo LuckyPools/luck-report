@@ -34,6 +34,7 @@ import type { ReportState, ReportStateUpdate } from '../state.ts'
  */
 export function modifyCellGraph(): CompiledReportGraph {
   // 节点1：读取单元格数据（LLM 节点，使用 resultKey='cellsData'）
+  // 支持 taskParams.cellAddresses（数组，优先）或 cellAddress（单值）
   const readCells = createLLMDecideNode({
     nodeId: 'read_cells',
     allowedTools: ['read_cells'],
@@ -41,10 +42,9 @@ export function modifyCellGraph(): CompiledReportGraph {
     maxIterations: 2,
     resultKey: 'cellsData',
     description:
-      '本步骤仅负责一次性读取用户指定的所有目标单元格（必须把用户提到的全部坐标一次传入 read_cells.cellPositionArray，例如 A1+B2 应传 [{row:1,col:1},{row:2,col:2}]）。' +
-      '**禁止**重复读取、禁止输出任何文字向用户提问、禁止在本步骤尝试写入。' +
-      '读到结果后立即结束本步骤，写入操作由后续的 modify_and_write_cells 完成。' +
-      '**读到的 cellsData 会自动进入 modify_and_write_cells 的 context，无需也不允许重读**。'
+      '从 taskParams.cellAddresses（数组）或 cellAddress（单值）读取坐标，一次 read_cells 取全部。\n' +
+      'A=1/B=2/.../Z=26/AA=27（1-based），A1→{row:1,col:1}。\n' +
+      '读到后立即结束，cellsData 会进入 modify_and_write_cells 的 context。'
   })
 
   // 节点2：补齐行列（解析 cellsData 目标坐标，差值时调 insert_row/insert_col）
@@ -85,13 +85,13 @@ export function modifyCellGraph(): CompiledReportGraph {
   // 节点3：修改并写入单元格（LLM 节点；maxIterations 内部循环）
   const modifyAndWriteCellsLLM = createLLMDecideNode({
     nodeId: 'modify_and_write_cells',
-    allowedTools: ['write_cells', 'get_cell_template', 'load_report_introduce'],
+    allowedTools: ['write_cells', 'get_cell_template', 'load_report_doc'],
     requiredToolResults: ['write_cells'],
     maxIterations: 6,
     description:
-      'cellsData 已在 context 中，禁止重读。按"读 cellsData → 场景判断（空/类型变更/同类型修改）→ 一次 write_cells"流程处理。' +
-      '**索引基准**：get_cell_template 的 rowIndex/colIndex 是 0-based；write_cells 的 key "row,col" 是 1-based，如 C4 → rowIndex=3, colIndex=2, key="4,3"。' +
-      '失败必须按 message 修正后重试 write_cells，禁止换工具。'
+      'cellsData 已在 context 中。taskParams.cellAddresses 列出待写入的 cell，合并为一个 cells 对象、一次 write_cells 完成。\n' +
+      '索引：get_cell_template 用 0-based，write_cells 的 key "row,col" 用 1-based（C4→"4,3"）。\n' +
+      '失败重试同一次 write_cells，不要拆成多次。'
   })
 
   // 边序：__start__ → read_cells → check_and_apply_row_col → modify_and_write_cells（写入）→ __end__

@@ -10,12 +10,12 @@ import type { ReportSnapshot } from '../memory/types'
 import type { TokenUsage } from '@/api/chat'
 import type { WorkflowStepRecord } from '../workflow/state.ts'
 import type { IntentAnalysisResult } from '../workflow/types'
+import type { TaskNode } from '../workflow/task-plan.ts'
 import { chatStream, type ContextMessage, type SseToolCall } from '@/api/chat'
 import { getIntentAnalysisPrompt, INTENT_ANALYSIS_SCHEMA, buildIntentAnalysisTools, buildIntentToolChoice, INTENT_TOOL_NAME } from '../workflow/intent-prompt'
 import { WorkflowRuntime } from '../workflow/runtime.ts'
 import { createLLMCaller } from '../workflow/llm-caller.ts'
 import { getGraphByIntent } from '../workflow/workflow-graphs.ts'
-import { getCompiledNodeNames, getCompiledNode } from '../workflow/wrapper.ts'
 import { runtimeToContext } from '../workflow/context-annotation.ts'
 import { filterActiveErrors } from '../workflow/utils.ts'
 import type { StreamEvent } from '../workflow/stream-mode.ts'
@@ -61,8 +61,17 @@ export interface AgentLoopConfig {
   maxIterationsPerStep?: number
   /** 是否启用深度思考，启用后模型会先生成推理过程再生成回复 */
   deepThink?: boolean
-  /** 步骤记录变更回调，用于同步任务进度到前端 */
+  /**
+   * @deprecated 自 v2 起 UI 只展示 LLM 规划任务，使用 onTaskPlanChange 替代
+   * 保留字段以防外部消费者依赖
+   */
   onStepRecordsChange?: (stepRecords: WorkflowStepRecord[], activeStepId?: string) => void
+  /**
+   * 任务计划变更回调（仅 LLM 规划的具体子任务）
+   * 当 validate_plan 完成或 dispatch_task 每次自环时触发，回调拿到最新的 TaskPlan
+   * 取代旧 onStepRecordsChange，避免把 LangGraph 主图节点（load_docs / dispatch_task / summary…）渲染到 UI
+   */
+  onTaskPlanChange?: (plan: TaskNode[], activeNodeId?: string) => void
 }
 
 /**
@@ -99,26 +108,17 @@ async function runWorkflowMode(
   // 将用户消息追加到记忆
   memoryManager.addMessage({ role: 'user', content: userMessage })
 
-  // 步骤记录（兼容旧 UI）
-  const stepRecords: WorkflowStepRecord[] = []
   const stepToolCallIdMap = new Map<string, string>()
 
   try {
     // ==================== 阶段1：意图分析 ====================
     // 保留旧引擎的意图分析逻辑（chatStream + Function Calling）
-    stepRecords.push({ stepId: 'intent_analysis', stepName: '分析用户意图', status: 'in_progress', retryCount: 0 })
-    config.onStepRecordsChange?.([...stepRecords], 'intent_analysis')
-
     let reportState: any = undefined
     try {
       reportState = getReportSchema()
     } catch { /* 获取报表状态失败不阻塞意图分析 */ }
 
     const intent = await analyzeIntent(userMessage, config, reportState, onEvent)
-
-    // 更新意图分析步骤状态
-    const intentRecord = stepRecords.find(r => r.stepId === 'intent_analysis')
-    if (intentRecord) intentRecord.status = 'completed'
 
     // 处理无关意图
     if (intent.intentType === 'irrelevant') {
@@ -182,6 +182,8 @@ async function runWorkflowMode(
             onEvent({ type: 'tool_call_result', toolCall: { toolCallId, toolName: output.toolName ?? '', input: {}, status: output.error ? 'error' : 'done', result: output.result, error: output.error } })
           } else if (output.type === 'user_prompt') {
             onEvent({ type: 'user_prompt', taskId: output.taskId, question: output.question, options: output.options })
+          } else if (output.type === 'token_usage') {
+            onEvent({ type: 'token_usage', usage: output.usage })
           } else if (data.status === 'failed') {
             onEvent({ type: 'text_delta', content: `  错误: ${data.error ?? '未知错误'}\n` })
           }
@@ -196,19 +198,6 @@ async function runWorkflowMode(
       reportState
     }
     console.log(`[DEBUG][agent-loop] 阶段3 流式执行 graphInput=${Object.keys(graphInput).join(',')}`)
-
-    const nodeNames = getCompiledNodeNames(compiledGraph)
-    for (const nodeName of nodeNames) {
-      if (nodeName.startsWith('__')) continue
-      const nodeDef = getCompiledNode(compiledGraph, nodeName)
-      stepRecords.push({
-        stepId: nodeName,
-        stepName: nodeDef?.description ?? nodeName,
-        status: 'pending',
-        retryCount: 0
-      })
-    }
-    config.onStepRecordsChange?.([...stepRecords])
 
     // 流式执行图
     let hasError = false
@@ -227,23 +216,21 @@ async function runWorkflowMode(
       for (const nodeName of nodeNames) {
         if (nodeName.startsWith('__')) continue
         const output = chunk[nodeName]
-        const record = stepRecords.find(r => r.stepId === nodeName)
-        if (record && record.status === 'pending') {
-          record.status = 'completed'
-        }
         // 检查节点输出中的错误
         if (output?.errors) {
           const childErrors = filterActiveErrors(output.errors)
           if (childErrors.length > 0) {
-            if (record) {
-              record.status = 'error'
-              record.error = childErrors.join('; ')
-            }
             hasError = true
             errorMessage = childErrors.join('; ')
           }
         }
-        config.onStepRecordsChange?.([...stepRecords], nodeName)
+        // 任务计划变更：validate_plan / dispatch_task 的 output 里有 state.taskPlan
+        // LangGraph streamMode='updates' 下 chunk[nodeName] 就是节点返回的 ReportStateUpdate
+        if ((nodeName === 'validate_plan' || nodeName === 'dispatch_task')
+            && output?.taskPlan
+            && Array.isArray(output.taskPlan)) {
+          config.onTaskPlanChange?.(output.taskPlan, nodeName)
+        }
       }
 
       // 将 LangGraph 原始 chunk 转换为 AgentEvent
@@ -327,13 +314,12 @@ async function analyzeIntent(
   const schemaStr = JSON.stringify(INTENT_ANALYSIS_SCHEMA, null, 2)
   const systemContent = '你是Luck-Report报表助手。\n\n' + intentPrompt.replace('{{INTENT_ANALYSIS_SCHEMA}}', schemaStr)
 
-  const reportExists = !!reportState
-  const contextPrefix = reportExists ? '[当前报表状态：已有打开的报表]' : '[当前报表状态：没有打开的报表]'
-  const contextUserMessage = `${contextPrefix}\n${userMessage}`
-
+  // 意图分析阶段不注入 contextPrefix：报表是否打开属于"环境信息"，不是"用户意图"，
+  // 拼到 user message 开头会让 LLM 把环境当成意图一部分推理，导致模糊输入被强行归入 report_agent。
+  // 报表状态由后续 understand_and_plan 节点通过 buildWorkflowStateContext 感知。
   const messages: ContextMessage[] = [
     { role: 'system', content: systemContent },
-    { role: 'user', content: contextUserMessage }
+    { role: 'user', content: userMessage }
   ]
 
   const tools = buildIntentAnalysisTools()
@@ -350,6 +336,9 @@ async function analyzeIntent(
       onReasoning: (data) => {
         reasoningText += data
         onEvent({ type: 'reasoning_delta', content: data })
+      },
+      onTokenUsage: (usage) => {
+        onEvent({ type: 'token_usage', usage })
       },
       onToolUse: (toolCall: SseToolCall) => {
         if (toolCall.toolName === INTENT_TOOL_NAME) {
@@ -385,12 +374,6 @@ async function analyzeIntent(
 function parseIntentFromObject(obj: Record<string, any>): IntentAnalysisResult {
   return {
     intentType: obj.intentType || 'irrelevant',
-    needsDatasourceOperation: obj.needsDatasourceOperation ?? false,
-    needsCellOperation: obj.needsCellOperation ?? false,
-    needsFormOperation: obj.needsFormOperation ?? false,
-    needsPageConfigOperation: obj.needsPageConfigOperation ?? false,
-    needsRowOperation: obj.needsRowOperation ?? false,
-    needsColOperation: obj.needsColOperation ?? false,
     needsBusinessKnowledge: obj.needsBusinessKnowledge ?? false,
     needsAgentKnowledge: obj.needsAgentKnowledge ?? false,
     needsSchemaSearch: obj.needsSchemaSearch ?? false,
@@ -425,12 +408,6 @@ function parseIntentJson(text: string): IntentAnalysisResult {
 
   return {
     intentType: 'irrelevant',
-    needsDatasourceOperation: false,
-    needsCellOperation: false,
-    needsFormOperation: false,
-    needsPageConfigOperation: false,
-    needsRowOperation: false,
-    needsColOperation: false,
     needsBusinessKnowledge: false,
     needsAgentKnowledge: false,
     needsSchemaSearch: false,
@@ -511,21 +488,13 @@ function convertChunkToAgentEvents(
 
 /**
  * 构建意图分析后的用户确认消息
- * 顶层只有 report_agent 一条路径，按 needs*Operation 拼出动作预告即可
+ * 意图阶段不再预测具体动作（避免误判后承诺错误动作），仅简要确认收到需求。
+ * 具体动作预告交给 understand_and_plan 节点完成。
  * @param intent - 意图分析结果，IntentAnalysisResult，不可为空
  * @returns 友好的确认消息文本，string
  */
 function buildIntentConfirmMessage(intent: IntentAnalysisResult): string {
   if (intent.intentType !== 'report_agent') return ''
   const desc = intent.taskDescription || '您的需求'
-  const actions: string[] = []
-  if (intent.needsDatasourceOperation) actions.push('配置数据源/数据集')
-  if (intent.needsCellOperation) actions.push('修改单元格')
-  if (intent.needsFormOperation) actions.push('配置查询表单')
-  if (intent.needsRowOperation) actions.push('调整行结构')
-  if (intent.needsColOperation) actions.push('调整列结构')
-  if (intent.needsPageConfigOperation) actions.push('调整页面配置')
-  const head = `好的，我已了解您的需求：${desc}`
-  if (actions.length === 0) return head
-  return `${head}\n接下来我将为您${actions.join('、')}，请稍候。`
+  return `好的，我已了解您的需求：${desc}\n请稍候，正在为您规划任务。`
 }

@@ -141,11 +141,19 @@ const dispatchSseEvent = (type: string, data: string, callbacks: SseCallbacks) =
     callbacks.onError(data || '请求失败')
   } else if (type === 'message') {
     if (data && data !== '[DONE]') {
-      callbacks.onMessage(data)
+      try {
+        callbacks.onMessage(JSON.parse(data))
+      } catch {
+        callbacks.onMessage(data)
+      }
     }
   } else if (type === 'reasoning_content') {
     if (data && callbacks.onReasoning) {
-      callbacks.onReasoning(data)
+      try {
+        callbacks.onReasoning(JSON.parse(data))
+      } catch {
+        callbacks.onReasoning(data)
+      }
     }
   } else if (type === 'token_usage') {
     if (data && callbacks.onTokenUsage) {

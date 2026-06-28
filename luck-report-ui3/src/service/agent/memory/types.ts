@@ -36,9 +36,9 @@ export interface MemoryMessage {
   /** 标记该消息是否已被截断，用于提示 LLM 结果不完整 */
   truncated?: boolean
   /**
-   * 工具调用加载的文档名列表（仅 load_report_introduce 等知识库工具需要）
+   * 工具调用加载的文档名列表（仅 load_report_doc 等知识库工具需要）
    * 用于 LLMDecideNode.buildMessages 检测"该文档是否已加载"，避免重复注入
-   * 例如：load_report_introduce 工具结果标记 docRefs=['PARENT_CELL_RELATION']
+   * 例如：load_report_doc 工具结果标记 docRefs=['PARENT_CELL_RELATION']
    */
   docRefs?: string[]
 }

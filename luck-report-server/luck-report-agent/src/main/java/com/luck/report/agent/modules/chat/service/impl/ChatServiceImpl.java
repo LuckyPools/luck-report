@@ -334,19 +334,25 @@ public class ChatServiceImpl implements ChatService {
                 }
 
                 // 提取文本增量内容
+                // 关键：data 用 JSON 编码（writeValueAsString），把换行符/首尾空格转义为单行字符串，
+                // 避免 Spring SseEmitter 把 \n 拆成多行 data: 字段、前端 .trim() 误删空格。
+                // 与 tool_use / token_usage 事件保持一致；前端 dispatchSseEvent 用 JSON.parse 还原。
                 Object content = delta.get("content");
                 if (content != null && !content.toString().isEmpty()) {
                     String contentStr = content.toString();
                     outputTextLength += contentStr.length();
-                    emitter.send(SseEmitter.event().name("message").data(contentStr));
+                    emitter.send(SseEmitter.event().name("message")
+                            .data(ChatUtils.getObjectMapper().writeValueAsString(contentStr)));
                 }
 
                 // 提取思考内容（qwen3.6-plus 等模型的 reasoning_content 字段）
+                // 同 message：JSON 编码保留换行/空格
                 Object reasoningContent = delta.get("reasoning_content");
                 if (reasoningContent != null && !reasoningContent.toString().isEmpty()) {
                     String reasoningStr = reasoningContent.toString();
                     outputTextLength += reasoningStr.length();
-                    emitter.send(SseEmitter.event().name("reasoning_content").data(reasoningStr));
+                    emitter.send(SseEmitter.event().name("reasoning_content")
+                            .data(ChatUtils.getObjectMapper().writeValueAsString(reasoningStr)));
                 }
 
                 // 累积 tool_calls 片段

@@ -116,30 +116,30 @@ export function buildResolveFilterConditionsNode() {
       '   → 提取 columnName（必须是表结构中实际存在的列）、paramName、operator、label\n' +
       '2. 以上都没有 → 无筛选需求\n' +
       '   → 立即调用 parse_filter_conditions({conditions:[]})\n' +
-      '【约束】columnName 必须来自表结构，禁止编造；立即调用工具，不要调用其他工具。'
+      '【约束】columnName 必须来自表结构，禁止编造；立即调用 parse_filter_conditions。'
   })
 }
 
-/** 6. build_dataset — LLM 驱动的 dataset 组装（可调用 load_report_introduce 查文档） */
+/** 6. build_dataset — LLM 驱动的 dataset 组装（可调用 load_report_doc 查文档） */
 export function buildBuildDatasetNode(options?: { preserveName?: boolean }) {
   const preserveName = options?.preserveName ?? false
   const stepId = 'build_dataset'
-  // LLM Decider 节点：让 LLM 组装 dataset，可调用 load_report_introduce 查文档、commit_dataset 提交
+  // LLM Decider 节点：让 LLM 组装 dataset，可调用 load_report_doc 查文档、commit_dataset 提交
   const llmNode = createLLMDecideNode({
     nodeId: stepId,
-    allowedTools: ['load_report_introduce', 'commit_dataset'],
+    allowedTools: ['load_report_doc', 'commit_dataset'],
     requiredToolResults: ['commit_dataset'],
     maxIterations: 4,
     resultKey: 'dataset',
     resultKeyAsObject: true,
     description:
-      '本步骤负责组装数据集对象。state 中已包含 targetDatasourceName、tableStructures（已解析的表结构）、datasetTemplate、filterAnalysis 等上下文，禁止重读。\n' +
+      '本步骤负责组装数据集对象。state 中已包含 targetDatasourceName、tableStructures（已解析的表结构）、datasetTemplate、filterAnalysis 等上下文。\n' +
       '【必须做】\n' +
       '1. 基于 tableStructures 中的 tableName/columns 生成 baseSql（SELECT columns FROM tableName 形式）\n' +
       '2. 若 filterAnalysis.conditions 非空，根据 operator 拼出 WHERE 子句，并构造 parameters 数组\n' +
       '3. **必须**调用 commit_dataset 工具提交最终 dataset 对象，dataset 至少包含：name（preserveName=true 时用 state.dataset.name）、sql、fields（数组，可从 tableStructures.columns 映射得到 [{name,type,label}]）、parameters\n' +
-      '【可选】如对字段格式/数据集规范不确定，可调 load_report_introduce 查询 DATASOURCE_DATASET 文档。\n' +
-      '【禁止】不要调 add_dataset / update_dataset / build_fields 等其他工具，写入由后续 validate_dataset → write_dataset 节点完成。\n' +
+      '【可选】如对字段格式/数据集规范不确定，可调 load_report_doc 查询 DATASOURCE_DATASET 文档。\n' +
+      '写入由后续 validate_dataset → write_dataset 节点完成。\n' +
       '【保留原名】preserveName=true 时，dataset.name 必须使用 state.dataset 已有的 name。'
   })
   return withInput(async (state: ReportState, _config, runtime) => {
@@ -154,7 +154,7 @@ export function buildBuildDatasetNode(options?: { preserveName?: boolean }) {
     // llmNode 自身已 withInput 包装，传 (state, config) 即可，runtime 由其内部从 config.context 重建
     void runtime
     const result: any = await (llmNode as any)(state, _config as any)
-    // LLM Decider 返回 { dataset: { commit_dataset: {...}, load_report_introduce?: {...} } }
+    // LLM Decider 返回 { dataset: { commit_dataset: {...}, load_report_doc?: {...} } }
     const commitResult = result?.dataset?.commit_dataset
     if (!commitResult || !commitResult.dataset) {
       return { errors: ['build_dataset: LLM 未通过 commit_dataset 工具提交数据集'] } as ReportStateUpdate

@@ -105,7 +105,7 @@ export class MemoryManager {
   }
 
   /**
-   * 获取 messages 里所有 load_report_introduce 已加载的文档名集合
+   * 获取 messages 里所有 load_report_doc 已加载的文档名集合
    */
   getLoadedDocNames(): Set<string> {
     const result = new Set<string>()

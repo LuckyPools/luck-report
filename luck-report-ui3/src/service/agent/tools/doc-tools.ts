@@ -12,10 +12,10 @@ const INSTRUCTION_DOC_NAMES = Object.keys(PROMPT_DOC_PATH_MAP).filter(
 /**
  * 加载报表提示词文档工具，获取报表组件、表达式、数据源等详细说明
  */
-export const loadReportIntroduceTool: ToolDefinition<{
+export const loadReportDocTool: ToolDefinition<{
   fileNames: PromptDocName[]
 }> = {
-  name: 'load_report_introduce',
+  name: 'load_report_doc',
   description: `加载报表相关的提示词文档，获取报表组件、表达式、数据源等详细说明。可传入多个文件名同时加载，返回结构体 { docs: { [fileName]: content } }。当需要了解报表某个方面的详细规范时调用此工具。
 【参数格式要求】
 fileNames 必须是一个字符串数组，数组中的每个元素必须是以下枚举值之一（区分大小写）：

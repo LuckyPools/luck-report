@@ -72,12 +72,14 @@ export {
     PLANNER_TOOL_NAME,
     PLANNER_TASK_SCHEMA,
     EXECUTABLE_ACTIONS,
+    SUMMARY_ACTION,
     validateTaskPlan,
     pickReadyTasks,
     isPlanDone,
     isPlanDead,
     propagateFailure,
-    generateFallbackPlan
+    inferMissingDependsOn,
+    checkPlanCoverage
 } from './task-plan'
 export type {
     TaskNode,
@@ -98,8 +100,10 @@ export {
 } from './dispatcher'
 
 // 理解+规划节点（合并原 gather + planner）
+// buildValidatePlanNode 是新名（原 buildCollectPlanNode），#4 改动后推荐使用
 export {
     buildUnderstandPlanNode,
+    buildValidatePlanNode,
     buildCollectPlanNode
 } from './nodes/understand-plan-node'
 

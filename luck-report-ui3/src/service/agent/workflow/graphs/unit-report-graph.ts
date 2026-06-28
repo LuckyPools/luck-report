@@ -3,15 +3,16 @@
  *
  * 阶段切分：
  *   START → load_docs ─┐
- *   START → search_knowledge ─┴─► understand_and_plan → collect_plan
+ *   START → search_knowledge ─┴─► understand_and_plan → validate_plan
  *     ├─ taskPlan 就绪 → dispatch_task ⇄ dispatch_task → summary → END
- *     └─ plannerError 非空 → summary（规划失败兜底）
+ *     └─ plannerError 非空 → summary（规划失败兜底，#A 改为回灌 understand_and_plan）
  *
  * 关键设计：
  * - understand_and_plan 合并原 gather_requirements + plan_execution，
  *   LLM 一次调用完成"理解需求 + 规划任务"，省掉 RequirementsSpec 中间层
  * - ask_user 在 understand_and_plan 阶段可用（中断型）
  * - plan_tasks 在 understand_and_plan 阶段可用（必调）
+ * - validate_plan 节点（原 collect_plan）做结构校验 + 依赖拓扑补全 + 覆盖度校验
  * - summary 节点根据 state.plannerError / state.taskResults 路由两种模式
  */
 
@@ -24,7 +25,7 @@ import {
   withInput
 } from '../index.ts'
 import type { CompiledReportGraph, ReportState, ReportStateUpdate } from '../index.ts'
-import { buildUnderstandPlanNode, buildCollectPlanNode } from '../nodes/understand-plan-node.ts'
+import { buildUnderstandPlanNode, buildValidatePlanNode } from '../nodes/understand-plan-node.ts'
 import {
   createDatasourceGraph,
   modifyDatasourceGraph,
@@ -54,9 +55,9 @@ const DISPATCH_ROUND_FIELD = 'dispatchRound'
  *
  * 边序（三阶段架构）：
  *   START ─┬─► load_docs ───────────────┐
- *          └─► search_knowledge ─────────┴─► understand_and_plan → collect_plan
+ *          └─► search_knowledge ─────────┴─► understand_and_plan → validate_plan
  *                                                  ├─► dispatch_task ⇄ dispatch_task → summary → END
- *                                                  └─► summary → END（plannerError 非空时）
+ *                                                  └─► summary → END（plannerError 非空时，#A 改为回灌）
  */
 export function buildUnifiedReportGraph(): CompiledReportGraph {
   // ===== 阶段1：前置探查 =====
@@ -76,9 +77,9 @@ export function buildUnifiedReportGraph(): CompiledReportGraph {
     return { searchResults: sr } as ReportStateUpdate
   }, { nodeName: 'search_knowledge' })
 
-  // ===== 阶段2：理解需求 + 规划任务（合并原 gather + planner）=====
+  // ===== 阶段2：理解需求 + 规划任务 + 校验规划 =====
   const understandAndPlan = buildUnderstandPlanNode({ maxIterations: 8 })
-  const collectPlan = buildCollectPlanNode()
+  const validatePlan = buildValidatePlanNode()
 
   // ===== 阶段3：Dispatcher（自环节点）=====
   const registry: ActionRegistry = buildActionRegistry()
@@ -89,28 +90,40 @@ export function buildUnifiedReportGraph(): CompiledReportGraph {
 
   // ===== 主图组装 =====
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
-    .addNode('load_docs', loadDocs)
-    .addNode('search_knowledge', searchKnowledge)
-    // 阶段2：understand_and_plan → collect_plan
-    .addNode('understand_and_plan', understandAndPlan)
-    .addNode('collect_plan', collectPlan)
+    .addNode('load_docs', loadDocs, { metadata: { description: '加载报表文档' } })
+    .addNode('search_knowledge', searchKnowledge, { metadata: { description: '检索业务知识/Agent 经验/数据源表结构' } })
+    // 阶段2：understand_and_plan → validate_plan
+    .addNode('understand_and_plan', understandAndPlan, { metadata: { description: '理解用户需求并规划任务' } })
+    .addNode('validate_plan', validatePlan, { metadata: { description: '校验任务计划' } })
     // 阶段3：dispatch_task（自环）
-    .addNode('dispatch_task', dispatcher)
+    .addNode('dispatch_task', dispatcher, { metadata: { description: '按计划执行任务' } })
     // 阶段4：summary
-    .addNode('summary', summary)
+    .addNode('summary', summary, { metadata: { description: '汇总执行结果' } })
     // 阶段1：load_docs + search_knowledge 并行汇合到 understand_and_plan
     .addEdge(START, 'load_docs')
     .addEdge(START, 'search_knowledge')
     .addEdge('load_docs', 'understand_and_plan')
     .addEdge('search_knowledge', 'understand_and_plan')
-    // 阶段2：understand_and_plan → collect_plan
-    .addEdge('understand_and_plan', 'collect_plan')
-    // collect_plan 条件路由：plannerError 非空直接 summary；否则进 dispatch_task
-    .addConditionalEdges('collect_plan', (state: ReportState) => {
-      if (state.plannerError) return 'summary'
+    // 阶段2：understand_and_plan → validate_plan
+    .addEdge('understand_and_plan', 'validate_plan')
+    // validate_plan 条件路由（#A 改动）：
+    //   plannerError && replanRound<2 → understand_and_plan（回灌重规划，#A 反馈链路）
+    //   plannerError && replanRound>=2 → summary（超限，报告规划错误）
+    //   taskPlan 就绪 → dispatch_task
+    //   否则 → summary
+    .addConditionalEdges('validate_plan', (state: ReportState) => {
+      if (state.plannerError) {
+        if ((state.replanRound ?? 0) < 2) {
+          console.log(`[unit-report-graph] validate_plan 失败 (replanRound=${state.replanRound})，回灌 understand_and_plan 重规划`)
+          return 'understand_and_plan'
+        }
+        console.log(`[unit-report-graph] validate_plan 失败且重规划超限 (replanRound=${state.replanRound})，进 summary`)
+        return 'summary'
+      }
       if (Array.isArray(state.taskPlan) && state.taskPlan.length > 0) return 'dispatch_task'
       return 'summary'
     }, {
+      understand_and_plan: 'understand_and_plan',
       dispatch_task: 'dispatch_task',
       summary: 'summary'
     })

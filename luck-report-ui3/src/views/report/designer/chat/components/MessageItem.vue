@@ -177,6 +177,56 @@
       </div>
     </template>
 
+    <!-- Agent ask_user 提问消息 -->
+    <template v-else-if="message.type === 'ask_user' && message.askUserPrompt">
+      <div class="message-wrapper assistant-wrapper">
+        <div class="avatar-column">
+          <a-avatar
+            v-if="currentProvider?.providerLogo"
+            :src="currentProvider.providerLogo"
+            class="assistant-avatar-img"
+          />
+          <a-avatar
+            v-else
+            :src="aiAvatarUrl"
+            class="assistant-avatar-img"
+          />
+        </div>
+        <div class="assistant-content">
+          <div class="ask-user-card">
+            <div class="ask-user-header">
+              <QuestionCircleOutlined class="ask-user-icon" />
+              <span class="ask-user-label">补充信息</span>
+            </div>
+            <div class="ask-user-body">
+              <div class="ask-user-question">{{ message.askUserPrompt.question }}</div>
+              <div
+                v-if="message.askUserPrompt.options && message.askUserPrompt.options.length"
+                class="ask-user-options"
+              >
+                <a-tag
+                  v-for="opt in message.askUserPrompt.options"
+                  :key="opt"
+                  class="ask-user-option-pill"
+                  @click="emit('select-option', opt)"
+                >{{ opt }}</a-tag>
+              </div>
+            </div>
+            <div class="ask-user-footer">
+              <span class="ask-user-footer-hint">请在下方输入框回复，回复后会继续执行</span>
+            </div>
+          </div>
+          <div class="action-bar">
+            <a-tooltip title="删除">
+              <a-button type="text" size="small" @click="emit('delete', index)">
+                <template #icon><DeleteOutlined /></template>
+              </a-button>
+            </a-tooltip>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- 助手消息 -->
     <template v-else>
       <div class="message-wrapper assistant-wrapper">
@@ -222,7 +272,7 @@
             <details v-if="message.reasoningContent" :open="true" class="reasoning-details">
               <summary class="reasoning-summary">
                 <i class="iconfont icon-think think-icon" />
-                <span class="reasoning-label">已深度思考</span>
+                <span class="reasoning-label">思考已完成</span>
                 <RightOutlined class="reasoning-arrow" />
               </summary>
               <div class="reasoning-content">
@@ -337,6 +387,8 @@ interface Props {
 interface Emits {
   (e: 'retry', index: number): void
   (e: 'delete', index: number): void
+  /** ask_user 提问的 option 被点击（父组件拿到后直接 sendMessage 走完整流程） */
+  (e: 'select-option', option: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -832,5 +884,70 @@ const getUserImages = (attachments: Attachment[]): string[] => {
 .tool-call-code.error {
   color: #ef4444;
   background-color: #fef2f2;
+}
+
+/* ask_user 提问卡片样式 */
+.ask-user-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ask-user-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.ask-user-icon {
+  font-size: 14px;
+  color: #d48806;
+}
+
+.ask-user-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ask-user-body {
+  padding: 10px 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.ask-user-question {
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.ask-user-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ask-user-option-pill {
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.ask-user-footer {
+  padding: 6px 12px;
+  border-top: 1px solid #e5e7eb;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.ask-user-footer-hint {
+  font-size: 12px;
+  opacity: 0.85;
 }
 </style>

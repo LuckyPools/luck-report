@@ -22,6 +22,14 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
    * 设置后 execute 不会被调用，工具执行流直接被中断信号取代
    */
   interruptOnCall?: 'ask_user'
+  /**
+   * 是否在对话区向用户展示该工具的调用记录
+   * - 默认 true：所有真实工具都应该展示，方便用户查看 Agent 干了什么
+   * - false：用于"虚拟工具"（如 plan_tasks），它们不操作设计器，
+   *   仅作为 function calling 协议锚点强制 LLM 输出结构化 TaskPlan，
+   *   展示给用户没有价值反而造成噪音
+   */
+  showMessage?: boolean
 }
 
 /**

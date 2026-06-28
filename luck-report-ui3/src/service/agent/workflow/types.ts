@@ -5,23 +5,14 @@
 
 /**
  * 意图分析结果
+ *
+ * 设计原则：意图阶段只回答"用户输入是否与报表相关"这一核心问题，
+ * 具体要改报表哪些部分、要加载哪些文档等需求理解工作，交给后续 understand_and_plan 节点完成。
  */
 export interface IntentAnalysisResult {
   /** 用户意图类型：report_agent 统一接管所有报表相关需求，由 Planner 自主规划读/写混排 */
   intentType: 'report_agent' | 'irrelevant' | 'create_report'
-  /** 是否涉及数据源/数据集的操作（读取或修改） */
-  needsDatasourceOperation: boolean
-  /** 是否涉及单元格的操作（读取或修改） */
-  needsCellOperation: boolean
-  /** 是否涉及查询表单的操作（读取或修改） */
-  needsFormOperation: boolean
-  /** 是否涉及页面配置的操作（读取或修改） */
-  needsPageConfigOperation: boolean
-  /** 是否涉及行操作（行高调整、插入/删除行等） */
-  needsRowOperation: boolean
-  /** 是否涉及列操作（列宽调整、插入/删除列等） */
-  needsColOperation: boolean
-  /** 是否涉及业务知识查询 */
+  /** 是否需要业务知识查询 */
   needsBusinessKnowledge: boolean
   /** 是否需要参考报表制作经验 */
   needsAgentKnowledge: boolean

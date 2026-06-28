@@ -216,6 +216,17 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => b ?? a,
     default: () => null
   }),
+  /**
+   * 重规划计数器（#A 改动）
+   * - validate_plan 校验失败时 +1
+   * - 条件边据此判断是否回灌 understand_and_plan 重规划
+   * - 上限 2（即最多重规划 2 次），超限进 summary 报告错误
+   * - reducer 用 max 语义：并发更新时取最大值，避免漏计
+   */
+  replanRound: Annotation<number>({
+    reducer: (a, b) => Math.max(a ?? 0, b ?? 0),
+    default: () => 0
+  }),
   /** 任务计划最大调度轮次（防止死循环），由主图常量传入 */
   planMaxRounds: Annotation<number | null>({
     reducer: (a, b) => b ?? a,

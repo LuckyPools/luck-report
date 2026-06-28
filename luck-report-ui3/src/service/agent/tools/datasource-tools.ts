@@ -166,7 +166,7 @@ export const getTableRelationTool: ToolDefinition<{
     '【参数】\n' +
     '- query (必填, string): 待查询的表名，如"用户表"或"user"\n' +
     '- datasourceId (与 datasourceName 二选一, integer): 数据源ID\n' +
-    '- datasourceName (与 datasourceId 二选一, string): 数据源名称（推荐使用本字段，对齐 buildin 数据源中文名）\n' +
+    '- datasourceName (与 datasourceId 二选一, string): 数据源名称（字面量），如 "UserDatasource"\n' +
     '【返回】格式化的表结构信息，包括表名、字段、表关联关系等，用于构建SQL数据集。',
   inputSchema: {
     type: 'object',
@@ -202,12 +202,8 @@ export const getTableRelationTool: ToolDefinition<{
       throw new Error('必须提供 datasourceId 或 datasourceName')
     }
 
-    const response = await getSchemaPrompt(params)
-    if (response.code === 0) {
-      return response.data
-    } else {
-      throw new Error(response.message || '获取Schema提示词失败')
-    }
+    // request.post 已在拦截器里解包 ResultVO.data，失败时直接 throw，无需再 .code/.data
+    return getSchemaPrompt(params)
   },
   readOnly: true,
   requireConfirm: false
@@ -255,12 +251,8 @@ export const searchSchemaTool: ToolDefinition<{
     required: ['query']
   },
   execute: async ({ query }) => {
-    const response = await searchSchema(query)
-    if (response.code === 0) {
-      return response.data
-    } else {
-      throw new Error(response.message || '搜索Schema失败')
-    }
+    // request.post 已在拦截器里解包 ResultVO.data，失败时直接 throw，无需再 .code/.data
+    return searchSchema(query)
   },
   readOnly: true,
   requireConfirm: false

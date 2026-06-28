@@ -21,7 +21,7 @@ import {
   modifyFormGraph,
   modifyPageGraph
 } from './graphs'
-import { buildUnifiedReportGraph } from './graphs/unified-report-graph.ts'
+import { buildUnifiedReportGraph } from './graphs/unit-report-graph.ts'
 
 /**
  * 工作流图注册表

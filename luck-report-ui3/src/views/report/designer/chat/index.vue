@@ -3,7 +3,7 @@
     <FloatButton
       :visible="chatVisible"
       :is-dragging="isDragging"
-      :position-x="panelPosition.x + 870"
+      :position-x="panelPosition.x + panelWidth - 50"
       :position-y="panelPosition.y"
       @mousedown="onFloatButtonMouseDown"
       @click="onFloatButtonClick"
@@ -12,7 +12,7 @@
     <div
       v-if="chatVisible"
       class="ai-dialog-wrapper"
-      :style="{ transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)` }"
+      :style="{ width: panelWidth + 'px', left: panelPosition.x + 'px', top: panelPosition.y + 'px' }"
     >
       <DialogHeader
         :is-dragging="isDragging"
@@ -56,6 +56,7 @@
                 :all-provider-list-by-key="allProviderListByKey"
                 @retry="handleRetry"
                 @delete="handleDelete"
+                @select-option="selectAskUserOption"
               />
               <ResponsingMessage
                 :response-status="responseStatus"
@@ -76,12 +77,6 @@
               @click="scrollToBottom"
             />
           </div>
-
-          <UserPromptBar
-            :prompt="awaitingUserPrompt"
-            @dismiss="handleDismissUserPrompt"
-            @select-option="fillOption"
-          />
 
           <InputArea
             :response-status="responseStatus"
@@ -134,7 +129,6 @@ import ScrollToBottomButton from './components/ScrollToBottomButton.vue'
 import ChatList from './components/ChatList.vue'
 import EmptyState from './components/EmptyState.vue'
 import FloatButton from './components/FloatButton.vue'
-import UserPromptBar from './components/UserPromptBar.vue'
 import DialogHeader from './components/DialogHeader.vue'
 import type { Attachment } from './types/chat'
 
@@ -144,8 +138,9 @@ const { messagesLoading } = storeToRefs(chatStore)
 const chatVisible = ref(false)
 const chatBodyRef = ref<HTMLElement | null>(null)
 const chatListRef = ref<InstanceType<typeof ChatList> | null>(null)
-/** 弹窗尺寸：含左侧历史对话栏 240px + 右侧主区 680px = 920 总宽，高度 560 */
-const { isDragging, dragMoved, panelPosition, resetPosition, handleMouseDown } = useDrag(920, 560, 50, 50)
+/** 弹窗尺寸：含左侧历史对话栏 240px + 右侧主区 620px = 860 总宽，高度 560 */
+const panelWidth = 860
+const { isDragging, dragMoved, panelPosition, resetPosition, handleMouseDown } = useDrag(panelWidth, 560, 50, 50)
 
 const {
   messageList,
@@ -158,7 +153,6 @@ const {
   historyType,
   historyCount,
   pendingConfirmToolCall,
-  awaitingUserPrompt,
   currentSessionId,
   sendMessage,
   stopChat,
@@ -172,7 +166,6 @@ const {
   setHistoryCount,
   confirmAgentTool,
   rejectAgentTool,
-  dismissUserPrompt,
   loadSession,
   taskListManager
 } = useChat()
@@ -235,24 +228,17 @@ const sendQuickQuestion = (item: { icon: string; text: string }) => {
 /** 是否启用深度思考（影响后续发送消息时是否传入 deepThink 参数） */
 const deepThinkEnabled = ref(false)
 
-/** 忽略 ask_user 中断：清空 awaitingUserPrompt，状态切回 done */
-const handleDismissUserPrompt = () => {
-  dismissUserPrompt()
-}
-
-/** 选中备选项：把选项填入输入框（通过 DOM 找到 textarea 并设值 + 触发 input 事件） */
-const fillOption = (opt: string) => {
-  const textarea = document.querySelector<HTMLTextAreaElement>('.input-textarea')
-  if (!textarea) return
-  // 用原生 setter 绕过 Vue 的响应式追踪，确保 input 事件能正确触发 v-model 更新
-  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-  if (nativeSetter) {
-    nativeSetter.call(textarea, opt)
-  } else {
-    textarea.value = opt
-  }
-  textarea.focus()
-  textarea.dispatchEvent(new Event('input', { bubbles: true }))
+/**
+ * 处理 ask_user 提问中 option 被点击：把选项作为用户回复直接发送
+ * 走 sendMessage 完整流程（包含 ask_user 上下文包装），planner 看到回复后会继续执行任务
+ *
+ * @param option - 被点击的选项文本
+ */
+const selectAskUserOption = (option: string) => {
+  if (!option || responseStatus.value === 'pending') return
+  const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
+  const maxTokens = currentModelInfo.value?.maxTokens
+  sendMessage(option, undefined, undefined, modelId, maxTokens, deepThinkEnabled.value)
 }
 
 /** 是否显示引导提示（当模型未配置时） */
@@ -277,7 +263,7 @@ const handleModelChange = (modelId: string) => {
 /**
  * 判断指定索引的消息是否为连续消息
  * 对应 HiveChat MessageList.tsx 的 showLine 逻辑：
- * - 当前消息是 assistant，且下一条也是 assistant → 连续
+ * - 当前消息是 assistant（且不是 ask_user 卡片），且下一条也是 assistant → 连续
  * - 当前是最后一条 assistant，且正在等待响应 → 连续（与 ResponsingMessage 之间显示连接线）
  *
  * @param index - 消息索引
@@ -286,9 +272,12 @@ const handleModelChange = (modelId: string) => {
 const isConsecutiveMessage = (index: number): boolean => {
   const item = messageList.value[index]
   if (!item || item.role !== 'assistant') return false
+  // ask_user 提问消息有独立卡片样式，不参与连接线
+  if (item.type === 'ask_user') return false
 
-  // 当前消息是 assistant，且下一条也是 assistant
-  if (index < messageList.value.length - 1 && messageList.value[index + 1]?.role === 'assistant') {
+  // 当前消息是 assistant，且下一条也是 assistant（非 ask_user 卡片）
+  const next = messageList.value[index + 1]
+  if (index < messageList.value.length - 1 && next?.role === 'assistant' && next.type !== 'ask_user') {
     return true
   }
 
@@ -496,7 +485,7 @@ const handleNewChat = () => {
 }
 
 .ai-dialog-wrapper {
-  width: 920px;
+  position: fixed;
   height: 560px;
   background: #fff;
   border-radius: 12px;

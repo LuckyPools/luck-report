@@ -27,12 +27,16 @@ export interface LLMDecideNodeOptions {
   maxIterations?: number
   /** 步骤描述，供 LLM 理解该步骤的目的 */
   description?: string
-  /**
-   * 节点结果键（可选）
+  /** 节点结果键（可选）
    * 默认：返回 `{ [toolName]: result, ... }`（LangGraph reducer 自动按 key 合并）
    * 设置后合并到一个对象下：{ [resultKey]: accumulated }
    */
   resultKey?: string
+  /**
+   * 禁用所有工具（LLM 只能生成文本，不调用任何工具）
+   * 用于 summary 等纯文本输出节点，避免 LLM 调用工具而非生成文本
+   */
+  disableTools?: boolean
   /**
    * resultKey 模式下是否按 toolName 分键（默认 false 走展平逻辑）
    * true：避免工具返回的子字段被展平污染 resultKey 顶层
@@ -81,7 +85,8 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     toolCallIdMap.clear()
     currentRunId = runtime.runId
 
-    const tools = filterAllowedTools(options, runtime.toolRegistry)
+    // disableTools=true 时不给 LLM 任何工具，强制纯文本输出（用于 summary 等节点）
+    const tools = options.disableTools ? [] : filterAllowedTools(options, runtime.toolRegistry)
     const messages = buildMessages(options, state, runtime.memoryManager)
 
     const toolResults: Record<string, any> = {}
@@ -91,11 +96,18 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     const hasRequiredAll = (options.requiredToolResults?.length ?? 0) > 0
     const hasRequiredAny = (options.requiredToolResultsAny?.length ?? 0) > 0
     const hasRequiredTools = hasRequiredAll || hasRequiredAny
-    const toolChoice: any = hasRequiredAll
+    // 关键决策点：首轮是否强制必选工具
+    // - requiredToolResults (AND) → 任何时候都强制
+    // - requiredToolResultsAny (OR) + forceToolChoiceFirst=true → 仅首轮强制第一个必需工具，
+    //   强制 LLM 优先尝试出 plan/写数据；后续轮次放开 toolChoice 让 LLM 自由选 ask_user 等
+    const baseToolChoice: any = hasRequiredAll
       ? (options.requiredToolResults!.length === 1
         ? { type: 'function', function: { name: options.requiredToolResults![0] } }
         : 'required')
-      : undefined
+      : (hasRequiredAny && (options as any).forceToolChoiceFirst
+          ? { type: 'function', function: { name: options.requiredToolResultsAny![0] } }
+          : undefined)
+    let toolChoice: any = baseToolChoice
     console.log(`[llm-decide] node=${nodeId} tools=${JSON.stringify(options.allowedTools)} toolChoice=${JSON.stringify(toolChoice)}`)
     let iteration = 0
     // 关键决策点：跟踪必需工具是否曾被调用但返回 error，用于触发"系统强制重试"
@@ -105,6 +117,8 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
 
     while (iteration < maxIterations) {
       iteration++
+      // 关键决策点：首轮过后放开 toolChoice，让 LLM 自由选 ask_user 等
+      if (iteration > 1) toolChoice = undefined
 
       const llmGen = runtime.llmCaller(messages, tools, {
         signal: runtime.signal,
@@ -125,6 +139,10 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
 
           case 'reasoning':
             runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'step_reasoning', content: event.content }, status: 'running' }, timestamp: Date.now() })
+            break
+
+          case 'token_usage':
+            runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'token_usage', usage: event.usage }, status: 'running' }, timestamp: Date.now() })
             break
 
           case 'tool_call': {
@@ -287,7 +305,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
               runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: err.message }, status: 'running' }, timestamp: Date.now() })
               toolResults[event.toolName] = { error: err.message }
               // 关键决策点：catch 路径也要把 error 写进 accumulatedResult，
-              // 否则下游节点（planner 的 collect_plan）读 state.taskResults['plan_tasks'] 拿不到任何值，
+              // 否则下游节点（planner 的 validate_plan）读 state.taskResults['plan_tasks'] 拿不到任何值，
               // 会报"Planner 未调用 plan_tasks 工具"（误导，实际情况是工具返回了 error）
               if (options.resultKey) {
                 if (!accumulatedResult) accumulatedResult = {}
@@ -404,7 +422,8 @@ function filterAllowedTools(options: LLMDecideNodeOptions, toolRegistry: any): a
  */
 function buildMessages(options: LLMDecideNodeOptions, state: ReportState, memoryManager: any): any[] {
   const history = memoryManager.getContextMessages()
-  const stepContext = options.description ? `\n\n当前步骤: ${options.description}` : ''
+  const descriptionText = typeof options.description === 'function' ? options.description(state) : options.description
+  const stepContext = descriptionText ? `\n\n当前步骤: ${descriptionText}` : ''
 
   // 知识库内容注入
   const searchResults = state.searchResults

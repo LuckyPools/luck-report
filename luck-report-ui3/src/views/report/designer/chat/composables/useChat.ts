@@ -29,7 +29,6 @@ export function useChat() {
     historyType,
     historyCount,
     pendingConfirmToolCall,
-    awaitingUserPrompt,
     currentSessionId
   } = storeToRefs(store)
 
@@ -122,7 +121,8 @@ export function useChat() {
    * @returns 过滤后可用于发送给 API 的消息列表
    */
   const getFilteredMessages = (): Message[] => {
-    const validMessageType = ['text', 'image']
+    // 包含文本、图片、ask_user 提问消息（让 LLM 看到自己的提问作为上下文）
+    const validMessageType = ['text', 'image', 'ask_user']
 
     const breakIndex = messageList.value.findLastIndex(item => item.type === 'break')
     let tmpMessages = breakIndex > -1
@@ -220,6 +220,12 @@ export function useChat() {
           responseMessage.value = ''
           responseReasoning.value = ''
         }
+        // 关键决策点：过滤掉"虚拟工具"（如 plan_tasks），
+        // 这些工具不操作设计器，仅作 function calling 协议锚点，showMessage=false
+        // 展示给用户没有价值反而造成噪音
+        if (agentEngine.toolRegistry.get(event.toolCall.toolName)?.showMessage === false) {
+          break
+        }
         const toolCallMsg: Message = {
           id: Date.now(),
           role: 'assistant',
@@ -254,6 +260,10 @@ export function useChat() {
       }
 
       case 'tool_call_result': {
+        // 关键决策点：虚拟工具（showMessage=false）没有对应的展示消息，跳过结果更新
+        if (agentEngine.toolRegistry.get(event.toolCall.toolName)?.showMessage === false) {
+          break
+        }
         // 逆序查找：同一 toolCallId 可能因 fork 复用出现多条，始终更新最近一条
         let toolMsg: Message | undefined
         for (let i = messageList.value.length - 1; i >= 0; i--) {
@@ -277,8 +287,7 @@ export function useChat() {
       }
 
       case 'user_prompt': {
-        // 不再单独处理 user_prompt 事件 — 等 done(reason='awaiting_user') 一次性处理
-        // 避免重复设置 awaitingUserPrompt
+        // 不再单独处理 user_prompt 事件 — 等 done(reason='awaiting_user') 在 done 分支统一处理
         break
       }
 
@@ -296,17 +305,25 @@ export function useChat() {
         abortController = null
 
         if (event.reason === 'awaiting_user') {
-          // ask_user 中断：把 question 写入 awaitingUserPrompt，UI 在输入框上方显示提示
-          // 不把 responseStatus 设为 done，保持 pending 状态以禁用发送按钮
+          // ask_user 中断：把 question 作为一条 type='ask_user' 的消息推入消息流
+          // 用户在底部输入框回复，回复后整条 ask_user 消息 + 用户回复 都会作为上下文
           responseStatus.value = 'awaiting_user'
           if (event.prompt) {
-            awaitingUserPrompt.value = {
-              taskId: event.prompt.taskId,
-              question: event.prompt.question,
-              options: event.prompt.options
+            const askUserMsg: Message = {
+              id: `${Date.now()}-ask`,
+              role: 'assistant',
+              content: event.prompt.question,
+              createdAt: new Date(),
+              type: 'ask_user',
+              askUserPrompt: {
+                taskId: event.prompt.taskId,
+                question: event.prompt.question,
+                options: event.prompt.options
+              }
             }
+            messageList.value.push(askUserMsg)
           }
-          // 持久化当前消息（保留已生成的 assistant 文本/工具记录）
+          // 持久化当前消息（保留已生成的 assistant 文本/工具记录/ask_user 问题）
           store.persistMessages().catch(e => {
             console.warn('[useChat] ask_user 中断后消息持久化失败:', e)
           })
@@ -428,25 +445,20 @@ const sendMessage = async (
       }
     }
 
-    // ask_user 模式下：把用户当前的输入作为"对问题的补充回答"，并清空 awaitingUserPrompt
-    // 不再单独发问 — 重新进入 plan/exec 完整流程，让 agent 看到完整上下文
-    const promptContext = awaitingUserPrompt.value
+    // ask_user 模式下：把用户当前的输入作为"对问题的补充回答"
+    // 问题已经在 messageList 中作为 type='ask_user' 的消息存在，作为 LLM 上下文的一部分
+    // 这里仅在系统提示中再次显式标注，避免 planner 把它当新提问并再次触发 ask_user
     const finalContent = content.trim()
-    // 关键决策点：enrichedContent 携带"上轮 ask_user 任务 id + 显式禁止再问"提示
-    // 之前只用"【针对...】...【我的回答】..."格式，planner 看到也当成新提问，反复规划 ask_user
-    // 现在加了"上轮任务 id"和"系统提示禁止再问同样问题"，planner 才能精准判断这是回复
-    const enrichedContent = promptContext
-      ? `【上一轮 ask_user 任务】问题：${promptContext.question}\n` +
+    // 找出最近一条 ask_user 消息（防止 planner 看到 ask_user 问题后再次规划 ask_user 问同样的内容）
+    const lastAskUserMsg = [...messageList.value].reverse().find(m => m.type === 'ask_user' && m.askUserPrompt)
+    const enrichedContent = lastAskUserMsg?.askUserPrompt
+      ? `【上一轮 Agent 提问】${lastAskUserMsg.askUserPrompt.question}\n` +
         `【本轮用户回答】${finalContent}\n` +
-        `【系统提示】这是对上一轮 ask_user 的回复，请从"本轮用户回答"中提取参数并直接规划后续执行任务，` +
+        `【系统提示】这是对上一轮 Agent 提问的回复，请从"本轮用户回答"中提取参数并直接规划后续执行任务，` +
         `禁止再次规划 ask_user 问同样的内容。` +
         `除非"本轮用户回答"明显缺少关键字段（如只回答了"嗯"、完全不相关），` +
         `且必须用精准单点问题（如"类型未指定，请提供 mysql 或 oracle"），不要整组再问一遍。`
       : finalContent
-
-    if (promptContext) {
-      awaitingUserPrompt.value = null
-    }
 
     const userMessage: Message = {
       id: Date.now(),
@@ -521,6 +533,14 @@ const sendMessage = async (
 
     // 通过 store 加载会话数据
     await store.loadSession(sessionId)
+
+    // 恢复 responseStatus：如果最后一条是 ask_user 提问（用户未回复），切回 awaiting_user
+    const lastMsg = messageList.value[messageList.value.length - 1]
+    if (lastMsg?.type === 'ask_user') {
+      responseStatus.value = 'awaiting_user'
+    } else {
+      responseStatus.value = 'done'
+    }
 
     // 第5层：优先尝试从 localStorage 恢复 Agent 记忆
     const restored = agentEngine.restoreSession(sessionId)
@@ -642,15 +662,6 @@ const sendMessage = async (
     pendingConfirmToolCall.value = null
   }
 
-  /**
-   * 取消 ask_user 中断（用户选择不回答，让 agent 用默认推断继续）
-   * 调用后清空 awaitingUserPrompt，触发 store 中记录的"已忽略"提示
-   */
-  const dismissUserPrompt = () => {
-    awaitingUserPrompt.value = null
-    responseStatus.value = 'done'
-  }
-
   return {
     // 从 storeToRefs 解构出的 ref，保持 .value 访问方式
     messageList,
@@ -663,7 +674,6 @@ const sendMessage = async (
     historyType,
     historyCount,
     pendingConfirmToolCall,
-    awaitingUserPrompt,
     currentSessionId,
 
     // 业务方法
@@ -679,7 +689,6 @@ const sendMessage = async (
     setHistoryCount,
     confirmAgentTool,
     rejectAgentTool,
-    dismissUserPrompt,
     loadSession,
     getFilteredMessages,
 

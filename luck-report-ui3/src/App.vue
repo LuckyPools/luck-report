@@ -16,8 +16,6 @@ import type { ThemeConfig } from 'ant-design-vue/es/config-provider/context'
 defineOptions({ name: 'App' })
 
 const { locale } = useI18n()
-
-/** 根据当前 i18n 语言切换 antd 组件内置文案（分页、表格等） */
 const antdLocale = computed(() => (locale.value === 'zh' ? zhCN : enUS))
 
 const themeConfig: ThemeConfig = {

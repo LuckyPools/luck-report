@@ -89,19 +89,20 @@
           </div>
         </div>
 
-        <div class="message-bubble">
+        <div class="message-bubble" :class="{ 'message-bubble--collapsed': isBubbleCollapsed }">
           <!-- 深度思考区域 -->
           <template v-if="responseReasoning">
-            <div class="reasoning-section">
-              <div class="reasoning-header">
+            <details :open="reasoningOpen" class="reasoning-details" @toggle="onReasoningToggle">
+              <summary class="reasoning-summary">
                 <FlowLoading v-if="!responseMessage" class="reasoning-flow-icon" />
                 <i v-else class="iconfont icon-think think-icon" />
                 <span class="reasoning-label">{{ responseMessage ? '已深度思考' : '正在思考...' }}</span>
-              </div>
-              <div class="reasoning-body">
+                <RightOutlined class="reasoning-arrow" />
+              </summary>
+              <div class="reasoning-content">
                 <MarkdownRender :content="responseReasoning" />
               </div>
-            </div>
+            </details>
           </template>
           <!-- 等待首字时显示 DotsLoading -->
           <template v-if="!responseMessage && !responseReasoning && searchStatus !== 'searching' && (!mcpTools || mcpTools.length === 0)">
@@ -122,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { ResponseStatus, SearchStatus, McpToolCall, ModelProvider } from '../types/chat'
 import MarkdownRender from './MarkdownRender.vue'
 import DotsLoading from './loading/DotsLoading.vue'
@@ -134,7 +135,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   RedoOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  RightOutlined
 } from '@ant-design/icons-vue'
 import { Avatar as AAvatar, Button as AButton } from 'ant-design-vue'
 import type { ToolCall } from '@/service/agent/tools/types'
@@ -191,6 +193,30 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   if (!props.providerId || !props.allProviderListByKey) return undefined
   return props.allProviderListByKey[props.providerId]
 })
+
+/** 深度思考折叠区展开状态：思考中默认展开，用户收起后保持收起 */
+const reasoningOpen = ref(true)
+
+/** 响应切换：原生 details 的 toggle 事件 */
+const onReasoningToggle = (e: Event) => {
+  reasoningOpen.value = (e.target as HTMLDetailsElement).open
+}
+
+/** 每次新一次响应开始时重置为展开状态 */
+watch(
+  () => props.responseStatus,
+  () => {
+    reasoningOpen.value = true
+  }
+)
+
+/**
+ * 气泡是否应收缩宽度
+ * 仅在仅有推理内容、且用户已折叠，且还未开始输出主消息时收缩
+ */
+const isBubbleCollapsed = computed(() => {
+  return !!props.responseReasoning && !reasoningOpen.value && !props.responseMessage
+})
 </script>
 
 <style scoped>
@@ -242,6 +268,16 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   color: #374151;
   word-wrap: break-word;
   margin-top: 2px;
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  transition: max-width 0.2s ease, width 0.2s ease;
+}
+
+.message-bubble--collapsed {
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 12px;
 }
 
 .balls-wrapper {
@@ -383,17 +419,27 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
 }
 
 /* 深度思考样式 */
-.reasoning-section {
-  margin-bottom: 12px;
+.reasoning-details {
+  margin-bottom: 4px;
 }
 
-.reasoning-header {
+.reasoning-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.reasoning-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reasoning-summary {
   display: inline-flex;
   align-items: center;
   padding: 4px 6px;
   border-radius: 6px;
   font-size: 12px;
   color: #374151;
+  user-select: none;
 }
 
 .reasoning-flow-icon {
@@ -421,12 +467,23 @@ const currentProvider = computed<ModelProvider | undefined>(() => {
   color: #374151;
 }
 
-.reasoning-body {
-  border-left: 2px solid #e5e7eb;
-  padding: 8px 12px;
-  margin-top: 8px;
-  margin-left: 11px;
+.reasoning-arrow {
+  margin-left: 2px;
+  font-size: 10px;
   color: #9ca3af;
+  transition: transform 0.2s;
+}
+
+.reasoning-details[open] .reasoning-arrow {
+  transform: rotate(90deg);
+}
+
+.reasoning-content {
+  margin-top: 5px;
+  margin-left: 6px;
+  padding: 0 12px;
+  color: #9ca3af;
+  border-left: 2px solid #e5e7eb;
   line-height: 1.6;
   font-size: 13px;
 }

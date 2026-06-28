@@ -143,8 +143,9 @@ export class AgentEngine {
       modelId,
       maxIterationsPerStep: this.maxIterationsPerStep,
       deepThink: effectiveDeepThink,
-      // 通过回调同步步骤记录到任务列表
-      onStepRecordsChange: (stepRecords, activeStepId) => this.taskListManager.syncFromWorkflow(stepRecords, activeStepId)
+      // 通过 onTaskPlanChange 同步 LLM 规划的具体子任务到任务列表
+      // （旧 onStepRecordsChange 会把 LangGraph 主图节点也推过来，已弃用）
+      onTaskPlanChange: (plan, activeNodeId) => this.taskListManager.updateFromTaskPlan(plan, activeNodeId)
     }
 
     try {

@@ -74,7 +74,7 @@ export function createDatasourceGraph(): CompiledReportGraph {
       '3. 比对两者，筛选出匹配的 buildin 数据源\n' +
       '【关键】如果 search_schema 返回的结果中没有 buildin 类型（只有 jdbc/spring），' +
       '则输出提示：当前无内置数据源匹配该需求，jdbc/spring 数据源需用户在报表设计器中手动添加。\n' +
-      '【禁止】本步骤不允许调用 add_datasource / get_datasource_template，仅做搜索筛选'
+      '本步骤仅做搜索筛选。'
   })
 
   // 节点2：确定性选名 + 反查已存在则跳过 + 否则拉模板写入

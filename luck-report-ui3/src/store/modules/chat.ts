@@ -95,9 +95,6 @@ export const useChatStore = defineStore('chat', () => {
   /** Agent 待确认的工具调用 */
   const pendingConfirmToolCall = ref<ToolCall | null>(null)
 
-  /** Agent ask_user 任务中断后等待用户在输入框回复的提问 */
-  const awaitingUserPrompt = ref<{ taskId: string; question: string; options?: string[] } | null>(null)
-
   /** 用户是否正在手动滚动 */
   const isUserScrolling = ref(false)
 
@@ -258,6 +255,21 @@ export const useChatStore = defineStore('chat', () => {
           } catch {
             // metadata 解析失败时忽略
           }
+        } else if (msg.messageType === 'ask_user' && msg.metadata) {
+          // 恢复 ask_user 提问信息（taskId / question / options）
+          try {
+            const meta = JSON.parse(msg.metadata)
+            message.askUserPrompt = {
+              taskId: meta.taskId || '',
+              question: meta.question || msg.content || '',
+              options: Array.isArray(meta.options) ? meta.options : undefined
+            }
+          } catch {
+            message.askUserPrompt = {
+              taskId: '',
+              question: msg.content || ''
+            }
+          }
         }
 
         messageList.value.push(message)
@@ -347,6 +359,14 @@ export const useChatStore = defineStore('chat', () => {
           toolName: msg.agentToolCall.toolName,
           input: msg.agentToolCall.input,
           status: msg.agentToolCall.status
+        })
+      } else if (msg.type === 'ask_user' && msg.askUserPrompt) {
+        // 持久化 ask_user 提问信息（taskId / question / options）
+        item.messageType = 'ask_user'
+        item.metadata = JSON.stringify({
+          taskId: msg.askUserPrompt.taskId,
+          question: msg.askUserPrompt.question,
+          options: msg.askUserPrompt.options
         })
       } else {
         item.messageType = msg.type || 'text'
@@ -450,7 +470,6 @@ export const useChatStore = defineStore('chat', () => {
     historyType,
     historyCount,
     pendingConfirmToolCall,
-    awaitingUserPrompt,
     isUserScrolling
   }
 })

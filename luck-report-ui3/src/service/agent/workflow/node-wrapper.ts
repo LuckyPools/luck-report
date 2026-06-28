@@ -35,7 +35,7 @@ export interface NodeWrapperOptions {
  * @example
  * ```ts
  * g.addNode('loadDocs', withInput(async (state, config, runtime) => {
- *   const result = await runtime.toolRegistry.executeTool('load_report_introduce', { fileNames: docs })
+ *   const result = await runtime.toolRegistry.executeTool('load_report_doc', { fileNames: docs })
  *   return { searchResults: { docs: result } }
  * }, { nodeName: 'loadDocs' }))
  * ```

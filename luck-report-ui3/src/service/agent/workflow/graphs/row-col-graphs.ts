@@ -39,7 +39,7 @@ export function createRowGraph(): CompiledReportGraph {
 
   const createRowLLM = createLLMDecideNode({
     nodeId: 'create_row_llm',
-    allowedTools: ['insert_row', 'load_report_introduce'],
+    allowedTools: ['insert_row', 'load_report_doc'],
     requiredToolResultsAny: ['insert_row'],
     maxIterations: 3,
     description:
@@ -49,8 +49,7 @@ export function createRowGraph(): CompiledReportGraph {
       'rowData 已在 context 中，不需要再调 get_rows。\n' +
       'insert_row 参数：position（插入位置，从0开始）、number（插入行数，默认1）。\n' +
       '注意：用户说的行号通常从1开始，而 insert_row 的 position 从0开始，需要减1转换。\n' +
-      '例如：在第2行前插入 → position=1, number=1。\n' +
-      '禁止调用 set_rows / 列相关工具 / write_cells 等。'
+      '例如：在第2行前插入 → position=1, number=1。'
   })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
@@ -80,7 +79,7 @@ export function modifyRowGraph(): CompiledReportGraph {
 
   const modifyAndWriteRowLLM = createLLMDecideNode({
     nodeId: 'modify_and_write_row',
-    allowedTools: ['set_rows', 'get_row_definitions_template', 'load_report_introduce'],
+    allowedTools: ['set_rows', 'get_row_definitions_template', 'load_report_doc'],
     requiredToolResultsAny: ['set_rows'],
     maxIterations: 4,
     description:
@@ -90,7 +89,7 @@ export function modifyRowGraph(): CompiledReportGraph {
       'rowData 已在 context 中，不需要再调 get_rows。\n' +
       '批量修改 → set_rows({rows: 全量数组}) 一次性传入。\n' +
       '不确定行定义格式时，可先调 get_row_definitions_template 获取模板。\n' +
-      '禁止分多轮写入。禁止调用 insert_row / delete_row / 列相关工具 / write_cells 等。'
+      '禁止分多轮写入。'
   })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
@@ -121,7 +120,7 @@ export function createColGraph(): CompiledReportGraph {
 
   const createColLLM = createLLMDecideNode({
     nodeId: 'create_col_llm',
-    allowedTools: ['insert_col', 'load_report_introduce'],
+    allowedTools: ['insert_col', 'load_report_doc'],
     requiredToolResultsAny: ['insert_col'],
     maxIterations: 3,
     description:
@@ -131,8 +130,7 @@ export function createColGraph(): CompiledReportGraph {
       'colData 已在 context 中，不需要再调 get_columns。\n' +
       'insert_col 参数：position（插入位置，从0开始）、number（插入列数，默认1）。\n' +
       '注意：用户说的列号通常从1开始，而 insert_col 的 position 从0开始，需要减1转换。\n' +
-      '例如：在第2列前插入 → position=1, number=1。\n' +
-      '禁止调用 set_columns / 行相关工具 / write_cells 等。'
+      '例如：在第2列前插入 → position=1, number=1。'
   })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
@@ -162,7 +160,7 @@ export function modifyColGraph(): CompiledReportGraph {
 
   const modifyAndWriteColLLM = createLLMDecideNode({
     nodeId: 'modify_and_write_col',
-    allowedTools: ['set_columns', 'get_column_definitions_template', 'load_report_introduce'],
+    allowedTools: ['set_columns', 'get_column_definitions_template', 'load_report_doc'],
     requiredToolResultsAny: ['set_columns'],
     maxIterations: 4,
     description:
@@ -172,7 +170,7 @@ export function modifyColGraph(): CompiledReportGraph {
       'colData 已在 context 中，不需要再调 get_columns。\n' +
       '批量修改 → set_columns({columns: 全量数组}) 一次性传入。\n' +
       '不确定列定义格式时，可先调 get_column_definitions_template 获取模板。\n' +
-      '禁止分多轮写入。禁止调用 insert_col / delete_col / 行相关工具 / write_cells 等。'
+      '禁止分多轮写入。'
   })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
@@ -202,7 +200,7 @@ export function deleteRowGraph(): CompiledReportGraph {
 
   const deleteRowLLM = createLLMDecideNode({
     nodeId: 'delete_row_llm',
-    allowedTools: ['delete_row', 'load_report_introduce'],
+    allowedTools: ['delete_row', 'load_report_doc'],
     requiredToolResultsAny: ['delete_row'],
     maxIterations: 3,
     description:
@@ -242,7 +240,7 @@ export function deleteColGraph(): CompiledReportGraph {
 
   const deleteColLLM = createLLMDecideNode({
     nodeId: 'delete_col_llm',
-    allowedTools: ['delete_col', 'load_report_introduce'],
+    allowedTools: ['delete_col', 'load_report_doc'],
     requiredToolResultsAny: ['delete_col'],
     maxIterations: 3,
     description:

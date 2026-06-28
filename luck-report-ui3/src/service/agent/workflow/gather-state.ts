@@ -8,7 +8,7 @@
  *
  * 生命周期：
  * - 按 sessionId 维度计数，key 不存在时返回 0
- * - resetGatherRounds 由 collect_plan 节点在"成功提交 TaskPlan"时调用，
+ * - resetGatherRounds 由 validate_plan 节点在"成功提交 TaskPlan"时调用，
  *   即"5 轮/次询问"语义：每轮用户需求都重新享有完整配额
  * - session 切换/销毁时也应调用（callers 自行处理）
  */

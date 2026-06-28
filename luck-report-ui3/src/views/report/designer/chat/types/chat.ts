@@ -6,15 +6,25 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 /**
  * 消息类型
  */
-/**
- * 消息类型
- */
-export type MessageType = 'text' | 'error' | 'break' | 'tool_call'
+export type MessageType = 'text' | 'error' | 'break' | 'tool_call' | 'ask_user'
 
 /**
  * Agent 工具调用状态
  */
 export type AgentToolStatus = 'running' | 'confirming' | 'done' | 'error' | 'rejected'
+
+/**
+ * ask_user 提问信息
+ * Agent 在需求不清晰时插入到消息流中的待回复问题
+ */
+export interface AskUserPrompt {
+  /** ask_user 任务 id（对应后端/LLM 侧任务标识） */
+  taskId: string
+  /** 提问文本 */
+  question: string
+  /** 可选项（多选一时填），空数组/不传表示用户自由输入 */
+  options?: string[]
+}
 
 /**
  * Agent 工具调用记录
@@ -93,6 +103,8 @@ export interface Message {
   mcpTools?: McpToolCall[]
   /** Agent 工具调用记录（type 为 tool_call 时必填） */
   agentToolCall?: AgentToolCall
+  /** ask_user 提问信息（type 为 ask_user 时必填） */
+  askUserPrompt?: AskUserPrompt
   /** Provider ID，用于显示 Provider Logo */
   providerId?: string
   /** 任务进度信息 */

@@ -3,7 +3,7 @@
     v-if="!visible"
     class="float-button"
     :class="{ 'is-dragging': isDragging }"
-    :style="{ transform: `translate(${positionX}px, ${positionY}px)` }"
+    :style="{ left: positionX + 'px', top: positionY + 'px' }"
     @mousedown="handleMouseDown"
     @click="handleClick"
   >
