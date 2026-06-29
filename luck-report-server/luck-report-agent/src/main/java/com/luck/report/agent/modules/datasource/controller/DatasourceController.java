@@ -109,7 +109,7 @@ public class DatasourceController {
      * @return 数据源VO
      */
     @GetMapping("/detail/{id}")
-    public ResultVO<DatasourceVO> getDetail(@PathVariable Integer id) {
+    public ResultVO<DatasourceVO> getDetail(@PathVariable String id) {
         DatasourceVO vo = datasourceService.getDatasourceById(id);
         if (vo == null) {
             return ResultVO.error("数据源不存在");
@@ -143,7 +143,7 @@ public class DatasourceController {
      * @return 更新后的数据源VO
      */
     @PutMapping("/update/{id}")
-    public ResultVO<DatasourceVO> update(@PathVariable Integer id, @RequestBody DatasourceVO vo) {
+    public ResultVO<DatasourceVO> update(@PathVariable String id, @RequestBody DatasourceVO vo) {
         try {
             Datasource entity = toEntity(vo);
             DatasourceVO updated = datasourceService.updateDatasource(id, entity);
@@ -161,7 +161,7 @@ public class DatasourceController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    public ResultVO<String> delete(@PathVariable Integer id) {
+    public ResultVO<String> delete(@PathVariable String id) {
         try {
             datasourceService.deleteDatasource(id);
             return ResultVO.success("删除数据源成功", "删除数据源成功");
@@ -178,7 +178,7 @@ public class DatasourceController {
      * @return 测试结果
      */
     @PostMapping("/test/{id}")
-    public ResultVO<Boolean> testConnection(@PathVariable Integer id) {
+    public ResultVO<Boolean> testConnection(@PathVariable String id) {
         try {
             boolean success = datasourceService.testConnection(id);
             return ResultVO.success(success ? "连接测试成功" : "连接测试失败", success);
@@ -196,7 +196,7 @@ public class DatasourceController {
      * @return 操作结果
      */
     @PostMapping("/status/{id}")
-    public ResultVO<String> updateStatus(@PathVariable Integer id,
+    public ResultVO<String> updateStatus(@PathVariable String id,
                                            @RequestParam(value = "status") String status) {
         try {
             datasourceService.updateStatus(id, status);
@@ -214,7 +214,7 @@ public class DatasourceController {
      * @return 表名列表
      */
     @GetMapping("/{id}/tables")
-    public ResultVO<List<String>> getTables(@PathVariable Integer id) {
+    public ResultVO<List<String>> getTables(@PathVariable String id) {
         try {
             List<String> tables = datasourceService.getDatasourceTables(id);
             return ResultVO.success("获取表列表成功", tables);
@@ -232,7 +232,7 @@ public class DatasourceController {
      * @return 字段名列表
      */
     @GetMapping("/{id}/tables/{tableName}/columns")
-    public ResultVO<List<String>> getTableColumns(@PathVariable Integer id,
+    public ResultVO<List<String>> getTableColumns(@PathVariable String id,
                                                       @PathVariable String tableName) {
         try {
             List<String> columns = datasourceService.getTableColumns(id, tableName);
@@ -252,7 +252,7 @@ public class DatasourceController {
      * @return 初始化结果
      */
     @PostMapping("/{id}/init-schema")
-    public ResultVO<String> initSchema(@PathVariable Integer id,
+    public ResultVO<String> initSchema(@PathVariable String id,
                                          @RequestBody InitSchemaRequestDTO request) {
         try {
             datasourceService.initTableSchema(id, request.getTables(), request.getModelId());
@@ -270,7 +270,7 @@ public class DatasourceController {
      * @return 逻辑外键列表
      */
     @GetMapping("/{id}/logical-relations")
-    public ResultVO<List<LogicalRelation>> getLogicalRelations(@PathVariable Integer id) {
+    public ResultVO<List<LogicalRelation>> getLogicalRelations(@PathVariable String id) {
         try {
             List<LogicalRelation> relations = datasourceService.getLogicalRelations(id);
             return ResultVO.success("获取逻辑外键列表成功", relations);
@@ -288,7 +288,7 @@ public class DatasourceController {
      * @return 添加后的逻辑外键
      */
     @PostMapping("/{id}/logical-relations")
-    public ResultVO<LogicalRelation> addLogicalRelation(@PathVariable Integer id,
+    public ResultVO<LogicalRelation> addLogicalRelation(@PathVariable String id,
                                                             @Valid @RequestBody CreateLogicalRelationDTO dto) {
         try {
             LogicalRelation relation = LogicalRelation.builder()
@@ -316,8 +316,8 @@ public class DatasourceController {
      * @return 更新后的逻辑外键
      */
     @PutMapping("/{id}/logical-relations/{relationId}")
-    public ResultVO<LogicalRelation> updateLogicalRelation(@PathVariable Integer id,
-                                                               @PathVariable Integer relationId,
+    public ResultVO<LogicalRelation> updateLogicalRelation(@PathVariable String id,
+                                                               @PathVariable String relationId,
                                                                @RequestBody UpdateLogicalRelationDTO dto) {
         try {
             LogicalRelation relation = LogicalRelation.builder()
@@ -344,8 +344,8 @@ public class DatasourceController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}/logical-relations/{relationId}")
-    public ResultVO<String> deleteLogicalRelation(@PathVariable Integer id,
-                                                    @PathVariable Integer relationId) {
+    public ResultVO<String> deleteLogicalRelation(@PathVariable String id,
+                                                    @PathVariable String relationId) {
         try {
             datasourceService.deleteLogicalRelation(id, relationId);
             return ResultVO.success("删除逻辑外键成功", "删除逻辑外键成功");
@@ -363,7 +363,7 @@ public class DatasourceController {
      * @return 保存后的逻辑外键列表
      */
     @PutMapping("/{id}/logical-relations")
-    public ResultVO<List<LogicalRelation>> saveLogicalRelations(@PathVariable Integer id,
+    public ResultVO<List<LogicalRelation>> saveLogicalRelations(@PathVariable String id,
                                                                     @RequestBody List<LogicalRelation> logicalRelations) {
         try {
             List<LogicalRelation> saved = datasourceService.saveLogicalRelations(id, logicalRelations);
@@ -383,7 +383,7 @@ public class DatasourceController {
      * @return SchemaDTO
      */
     @PostMapping("/{id}/schema-dto")
-    public ResultVO<SchemaDTO> buildSchemaDTO(@PathVariable Integer id,
+    public ResultVO<SchemaDTO> buildSchemaDTO(@PathVariable String id,
                                                  @RequestParam(value = "query") String query) {
         try {
             SchemaDTO schemaDTO = datasourceService.buildSchemaDTO(id, query);
@@ -407,11 +407,11 @@ public class DatasourceController {
     @PostMapping("/table-relations")
     public ResultVO<SchemaDTO> getTableRelations(
         @RequestParam(value = "name", required = false) String name,
-        @RequestParam(value = "id", required = false) Integer id,
+        @RequestParam(value = "id", required = false) String id,
         @RequestParam(value = "query") String query) {
         try {
             // 优先使用ID，ID为空时通过名称查询
-            Integer datasourceId = id;
+            String datasourceId = id;
             if (datasourceId == null && name != null) {
                 DatasourceVO datasource = datasourceService.getDatasourceByName(name);
                 if (datasource == null) {

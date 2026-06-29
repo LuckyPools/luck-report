@@ -208,7 +208,6 @@ export default {
       this.handleClose();
     },
     handleClose() {
-      console.log('[DEBUG][font-setting-dialog] handleClose emit close')
       this.$emit('close');
     }
   }

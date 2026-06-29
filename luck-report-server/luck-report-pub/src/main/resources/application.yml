@@ -20,3 +20,8 @@ spring:
       max-request-size: 100MB
       # 启用文件上传
       enabled: true
+
+# Snowflake ID 生成器配置（用于主键 String ID）
+snowflake:
+  worker-id: 1      # 机器节点 ID（0~31）
+  datacenter-id: 1  # 数据中心 ID（0~31）

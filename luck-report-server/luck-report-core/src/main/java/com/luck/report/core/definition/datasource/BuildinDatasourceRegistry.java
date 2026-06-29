@@ -33,12 +33,12 @@ public interface BuildinDatasourceRegistry {
      * @param name 数据源名称
      * @return 数据源 ID，不存在返回 null
      */
-    Integer getBuildinDatasourceId(String name);
+    String getBuildinDatasourceId(String name);
 
     /**
      * 获取所有内置数据源的名称和 ID 映射
      *
      * @return Map<名称, ID>
      */
-    Map<String, Integer> getBuildinDatasourceIdMap();
+    Map<String, String> getBuildinDatasourceIdMap();
 }

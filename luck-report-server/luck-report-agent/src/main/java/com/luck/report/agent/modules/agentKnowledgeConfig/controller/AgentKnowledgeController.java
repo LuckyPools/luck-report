@@ -36,7 +36,7 @@ public class AgentKnowledgeController {
      * @return 智能体知识详情
      */
     @GetMapping("/detail/{id}")
-    public ResultVO<AgentKnowledgeVO> getKnowledgeById(@PathVariable("id") Long id) {
+    public ResultVO<AgentKnowledgeVO> getKnowledgeById(@PathVariable("id") String id) {
         AgentKnowledgeVO knowledge = agentKnowledgeService.getKnowledgeById(id);
         if (knowledge == null) {
             return ResultVO.error("知识不存在");
@@ -63,7 +63,7 @@ public class AgentKnowledgeController {
             @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "splitterType", required = false) String splitterType,
-            @RequestParam("modelId") Long modelId) {
+            @RequestParam("modelId") String modelId) {
 
         CreateAgentKnowledgeDTO dto = new CreateAgentKnowledgeDTO();
         dto.setTitle(title);
@@ -86,7 +86,7 @@ public class AgentKnowledgeController {
      * @return 更新的智能体知识
      */
     @PutMapping("/update/{id}")
-    public ResultVO<AgentKnowledgeVO> updateKnowledge(@PathVariable("id") Long id,
+    public ResultVO<AgentKnowledgeVO> updateKnowledge(@PathVariable("id") String id,
                                                           @RequestBody UpdateAgentKnowledgeDTO updateKnowledgeDTO) {
         AgentKnowledgeVO knowledge = agentKnowledgeService.updateKnowledge(id, updateKnowledgeDTO);
         return ResultVO.success("更新成功", knowledge);
@@ -100,7 +100,7 @@ public class AgentKnowledgeController {
      * @return 更新的智能体知识
      */
     @PostMapping("/enable/{id}")
-    public ResultVO<AgentKnowledgeVO> updateEnabledStatus(@PathVariable("id") Long id,
+    public ResultVO<AgentKnowledgeVO> updateEnabledStatus(@PathVariable("id") String id,
                                                               @RequestParam(value = "enabled") Boolean enabled) {
         AgentKnowledgeVO knowledge = agentKnowledgeService.updateEnabledStatus(id, enabled);
         return ResultVO.success("更新成功", knowledge);
@@ -113,7 +113,7 @@ public class AgentKnowledgeController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    public ResultVO<Boolean> deleteKnowledge(@PathVariable("id") Long id) {
+    public ResultVO<Boolean> deleteKnowledge(@PathVariable("id") String id) {
         boolean result = agentKnowledgeService.deleteKnowledge(id);
         return result ? ResultVO.success("删除操作已接收，等待后台删除相关资源...", true) : ResultVO.error("删除失败", false);
     }
@@ -141,7 +141,7 @@ public class AgentKnowledgeController {
      * @return 重试结果
      */
     @PostMapping("/retry-embedding/{id}")
-    public ResultVO<Boolean> retryEmbedding(@PathVariable("id") Long id) {
+    public ResultVO<Boolean> retryEmbedding(@PathVariable("id") String id) {
         agentKnowledgeService.retryEmbedding(id);
         return ResultVO.success("重试向量化操作成功，如果是文件解析需要花费点时间，请耐心等待...", true);
     }

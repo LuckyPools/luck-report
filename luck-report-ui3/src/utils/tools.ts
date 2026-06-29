@@ -927,22 +927,17 @@ export async function buildFields({ sql, type, parameters, username, password, d
  * 调用者：save-tool
  *
  * @param {Object} params - 参数对象
- * @param {string} [params.fileName] - 报表文件名，不含 .ureport.xml 后缀；不传则使用当前已打开的文件名
+ * @param {string} [params.fileName] - 报表文件名
  * @return {Promise<Object>} 保存结果，包含 fileName
  */
-export async function saveReport({ fileName } = {}) {
+export async function saveReport({ fileName , filePath } = {}) {
     try {
         const context = getContext();
         if (!context) {
             return { success: false, message: '报表上下文不存在' };
         }
         const content = tableToXml(context);
-        const name = fileName || store.getters['report/getFileName'];
-        if (!name) {
-            return { success: false, message: '报表文件名不能为空' };
-        }
-        const fullFileName = name.endsWith('.ureport.xml') ? name : name + '.ureport.xml';
-        await apiSaveReportFile(fullFileName, content);
+        await apiSaveReportFile(fileName, filePath, content);
         return { success: true, message: '报表保存成功', fileName: fullFileName };
     } catch (error) {
         return { success: false, message: error.msg || '保存报表失败' };

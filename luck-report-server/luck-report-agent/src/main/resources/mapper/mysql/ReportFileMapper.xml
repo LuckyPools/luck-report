@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.agent.modules.file.mapper.ReportFileMapper">
+
+    <!-- 插入报表文件，createdTime/updatedTime 由 Java 侧赋值，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_report_file (id, title, template, is_deleted, created_time, updated_time)
+        VALUES (#{id}, #{title}, #{template}, #{isDeleted}, #{createdTime}, #{updatedTime})
+    </insert>
+
+    <!-- 根据ID更新报表文件，动态更新非空字段，updatedTime 由 Java 侧赋值 -->
+    <update id="updateById">
+        UPDATE luck_report_file
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null">title = #{title},</if>
+            <if test="template != null">template = #{template},</if>
+            <if test="isDeleted != null">is_deleted = #{isDeleted},</if>
+            updated_time = #{updatedTime},
+        </trim>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询报表文件（排除已删除） -->
+    <select id="selectById" resultType="com.luck.report.agent.modules.file.domain.entity.ReportFile">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_file
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据标题查询报表文件（排除已删除） -->
+    <select id="selectByTitle" resultType="com.luck.report.agent.modules.file.domain.entity.ReportFile">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_file
+        WHERE title = #{title} AND is_deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 查询所有未删除的报表文件列表，按更新时间倒序 -->
+    <select id="selectAll" resultType="com.luck.report.agent.modules.file.domain.entity.ReportFile">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_file
+        WHERE is_deleted = 0
+        ORDER BY updated_time DESC
+    </select>
+
+    <!-- 根据ID逻辑删除报表文件 -->
+    <update id="deleteById">
+        UPDATE luck_report_file SET is_deleted = 1 WHERE id = #{id}
+    </update>
+
+</mapper>

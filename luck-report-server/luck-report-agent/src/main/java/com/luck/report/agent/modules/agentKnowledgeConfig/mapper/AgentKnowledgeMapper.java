@@ -39,7 +39,7 @@ public interface AgentKnowledgeMapper {
      * @param id 智能体知识ID
      * @return 智能体知识实体
      */
-    AgentKnowledge selectById(@Param("id") Long id);
+    AgentKnowledge selectById(@Param("id") String id);
 
     /**
      * 分页条件查询智能体知识
@@ -75,5 +75,5 @@ public interface AgentKnowledgeMapper {
      * @param ids 智能体知识ID列表
      * @return 智能体知识实体列表
      */
-    List<AgentKnowledge> selectByIds(@Param("ids") List<Long> ids);
+    List<AgentKnowledge> selectByIds(@Param("ids") List<String> ids);
 }

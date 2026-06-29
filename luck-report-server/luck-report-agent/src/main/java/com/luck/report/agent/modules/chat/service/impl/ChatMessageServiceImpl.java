@@ -1,5 +1,6 @@
 package com.luck.report.agent.modules.chat.service.impl;
 
+import com.luck.report.agent.common.util.SnowflakeIdGenerator;
 import com.luck.report.agent.modules.chat.domain.entity.ChatMessage;
 import com.luck.report.agent.modules.chat.mapper.ChatMessageMapper;
 import com.luck.report.agent.modules.chat.service.ChatMessageService;
@@ -29,6 +30,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public ChatMessage saveMessage(ChatMessage message) {
+        // 由 Java 端生成 Snowflake ID（不再依赖数据库自增）
+        if (message.getId() == null || message.getId().isEmpty()) {
+            message.setId(SnowflakeIdGenerator.generateId());
+        }
         // Java侧赋值createTime，替代数据库NOW()函数，抹除数据库特性差异
         message.setCreateTime(java.time.LocalDateTime.now());
         chatMessageMapper.insert(message);
@@ -41,16 +46,21 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         if (messages == null || messages.isEmpty()) {
             return 0;
         }
-        // Java侧赋值createTime，替代数据库NOW()函数，抹除数据库特性差异
+        // 为没有 ID 的消息生成 Snowflake ID
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        messages.forEach(m -> m.setCreateTime(now));
+        for (ChatMessage m : messages) {
+            if (m.getId() == null || m.getId().isEmpty()) {
+                m.setId(SnowflakeIdGenerator.generateId());
+            }
+            m.setCreateTime(now);
+        }
         int count = chatMessageMapper.batchInsert(messages);
         log.info("批量保存消息: count={}, sessionId={}", count, messages.get(0).getSessionId());
         return count;
     }
 
     @Override
-    public void deleteMessage(Long id) {
+    public void deleteMessage(String id) {
         chatMessageMapper.deleteById(id);
         log.info("删除消息: id={}", id);
     }

@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class ModelConfigDTO {
 
     /** 配置ID */
-    private Integer id;
+    private String id;
 
     /** 厂商标识(如 openai、deepseek、qwen) */
     @NotBlank(message = "提供商不能为空")

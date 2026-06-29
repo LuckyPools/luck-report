@@ -32,5 +32,5 @@ public class UpdateBusinessKnowledgeDTO {
 
     /** 关联的嵌入模型ID */
     @NotNull(message = "嵌入模型ID不能为空")
-    private Long modelId;
+    private String modelId;
 }

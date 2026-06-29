@@ -98,17 +98,6 @@ export default defineComponent({
             span: el.span,
             class: finalClass,
             onClick: (e: MouseEvent) => {
-              // #region debug-point switch-radio-unselectable
-              if (el.tag === 'a-switch' || el.tag === 'a-radio-group') {
-                // eslint-disable-next-line no-console
-                console.log('[draggable-item][col onClick]', {
-                  tag: el.tag,
-                  target: (e.target as HTMLElement)?.tagName,
-                  targetClass: (e.target as HTMLElement)?.className,
-                  defaultValue: el.defaultValue
-                })
-              }
-              // #endregion debug-point switch-radio-unselectable
               emit('active-item', el)
               e.stopPropagation()
             }
@@ -158,24 +147,11 @@ export default defineComponent({
                 {
                   modelValue: el.children ?? [],
                   'onUpdate:modelValue': (val: FormField[]) => {
-                    console.log('[draggable-item][row onUpdate:modelValue] 触发', {
-                      rowFormId: el.formId,
-                      rowComponentName: el.componentName,
-                      beforeLen: el.children?.length ?? 0,
-                      beforeChildren: el.children?.map((c: FormField) => ({ formId: c.formId, tag: c.tag, label: c.label })),
-                      afterLen: val.length,
-                      afterChildren: val.map((c: FormField) => ({ formId: c.formId, tag: c.tag, label: c.label }))
-                    })
                     if (!el.children) {
                       el.children = val
                     } else {
                       el.children.splice(0, el.children.length, ...val)
                     }
-                    console.log('[draggable-item][row onUpdate:modelValue] 更新后', {
-                      rowFormId: el.formId,
-                      childrenLen: el.children?.length,
-                      children: el.children?.map((c: FormField) => ({ formId: c.formId, tag: c.tag, label: c.label }))
-                    })
                   },
                   animation: 340,
                   group: 'componentsGroup',

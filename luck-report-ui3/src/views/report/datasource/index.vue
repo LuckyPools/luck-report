@@ -429,7 +429,12 @@ import {t} from "@/locales";
 
 // 表格列定义
 const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
+  {
+    title: '序号',
+    key: 'index',
+    width: 80,
+    customRender: ({ index }: { index: number }) => (pageNum.value - 1) * pageSize.value + index + 1
+  },
   { title: '数据源名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
   { title: '主机', dataIndex: 'host', key: 'host', width: 120 },

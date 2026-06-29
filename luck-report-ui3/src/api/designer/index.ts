@@ -93,7 +93,7 @@ export async function loadBuildinDatasources(): Promise<string[]> {
  * 构建数据源字段
  */
 export async function buildFields(parameters: Record<string, any>): Promise<any[]> {
-  const formData = new FormData();
+  const formData = new URLSearchParams();
   for (const key in parameters) {
     formData.append(key, parameters[key]);
   }
@@ -109,7 +109,7 @@ export async function buildFields(parameters: Record<string, any>): Promise<any[
  * 脚本校验
  */
 export async function scriptValidation(content: string): Promise<ScriptErrorInfo[]> {
-  const formData = new FormData();
+  const formData = new URLSearchParams();
   formData.append('content', content);
 
   return await request.post<ScriptErrorInfo[]>('/designer/scriptValidation', formData, {
@@ -123,7 +123,7 @@ export async function scriptValidation(content: string): Promise<ScriptErrorInfo
  * 条件脚本校验
  */
 export async function conditionScriptValidation(content: string): Promise<ScriptErrorInfo[]> {
-  const formData = new FormData();
+  const formData = new URLSearchParams();
   formData.append('content', content);
 
   return await request.post<ScriptErrorInfo[]>('/designer/conditionScriptValidation', formData, {
@@ -137,7 +137,7 @@ export async function conditionScriptValidation(content: string): Promise<Script
  * 构建数据库表列表
  */
 export async function buildDatabaseTables(parameters: Record<string, any>): Promise<Array<{ name: string; type: string }>> {
-  const formData = new FormData();
+  const formData = new URLSearchParams();
   for (const key in parameters) {
     formData.append(key, parameters[key]);
   }
@@ -153,7 +153,7 @@ export async function buildDatabaseTables(parameters: Record<string, any>): Prom
  * 构建 JDBC 数据源字段
  */
 export async function buildJdbcFields(parameters: Record<string, any>): Promise<any[]> {
-  const formData = new FormData();
+  const formData = new URLSearchParams();
   for (const key in parameters) {
     formData.append(key, parameters[key]);
   }
@@ -186,7 +186,7 @@ export async function buildClass(clazz: string): Promise<any[]> {
  * 解析表达式中的数据集名称
  */
 export async function parseDatasetName(expr: string): Promise<ParseDatasetNameResult> {
-  const formData = new FormData();
+  const formData = new URLSearchParams();
   formData.append('expr', expr);
   return await request.post<ParseDatasetNameResult>('/designer/parseDatasetName', formData, {
     headers: {
@@ -197,14 +197,24 @@ export async function parseDatasetName(expr: string): Promise<ParseDatasetNameRe
 
 /**
  * 保存报表定义文件
+ * - filePath: 报表完整路径（带 provider 前缀），如 file:xxx / db:123
+ * - fileName: 报表展示名（db: provider 用作 title，file: provider 忽略）
+ * - content: 报表 XML 内容
+ *
+ * 兼容旧版：仅传 file 时，fileName 缺省为空字符串，filePath 取 file
  */
-export async function saveReportFile(file: File, content: string): Promise<void> {
-  const formData = new FormData();
-  formData.append('file', file);
+export async function saveReportFile(
+  fileName: string,
+  filePath: string,
+  content: string
+): Promise<void> {
+  const formData = new URLSearchParams();
+  formData.append('fileName', fileName);
+  formData.append('filePath', filePath);
   formData.append('content', content);
   return await request.post<void>('/designer/saveReportFile', formData, {
     headers: {
-      'Content-Type': 'multipart/form-data'
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
   });
 }
@@ -212,9 +222,9 @@ export async function saveReportFile(file: File, content: string): Promise<void>
 /**
  * 删除报表定义文件
  */
-export async function deleteReportFile(file: string): Promise<void> {
-  const formData = new FormData();
-  formData.append('file', file);
+export async function deleteReportFile(filePath: string): Promise<void> {
+  const formData = new URLSearchParams();
+  formData.append('filePath', filePath);
   return await request.post<void>('/designer/deleteReportFile', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -224,11 +234,17 @@ export async function deleteReportFile(file: string): Promise<void> {
 
 /**
  * 保存预览文件
+ * - filePath: 报表唯一路径（缓存 key），如 file:xxx / db:123
+ * - fileName: 报表展示名（用于 reportParser 内部 name），如 "销售月报"
+ * - content: 报表 XML 内容
  */
-export async function savePreviewFile(fileName: string, content: string): Promise<void> {
-  const formData = new FormData();
+export async function savePreviewFile(
+  filePath: string,
+  content: string
+): Promise<void> {
+  const formData = new URLSearchParams();
+  formData.append('filePath', filePath);
   formData.append('content', content);
-  formData.append('fileName', fileName);
   return await request.post<void>('/designer/savePreviewFile', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'

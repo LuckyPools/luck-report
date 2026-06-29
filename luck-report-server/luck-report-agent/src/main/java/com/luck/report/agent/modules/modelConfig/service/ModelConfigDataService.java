@@ -22,7 +22,7 @@ public interface ModelConfigDataService {
      * @param id 配置ID
      * @return ModelConfig实体对象,不存在则返回null
      */
-    ModelConfig findById(Integer id);
+    ModelConfig findById(String id);
 
     /**
      * 启用模型配置
@@ -30,7 +30,7 @@ public interface ModelConfigDataService {
      *
      * @param id 要启用的配置ID
      */
-    void activateConfig(Integer id);
+    void activateConfig(String id);
 
     /**
      * 禁用模型配置
@@ -40,7 +40,7 @@ public interface ModelConfigDataService {
      * @param id 要禁用的配置ID
      * @throws RuntimeException 当该类型只有一个启用的模型时抛出
      */
-    void deactivateConfig(Integer id);
+    void deactivateConfig(String id);
 
     /**
      * 根据模型类型获取所有激活的配置列表
@@ -85,7 +85,7 @@ public interface ModelConfigDataService {
      *
      * @param id 配置ID
      */
-    void deleteConfig(Integer id);
+    void deleteConfig(String id);
 
     /**
      * 根据模型类型获取激活的配置
@@ -104,7 +104,7 @@ public interface ModelConfigDataService {
      * @return Index 对话模型配置
      * @throws RuntimeException 当找不到可用的对话模型时抛出
      */
-    ModelConfig getChatConfig(Integer modelId);
+    ModelConfig getChatConfig(String modelId);
 
     /**
      * 分页条件查询模型配置

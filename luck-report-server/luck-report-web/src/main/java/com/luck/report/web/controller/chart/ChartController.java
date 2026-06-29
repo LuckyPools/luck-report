@@ -4,11 +4,9 @@ import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.cache.ChartScopeCache;
 import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.utils.UnitUtils;
+import com.luck.report.web.domain.vo.request.StoreChartDataRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import javax.servlet.http.HttpServletRequest;
-import java.net.URLDecoder;
 
 
 /**
@@ -23,13 +21,12 @@ public class ChartController {
      * 存储图表数据
      */
     @RequestMapping("/storeData")
-    public ResultVO<Void> storeData(HttpServletRequest req) {
-        String chartId = req.getParameter("_chartId");
-        ChartData chartData = ChartScopeCache.getChartData(chartId);
+    public ResultVO<Void> storeData(StoreChartDataRequest req) {
+        ChartData chartData = ChartScopeCache.getChartData(req.get_chartId());
         if (chartData == null) {
             return ResultVO.success();
         }
-        String base64Data = req.getParameter("_base64Data");
+        String base64Data = req.get_base64Data();
         String prefix = "data:image/png;base64,";
         if (base64Data != null) {
             if (base64Data.startsWith(prefix)) {
@@ -37,11 +34,9 @@ public class ChartController {
             }
         }
         chartData.setBase64Data(base64Data);
-        String width = req.getParameter("_width");
-        String height = req.getParameter("_height");
-        chartData.setHeight(UnitUtils.pixelToPoint(Integer.parseInt(height)));
-        chartData.setWidth(UnitUtils.pixelToPoint(Integer.parseInt(width)));
-        ChartScopeCache.putChartData(chartId, chartData);
+        chartData.setHeight(UnitUtils.pixelToPoint(req.get_height()));
+        chartData.setWidth(UnitUtils.pixelToPoint(req.get_width()));
+        ChartScopeCache.putChartData(req.get_chartId(), chartData);
         return ResultVO.success();
     }
 

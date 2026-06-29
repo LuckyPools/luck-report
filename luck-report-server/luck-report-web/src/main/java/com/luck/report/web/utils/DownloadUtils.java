@@ -21,22 +21,21 @@ public class DownloadUtils {
     public static String buildDownloadFileName(String reportFileName, String fileName, String extName) {
         StringBuilder result = new StringBuilder();
         if (StringUtils.isNotBlank(fileName)) {
-            String decodedFileName = UrlParameterUtils.doubleDecode(fileName);
-            result.append(decodedFileName);
-            if (!decodedFileName.toLowerCase().endsWith(extName)) {
+            result.append(fileName);
+            if (!fileName.toLowerCase().endsWith(extName)) {
                 result.append(extName);
             }
         } else {
-            String decodedReportFileName = UrlParameterUtils.doubleDecode(reportFileName);
-            int pos = decodedReportFileName.indexOf(":");
+            String reportName = reportFileName == null ? "" : reportFileName;
+            int pos = reportName.indexOf(":");
             if (pos > 0) {
-                decodedReportFileName = decodedReportFileName.substring(pos + 1);
+                reportName = reportName.substring(pos + 1);
             }
-            pos = decodedReportFileName.toLowerCase().indexOf(".ureport.xml");
+            pos = reportName.toLowerCase().indexOf(".ureport.xml");
             if (pos > 0) {
-                decodedReportFileName = decodedReportFileName.substring(0, pos);
+                reportName = reportName.substring(0, pos);
             }
-            result.append(decodedReportFileName).append(extName);
+            result.append(reportName).append(extName);
         }
         return result.toString();
     }

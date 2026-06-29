@@ -261,10 +261,10 @@ import {t} from "@/locales";
 // 表格列定义
 const columns = [
   {
-    title: 'ID',
-    dataIndex: 'id',
-    key: 'id',
-    width: 80
+    title: '序号',
+    key: 'index',
+    width: 80,
+    customRender: ({ index }: { index: number }) => (pageNum.value - 1) * pageSize.value + index + 1
   },
   {
     title: '业务名词',

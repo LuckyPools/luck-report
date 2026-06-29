@@ -23,12 +23,12 @@ import java.util.Map;
  * @since 2017年3月20日
  */
 public class ExportConfigureImpl implements ExportConfigure {
-    private String file;
+    private String filePath;
     private OutputStream outputStream;
     private Map<String, Object> parameters;
 
-    public ExportConfigureImpl(String file, Map<String, Object> parameters, OutputStream outputStream) {
-        this.file = file;
+    public ExportConfigureImpl(String filePath, Map<String, Object> parameters, OutputStream outputStream) {
+        this.filePath = filePath;
         this.parameters = parameters;
         this.outputStream = outputStream;
     }
@@ -42,6 +42,6 @@ public class ExportConfigureImpl implements ExportConfigure {
     }
 
     public String getFile() {
-        return file;
+        return filePath;
     }
 }

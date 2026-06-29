@@ -1,5 +1,6 @@
 package com.luck.report.agent.modules.agentKnowledgeConfig.service.impl;
 
+import com.luck.report.agent.common.util.SnowflakeIdGenerator;
 import com.luck.report.agent.modules.agentKnowledgeConfig.constant.AgentKnowledgeMetadataConstant;
 import com.luck.report.agent.modules.agentKnowledgeConfig.converter.AgentKnowledgeConverter;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.AgentKnowledgeQueryDTO;
@@ -55,7 +56,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @return 智能体知识VO
      */
     @Override
-    public AgentKnowledgeVO getKnowledgeById(Long id) {
+    public AgentKnowledgeVO getKnowledgeById(String id) {
         AgentKnowledge knowledge = agentKnowledgeMapper.selectById(id);
         return knowledge == null ? null : agentKnowledgeConverter.toVo(knowledge);
     }
@@ -74,6 +75,8 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
         validateCreateKnowledgeDTO(createKnowledgeDTO);
 
         AgentKnowledge entity = agentKnowledgeConverter.toEntityForCreate(createKnowledgeDTO);
+        // 由 Java 端生成 Snowflake ID（不再依赖数据库自增）
+        entity.setId(SnowflakeIdGenerator.generateId());
 
         // 对于文档类型，读取文件内容
         if (KnowledgeType.DOCUMENT.getValue().equals(createKnowledgeDTO.getType())
@@ -222,7 +225,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @return 智能体知识VO
      */
     @Override
-    public AgentKnowledgeVO updateKnowledge(Long id, UpdateAgentKnowledgeDTO updateKnowledgeDTO) {
+    public AgentKnowledgeVO updateKnowledge(String id, UpdateAgentKnowledgeDTO updateKnowledgeDTO) {
         AgentKnowledge knowledge = agentKnowledgeMapper.selectById(id);
         if (knowledge == null) {
             throw new RuntimeException("智能体知识不存在, id: " + id);
@@ -278,7 +281,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @return 是否删除成功
      */
     @Override
-    public boolean deleteKnowledge(Long id) {
+    public boolean deleteKnowledge(String id) {
         AgentKnowledge knowledge = agentKnowledgeMapper.selectById(id);
         if (knowledge == null) {
             log.warn("智能体知识不存在, id: {}", id);
@@ -305,7 +308,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      *
      * @param knowledgeId 智能体知识ID
      */
-    private void deleteVectorByKnowledgeId(Long knowledgeId) {
+    private void deleteVectorByKnowledgeId(String knowledgeId) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put(AgentKnowledgeMetadataConstant.VECTOR_TYPE, AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE);
         metadata.put(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID, knowledgeId);
@@ -342,7 +345,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AgentKnowledgeVO updateEnabledStatus(Long id, Boolean enabled) {
+    public AgentKnowledgeVO updateEnabledStatus(String id, Boolean enabled) {
         AgentKnowledge knowledge = agentKnowledgeMapper.selectById(id);
         if (knowledge == null) {
             throw new RuntimeException("智能体知识不存在, id: " + id);
@@ -381,7 +384,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @param id 智能体知识ID
      */
     @Override
-    public void retryEmbedding(Long id) {
+    public void retryEmbedding(String id) {
         AgentKnowledge knowledge = agentKnowledgeMapper.selectById(id);
         if (knowledge == null) {
             throw new RuntimeException("智能体知识不存在, id: " + id);
@@ -437,7 +440,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @return 智能体知识实体列表
      */
     @Override
-    public List<AgentKnowledge> selectByIds(List<Long> ids) {
+    public List<AgentKnowledge> selectByIds(List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
@@ -456,25 +459,12 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
             return;
         }
 
-        // 1. 从 metadata 中提取所有 agentKnowledgeId
-        List<Long> ids = results.stream()
+        // 1. 从 metadata 中提取所有 agentKnowledgeId（统一转为 String）
+        List<String> ids = results.stream()
                 .map(r -> r.getDocument().getMetadata())
                 .filter(m -> m != null && m.containsKey(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID))
-                .map(m -> {
-                    Object idObj = m.get(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID);
-                    if (idObj instanceof Integer) {
-                        return ((Integer) idObj).longValue();
-                    } else if (idObj instanceof Long) {
-                        return (Long) idObj;
-                    } else if (idObj instanceof Double) {
-                        // PostgreSQL JSONB返回数值为Double类型
-                        return ((Double) idObj).longValue();
-                    } else if (idObj instanceof String) {
-                        return Long.parseLong((String) idObj);
-                    }
-                    return null;
-                })
-                .filter(id -> id != null)
+                .map(m -> String.valueOf(m.get(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID)))
+                .filter(id -> id != null && !id.isEmpty())
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -491,7 +481,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
         }
 
         // 3. 构建 ID -> Index 的映射
-        Map<Long, AgentKnowledge> knowledgeMap = knowledgeList.stream()
+        Map<String, AgentKnowledge> knowledgeMap = knowledgeList.stream()
                 .collect(Collectors.toMap(AgentKnowledge::getId, k -> k));
 
         // 4. 回填 content
@@ -501,20 +491,8 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
                 continue;
             }
 
-            Object idObj = metadata.get(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID);
-            Long id = null;
-            if (idObj instanceof Integer) {
-                id = ((Integer) idObj).longValue();
-            } else if (idObj instanceof Long) {
-                id = (Long) idObj;
-            } else if (idObj instanceof Double) {
-                // PostgreSQL JSONB返回数值为Double类型
-                id = ((Double) idObj).longValue();
-            } else if (idObj instanceof String) {
-                id = Long.parseLong((String) idObj);
-            }
-
-            if (id == null) {
+            String id = String.valueOf(metadata.get(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID));
+            if (id.isEmpty()) {
                 continue;
             }
 

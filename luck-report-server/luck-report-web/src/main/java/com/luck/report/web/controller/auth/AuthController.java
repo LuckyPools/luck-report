@@ -1,9 +1,9 @@
 package com.luck.report.web.controller.auth;
 
 import com.luck.report.common.domain.vo.ResultVO;
-import com.luck.report.web.domain.vo.ApplyRequest;
-import com.luck.report.web.domain.vo.RenewRequest;
-import com.luck.report.web.domain.vo.RevokeRequest;
+import com.luck.report.web.domain.vo.request.ApplyRequest;
+import com.luck.report.web.domain.vo.request.RenewRequest;
+import com.luck.report.web.domain.vo.request.RevokeRequest;
 import com.luck.report.web.security.TokenException;
 import com.luck.report.web.security.TokenProperties;
 import com.luck.report.web.security.token.TokenService;
@@ -42,16 +42,16 @@ public class AuthController {
      */
     @PostMapping("/getToken")
     public ResultVO<Map<String, Object>> getToken(@RequestBody ApplyRequest req) {
-        if (req == null || req.subject == null || req.subject.isEmpty()) {
+        if (req == null || req.getSubject() == null || req.getSubject().isEmpty()) {
             throw new TokenException("subject 不能为空");
         }
-        if (req.scope == null || req.scope.isEmpty()) {
+        if (req.getScope() == null || req.getScope().isEmpty()) {
             throw new TokenException("scope 不能为空");
         }
-        long ttl = req.ttlSeconds > 0 ? req.ttlSeconds : props.getTtlSeconds();
+        long ttl = req.getTtlSeconds() > 0 ? req.getTtlSeconds() : props.getTtlSeconds();
         String token = tokenService.generateToken(
-                req.subject, req.scope, req.reports, req.tenantId, ttl);
-        return ResultVO.success(buildTokenData(token, ttl, req.scope));
+                req.getSubject(), req.getScope(), req.getReports(), req.getTenantId(), ttl);
+        return ResultVO.success(buildTokenData(token, ttl, req.getScope()));
     }
 
     /**
@@ -59,11 +59,11 @@ public class AuthController {
      */
     @PostMapping("/renewToken")
     public ResultVO<Map<String, Object>> renewToken(@RequestBody RenewRequest req) {
-        if (req == null || req.oldToken == null || req.oldToken.isEmpty()) {
+        if (req == null || req.getOldToken() == null || req.getOldToken().isEmpty()) {
             throw new TokenException("oldToken 不能为空");
         }
-        long ttl = req.ttlSeconds > 0 ? req.ttlSeconds : props.getTtlSeconds();
-        String newToken = tokenService.renewToken(req.oldToken, ttl);
+        long ttl = req.getTtlSeconds() > 0 ? req.getTtlSeconds() : props.getTtlSeconds();
+        String newToken = tokenService.renewToken(req.getOldToken(), ttl);
         if (newToken == null) {
             throw new TokenException("续期失败：token 不存在、已过期且超过宽限期、或签名非法");
         }
@@ -75,10 +75,10 @@ public class AuthController {
      */
     @PostMapping("/revokeToken")
     public ResultVO<Void> revokeToken(@RequestBody RevokeRequest req) {
-        if (req == null || req.token == null || req.token.isEmpty()) {
+        if (req == null || req.getToken() == null || req.getToken().isEmpty()) {
             throw new TokenException("token 不能为空");
         }
-        Map<String, Object> claims = tokenService.introspectToken(req.token);
+        Map<String, Object> claims = tokenService.introspectToken(req.getToken());
         if (claims == null) {
             throw new TokenException("token 解析失败，无法吊销");
         }

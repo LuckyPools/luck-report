@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 public class AgentKnowledgeVO {
 
     /** 主键ID */
-    private Long id;
+    private String id;
 
     /** 知识标题 */
     private String title;
@@ -49,7 +49,7 @@ public class AgentKnowledgeVO {
     private String splitterType;
 
     /** 嵌入模型配置ID */
-    private Long modelId;
+    private String modelId;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

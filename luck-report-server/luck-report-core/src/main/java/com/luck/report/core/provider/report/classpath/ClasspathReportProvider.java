@@ -18,6 +18,7 @@ package com.luck.report.core.provider.report.classpath;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportProvider;
+import com.luck.report.core.provider.report.file.FileReportProvider;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -32,23 +33,29 @@ import java.util.List;
  * @since 2016年12月4日
  */
 public class ClasspathReportProvider implements ReportProvider, ApplicationContextAware {
+    public static final String SUFFIX = ".ureport.xml";
     private ApplicationContext applicationContext;
 
     @Override
-    public InputStream loadReport(String file) {
-        Resource resource = applicationContext.getResource(file);
+    public InputStream loadReport(String filePath) {
+        // 入参可能已去除 .ureport.xml 后缀，未以该后缀结尾则补齐
+        assert filePath != null;
+        if (!filePath.isEmpty() && !filePath.endsWith(SUFFIX)) {
+            filePath = filePath + SUFFIX;
+        }
+        Resource resource = applicationContext.getResource(filePath);
         try {
             return resource.getInputStream();
         } catch (IOException e) {
             String newFileName = null;
-            if (file.startsWith("classpath:")) {
-                newFileName = "classpath*:" + file.substring(10, file.length());
-            } else if (file.startsWith("classpath*:")) {
-                newFileName = "classpath:" + file.substring(11, file.length());
+            if (filePath.startsWith("classpath:")) {
+                newFileName = "classpath*:" + filePath.substring(10);
+            } else if (filePath.startsWith("classpath*:")) {
+                newFileName = "classpath:" + filePath.substring(11);
             }
             if (newFileName != null) {
                 try {
-                    return applicationContext.getResource(file).getInputStream();
+                    return applicationContext.getResource(filePath).getInputStream();
                 } catch (IOException ex) {
                     throw new ReportException(e);
                 }
@@ -66,7 +73,9 @@ public class ClasspathReportProvider implements ReportProvider, ApplicationConte
     public void deleteReport(String file) {}
 
     @Override
-    public void saveReport(String file, String content) {}
+    public ReportFile saveReport(String title, String filePath, String content) {
+        return new ReportFile();
+    }
 
     @Override
     public List<ReportFile> getReportFiles() {

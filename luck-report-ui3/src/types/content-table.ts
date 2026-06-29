@@ -2,7 +2,7 @@
  * ContentTable（edit-table 组件）契约
  *
  * 工作流程：
- * 1. 接收父级传入的 reportPath，挂载时从 url 解析 reportPath 并初始化 handsontable
+ * 1. 接收父级传入的 filePath，挂载时从 url 解析 filePath 并初始化 handsontable
  * 2. 加载报表定义（reportDef），构建二维数据 / 列宽 / 行高 / 合并单元格
  * 3. 监听用户选中、编辑、拖放、右键菜单等交互
  * 4. 通过 emit('cell-selected') / emit('save') / emit('error') 与父级通信
@@ -36,7 +36,7 @@ export interface CellRange {
 /** 组件 props 契约 */
 export interface ContentTableProps {
   /** 报表路径（由父级传入，未传入时从 url query 解析） */
-  reportPath?: string
+  filePath?: string
 }
 
 /** 组件 emits 契约 */

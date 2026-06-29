@@ -129,7 +129,7 @@ const toolbar = ref<HTMLDivElement | null>(null)
  * - 对原版 `decodeURIComponent` 行为保持一致
  */
 const fileName = computed<string>(() => {
-  const name = report.getFileName
+  const name = report.getReportName
   if (name) {
     return decodeURIComponent(name)
   }

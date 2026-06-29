@@ -36,7 +36,7 @@ export async function loadHtml(params: Record<string, any>): Promise<PreviewRepo
  * @param formData 查询参数
  * @returns 包含打印页面 HTML 内容
  */
-export async function loadPrintPages(formData: FormData): Promise<{ html: string }> {
+export async function loadPrintPages(formData: URLSearchParams): Promise<{ html: string }> {
     return request.post<{ html: string }>('/html/loadPrintPages', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -49,7 +49,7 @@ export async function loadPrintPages(formData: FormData): Promise<{ html: string
  * @param formData 查询参数
  * @returns 包含纸张信息
  */
-export async function loadPagePaper(formData: FormData): Promise<any> {
+export async function loadPagePaper(formData: URLSearchParams): Promise<any> {
     return request.post<any>('/html/loadPagePaper', formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -157,7 +157,7 @@ export async function getPdfPrintBlob(params: Record<string, any>, paperVo: any 
  * @returns 包含报表数据
  */
 export async function loadReportData(params: Record<string, any>): Promise<PreviewReportData> {
-    const formData = new FormData();
+    const formData = new URLSearchParams();
     if (params) {
         for (const [key, value] of Object.entries(params)) {
             formData.append(key, value as any);

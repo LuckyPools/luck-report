@@ -113,14 +113,7 @@
           >
             <VueDraggable
               :model-value="drawingList"
-              @update:model-value="(val: FormField[]) => {
-                // ★ 始终跳过：vue-draggable-plus 跨列表 move 时 modelValue 映射有 bug
-                // 所有数据更新改由 onEnd/onAdd 手动处理
-                console.log('[search-form][center-board onUpdate:modelValue] 跳过（由 onEnd/onAdd 处理）', {
-                  beforeLen: drawingList.length,
-                  afterLen: val.length
-                })
-              }"
+              @update:model-value="(val: FormField[]) => {}"
               :animation="340"
               group="componentsGroup"
               class="drawing-board"
@@ -277,29 +270,11 @@ watch(activeId, (val) => {
 watch(
   drawingList,
   () => {
-    console.log('[search-form][watch] 触发', {
-      needFixPosition,
-      correctNewIndex,
-      tempActiveData: tempActiveData ? { formId: tempActiveData.formId, label: tempActiveData.label } : null,
-      drawingListLen: drawingList.value.length
-    })
-    // ★ 逐个打印，避免浏览器折叠数组
-    drawingList.value.forEach((item: FormField, i: number) => {
-      console.log(`[search-form][watch] drawingList[${i}]:`, {
-        formId: item.formId,
-        tag: item.tag,
-        label: item.label,
-        childrenLen: Array.isArray(item.children) ? item.children.length : undefined,
-        children: Array.isArray(item.children) ? item.children!.map((c: FormField) => ({ formId: c.formId, tag: c.tag })) : undefined
-      })
-    })
     if (needFixPosition && correctNewIndex !== null && tempActiveData) {
       const newIndex = drawingList.value.findIndex(item => item.formId === tempActiveData?.formId)
-      console.log('[search-form][watch] 查找新元素索引:', newIndex, '目标索引:', correctNewIndex)
       if (newIndex !== -1 && newIndex !== correctNewIndex) {
         const [movedItem] = drawingList.value.splice(newIndex, 1)
         drawingList.value.splice(correctNewIndex, 0, movedItem)
-        console.log('[search-form][watch] 同步修正位置:', { from: newIndex, to: correctNewIndex, formId: tempActiveData?.formId })
       }
       needFixPosition = false
     }
@@ -391,14 +366,6 @@ function activeFormItem(element: FormField) {
 }
 
 function onEnd(obj: any) {
-  console.log('[search-form][onEnd] 开始', {
-    from_list: obj.from?.classList?.contains('components-draggable') ? 'left' : (obj.from?.classList?.contains('drawing-board') ? 'center' : 'other'),
-    to_list: obj.to?.classList?.contains('components-draggable') ? 'left' : (obj.to?.classList?.contains('drawing-board') ? 'center' : (obj.to?.classList?.contains('drag-wrapper') ? 'row' : 'other')),
-    oldIndex: obj.oldIndex,
-    newIndex: obj.newIndex,
-    draggedElement: draggedElement ? { formId: draggedElement.formId, tag: draggedElement.tag } : null
-  })
-
   // 保存并重置位置修正变量
   const savedCorrectIndex = correctNewIndex
   const savedTempActiveData = tempActiveData
@@ -410,10 +377,6 @@ function onEnd(obj: any) {
 
   // ★ 场景 1：拖入嵌套 row（center-board → row）
   if (isTargetNestedRow && isFromCenterBoard && draggedElement) {
-    console.log('[search-form][onEnd] ★ 手动迁移 center→row', {
-      draggedFormId: draggedElement.formId,
-      draggedTag: draggedElement.tag
-    })
 
     // 从 drawingList 移除被拖元素
     const dragIdx = drawingList.value.findIndex(item => item.formId === draggedElement!.formId)
@@ -456,7 +419,6 @@ function onEnd(obj: any) {
         if (currentIdx !== -1 && currentIdx !== toIdx) {
           const [moved] = drawingList.value.splice(currentIdx, 1)
           drawingList.value.splice(toIdx, 0, moved)
-          console.log('[search-form][onEnd] 排序完成', { from: currentIdx, to: toIdx })
         }
       }
     }
@@ -476,7 +438,6 @@ function onEnd(obj: any) {
         if (currentIndex !== -1 && currentIndex !== savedCorrectIndex) {
           const [movedItem] = drawingList.value.splice(currentIndex, 1)
           drawingList.value.splice(savedCorrectIndex, 0, movedItem)
-          console.log('[search-form][onEnd] 位置已修正:', { from: currentIndex, to: savedCorrectIndex })
         }
       })
     }
@@ -491,11 +452,6 @@ function onAdd(obj: any) {
   const addedItem = tempActiveData
   if (addedItem) {
     drawingList.value.splice(obj.newIndex ?? drawingList.value.length, 0, addedItem)
-    console.log('[search-form][onAdd] 添加到 drawingList', {
-      formId: addedItem.formId,
-      tag: addedItem.tag,
-      newIndex: obj.newIndex
-    })
   }
 
   // ★ 如果目标是嵌套 row（左工具栏 → row），手动迁移
@@ -521,7 +477,6 @@ function onAdd(obj: any) {
         }
         activeData.value = addedItem
         activeId.value = addedItem.formId
-        console.log('[search-form][onAdd] 已迁移到嵌套 row', { formId: addedItem.formId })
       }
     }
   }
@@ -530,11 +485,6 @@ function onAdd(obj: any) {
 function onStart(obj: any) {
   // ★ 追踪被拖拽的元素数据引用（用于手动迁移）
   draggedElement = obj.oldIndex != null ? drawingList.value[obj.oldIndex] ?? null : null
-  console.log('[search-form][onStart]', {
-    from: obj.from,
-    oldIndex: obj.oldIndex,
-    draggedElement: draggedElement ? { formId: draggedElement.formId, tag: draggedElement.tag } : null
-  })
 }
 
 function addComponent(item: FormField) {
@@ -544,13 +494,6 @@ function addComponent(item: FormField) {
 }
 
 function cloneComponent(origin: FormField): FormField {
-  console.log('[search-form][cloneComponent] 调用', {
-    originTag: origin.tag,
-    originLabel: origin.label,
-    originFormId: origin.formId,
-    originLayout: origin.layout,
-    stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
-  })
   const clone: FormField = JSON.parse(JSON.stringify(origin))
   clone.formId = ++idGlobal.value
   clone.span = formConf.span

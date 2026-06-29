@@ -31,6 +31,9 @@ public class ReportFile implements Serializable {
     private boolean directory;
     private String path;
 
+    public ReportFile() {
+    }
+
     public ReportFile(String name, Date updateDate) {
         this.name = name;
         this.updateDate = updateDate;

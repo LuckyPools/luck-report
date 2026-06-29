@@ -7,7 +7,6 @@
       <div class="preview-left-fixed">
         <ToolBox
           :report-data="reportData"
-          :report-name="currentReportName"
           :current-page="currentPage"
           :page-enable="pageEnable"
           :search-form-parameters="searchFormParameters"
@@ -126,7 +125,7 @@ const totalPage = ref(0)
 const currentPage = ref(1)
 const searchFormParameters = reactive<Record<string, unknown>>({})
 const searchFormConfig = ref<Record<string, unknown> | null>(null)
-const reportPath = ref('')
+const filePath = ref('')
 const mode = ref('')
 const toolsInfo = ref<string | null>(null)
 const pageIndex = ref<string | null>(null)
@@ -165,13 +164,7 @@ async function initReport(): Promise<ReportData | null> {
 
 /** 设置网页标题 */
 function setWebTitle(): void {
-  let name = (extraParams._title as string) || reportPath.value
-  if (name) {
-    name = decodeURIComponent(name)
-  }
-  if (name && name.endsWith('.ureport.xml')) {
-    name = name.replace('.ureport.xml', '')
-  }
+  const name = (extraParams._title as string) || filePath.value
   currentReportName.value = name
   if (name) {
     document.title = name
@@ -283,13 +276,13 @@ async function loadAndRenderReport(options: { resetToFirstPage?: boolean } = {})
 /** 解析 URL 中的查询参数到组件状态 */
 function parseParamsFromUrl(): void {
   const searchParams = getUrlSearchParams()
-  reportPath.value = searchParams.get('reportPath') || ''
-  mode.value = searchParams.get('mode') || ''
+  filePath.value = searchParams.get('filePath') || ''
+  mode.value = searchParams.get('_m') || ''
   toolsInfo.value = searchParams.get('_t')
   pageIndex.value = searchParams.get('_i')
 
   Object.keys(extraParams).forEach((k) => delete extraParams[k])
-  const localKeys = ['_i', '_t', '_r', '_n', 'mode', 'reportPath', 'lang']
+  const localKeys = ['_i', '_t', '_r', '_n', 'mode', 'filePath', 'lang']
   for (const [key, value] of searchParams) {
     if (!localKeys.includes(key)) {
       extraParams[key] = value
@@ -316,10 +309,10 @@ function handlePopState(): void {
  * @param targetPageIndex 目标页码
  */
 function getReportParams(targetPageIndex: string | number | null | undefined): Record<string, unknown> {
-  if (!reportPath.value) {
+  if (!filePath.value) {
     throw new Error(t('preview.error.fileParamMissing'))
   }
-  const params: Record<string, unknown> = { reportPath: reportPath.value }
+  const params: Record<string, unknown> = { filePath: filePath.value }
   if (mode.value) params.mode = mode.value
   if (targetPageIndex != null) params._i = targetPageIndex
   if (toolsInfo.value != null) params._t = toolsInfo.value
@@ -514,7 +507,7 @@ onBeforeUnmount(() => {
 /**
  * 父组件可通过 ref 调用以下方法控制当前预览页
  * - refresh: 重新解析 URL 参数并重新初始化报表
- * - setReportPath: 切换报表路径
+ * - setFilePath: 切换报表路径
  * - setParams: 追加 / 覆盖 URL 参数
  * - setLocale: 切换语言
  */
@@ -523,9 +516,9 @@ function refresh(): void {
   void initReport()
 }
 
-function setReportPath(path: string): void {
-  updateUrlParams({ reportPath: path })
-  reportPath.value = path
+function setFilePath(path: string): void {
+  updateUrlParams({ filePath: path })
+  filePath.value = path
   if (path) {
     void initReport()
   }
@@ -543,7 +536,7 @@ function setLocale(locale: 'zh' | 'en'): void {
 
 defineExpose({
   refresh,
-  setReportPath,
+  setFilePath,
   setParams,
   setLocale
 })

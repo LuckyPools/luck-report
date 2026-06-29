@@ -39,7 +39,7 @@ public interface BusinessKnowledgeService {
      * @param id 业务知识ID
      * @return 业务知识VO
      */
-    BusinessKnowledgeVO getKnowledgeById(Long id);
+    BusinessKnowledgeVO getKnowledgeById(String id);
 
     /**
      * 添加业务知识
@@ -56,14 +56,14 @@ public interface BusinessKnowledgeService {
      * @param knowledgeDTO 更新业务知识DTO
      * @return 业务知识VO
      */
-    BusinessKnowledgeVO updateKnowledge(Long id, UpdateBusinessKnowledgeDTO knowledgeDTO);
+    BusinessKnowledgeVO updateKnowledge(String id, UpdateBusinessKnowledgeDTO knowledgeDTO);
 
     /**
      * 删除业务知识
      *
      * @param id 业务知识ID
      */
-    void deleteKnowledge(Long id);
+    void deleteKnowledge(String id);
 
     /**
      * 设置业务知识的生效状态
@@ -71,7 +71,7 @@ public interface BusinessKnowledgeService {
      * @param id 业务知识ID
      * @param enabled 是否生效
      */
-    void recallKnowledge(Long id, Boolean enabled);
+    void recallKnowledge(String id, Boolean enabled);
 
     /**
      * 刷新所有业务知识到向量存储
@@ -85,7 +85,7 @@ public interface BusinessKnowledgeService {
      *
      * @param id 业务知识ID
      */
-    void retryEmbedding(Long id);
+    void retryEmbedding(String id);
 
     /**
      * 根据ID列表批量查询业务知识实体
@@ -94,7 +94,7 @@ public interface BusinessKnowledgeService {
      * @param ids 业务知识ID列表
      * @return 业务知识实体列表
      */
-    List<BusinessKnowledge> selectByIds(List<Long> ids);
+    List<BusinessKnowledge> selectByIds(List<String> ids);
 
     /**
      * 回填业务知识原文内容

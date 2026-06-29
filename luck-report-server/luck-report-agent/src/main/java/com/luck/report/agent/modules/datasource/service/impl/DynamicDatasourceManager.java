@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DynamicDatasourceManager {
 
     /** 数据源ID -> HikariDataSource 映射 */
-    private final Map<Integer, HikariDataSource> datasourcePoolMap = new ConcurrentHashMap<>();
+    private final Map<String, HikariDataSource> datasourcePoolMap = new ConcurrentHashMap<>();
 
     private final DatasourceTypeHandlerRegistry handlerRegistry;
 
@@ -96,7 +96,7 @@ public class DynamicDatasourceManager {
      * @param datasourceId 数据源ID
      * @return HikariDataSource，不存在返回null
      */
-    public HikariDataSource getDatasourcePool(Integer datasourceId) {
+    public HikariDataSource getDatasourcePool(String datasourceId) {
         return datasourcePoolMap.get(datasourceId);
     }
 
@@ -106,7 +106,7 @@ public class DynamicDatasourceManager {
      *
      * @param datasourceId 数据源ID
      */
-    public void removeDatasourcePool(Integer datasourceId) {
+    public void removeDatasourcePool(String datasourceId) {
         HikariDataSource ds = datasourcePoolMap.remove(datasourceId);
         if (ds != null && !ds.isClosed()) {
             ds.close();

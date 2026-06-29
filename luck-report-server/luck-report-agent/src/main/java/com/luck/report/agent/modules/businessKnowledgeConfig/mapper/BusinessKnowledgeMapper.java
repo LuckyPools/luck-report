@@ -38,7 +38,7 @@ public interface BusinessKnowledgeMapper {
      * @param id 业务知识ID
      * @return 业务知识实体
      */
-    BusinessKnowledge selectById(@Param("id") Long id);
+    BusinessKnowledge selectById(@Param("id") String id);
 
     /**
      * 搜索业务知识
@@ -64,7 +64,7 @@ public interface BusinessKnowledgeMapper {
      * @param updatedTime 更新时间
      * @return 影响行数
      */
-    int logicalDelete(@Param("id") Long id, @Param("isDeleted") Integer isDeleted, @Param("updatedTime") java.time.LocalDateTime updatedTime);
+    int logicalDelete(@Param("id") String id, @Param("isDeleted") Integer isDeleted, @Param("updatedTime") java.time.LocalDateTime updatedTime);
 
     /**
      * 根据ID列表批量查询业务知识
@@ -73,7 +73,7 @@ public interface BusinessKnowledgeMapper {
      * @param ids 业务知识ID列表
      * @return 业务知识列表
      */
-    List<BusinessKnowledge> selectByIds(@Param("ids") List<Long> ids);
+    List<BusinessKnowledge> selectByIds(@Param("ids") List<String> ids);
 
     /**
      * 分页条件查询业务知识

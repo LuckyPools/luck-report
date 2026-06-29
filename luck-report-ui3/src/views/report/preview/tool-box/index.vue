@@ -237,6 +237,7 @@ interface ReportData {
   totalPageWithCol?: number
   pageIndex?: number
   tools: ReportTools
+  reportName?: string
   [key: string]: unknown
 }
 
@@ -255,14 +256,12 @@ interface PaperConfig {
 const props = withDefaults(
   defineProps<{
     reportData: ReportData | null
-    reportName?: string
     currentPage?: number
     pageEnable?: boolean
     searchFormParameters?: Record<string, unknown>
   }>(),
   {
     reportData: null,
-    reportName: '',
     currentPage: 1,
     pageEnable: false,
     searchFormParameters: () => ({})
@@ -287,21 +286,8 @@ const pdfPrintDialogVisible = ref(false)
 const printIndex = ref(0)
 const inputPage = ref<string>(String(props.currentPage))
 
-/** 显示的报表名称（去掉文件名前缀和 .ureport.xml 后缀） */
-const displayReportName = computed(() => {
-  if (!props.reportName) {
-    return ''
-  }
-  let name = props.reportName
-  const colonIndex = name.indexOf(':')
-  if (colonIndex > -1) {
-    name = name.substring(colonIndex + 1)
-  }
-  if (name.endsWith('.ureport.xml')) {
-    name = name.replace('.ureport.xml', '')
-  }
-  return name
-})
+/** 显示的报表名称（来自 loadHtml 接口的 reportName 字段） */
+const displayReportName = computed(() => props.reportData?.reportName ?? '')
 
 /** PDF 打印对话框所需的合并参数对象 */
 const pdfPrintParameters = computed(() => {
@@ -362,11 +348,7 @@ async function print(): Promise<void> {
   let loadingInstance: { close: () => void } | null = null
   try {
     const urlParameters = buildLocationSearchParameters(props.searchFormParameters)
-    const params = new URLSearchParams(urlParameters)
-    const formData = new FormData()
-    for (const [key, value] of params.entries()) {
-      formData.append(key, value)
-    }
+    const formData = new URLSearchParams(urlParameters)
     loadingInstance = showLoading({ text: t('preview.loading.default') })
     const result = await loadPrintPages(formData)
     const paper = (await loadPagePaper(formData)) as PaperConfig

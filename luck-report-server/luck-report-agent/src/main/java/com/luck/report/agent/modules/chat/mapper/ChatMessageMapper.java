@@ -31,7 +31,7 @@ public interface ChatMessageMapper {
      * @param id 消息ID
      * @return 消息实体
      */
-    ChatMessage selectById(@Param("id") Long id);
+    ChatMessage selectById(@Param("id") String id);
 
     /**
      * 查询会话的消息数量
@@ -66,7 +66,7 @@ public interface ChatMessageMapper {
      * @param id 消息ID
      * @return 影响行数
      */
-    int deleteById(@Param("id") Long id);
+    int deleteById(@Param("id") String id);
 
     /**
      * 根据会话ID删除所有消息

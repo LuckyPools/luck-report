@@ -404,10 +404,10 @@ import {t} from "@/locales";
 // 表格列定义
 const columns = [
   {
-    title: 'ID',
-    dataIndex: 'id',
-    key: 'id',
-    width: 80
+    title: '序号',
+    key: 'index',
+    width: 80,
+    customRender: ({ index }: { index: number }) => (queryParams.pageNum - 1) * queryParams.pageSize + index + 1
   },
   {
     title: '标题',

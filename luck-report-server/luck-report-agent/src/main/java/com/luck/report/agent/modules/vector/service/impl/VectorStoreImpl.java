@@ -64,7 +64,7 @@ public class VectorStoreImpl implements VectorStore {
      * @param modelId   嵌入模型配置ID，为null时使用默认嵌入模型
      */
     @Override
-    public void add(List<VectorDocument> documents, Long modelId) {
+    public void add(List<VectorDocument> documents, String modelId) {
         if (documents == null || documents.isEmpty()) {
             return;
         }

@@ -71,7 +71,7 @@ public class BusinessKnowledgeController {
      * @return 业务知识详情
      */
     @GetMapping("/detail/{id}")
-    public ResultVO<BusinessKnowledgeVO> get(@PathVariable(value = "id") Long id) {
+    public ResultVO<BusinessKnowledgeVO> get(@PathVariable(value = "id") String id) {
         BusinessKnowledgeVO vo = businessKnowledgeService.getKnowledgeById(id);
         if (vo == null) {
             return ResultVO.error("业务知识不存在");
@@ -98,7 +98,7 @@ public class BusinessKnowledgeController {
      * @return 更新的业务知识
      */
     @PutMapping("/update/{id}")
-    public ResultVO<BusinessKnowledgeVO> update(@PathVariable(value = "id") Long id,
+    public ResultVO<BusinessKnowledgeVO> update(@PathVariable(value = "id") String id,
                                                     @RequestBody @Validated UpdateBusinessKnowledgeDTO knowledge) {
         return ResultVO.success("更新业务知识成功", businessKnowledgeService.updateKnowledge(id, knowledge));
     }
@@ -110,7 +110,7 @@ public class BusinessKnowledgeController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    public ResultVO<Boolean> delete(@PathVariable(value = "id") Long id) {
+    public ResultVO<Boolean> delete(@PathVariable(value = "id") String id) {
         if (businessKnowledgeService.getKnowledgeById(id) == null) {
             return ResultVO.error("业务知识不存在", false);
         }
@@ -126,7 +126,7 @@ public class BusinessKnowledgeController {
      * @return 设置结果
      */
     @PostMapping("/enable/{id}")
-    public ResultVO<Boolean> enableKnowledge(@PathVariable(value = "id") Long id,
+    public ResultVO<Boolean> enableKnowledge(@PathVariable(value = "id") String id,
                                                  @RequestParam(value = "enabled") Boolean enabled) {
         businessKnowledgeService.recallKnowledge(id, enabled);
         return ResultVO.success("设置生效状态成功", true);
@@ -157,7 +157,7 @@ public class BusinessKnowledgeController {
      * @return 重试结果
      */
     @PostMapping("/retry-embedding/{id}")
-    public ResultVO<Boolean> retryEmbedding(@PathVariable(value = "id") Long id) {
+    public ResultVO<Boolean> retryEmbedding(@PathVariable(value = "id") String id) {
         businessKnowledgeService.retryEmbedding(id);
         return ResultVO.success("重试向量化成功", true);
     }

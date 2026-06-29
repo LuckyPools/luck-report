@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 public class ChatMessage {
 
     /** 消息ID（自增） */
-    private Long id;
+    private String id;
 
     /** 所属会话ID */
     private String sessionId;

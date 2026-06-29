@@ -18,7 +18,7 @@ public class CompactRequest {
      * 用于指定使用哪个大模型进行对话压缩
      * 如果不传，则使用默认激活的第一个对话模型
      */
-    private Integer modelId;
+    private String modelId;
 
     /**
      * 需要压缩的历史消息列表

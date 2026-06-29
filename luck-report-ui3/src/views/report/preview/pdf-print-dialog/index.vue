@@ -250,7 +250,7 @@ const orientationOptions = computed<SelectOption[]>(() => [
 async function loadPaperData(): Promise<void> {
   loading.value = true
   try {
-    const formData = new FormData()
+    const formData = new URLSearchParams()
     for (const [key, value] of Object.entries(props.parameters)) {
       if (value !== null && value !== undefined) {
         formData.append(key, String(value))

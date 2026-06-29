@@ -508,10 +508,10 @@ const providerBaseUrlMap: Record<string, string> = {
 // 对话模型表格列定义
 const columns = [
   {
-    title: 'ID',
-    dataIndex: 'id',
-    key: 'id',
-    width: 80
+    title: '序号',
+    key: 'index',
+    width: 80,
+    customRender: ({ index }: { index: number }) => (pageNum.value - 1) * pageSize.value + index + 1
   },
   {
     title: '自定义名称',
@@ -567,10 +567,10 @@ const columns = [
 // 嵌入模型表格列定义(不显示温度和最大Token)
 const embeddingColumns = [
   {
-    title: 'ID',
-    dataIndex: 'id',
-    key: 'id',
-    width: 80
+    title: '序号',
+    key: 'index',
+    width: 80,
+    customRender: ({ index }: { index: number }) => (pageNum.value - 1) * pageSize.value + index + 1
   },
   {
     title: '自定义名称',

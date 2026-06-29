@@ -23,17 +23,17 @@
         SELECT COUNT(*) FROM luck_chat_message WHERE session_id = #{sessionId}
     </select>
 
-    <!-- 插入单条消息，createTime由Java侧赋值 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        INSERT INTO luck_chat_message (session_id, role, content, message_type, metadata, create_time)
-        VALUES (#{sessionId}, #{role}, #{content}, #{messageType}, #{metadata}, #{createTime})
+    <!-- 插入单条消息，createTime由Java侧赋值，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_chat_message (id, session_id, role, content, message_type, metadata, create_time)
+        VALUES (#{id}, #{sessionId}, #{role}, #{content}, #{messageType}, #{metadata}, #{createTime})
     </insert>
 
-    <!-- 批量插入消息，createTime由Java侧赋值 -->
+    <!-- 批量插入消息，createTime由Java侧赋值，ID由Snowflake生成 -->
     <insert id="batchInsert">
-        INSERT INTO luck_chat_message (session_id, role, content, message_type, metadata, create_time) VALUES
+        INSERT INTO luck_chat_message (id, session_id, role, content, message_type, metadata, create_time) VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.sessionId}, #{item.role}, #{item.content}, #{item.messageType}, #{item.metadata}, #{item.createTime})
+            (#{item.id}, #{item.sessionId}, #{item.role}, #{item.content}, #{item.messageType}, #{item.metadata}, #{item.createTime})
         </foreach>
     </insert>
 

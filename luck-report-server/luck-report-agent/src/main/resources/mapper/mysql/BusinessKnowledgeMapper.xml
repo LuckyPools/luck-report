@@ -4,10 +4,10 @@
 <mapper namespace="com.luck.report.agent.modules.businessKnowledgeConfig.mapper.BusinessKnowledgeMapper">
 
     <!-- 插入业务知识 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO luck_business_knowledge (business_term, description, synonyms, enabled, model_id,
+    <insert id="insert">
+        INSERT INTO luck_business_knowledge (id, business_term, description, synonyms, enabled, model_id,
                 embedding_status, error_msg, is_deleted, created_time, updated_time)
-        VALUES (#{businessTerm}, #{description}, #{synonyms}, #{enabled}, #{modelId},
+        VALUES (#{id}, #{businessTerm}, #{description}, #{synonyms}, #{enabled}, #{modelId},
                 #{embeddingStatus}, #{errorMsg}, #{isDeleted}, #{createdTime}, #{updatedTime})
     </insert>
 

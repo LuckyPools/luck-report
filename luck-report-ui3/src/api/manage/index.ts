@@ -10,25 +10,21 @@
  * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
  */
 import request from '@/utils/request'
+import type { PageResultVO } from '@/types/api'
 
 /**
  * 报表文件记录
- * - filePath: 完整访问路径（带 provider 前缀，例如 file:xxx.ureport.xml）
- * - fileName: 原始文件名
- * - isDirectory: 是否为目录
+ * 字段与后端 com.luck.report.core.provider.report.ReportFile 保持一致
+ * - name: 文件名（展示名）
+ * - path: 不带 provider 前缀的原始路径（如 db 存储的数据库 id "123"、file 存储的相对文件名 "x.ureport.xml"）
+ * - directory: 是否为目录
+ * - updateDate: 更新时间
  */
 export interface ReportFileVO {
-  filePath: string
-  fileName: string
-  isDirectory: boolean
-}
-
-/**
- * 报表分页结果
- */
-export interface ReportPageVO {
-  total: number
-  records: ReportFileVO[]
+  name: string
+  path: string
+  directory: boolean
+  updateDate: string
 }
 
 /**
@@ -41,13 +37,18 @@ export interface ReportProviderVO {
 }
 
 /**
- * 分页查询参数
+ * 报表分页查询 DTO
  */
-export interface QueryReportsDTO {
+export interface ReportQueryDTO {
+  /** 报表来源前缀（例如 file:） */
   provider: string
+  /** 报表名称（模糊查询） */
   reportName?: string
+  /** 目录路径（可选） */
   directory?: string
+  /** 当前页码 */
   pageNum: number
+  /** 每页大小 */
   pageSize: number
 }
 
@@ -61,40 +62,52 @@ export async function loadReportProviders(): Promise<ReportProviderVO[]> {
 
 /**
  * 分页查询报表列表
- * @param query 查询条件
+ * @param queryDTO 查询条件
  * @returns 分页结果
  */
-export async function queryReports(query: QueryReportsDTO): Promise<ReportPageVO> {
-  return request.get<ReportPageVO>('/manage/queryReports', { params: query })
+export async function queryReports(queryDTO: ReportQueryDTO): Promise<PageResultVO<ReportFileVO>> {
+  return request.post<PageResultVO<ReportFileVO>>('/manage/queryReports', queryDTO)
 }
 
 /**
  * 删除报表
- * @param file 报表完整路径（带 provider 前缀，例如 file:xxx.ureport.xml）
+ * @param file 报表完整路径（带 provider 前缀，例如 file:xxx）
  */
 export async function deleteReport(file: string): Promise<void> {
   return request.get<void>('/manage/deleteReport', { params: { file } })
 }
 
 /**
- * 新建报表的返回结果
+ * 新建报表
+ * - 后端从 classpath:template/template.ureport.xml 读取空白模板
+ * - 在指定 provider 下创建 fileName（完整路径 = provider + fileName）
+ * - 后端返回保存后的 ReportFile，其 path 不含 provider 前缀
+ * @param fileName 报表名
+ * @param provider 报表来源前缀（例如 file:）
+ * @returns 创建结果 ReportFile
  */
-export interface CreateReportResultVO {
-  fileName: string
-  filePath: string
-  provider: string
+export async function createReport(fileName: string, provider: string): Promise<ReportFileVO> {
+  return request.get<ReportFileVO>('/designer/createReport', {
+    params: { fileName, provider }
+  })
 }
 
 /**
- * 新建报表（使用空白模板在指定 provider 下创建报表文件）
- * - 后端从 classpath:template/template.ureport.xml 读取空白模板
- * - 在指定 provider 下创建 fileName（完整路径 = provider + fileName）
- * @param fileName 报表名（含 .ureport.xml 后缀）
- * @param provider 报表来源前缀（例如 file:）
- * @returns 创建结果
+ * 复制报表
+ * - 复制源报表到同 provider 下的 newFilePath
+ * - 后端通过 provider.loadReport 读取源内容，再 provider.saveReport 写入新位置
+ * - 后端返回保存后的 ReportFile，其 path 不含 provider 前缀
+ * @param sourceFilePath 源报表完整路径（带 provider 前缀），如 file:xxx.ureport.xml / db:123
+ * @param newFilePath 目标报表完整路径（带 provider 前缀），如 file:xxx_copy.ureport.xml / db:xxx_copy
+ * @param newTitle 目标报表展示名（db: provider 用作 title，可选）
+ * @returns 复制结果 ReportFile
  */
-export async function createReport(fileName: string, provider: string): Promise<CreateReportResultVO> {
-  return request.get<CreateReportResultVO>('/designer/createReport', {
-    params: { fileName, provider }
+export async function copyReport(
+  sourceFilePath: string,
+  newFilePath: string,
+  newTitle?: string
+): Promise<ReportFileVO> {
+  return request.get<ReportFileVO>('/designer/copyReport', {
+    params: { sourceFilePath, newFilePath, newTitle }
   })
 }

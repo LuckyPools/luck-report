@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 public class ModelConfig {
 
     /** 配置ID */
-    private Integer id;
+    private String id;
 
     /** 厂商标识（如 alibaba、openai），方便前端展示回显 */
     private String provider;

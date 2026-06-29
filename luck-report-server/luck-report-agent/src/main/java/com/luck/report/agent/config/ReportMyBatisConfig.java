@@ -26,7 +26,8 @@ import java.util.Properties;
         "com.luck.report.agent.modules.modelConfig.mapper",
         "com.luck.report.agent.modules.businessKnowledgeConfig.mapper",
         "com.luck.report.agent.modules.datasource.mapper",
-        "com.luck.report.agent.modules.agentKnowledgeConfig.mapper"},
+        "com.luck.report.agent.modules.agentKnowledgeConfig.mapper",
+        "com.luck.report.agent.modules.file.mapper"},
         sqlSessionFactoryRef = "sqlSessionFactory")
 public class ReportMyBatisConfig {
 

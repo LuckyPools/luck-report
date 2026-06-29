@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 public class DatasourceVO {
 
     /** 主键ID */
-    private Integer id;
+    private String id;
 
     /** 数据源名称 */
     private String name;
@@ -61,7 +61,7 @@ public class DatasourceVO {
     private String initializedTables;
 
     /** 创建人ID */
-    private Long creatorId;
+    private String creatorId;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

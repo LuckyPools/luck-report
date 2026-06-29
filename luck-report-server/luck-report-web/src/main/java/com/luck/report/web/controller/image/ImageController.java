@@ -4,9 +4,9 @@ import com.luck.report.core.cache.ResourceCache;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -25,8 +25,8 @@ public class ImageController {
      * 获取图片资源
      */
     @RequestMapping(value = {"", "/"})
-    public void getImage(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String key = req.getParameter("_key");
+    public void getImage(@RequestParam(value = "_key", required = false) String key,
+                         HttpServletResponse resp) throws IOException {
         if (StringUtils.isNotBlank(key)) {
             byte[] bytes = (byte[]) ResourceCache.getObject(key);
             InputStream input = new ByteArrayInputStream(bytes);

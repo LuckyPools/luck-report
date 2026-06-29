@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 public class AgentKnowledge {
 
     /** 主键ID */
-    private Long id;
+    private String id;
 
     /** 知识标题 */
     private String title;
@@ -65,7 +65,7 @@ public class AgentKnowledge {
     private String splitterType = "token";
 
     /** 嵌入模型配置ID，用于指定向量化时使用的嵌入模型 */
-    private Long modelId;
+    private String modelId;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

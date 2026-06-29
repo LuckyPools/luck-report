@@ -1,5 +1,6 @@
 package com.luck.report.agent.modules.businessKnowledgeConfig.service.impl;
 
+import com.luck.report.agent.common.util.SnowflakeIdGenerator;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
 import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;
@@ -80,7 +81,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      * @return 业务知识VO
      */
     @Override
-    public BusinessKnowledgeVO getKnowledgeById(Long id) {
+    public BusinessKnowledgeVO getKnowledgeById(String id) {
         BusinessKnowledge businessKnowledge = businessKnowledgeMapper.selectById(id);
         if (businessKnowledge == null) {
             return null;
@@ -99,6 +100,8 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
     @Override
     public BusinessKnowledgeVO addKnowledge(CreateBusinessKnowledgeDTO knowledgeDTO) {
         BusinessKnowledge entity = businessKnowledgeConverter.toEntityForCreate(knowledgeDTO);
+        // 由 Java 端生成 Snowflake ID（不再依赖数据库自增）
+        entity.setId(SnowflakeIdGenerator.generateId());
 
         // MySQL操作放在编程式事务内，事务提交后释放连接
         transactionTemplate.executeWithoutResult(status -> {
@@ -134,7 +137,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      * @return 业务知识VO
      */
     @Override
-    public BusinessKnowledgeVO updateKnowledge(Long id, UpdateBusinessKnowledgeDTO knowledgeDTO) {
+    public BusinessKnowledgeVO updateKnowledge(String id, UpdateBusinessKnowledgeDTO knowledgeDTO) {
         // 从数据库获取原始数据
         BusinessKnowledge knowledge = businessKnowledgeMapper.selectById(id);
         if (knowledge == null) {
@@ -193,7 +196,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      * @param id 业务知识ID
      */
     @Override
-    public void deleteKnowledge(Long id) {
+    public void deleteKnowledge(String id) {
         // 从数据库获取原始数据
         BusinessKnowledge knowledge = businessKnowledgeMapper.selectById(id);
         if (knowledge == null) {
@@ -233,7 +236,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void recallKnowledge(Long id, Boolean enabled) {
+    public void recallKnowledge(String id, Boolean enabled) {
         // 从数据库获取原始数据
         BusinessKnowledge knowledge = businessKnowledgeMapper.selectById(id);
         if (knowledge == null) {
@@ -281,7 +284,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      * @param id 业务知识ID
      */
     @Override
-    public void retryEmbedding(Long id) {
+    public void retryEmbedding(String id) {
         BusinessKnowledge knowledge = businessKnowledgeMapper.selectById(id);
         if (knowledge == null) {
             throw new RuntimeException("业务知识不存在, id: " + id);
@@ -333,7 +336,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      * @return 业务知识实体列表
      */
     @Override
-    public List<BusinessKnowledge> selectByIds(List<Long> ids) {
+    public List<BusinessKnowledge> selectByIds(List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
@@ -352,12 +355,13 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             return;
         }
 
-        // 收集所有业务知识 ID
-        List<Long> ids = results.stream()
+        // 收集所有业务知识 ID（统一转为 String）
+        List<String> ids = results.stream()
                 .map(r -> r.getDocument().getMetadata())
                 .filter(m -> m != null && m.containsKey(DocumentMetadataConstant.DB_BUSINESS_TERM_ID))
-                .map(m -> extractId(m.get(DocumentMetadataConstant.DB_BUSINESS_TERM_ID)))
-                .filter(id -> id != null)
+                .map(m -> String.valueOf(m.get(DocumentMetadataConstant.DB_BUSINESS_TERM_ID)))
+                .filter(id -> id != null && !id.isEmpty())
+                .distinct()
                 .collect(Collectors.toList());
 
         if (ids.isEmpty()) {
@@ -371,7 +375,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
         }
 
         // 构建 ID 到业务知识的映射
-        Map<Long, BusinessKnowledge> knowledgeMap = knowledgeList.stream()
+        Map<String, BusinessKnowledge> knowledgeMap = knowledgeList.stream()
                 .collect(Collectors.toMap(BusinessKnowledge::getId, k -> k));
 
         // 回填 content
@@ -380,8 +384,8 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             if (metadata == null || !metadata.containsKey(DocumentMetadataConstant.DB_BUSINESS_TERM_ID)) {
                 continue;
             }
-            Long id = extractId(metadata.get(DocumentMetadataConstant.DB_BUSINESS_TERM_ID));
-            if (id == null) {
+            String id = String.valueOf(metadata.get(DocumentMetadataConstant.DB_BUSINESS_TERM_ID));
+            if (id.isEmpty()) {
                 continue;
             }
             BusinessKnowledge knowledge = knowledgeMap.get(id);
@@ -390,32 +394,6 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
                 result.getDocument().setContent(content);
             }
         }
-    }
-
-    /**
-     * 从 metadata 中提取 ID，兼容 Long、Integer、String 类型
-     *
-     * @param idObj ID 对象
-     * @return Long 类型 ID，无法解析返回 null
-     */
-    private Long extractId(Object idObj) {
-        if (idObj == null) {
-            return null;
-        }
-        if (idObj instanceof Long) {
-            return (Long) idObj;
-        } else if (idObj instanceof Integer) {
-            return ((Integer) idObj).longValue();
-        } else if (idObj instanceof Double) {
-            return ((Double) idObj).longValue();
-        } else if (idObj instanceof String) {
-            try {
-                return Long.parseLong((String) idObj);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
     }
 
     /**

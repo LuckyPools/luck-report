@@ -6,7 +6,7 @@
         <TopToolBar ref="topToolBar" :selected-cells="selectedCells" />
         <ContentTable
           ref="contentTableRef"
-          :reportPath="localReportPath"
+          :filePath="localReportPath"
           @cell-selected="handleCellSelected"
           @save="handleSave"
           @error="handleError"
@@ -27,7 +27,7 @@
  * 报表设计器页面（vue3 迁移骨架版）
  *
  * 工作流程：
- * 1. 接收父级传入的 reportPath，挂载时从 URL 解析 lang 并设置 i18n
+ * 1. 接收父级传入的 filePath，挂载时从 URL 解析 lang 并设置 i18n
  * 2. 维护 selectedCells（当前选中单元格范围）和 localReportPath（当前报表路径）
  * 3. 将顶层工具条 / 表格 / 资源面板 / AI 对话框的事件向上抛
  *
@@ -66,11 +66,11 @@ import { setLocale } from '@/locales'
  * 组件 props 定义
  * - 采用 vue3 defineProps 选项写法，避开 TS 顶级 interface 声明
  *   （项目 ESLint 解析器为 @babel/eslint-parser，不支持该语法）
- * @type {{ reportPath: string }}
+ * @type {{ filePath: string }}
  */
 const props = defineProps({
-  /** 报表路径（query/reportPath） */
-  reportPath: {
+  /** 报表路径（query/filePath） */
+  filePath: {
     type: String,
     default: ''
   }
@@ -102,7 +102,7 @@ const selectedCells = ref({
 })
 
 /** 当前报表路径（跟随 props 同步，可被内部方法覆写） */
-const localReportPath = ref(props.reportPath)
+const localReportPath = ref(props.filePath)
 
 /** ContentTable 组件引用（用于调用暴露的 getReportData / saveReport） */
 const contentTableRef = ref(null)
@@ -119,9 +119,9 @@ const aiIframe = ref(null)
 /** vue-router 实例（供 navigateTo 使用） */
 const router = useRouter()
 
-// 监听 props.reportPath 变化同步到本地
+// 监听 props.filePath 变化同步到本地
 watch(
-  () => props.reportPath,
+  () => props.filePath,
   (val) => {
     localReportPath.value = val
   }
@@ -225,7 +225,7 @@ function navigateTo(target, params, openInNewTab = true) {
  * @param {string} path 新的报表路径
  * @returns {void}
  */
-function setReportPath(path) {
+function setFilePath(path) {
   localReportPath.value = path
 }
 

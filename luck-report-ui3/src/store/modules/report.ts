@@ -83,7 +83,8 @@ export interface ContextRemoveDatasetPayload {
  */
 export interface ReportStoreState {
     context: ReportContext | null
-    fileName: string
+    reportName: string
+    filePath: string
     disableSaveBtn: boolean
     isSaved: boolean
     showPrintLine: boolean
@@ -144,7 +145,8 @@ export type ReportStore = Store<
     contextSetColumns(columns: ReportColumnDef[]): void
 
     // ============ UI 状态操作 ============
-    setFileName(fileName: string): void
+    setReportName(reportName: string): void
+    setFilePath(filePath: string): void
     setDisableSaveBtn(disable: boolean): void
     setIsSaved(isSaved: boolean): void
     setIsPrintLineRefresh(shouldRefresh: boolean): void
@@ -175,7 +177,9 @@ export const useReportStore = defineStore('report', {
         // 设计器全局上下文
         context: null,
         // 报表名称
-        fileName: '',
+        reportName: '',
+        // 报表完整路径
+        filePath: '',
         // 禁用保存按钮
         disableSaveBtn: true,
         // 报表是否已保存
@@ -196,7 +200,9 @@ export const useReportStore = defineStore('report', {
         // 检查是否有上下文
         hasContext: (state): boolean => !!state.context,
         // 获取文件名
-        getFileName: (state): string => state.fileName,
+        getReportName: (state): string => state.reportName,
+        // 获取报表完整路径（含 provider 前缀和后缀）
+        getFilePath: (state): string => state.filePath,
         // 获取保存按钮状态
         getSaveBtnDisable: (state): boolean => state.disableSaveBtn,
         // 获取报表保存状态
@@ -643,21 +649,27 @@ export const useReportStore = defineStore('report', {
         // ============ UI 状态操作 ============
 
         /**
-         * 设置文件名（自动去除 .ureport.xml 后缀并解码）
-         * @param {string} fileName - 原始文件名
+         * 设置报表展示名（人类可读）
+         * - 不再做后缀/URI 自动清理：完整路径交给 setFilePath，展示名原样存储
+         * - 适用于 db: provider 的 title、file: provider 的 basename 等场景
+         *
+         * @param {string} reportName - 报表展示名
          */
-        setFileName(fileName: string) {
-            const suffix = '.ureport.xml'
-            const pos = fileName.indexOf(suffix)
-            if (pos > -1) {
-                fileName = fileName.substring(0, pos)
-            }
-            this.fileName = decodeURI(fileName)
+        setReportName(reportName: string) {
+            this.reportName = reportName
+        },
+
+        /**
+         * 设置报表完整路径
+         * @param {string} filePath - 报表唯一路径，如 file:xxx / db:123
+         */
+        setFilePath(filePath: string) {
+            this.filePath = filePath
         },
 
         /**
          * 设置保存按钮禁用状态
-         * @param {boolean} disable - 是否禁用
+         * @param {boolean} disable - true 禁用，false 启用
          */
         setDisableSaveBtn(disable: boolean) {
             this.disableSaveBtn = disable

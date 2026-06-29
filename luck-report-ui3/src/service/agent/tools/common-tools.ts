@@ -131,11 +131,11 @@ export const saveReportTool: ToolDefinition<{
   fileName?: string;
 }> = {
   name: 'save_report',
-  description: '保存当前报表。将设计器中的报表数据保存到服务器。可选传入fileName指定文件名（不含.ureport.xml后缀），不传则使用当前已打开的文件名。',
+  description: '保存当前报表。将设计器中的报表数据保存到服务器。可选传入fileName指定文件，不传则使用当前已打开的文件名。',
   inputSchema: {
     type: 'object',
     properties: {
-      fileName: { type: 'string', description: '报表文件名，不含.ureport.xml后缀。不传则使用当前文件名' }
+      fileName: { type: 'string', description: '报表文件名。不传则使用当前文件名' }
     },
     required: []
   },

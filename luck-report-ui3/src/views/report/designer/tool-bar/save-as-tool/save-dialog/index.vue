@@ -116,7 +116,7 @@
  * 1. visible=true → loadReports 加载报表目录
  * 2. 切换 provider / 目录 → 更新 currentReportFiles
  * 3. 点击「保存」→ 校验文件名/重名 → saveReportFile
- * 4. 保存成功 → 更新 store.setIsSaved / setFileName → emit('save-after', fullFileName)
+ * 4. 保存成功 → 更新 store.setIsSaved / setReportName → emit('save-after', fullFileName)
  *
  * 迁移说明：
  * - Options API → vue3 <script setup>
@@ -440,20 +440,21 @@ function handleSave(): void {
     }
   }
 
-  const filePath = currentPath.value
+  const curPath = currentPath.value
     ? currentPath.value + '/' + fileName.value
     : fileName.value
-  const fullFileName = currentProviderPrefix.value + filePath + '.ureport.xml'
+  const filePath = currentProviderPrefix.value + curPath
   const content = tableToXml(context.value)
 
-  saveReportFile(fullFileName, content)
+  saveReportFile(fileName.value, filePath, content)
     .then(() => {
       report.setIsSaved(true)
-      report.setFileName(fullFileName)
+      report.setReportName(fileName.value)
+      report.setFilePath(filePath)
       resetDirty()
       showAlert(t('dialog.save.success')).then(() => {
         handleClose()
-        emit('save-after', fullFileName)
+        emit('save-after', filePath)
       })
     })
     .catch((error: { msg?: string }) => {

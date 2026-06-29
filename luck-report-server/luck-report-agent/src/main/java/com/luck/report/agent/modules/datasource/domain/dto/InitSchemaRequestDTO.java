@@ -17,5 +17,5 @@ public class InitSchemaRequestDTO {
     private List<String> tables;
 
     /** 嵌入模型配置ID，用于指定向量化时使用的嵌入模型 */
-    private Long modelId;
+    private String modelId;
 }

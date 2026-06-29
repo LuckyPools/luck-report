@@ -1,5 +1,6 @@
 package com.luck.report.agent.modules.modelConfig.service.impl;
 
+import com.luck.report.agent.common.util.SnowflakeIdGenerator;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigDTO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
@@ -63,7 +64,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
      * @return ModelConfig实体对象,不存在则返回null
      */
     @Override
-    public ModelConfig findById(Integer id) {
+    public ModelConfig findById(String id) {
         return modelConfigMapper.findById(id);
     }
 
@@ -75,7 +76,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void activateConfig(Integer id) {
+    public void activateConfig(String id) {
         ModelConfig entity = modelConfigMapper.findById(id);
         if (entity == null) {
             throw new RuntimeException("配置不存在");
@@ -101,7 +102,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void deactivateConfig(Integer id) {
+    public void deactivateConfig(String id) {
         ModelConfig entity = modelConfigMapper.findById(id);
         if (entity == null) {
             throw new RuntimeException("配置不存在");
@@ -186,11 +187,14 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
     @Override
     public void addConfig(ModelConfigDTO dto) {
         clean(dto);
+        ModelConfig entity = ModelConfigConverter.toEntity(dto);
+        // 由 Java 端生成 Snowflake ID（不再依赖数据库自增）
+        entity.setId(SnowflakeIdGenerator.generateId());
         // 只存库,不切换
-        modelConfigMapper.insert(ModelConfigConverter.toEntity(dto));
+        modelConfigMapper.insert(entity);
         // 清空模型配置缓存
         clearModelConfigCache();
-        log.info("新增模型配置: modelName={}", dto.getModelName());
+        log.info("新增模型配置: id={}, modelName={}", entity.getId(), dto.getModelName());
     }
 
     /**
@@ -284,7 +288,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
      * @param id 配置ID
      */
     @Override
-    public void deleteConfig(Integer id) {
+    public void deleteConfig(String id) {
         // 1. 先查询是否存在
         ModelConfig entity = modelConfigMapper.findById(id);
         if (entity == null) {
@@ -340,7 +344,7 @@ public class ModelConfigDataServiceImpl implements ModelConfigDataService {
      * @throws RuntimeException 当找不到可用的对话模型时抛出
      */
     @Override
-    public ModelConfig getChatConfig(Integer modelId) {
+    public ModelConfig getChatConfig(String modelId) {
         if (modelId != null) {
             // 根据ID获取指定模型配置，优先从缓存读取
             String cacheKey = MODEL_BY_ID_PREFIX + modelId;

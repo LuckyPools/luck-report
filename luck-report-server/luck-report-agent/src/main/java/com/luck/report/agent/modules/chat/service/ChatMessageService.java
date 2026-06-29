@@ -44,5 +44,5 @@ public interface ChatMessageService {
      *
      * @param id 消息ID，不可为空
      */
-    void deleteMessage(Long id);
+    void deleteMessage(String id);
 }

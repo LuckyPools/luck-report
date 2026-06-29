@@ -101,7 +101,7 @@ public class ModelConfigController {
      * @return ResultVO操作结果
      */
     @DeleteMapping("/{id}")
-    public ResultVO<String> delete(@PathVariable Integer id) {
+    public ResultVO<String> delete(@PathVariable String id) {
         try {
             modelConfigDataService.deleteConfig(id);
             return ResultVO.success("配置已删除");
@@ -117,7 +117,7 @@ public class ModelConfigController {
      * @return ResultVO操作结果
      */
     @PostMapping("/activate/{id}")
-    public ResultVO<String> activate(@PathVariable Integer id) {
+    public ResultVO<String> activate(@PathVariable String id) {
         try {
             modelConfigDataService.activateConfig(id);
             return ResultVO.success("模型启用成功!");
@@ -134,7 +134,7 @@ public class ModelConfigController {
      * @return ResultVO操作结果
      */
     @PostMapping("/deactivate/{id}")
-    public ResultVO<String> deactivate(@PathVariable Integer id) {
+    public ResultVO<String> deactivate(@PathVariable String id) {
         try {
             modelConfigDataService.deactivateConfig(id);
             return ResultVO.success("模型禁用成功!");

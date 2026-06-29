@@ -117,7 +117,7 @@ public class BuildinDatasourceLoader implements SmartInitializingSingleton, Buil
      * @param name 数据源名称
      * @return 数据源 ID，不存在返回 null
      */
-    public Integer getBuildinDatasourceId(String name) {
+    public String getBuildinDatasourceId(String name) {
         BuildinDatasource datasource = buildinDatasourceMap.get(name);
         return datasource != null ? datasource.getId() : null;
     }
@@ -127,10 +127,10 @@ public class BuildinDatasourceLoader implements SmartInitializingSingleton, Buil
      *
      * @return Map<名称, ID>
      */
-    public Map<String, Integer> getBuildinDatasourceIdMap() {
-        Map<String, Integer> map = new ConcurrentHashMap<>();
+    public Map<String, String> getBuildinDatasourceIdMap() {
+        Map<String, String> map = new ConcurrentHashMap<>();
         for (BuildinDatasource datasource : buildinDatasourceMap.values()) {
-            Integer id = datasource.getId();
+            String id = datasource.getId();
             if (id != null) {
                 map.put(datasource.name(), id);
             }

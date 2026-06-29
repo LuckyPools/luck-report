@@ -181,7 +181,6 @@ export default {
       }
     },
     handleHeaderLeftChange() {
-      console.log('[DEBUG][header-footer] handleHeaderLeftChange, localHeader=', JSON.stringify(this.localHeader))
       this.$emit('update:header', { ...this.localHeader });
       this.$emit('header-footer-change');
     },

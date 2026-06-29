@@ -3,11 +3,11 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.luck.report.agent.modules.datasource.mapper.DatasourceMapper">
 
-    <!-- 插入数据源 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO luck_datasource (name, type, host, port, database_name, username, password,
+    <!-- 插入数据源，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_datasource (id, name, type, host, port, database_name, username, password,
                 connection_url, status, test_status, description, model_id, initialized_tables, creator_id)
-        VALUES (#{name}, #{type}, #{host}, #{port}, #{databaseName}, #{username}, #{password},
+        VALUES (#{id}, #{name}, #{type}, #{host}, #{port}, #{databaseName}, #{username}, #{password},
                 #{connectionUrl}, #{status}, #{testStatus}, #{description}, #{modelId}, #{initializedTables}, #{creatorId})
     </insert>
 

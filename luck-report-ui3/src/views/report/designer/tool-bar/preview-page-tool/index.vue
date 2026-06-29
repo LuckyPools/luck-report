@@ -67,18 +67,12 @@ function openRoute(target: string, params: Record<string, any> = {}, openInNewTa
  */
 function handleClick(): void {
   const content = tableToXml(context.value)
-  let fileName = report.getFileName
-  if (fileName) {
-    fileName = fileName + '.ureport.xml'
-  } else {
-    fileName = 'p'
-  }
-
-  savePreviewFile(fileName, content)
+  const filePath = report.getFilePath
+  savePreviewFile(filePath, content)
     .then(() => {
       openRoute('Preview', {
-        reportPath: fileName,
-        mode: 'preview',
+        filePath: filePath,
+        _m: 'preview',
         _i: '1',
         _r: '1'
       }, true)

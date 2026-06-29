@@ -15,11 +15,7 @@
  ******************************************************************************/
 package com.luck.report.web.utils;
 
-import com.luck.report.web.exception.ReportDesignException;
-
 import javax.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,19 +27,6 @@ import java.util.Map;
  * @date 2026-05-21
  */
 public class UrlParameterUtils {
-    public static String doubleDecode(String str) {
-        if (str == null) {
-            return str;
-        }
-        try {
-            str = URLDecoder.decode(str, "utf-8");
-            str = URLDecoder.decode(str, "utf-8");
-            return str;
-        } catch (UnsupportedEncodingException e) {
-            throw new ReportDesignException(e);
-        }
-    }
-
     public static Map<String, Object> buildParameters(HttpServletRequest req) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         Enumeration<?> enumeration = req.getParameterNames();
@@ -57,7 +40,7 @@ public class UrlParameterUtils {
             if (name == null || value == null || name.startsWith("_")) {
                 continue;
             }
-            parameters.put(name, UrlParameterUtils.doubleDecode(value));
+            parameters.put(name, value);
         }
         return parameters;
     }

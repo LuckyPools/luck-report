@@ -85,7 +85,7 @@ function buildFromBtns(conf: FormConf, type: string): string {
   if (conf.formBtns && type === 'file') {
     str = `
         <a-row>
-          <a-form-item>
+          <a-form-item label=" " :colon="false">
             <a-button @click.prevent="resetForm" style="display: inline-flex; align-items: center; justify-content: center;">
                 <i class="iconfont icon-refresh"></i>
                 <span style="margin-left: 4px">{{ t('searchForm.reset') }}</span>

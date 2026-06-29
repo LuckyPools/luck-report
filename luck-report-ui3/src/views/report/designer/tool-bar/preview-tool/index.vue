@@ -64,19 +64,13 @@ function openRoute(target: string, params: Record<string, any> = {}, openInNewTa
  * 点击处理：序列化 → 保存预览文件 → 打开 Preview 路由
  */
 function handleClick(): void {
+  const filePath = report.getFilePath
   const content = tableToXml(context.value)
-  let fileName = report.getFileName
-  if (fileName) {
-    fileName = fileName + '.ureport.xml'
-  } else {
-    fileName = 'p'
-  }
-
-  savePreviewFile(fileName, content)
+  savePreviewFile(filePath, content)
     .then(() => {
       openRoute('Preview', {
-        reportPath: fileName,
-        mode: 'preview'
+        filePath: filePath,
+        _m: 'preview'
       }, true)
     })
     .catch((error: { msg?: string }) => {

@@ -24,7 +24,7 @@ public interface AgentKnowledgeService {
      * @param id 智能体知识ID
      * @return 智能体知识VO
      */
-    AgentKnowledgeVO getKnowledgeById(Long id);
+    AgentKnowledgeVO getKnowledgeById(String id);
 
     /**
      * 创建智能体知识
@@ -41,7 +41,7 @@ public interface AgentKnowledgeService {
      * @param updateKnowledgeDTO 更新智能体知识DTO
      * @return 智能体知识VO
      */
-    AgentKnowledgeVO updateKnowledge(Long id, UpdateAgentKnowledgeDTO updateKnowledgeDTO);
+    AgentKnowledgeVO updateKnowledge(String id, UpdateAgentKnowledgeDTO updateKnowledgeDTO);
 
     /**
      * 删除智能体知识
@@ -49,7 +49,7 @@ public interface AgentKnowledgeService {
      * @param id 智能体知识ID
      * @return 是否删除成功
      */
-    boolean deleteKnowledge(Long id);
+    boolean deleteKnowledge(String id);
 
     /**
      * 分页条件查询智能体知识
@@ -66,14 +66,14 @@ public interface AgentKnowledgeService {
      * @param enabled 是否生效
      * @return 智能体知识VO
      */
-    AgentKnowledgeVO updateEnabledStatus(Long id, Boolean enabled);
+    AgentKnowledgeVO updateEnabledStatus(String id, Boolean enabled);
 
     /**
      * 重试向量化
      *
      * @param id 智能体知识ID
      */
-    void retryEmbedding(Long id);
+    void retryEmbedding(String id);
 
     /**
      * 根据ID列表批量查询智能体知识实体
@@ -82,7 +82,7 @@ public interface AgentKnowledgeService {
      * @param ids 智能体知识ID列表
      * @return 智能体知识实体列表
      */
-    List<AgentKnowledge> selectByIds(List<Long> ids);
+    List<AgentKnowledge> selectByIds(List<String> ids);
 
     /**
      * 回填智能体知识原文内容

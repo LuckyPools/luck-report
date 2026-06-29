@@ -159,16 +159,6 @@ export default defineComponent({
   setup(props) {
     return () => {
       const confClone: FormField = JSON.parse(JSON.stringify(props.conf))
-      // #region debug-point switch-radio-unselectable
-      if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
-        // eslint-disable-next-line no-console
-        console.log('[render.tsx][render start]', {
-          tag: confClone.tag,
-          confDefaultValue: props.conf.defaultValue,
-          cloneDefaultValue: confClone.defaultValue,
-          confRef: props.conf
-        })
-      }
       // #endregion debug-point switch-radio-unselectable
       const component = componentOf(confClone.tag)
       if (!component) {
@@ -177,21 +167,6 @@ export default defineComponent({
       // Vue 3 h 函数的第二个参数直接是 props 对象，不需要分层
       const dataObject: Record<string, unknown> = {}
       const children: VNode[] = []
-
-      // #region debug-point switch-radio-unselectable
-      // 在根元素挂 onClick,看 click 事件是否真的到 switch/radio 根节点
-      if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
-        dataObject.onClick = (e: MouseEvent) => {
-          // eslint-disable-next-line no-console
-          console.log('[render.tsx][root onClick]', {
-            tag: confClone.tag,
-            target: (e.target as HTMLElement)?.tagName,
-            targetClass: (e.target as HTMLElement)?.className,
-            currentDefault: (props.conf as Record<string, unknown>).defaultValue
-          })
-        }
-      }
-      // #endregion debug-point switch-radio-unselectable
 
       // 子组件
       const childObjs = componentChild[confClone.tag]
@@ -349,20 +324,6 @@ export default defineComponent({
         }
       })
 
-      // v-model: 双向绑定
-      // 关键：必须改写 props.conf.defaultValue（draggable-item 中的 el），而不是 confClone.defaultValue。
-      // 否则开关/单选点击后只更新了本渲染函数内的深拷贝，组件内部 checked 状态没真正被外部更新，
-      // 下次重渲又被初始值覆盖，导致"点击没反应"。
-      // #region debug-point switch-radio-unselectable
-      if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
-        // eslint-disable-next-line no-console
-        console.log('[render.tsx][v-model check]', {
-          tag: confClone.tag,
-          vModel: confClone.vModel,
-          hasVModel: confClone.vModel !== undefined,
-          confKeys: Object.keys(confClone)
-        })
-      }
       // #endregion debug-point switch-radio-unselectable
       if (confClone.vModel !== undefined) {
         const vKey = vModelBind(confClone.tag)
@@ -388,31 +349,9 @@ export default defineComponent({
         // Vue 3 h 函数中，事件监听器使用 onUpdate:value 或 onUpdate:checked 格式（带冒号）
         const eventKey = 'onUpdate:' + vKey
         dataObject[eventKey] = (val: unknown) => {
-          // #region debug-point switch-radio-unselectable
-          if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
-            // eslint-disable-next-line no-console
-            console.log('[render.tsx][update:' + vKey + ']', {
-              tag: confClone.tag,
-              oldVal: props.conf.defaultValue,
-              newVal: val,
-              confRef: props.conf
-            })
-          }
           // #endregion debug-point switch-radio-unselectable
           props.conf.defaultValue = val
         }
-        // #region debug-point switch-radio-unselectable
-        if (confClone.tag === 'a-switch' || confClone.tag === 'a-radio-group') {
-          // eslint-disable-next-line no-console
-          console.log('[render.tsx][bind v-model]', {
-            tag: confClone.tag,
-            vKey,
-            eventKey,
-            currentDefaultValue: confClone.defaultValue,
-            boundPropsKeys: Object.keys(dataObject)
-          })
-        }
-        // #endregion debug-point switch-radio-unselectable
       }
 
       return h(component, dataObject, children.length ? { default: () => children } : null)

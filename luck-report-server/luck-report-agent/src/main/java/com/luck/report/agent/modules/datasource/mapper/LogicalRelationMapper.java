@@ -20,11 +20,10 @@ public interface LogicalRelationMapper {
      * @param relation 逻辑外键实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO luck_logical_relation (datasource_id, source_table_name, source_column_name, " +
+    @Insert("INSERT INTO luck_logical_relation (id, datasource_id, source_table_name, source_column_name, " +
             "target_table_name, target_column_name, relation_type, description) " +
-            "VALUES (#{datasourceId}, #{sourceTableName}, #{sourceColumnName}, " +
+            "VALUES (#{id}, #{datasourceId}, #{sourceTableName}, #{sourceColumnName}, " +
             "#{targetTableName}, #{targetColumnName}, #{relationType}, #{description})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(LogicalRelation relation);
 
     /**
@@ -62,7 +61,7 @@ public interface LogicalRelationMapper {
             @Result(column = "created_time", property = "createdTime"),
             @Result(column = "updated_time", property = "updatedTime")
     })
-    LogicalRelation selectById(@Param("id") Integer id);
+    LogicalRelation selectById(@Param("id") String id);
 
     /**
      * 按数据源ID查询逻辑外键列表
@@ -88,7 +87,7 @@ public interface LogicalRelationMapper {
             @Result(column = "created_time", property = "createdTime"),
             @Result(column = "updated_time", property = "updatedTime")
     })
-    List<LogicalRelation> selectByDatasourceId(@Param("datasourceId") Integer datasourceId);
+    List<LogicalRelation> selectByDatasourceId(@Param("datasourceId") String datasourceId);
 
     /**
      * 按数据源ID列表批量查询逻辑外键
@@ -119,7 +118,7 @@ public interface LogicalRelationMapper {
             @Result(column = "created_time", property = "createdTime"),
             @Result(column = "updated_time", property = "updatedTime")
     })
-    List<LogicalRelation> selectByDatasourceIds(@Param("datasourceIds") List<Integer> datasourceIds);
+    List<LogicalRelation> selectByDatasourceIds(@Param("datasourceIds") List<String> datasourceIds);
 
     /**
      * 逻辑删除逻辑外键
@@ -128,7 +127,7 @@ public interface LogicalRelationMapper {
      * @return 影响行数
      */
     @Update("UPDATE luck_logical_relation SET is_deleted = 1 WHERE id = #{id}")
-    int deleteById(@Param("id") Integer id);
+    int deleteById(@Param("id") String id);
 
     /**
      * 检查逻辑外键是否已存在
@@ -144,7 +143,7 @@ public interface LogicalRelationMapper {
             "WHERE datasource_id = #{datasourceId} AND source_table_name = #{sourceTableName} " +
             "AND source_column_name = #{sourceColumnName} AND target_table_name = #{targetTableName} " +
             "AND target_column_name = #{targetColumnName} AND is_deleted = 0")
-    int checkExists(@Param("datasourceId") Integer datasourceId,
+    int checkExists(@Param("datasourceId") String datasourceId,
                     @Param("sourceTableName") String sourceTableName,
                     @Param("sourceColumnName") String sourceColumnName,
                     @Param("targetTableName") String targetTableName,
@@ -157,5 +156,5 @@ public interface LogicalRelationMapper {
      * @return 影响行数
      */
     @Update("UPDATE luck_logical_relation SET is_deleted = 1 WHERE datasource_id = #{datasourceId}")
-    int deleteByDatasourceId(@Param("datasourceId") Integer datasourceId);
+    int deleteByDatasourceId(@Param("datasourceId") String datasourceId);
 }

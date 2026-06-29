@@ -3,12 +3,12 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.luck.report.agent.modules.agentKnowledgeConfig.mapper.AgentKnowledgeMapper">
 
-    <!-- 插入智能体知识 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO luck_agent_knowledge (title, type, question, content, enabled,
+    <!-- 插入智能体知识，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_agent_knowledge (id, title, type, question, content, enabled,
                 embedding_status, error_msg, source_filename, file_path, file_size, file_type,
                 splitter_type, model_id, is_deleted, is_resource_cleaned, created_time, updated_time)
-        VALUES (#{title}, #{type}, #{question}, #{content}, #{enabled},
+        VALUES (#{id}, #{title}, #{type}, #{question}, #{content}, #{enabled},
                 #{embeddingStatus}, #{errorMsg}, #{sourceFilename}, #{filePath}, #{fileSize}, #{fileType},
                 #{splitterType}, #{modelId}, #{isDeleted}, #{isResourceCleaned}, #{createdTime}, #{updatedTime})
     </insert>
@@ -83,7 +83,7 @@
     </select>
 
     <!-- 查询所有生效的智能体知识ID列表 -->
-    <select id="selectEnabledKnowledgeIds" resultType="long">
+    <select id="selectEnabledKnowledgeIds" resultType="string">
         SELECT id FROM luck_agent_knowledge WHERE enabled = 1 AND is_deleted = 0
     </select>
 

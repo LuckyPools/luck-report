@@ -68,7 +68,7 @@ public class EmbeddingService {
      * @param modelId 嵌入模型配置ID，为null时使用默认激活的第一个嵌入模型
      * @return float[] 向量数组，维度由模型决定
      */
-    public float[] embed(String text, Long modelId) {
+    public float[] embed(String text, String modelId) {
         List<float[]> results = embedBatch(Collections.singletonList(text), modelId);
         return results.isEmpty() ? new float[0] : results.get(0);
     }
@@ -92,7 +92,7 @@ public class EmbeddingService {
      * @param modelId 嵌入模型配置ID，为null时使用默认激活的第一个嵌入模型
      * @return List<float[]> 向量列表，顺序与输入一致
      */
-    public List<float[]> embedBatch(List<String> texts, Long modelId) {
+    public List<float[]> embedBatch(List<String> texts, String modelId) {
         if (texts == null || texts.isEmpty()) {
             return Collections.emptyList();
         }
@@ -160,10 +160,10 @@ public class EmbeddingService {
      * @return Index 嵌入模型配置
      * @throws RuntimeException 当找不到指定的嵌入模型或无可用嵌入模型时抛出
      */
-    private ModelConfig getEmbeddingConfig(Long modelId) {
+    private ModelConfig getEmbeddingConfig(String modelId) {
         // 指定了modelId，按ID查找
         if (modelId != null) {
-            ModelConfig config = modelConfigDataService.findById(modelId.intValue());
+            ModelConfig config = modelConfigDataService.findById(modelId);
             if (config == null) {
                 throw new RuntimeException("指定的嵌入模型不存在, modelId: " + modelId);
             }

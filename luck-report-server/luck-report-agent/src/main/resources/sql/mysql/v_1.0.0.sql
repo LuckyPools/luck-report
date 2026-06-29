@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `luck_chat_message` (
 
 -- 模型配置表
 CREATE TABLE IF NOT EXISTS `luck_model_config` (
-    `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+    `id` varchar(32) NOT NULL COMMENT '配置ID（Snowflake）',
     `provider` varchar(255) NOT NULL COMMENT '厂商标识(如 alibaba、openai、deepseek),方便前端展示回显',
     `base_url` varchar(255) NOT NULL COMMENT 'API基础地址(如 https://dashscope.aliyuncs.com/compatible-mode/v1)',
     `api_key` varchar(255) NOT NULL COMMENT 'API密钥',
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS `luck_datasource` (
 
 -- 逻辑外键配置表
 CREATE TABLE IF NOT EXISTS `luck_logical_relation` (
-    `id`                 INT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    `datasource_id`      INT NOT NULL COMMENT '数据源ID',
+    `id`                 VARCHAR(32) PRIMARY KEY COMMENT '主键ID（Snowflake）',
+    `datasource_id`      VARCHAR(32) NOT NULL COMMENT '数据源ID',
     `source_table_name`  VARCHAR(100) NOT NULL COMMENT '主表名',
     `source_column_name` VARCHAR(100) NOT NULL COMMENT '主表字段名',
     `target_table_name`  VARCHAR(100) NOT NULL COMMENT '关联表名',
@@ -111,12 +111,12 @@ CREATE TABLE IF NOT EXISTS `luck_logical_relation` (
 
 -- 业务知识表
 CREATE TABLE IF NOT EXISTS `luck_business_knowledge` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `id` VARCHAR(32) NOT NULL COMMENT '主键ID（Snowflake）',
   `business_term` VARCHAR(255) NOT NULL COMMENT '业务名词',
   `description` TEXT NOT NULL COMMENT '业务知识描述',
   `synonyms` VARCHAR(500) DEFAULT NULL COMMENT '同义词，多个用逗号分隔',
   `enabled` TINYINT DEFAULT 1 COMMENT '是否生效（0:不生效, 1:生效）',
-  `model_id` BIGINT DEFAULT NULL COMMENT '关联的嵌入模型ID',
+  `model_id` VARCHAR(32) DEFAULT NULL COMMENT '关联的嵌入模型ID',
   `embedding_status` VARCHAR(20) DEFAULT 'PENDING' COMMENT '向量化状态：PENDING待处理，PROCESSING处理中，COMPLETED已完成，FAILED失败',
   `error_msg` VARCHAR(500) DEFAULT NULL COMMENT '操作失败的错误信息',
   `is_deleted` TINYINT DEFAULT 0 COMMENT '是否已删除（0:未删除, 1:已删除）',

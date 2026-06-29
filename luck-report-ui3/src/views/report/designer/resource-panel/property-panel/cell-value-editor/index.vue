@@ -18,7 +18,7 @@
             </a-radio>
           </a-radio-group>
         </a-form-item>
-        <a-form-item class="property-label" label=" ">
+        <a-form-item class="property-label" label=" " :colon="false">
           <a-select
             v-model:value="leftParentCellName"
             :disabled="leftParentType !== 'custom'"
@@ -53,7 +53,7 @@
             </a-radio>
           </a-radio-group>
         </a-form-item>
-        <a-form-item class="property-label" label=" ">
+        <a-form-item class="property-label" label=" " :colon="false">
           <a-select
             v-model:value="topParentCellName"
             :disabled="topParentType !== 'custom'"

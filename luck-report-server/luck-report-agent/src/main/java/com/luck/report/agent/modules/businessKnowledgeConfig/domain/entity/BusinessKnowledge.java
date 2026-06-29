@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 public class BusinessKnowledge {
 
     /** 主键ID */
-    private Long id;
+    private String id;
 
     /** 业务名词 */
     private String businessTerm;
@@ -39,7 +39,7 @@ public class BusinessKnowledge {
     private Integer enabled = 1;
 
     /** 关联的嵌入模型ID */
-    private Long modelId;
+    private String modelId;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

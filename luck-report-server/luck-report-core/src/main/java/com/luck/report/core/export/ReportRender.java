@@ -156,11 +156,11 @@ public class ReportRender implements ApplicationContextAware {
         }
     }
 
-    public ReportDefinition parseReport(String file) {
+    public ReportDefinition parseReport(String filePath) {
         InputStream inputStream = null;
         try {
-            inputStream = buildReportFile(file);
-            return reportParser.parse(inputStream, file);
+            inputStream = buildReportFile(filePath);
+            return reportParser.parse(inputStream, filePath);
         } finally {
             try {
                 if (inputStream != null) {
@@ -172,15 +172,15 @@ public class ReportRender implements ApplicationContextAware {
         }
     }
 
-    private InputStream buildReportFile(String file) {
+    private InputStream buildReportFile(String filePath) {
         InputStream inputStream = null;
         for (ReportProvider provider : reportProviders) {
-            if (file.startsWith(provider.getPrefix())) {
-                inputStream = provider.loadReport(file);
+            if (filePath.startsWith(provider.getPrefix())) {
+                inputStream = provider.loadReport(filePath);
             }
         }
         if (inputStream == null) {
-            throw new ReportException("Report [" + file + "] not support.");
+            throw new ReportException("Report [" + filePath + "] not support.");
         }
         return inputStream;
     }

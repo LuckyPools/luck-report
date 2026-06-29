@@ -22,10 +22,10 @@ import java.time.LocalDateTime;
 public class LogicalRelation {
 
     /** 主键ID */
-    private Integer id;
+    private String id;
 
     /** 关联的数据源ID */
-    private Integer datasourceId;
+    private String datasourceId;
 
     /** 主表名（例如 t_order） */
     private String sourceTableName;

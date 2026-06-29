@@ -34,16 +34,36 @@ import java.util.*;
  * @since 2017年2月11日
  */
 public class FileReportProvider implements ReportProvider, ApplicationContextAware {
+    /**
+     * 报表文件后缀，存储在磁盘上的报表文件均以 .ureport.xml 结尾
+     */
+    public static final String SUFFIX = ".ureport.xml";
     private String prefix = "file:";
     private String fileStoreDir;
     private boolean disabled;
 
-    @Override
-    public InputStream loadReport(String file) {
-        if (file.startsWith(prefix)) {
-            file = file.substring(prefix.length(), file.length());
+    /**
+     * 将传入的 filePath 拼装为磁盘上的完整路径
+     * - 去除前缀（如 "file:"）
+     * - 补充 .ureport.xml 后缀（如入参已去除后缀）
+     * - 拼接 fileStoreDir 目录前缀
+     *
+     * @param filePath 报表标识，可能带或不带前缀/后缀
+     * @return 磁盘上对应的完整文件路径
+     */
+    private String buildFullPath(String filePath) {
+        if (filePath.startsWith(prefix)) {
+            filePath = filePath.substring(prefix.length());
         }
-        String fullPath = fileStoreDir + "/" + file;
+        if (!filePath.endsWith(SUFFIX)) {
+            filePath = filePath + SUFFIX;
+        }
+        return fileStoreDir + "/" + filePath;
+    }
+
+    @Override
+    public InputStream loadReport(String filePath) {
+        String fullPath = buildFullPath(filePath);
         try {
             return new FileInputStream(fullPath);
         } catch (FileNotFoundException e) {
@@ -52,11 +72,8 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
     }
 
     @Override
-    public void deleteReport(String file) {
-        if (file.startsWith(prefix)) {
-            file = file.substring(prefix.length(), file.length());
-        }
-        String fullPath = fileStoreDir + "/" + file;
+    public void deleteReport(String filePath) {
+        String fullPath = buildFullPath(filePath);
         File f = new File(fullPath);
         if (f.exists()) {
             f.delete();
@@ -83,11 +100,24 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
             return list;
         }
 
+        String storeDirAbsolute = new File(fileStoreDir).getAbsolutePath();
         for (File f : files) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(f.lastModified());
-            String currentPath = relativePath.isEmpty() ? f.getName() : relativePath + "/" + f.getName();
-            list.add(new ReportFile(f.getName(), calendar.getTime(), f.isDirectory(), currentPath));
+            String currentPath;
+            String fAbsolute = f.getAbsolutePath();
+            if (fAbsolute.startsWith(storeDirAbsolute)) {
+                currentPath = fAbsolute.substring(storeDirAbsolute.length());
+                if (currentPath.startsWith(File.separator) || currentPath.startsWith("/")) {
+                    currentPath = currentPath.substring(1);
+                }
+                currentPath = currentPath.replace(File.separator, "/");
+            } else {
+                currentPath = relativePath.isEmpty() ? f.getName() : relativePath + "/" + f.getName();
+            }
+            // name 去掉 .ureport.xml 后缀（用于前端展示），path 保留后缀（磁盘文件标识），与 ReportProvider.getReportFile 默认实现对齐
+            String name = ReportProvider.stripReportSuffix(f.getName());
+            list.add(new ReportFile(name, calendar.getTime(), f.isDirectory(), currentPath));
         }
         Collections.sort(list, new Comparator<ReportFile>() {
             @Override
@@ -110,11 +140,8 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
     }
 
     @Override
-    public void saveReport(String file, String content) {
-        if (file.startsWith(prefix)) {
-            file = file.substring(prefix.length(), file.length());
-        }
-        String fullPath = fileStoreDir + "/" + file;
+    public ReportFile saveReport(String title, String filePath, String content) {
+        String fullPath = buildFullPath(filePath);
         FileOutputStream outStream = null;
         try {
             outStream = new FileOutputStream(new File(fullPath));
@@ -131,6 +158,8 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
             }
         }
 
+        String newFilePath = filePath.startsWith(prefix) ? filePath.substring(prefix.length()) : filePath;
+        return new ReportFile(title, new Date(), false, newFilePath);
     }
 
     @Override

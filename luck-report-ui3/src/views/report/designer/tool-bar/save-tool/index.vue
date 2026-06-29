@@ -62,9 +62,10 @@ function handleClick(): void {
   }
 
   const content = tableToXml(context.value)
-  const fullFileName = report.getFileName + '.ureport.xml'
+  let filePath = report.getFilePath
+  const title = report.getReportName
 
-  saveReportFile(fullFileName, content)
+  saveReportFile(title, filePath, content)
     .then(() => {
       showAlert(t('tools.save.successSave'))
       resetDirty()
@@ -83,7 +84,7 @@ function handleClick(): void {
 function handleSaveAfter(fullFile: string): void {
   // 从 sessionStorage 读取 token（iframe 嵌入场景下已由 captureTokenFromUrl 写入）
   const token = getRequestToken()
-  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
-  window.location.replace('?reportPath=' + fullFile + tokenParam)
+  const tokenParam = token ? `&token=${token}` : ''
+  window.location.replace('?filePath=' + fullFile + tokenParam)
 }
 </script>

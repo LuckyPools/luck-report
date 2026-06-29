@@ -44,7 +44,7 @@ COMMENT ON COLUMN luck_chat_session.update_time IS '更新时间';
 
 -- 消息表
 CREATE TABLE IF NOT EXISTS luck_chat_message (
-    id BIGSERIAL PRIMARY KEY,
+    id VARCHAR(32) NOT NULL PRIMARY KEY,
     session_id VARCHAR(36) NOT NULL,
     role VARCHAR(20) NOT NULL,
     content TEXT,
@@ -126,7 +126,7 @@ COMMENT ON COLUMN luck_model_config.proxy_password IS '代理密码(可选)';
 
 -- 数据源配置表
 CREATE TABLE IF NOT EXISTS luck_datasource (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(32) NOT NULL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL,
     host VARCHAR(255) NOT NULL,
@@ -138,9 +138,9 @@ CREATE TABLE IF NOT EXISTS luck_datasource (
     status VARCHAR(20) DEFAULT 'active',
     test_status VARCHAR(20) DEFAULT 'unknown',
     description TEXT,
-    model_id BIGINT DEFAULT NULL,
+    model_id VARCHAR(32) DEFAULT NULL,
     initialized_tables TEXT,
-    creator_id BIGINT,
+    creator_id VARCHAR(32),
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -280,7 +280,7 @@ COMMENT ON COLUMN luck_business_knowledge.updated_time IS '更新时间';
 
 -- 智能体知识表
 CREATE TABLE IF NOT EXISTS luck_agent_knowledge (
-  id BIGSERIAL PRIMARY KEY,
+  id VARCHAR(32) NOT NULL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   type VARCHAR(20) NOT NULL,
   question TEXT DEFAULT NULL,
@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS luck_agent_knowledge (
   file_size BIGINT DEFAULT NULL,
   file_type VARCHAR(100) DEFAULT NULL,
   splitter_type VARCHAR(20) DEFAULT 'token',
-  model_id BIGINT DEFAULT NULL,
+  model_id VARCHAR(32) DEFAULT NULL,
   is_deleted SMALLINT DEFAULT 0,
   is_resource_cleaned SMALLINT DEFAULT 0,
   created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

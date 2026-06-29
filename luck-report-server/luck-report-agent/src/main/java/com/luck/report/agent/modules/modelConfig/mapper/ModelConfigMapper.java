@@ -29,7 +29,7 @@ public interface ModelConfigMapper {
      * @param id 配置ID
      * @return ModelConfig对象,不存在则返回null
      */
-    ModelConfig findById(Integer id);
+    ModelConfig findById(String id);
 
     /**
      * 根据模型类型查询所有激活的配置列表
@@ -71,7 +71,7 @@ public interface ModelConfigMapper {
      * @param id 配置ID
      * @return 影响的行数
      */
-    int deleteById(Integer id);
+    int deleteById(String id);
 
     /**
      * 分页条件查询模型配置

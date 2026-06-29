@@ -48,9 +48,9 @@ public class ReportParser {
         parsers.put("form", new SearchFormParser());
     }
 
-    public ReportDefinition parse(InputStream inputStream, String file) {
+    public ReportDefinition parse(InputStream inputStream, String filePath) {
         ReportDefinition report = new ReportDefinition();
-        report.setReportFullName(file);
+        report.setReportFullName(filePath);
         SAXReader saxReader = new SAXReader();
         try {
             Document document = saxReader.read(inputStream);

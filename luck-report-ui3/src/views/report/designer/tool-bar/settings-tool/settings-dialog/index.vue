@@ -187,7 +187,6 @@ export default {
   },
   watch: {
     visible(newVal) {
-      console.log('[DEBUG][settings-dialog] watch.visible, newVal=', newVal, 'this.context=', this.context ? 'has context' : 'null')
       if (newVal && this.context) {
         this.initializeData();
       }
@@ -294,7 +293,6 @@ export default {
       this.paper = value;
     },
     updateHeader(value) {
-      console.log('[DEBUG][settings-dialog] updateHeader, value=', JSON.stringify(value))
       this.header = value;
     },
     updateFooter(value) {
@@ -324,7 +322,6 @@ export default {
       this.headerFontDialogVisible = false;
     },
     handleHeaderFontDialogOk(style) {
-      console.log('[DEBUG][settings-dialog] handleHeaderFontDialogOk called, style=', JSON.stringify(style), 'before this.header=', JSON.stringify(this.header))
       if (style) {
         this.header.fontFamily = style.fontFamily;
         this.header.fontSize = style.fontSize;
@@ -334,7 +331,6 @@ export default {
         this.header.underline = style.underline;
         setDirty();
       }
-      console.log('[DEBUG][settings-dialog] after mutate this.header=', JSON.stringify(this.header))
       this.headerFontDialogVisible = false;
     },
     handleFooterFontDialogClose() {

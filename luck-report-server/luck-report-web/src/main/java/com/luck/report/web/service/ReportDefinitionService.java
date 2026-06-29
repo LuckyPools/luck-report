@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  * @author luckyPools
  * @since 2026年05月23日
  */
-@Service
+@Service("bean.reportDefinitionService")
 public class ReportDefinitionService {
 
     @Autowired
@@ -24,12 +24,12 @@ public class ReportDefinitionService {
      * 从缓存获取报表定义并重建父子引用关系。
      * 如果缓存中不存在报表定义，抛出 ReportDesignException 异常。
      *
-     * @param fileName 报表文件名，作为缓存键，不能为空
+     * @param filePath 报表文件名，作为缓存键，不能为空
      * @return 报表定义对象，已重建父子引用关系
      * @throws ReportDesignException 当缓存中不存在报表定义时抛出
      */
-    public ReportDefinition getReportDefinition(String fileName) {
-        Object obj = ReportScopedCache.getObject(fileName);
+    public ReportDefinition getReportDefinition(String filePath) {
+        Object obj = ReportScopedCache.getObject(filePath);
         ReportDefinitionWrapper wrapper;
         if (obj instanceof ReportDefinitionWrapper) {
             wrapper = (ReportDefinitionWrapper) obj;

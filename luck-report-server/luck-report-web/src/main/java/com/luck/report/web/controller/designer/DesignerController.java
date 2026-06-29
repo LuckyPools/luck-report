@@ -1,84 +1,43 @@
 package com.luck.report.web.controller.designer;
 
 import com.luck.report.common.domain.vo.ResultVO;
-import com.luck.report.core.cache.ReportDefinitionWrapperCache;
-import com.luck.report.core.definition.ReportDefinition;
-import com.luck.report.core.definition.ReportDefinitionWrapper;
-import com.luck.report.core.dsl.ReportParserLexer;
-import com.luck.report.core.dsl.ReportParserParser;
-import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.expression.ErrorInfo;
-import com.luck.report.core.expression.ScriptErrorListener;
-import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportFile;
-import com.luck.report.core.provider.report.ReportProvider;
-import com.luck.report.web.cache.ReportScopedCache;
-import com.luck.report.web.domain.vo.ReportDefinitionVo;
-import com.luck.report.web.exception.ReportDesignException;
-import com.luck.report.web.filter.RequestHolderFilter;
-import com.luck.report.web.utils.UrlParameterUtils;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
+import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
+import com.luck.report.web.service.DesignerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLDecoder;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 报表设计器控制器
+ * <p>仅负责 HTTP 请求 / 响应转换，所有业务逻辑委托给 {@link DesignerService}。
  *
  * @author Jacky.gao
  * @since 2017年1月25日
  */
 @Controller("bean.designerController")
 @RequestMapping("${luck-report.servletPrefix:}/designer")
-public class DesignerController implements ApplicationContextAware {
-
-    private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
-    private final List<ReportProvider> reportProviders = new ArrayList<>();
-
-    /**
-     * 新建报表的空白模板（位于 classpath:template/template.ureport.xml）
-     */
-    private static final String DEFAULT_REPORT_TEMPLATE = "template/template.ureport.xml";
+public class DesignerController {
 
     @Autowired
-    private ReportRender reportRender;
-    @Autowired
-    private ReportParser reportParser;
-
+    @Qualifier("bean.designerService")
+    private DesignerService designerService;
 
     /**
      * 脚本验证
      */
     @RequestMapping("/scriptValidation")
     @ResponseBody
-    public ResultVO<List<ErrorInfo>> scriptValidation(HttpServletRequest req) {
-        String content = req.getParameter("content");
-        CharStream input = CharStreams.fromString(content);
-        ReportParserLexer lexer = new ReportParserLexer(input);
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        ReportParserParser parser = new ReportParserParser(tokenStream);
-        ScriptErrorListener errorListener = new ScriptErrorListener();
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-        parser.expression();
-        List<ErrorInfo> infos = errorListener.getInfos();
-        return ResultVO.success(infos);
+    public ResultVO<List<ErrorInfo>> scriptValidation(@RequestParam("content") String content) {
+        return ResultVO.success(designerService.scriptValidation(content));
     }
 
     /**
@@ -86,18 +45,8 @@ public class DesignerController implements ApplicationContextAware {
      */
     @RequestMapping("/conditionScriptValidation")
     @ResponseBody
-    public ResultVO<List<ErrorInfo>> conditionScriptValidation(HttpServletRequest req) {
-        String content = req.getParameter("content");
-        CharStream input = CharStreams.fromString(content);
-        ReportParserLexer lexer = new ReportParserLexer(input);
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        ReportParserParser parser = new ReportParserParser(tokenStream);
-        ScriptErrorListener errorListener = new ScriptErrorListener();
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-        parser.expr();
-        List<ErrorInfo> infos = errorListener.getInfos();
-        return ResultVO.success(infos);
+    public ResultVO<List<ErrorInfo>> conditionScriptValidation(@RequestParam("content") String content) {
+        return ResultVO.success(designerService.conditionScriptValidation(content));
     }
 
     /**
@@ -105,36 +54,22 @@ public class DesignerController implements ApplicationContextAware {
      */
     @RequestMapping("/parseDatasetName")
     @ResponseBody
-    public ResultVO<Map<String, String>> parseDatasetName(HttpServletRequest req) {
-        String expr = req.getParameter("expr");
-        CharStream input = CharStreams.fromString(expr);
-        ReportParserLexer lexer = new ReportParserLexer(input);
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        ReportParserParser parser = new ReportParserParser(tokenStream);
-        parser.removeErrorListeners();
-        ReportParserParser.DatasetContext ctx = parser.dataset();
-        String datasetName = ctx.Identifier().getText();
-        Map<String, String> result = new HashMap<String, String>();
-        result.put("datasetName", datasetName);
+    public ResultVO<Map<String, String>> parseDatasetName(@RequestParam("expr") String expr) {
+        Map<String, String> result = new java.util.HashMap<>(2);
+        result.put("datasetName", designerService.parseDatasetName(expr));
         return ResultVO.success(result);
     }
 
-
     /**
      * 保存预览文件
+     * - filePath: 报表唯一路径（如 file:xxx.ureport.xml / db:123），作为 ReportScopedCache 的 key
+     * - content: 报表 XML 内容
      */
     @RequestMapping("/savePreviewFile")
     @ResponseBody
-    public ResultVO<Void> savePreviewFile(HttpServletRequest req) {
-        String content = req.getParameter("content");
-        String fileName = req.getParameter("fileName");
-        content = decode(content);
-        fileName = decode(fileName);
-        InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
-        ReportDefinition reportDef = reportParser.parse(inputStream, fileName);
-        IOUtils.closeQuietly(inputStream);
-        ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
-        ReportScopedCache.putObject(fileName, wrapper);
+    public ResultVO<Void> savePreviewFile(@RequestParam("filePath") String filePath,
+                                          @RequestParam("content") String content) throws IOException {
+        designerService.savePreviewFile(filePath, content);
         return ResultVO.success();
     }
 
@@ -143,22 +78,8 @@ public class DesignerController implements ApplicationContextAware {
      */
     @RequestMapping(value = "/loadReport")
     @ResponseBody
-    public ResultVO<ReportDefinitionVo> loadReport(HttpServletRequest req) {
-        String filePath = req.getParameter("filePath");
-        if (filePath == null) {
-            throw new ReportDesignException("Report file can not be null.");
-        }
-        String fileName = UrlParameterUtils.doubleDecode(filePath);
-        Object obj = ReportScopedCache.getObject(fileName);
-        ReportDefinition reportDefinition;
-        if (obj instanceof ReportDefinitionWrapper) {
-            ReportDefinitionWrapper wrapper = (ReportDefinitionWrapper) obj;
-            reportDefinition = wrapper.getReportDefinition();
-            ReportScopedCache.removeObject(fileName);
-        } else {
-            reportDefinition = reportRender.parseReport(fileName);
-        }
-        return ResultVO.success(new ReportDefinitionVo(reportDefinition));
+    public ResultVO<ReportDefinitionVo> loadReport(@RequestParam("filePath") String filePath) {
+        return ResultVO.success(designerService.loadReport(filePath));
     }
 
     /**
@@ -166,57 +87,25 @@ public class DesignerController implements ApplicationContextAware {
      */
     @RequestMapping("/deleteReportFile")
     @ResponseBody
-    public ResultVO<Void> deleteReportFile(HttpServletRequest req) {
-        String file = req.getParameter("file");
-        if (file == null) {
-            throw new ReportDesignException("Report file can not be null.");
-        }
-        ReportProvider targetReportProvider = null;
-        for (ReportProvider provider : reportProviders) {
-            if (file.startsWith(provider.getPrefix())) {
-                targetReportProvider = provider;
-                break;
-            }
-        }
-        if (targetReportProvider == null) {
-            throw new ReportDesignException("File [" + file + "] not found available report provider.");
-        }
-        targetReportProvider.deleteReport(file);
+    public ResultVO<Void> deleteReportFile(@RequestParam("filePath") String filePath) {
+        designerService.deleteReportFile(filePath);
         return ResultVO.success();
     }
 
     /**
      * 保存报表文件
+     * - title: 报表展示名（db: provider 用作 title，file: provider 忽略）
+     * - filePath: 报表唯一路径（带 provider 前缀），如 file:xxx.ureport.xml / db:123
+     * - content: 报表 XML 内容
+     *
+     * 兼容旧版：仅传 file 时，title 缺省为空字符串
      */
     @RequestMapping("/saveReportFile")
     @ResponseBody
-    public ResultVO<Void> saveReportFile(HttpServletRequest req) {
-        String file = req.getParameter("file");
-        file = UrlParameterUtils.doubleDecode(file);
-        String content = req.getParameter("content");
-        content = decode(content);
-        ReportProvider targetReportProvider = null;
-        for (ReportProvider provider : reportProviders) {
-            if (file.startsWith(provider.getPrefix())) {
-                targetReportProvider = provider;
-                break;
-            }
-        }
-        if (targetReportProvider == null) {
-            throw new ReportDesignException("File [" + file + "] not found available report provider.");
-        }
-        ReportDefinition reportDef;
-        try{
-            InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
-            reportDef = reportParser.parse(inputStream, file);
-            IOUtils.closeQuietly(inputStream);
-        }catch (Exception e){
-            logger.error("Save Report Exception",e);
-            throw e;
-        }
-        ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
-        ReportDefinitionWrapperCache.putObject(file, wrapper);
-        targetReportProvider.saveReport(file, content);
+    public ResultVO<Void> saveReportFile(@RequestParam(value = "title", required = false) String title,
+                                         @RequestParam("filePath") String filePath,
+                                         @RequestParam("content") String content) {
+        designerService.saveReportFile(title, filePath, content);
         return ResultVO.success();
     }
 
@@ -225,25 +114,8 @@ public class DesignerController implements ApplicationContextAware {
      */
     @RequestMapping("/loadReportProviders")
     @ResponseBody
-    public ResultVO<Object> loadReportProviders(HttpServletRequest req) {
-        String path = req.getParameter("path");
-        if (path == null || path.isEmpty()) {
-            return ResultVO.success(reportProviders);
-        } else {
-            Map<String, Object> result = new HashMap<>();
-            for (ReportProvider provider : reportProviders) {
-                if (provider.disabled() || provider.getName() == null) {
-                    continue;
-                }
-                Map<String, Object> providerData = new HashMap<>();
-                providerData.put("name", provider.getName());
-                providerData.put("prefix", provider.getPrefix());
-                providerData.put("disabled", provider.disabled());
-                providerData.put("reportFiles", provider.getReportFiles(path));
-                result.put(provider.getPrefix(), providerData);
-            }
-            return ResultVO.success(result);
-        }
+    public ResultVO<Object> loadReportProviders(@RequestParam(value = "path", required = false) String path) {
+        return ResultVO.success(designerService.loadReportProviders(path));
     }
 
     /**
@@ -251,126 +123,27 @@ public class DesignerController implements ApplicationContextAware {
      * - 接收 fileName（报表名，含 .ureport.xml 后缀）与 provider（报表来源前缀，例如 file:）
      * - 使用 classpath:template/template.ureport.xml 空白模板在指定 provider 下创建报表
      * - 完整文件路径 = provider + fileName（例如 file:xxx.ureport.xml）
-     * - 返回 ResultVO{ code=0, data={ fileName, filePath, provider } } 成功
-     * - 失败：ResultVO{ code≠0, message=错误信息 }
      */
     @RequestMapping("/createReport")
     @ResponseBody
-    public ResultVO<Map<String, String>> createReport(HttpServletRequest req) {
-        try {
-            String fileName = req.getParameter("fileName");
-            String providerPrefix = req.getParameter("provider");
-            if (fileName == null || fileName.trim().isEmpty()) {
-                return ResultVO.error(400, "File name can not be empty.");
-            }
-            if (providerPrefix == null || providerPrefix.trim().isEmpty()) {
-                return ResultVO.error(400, "Report provider can not be empty.");
-            }
-            fileName = fileName.trim();
-            providerPrefix = providerPrefix.trim();
-
-            // 找到对应的 ReportProvider
-            ReportProvider targetReportProvider = null;
-            for (ReportProvider provider : reportProviders) {
-                if (provider.disabled() || provider.getName() == null) {
-                    continue;
-                }
-                String prefix = provider.getPrefix();
-                if (prefix == null) {
-                    continue;
-                }
-                if (providerPrefix.equals(prefix) || providerPrefix.startsWith(prefix)) {
-                    targetReportProvider = provider;
-                    break;
-                }
-            }
-            if (targetReportProvider == null) {
-                return ResultVO.error(404, "Provider [" + providerPrefix + "] not found available report provider.");
-            }
-
-            // 拼接完整文件路径（包含 provider 前缀）
-            String fullFilePath = providerPrefix + fileName;
-
-            // 检查报表是否已存在，避免覆盖已有文件
-            List<ReportFile> existingFiles = targetReportProvider.getReportFiles();
-            for (ReportFile rf : existingFiles) {
-                if (!rf.isDirectory() && (fullFilePath.endsWith(rf.getName()) || fullFilePath.equals(providerPrefix + rf.getName()))) {
-                    return ResultVO.error(409, "Report [" + fileName + "] already exists in provider [" + providerPrefix + "].");
-                }
-            }
-
-            // 读取空白模板
-            String content;
-            InputStream templateStream = null;
-            try {
-                ClassPathResource resource = new ClassPathResource(DEFAULT_REPORT_TEMPLATE);
-                if (!resource.exists()) {
-                    return ResultVO.error(500, "Default report template not found: " + DEFAULT_REPORT_TEMPLATE);
-                }
-                templateStream = resource.getInputStream();
-                content = IOUtils.toString(templateStream, "utf-8");
-            } catch (IOException e) {
-                logger.error("Failed to load default report template", e);
-                return ResultVO.error(500, "Failed to load default report template: " + e.getMessage());
-            } finally {
-                IOUtils.closeQuietly(templateStream);
-            }
-
-            // 解析模板，验证格式合法
-            InputStream contentStream = null;
-            try {
-                contentStream = IOUtils.toInputStream(content, "utf-8");
-                ReportDefinition reportDef = reportParser.parse(contentStream, fullFilePath);
-                ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
-                ReportDefinitionWrapperCache.putObject(fullFilePath, wrapper);
-            } catch (Exception e) {
-                logger.error("Failed to parse default report template", e);
-                return ResultVO.error(500, "Failed to parse default report template: " + e.getMessage());
-            } finally {
-                IOUtils.closeQuietly(contentStream);
-            }
-
-            // 写入到 provider 存储
-            targetReportProvider.saveReport(fullFilePath, content);
-
-            Map<String, String> data = new HashMap<>();
-            data.put("fileName", fileName);
-            data.put("filePath", fullFilePath);
-            data.put("provider", providerPrefix);
-            return ResultVO.success("Created", data);
-        } catch (Exception e) {
-            logger.error("Create report exception", e);
-            return ResultVO.error(500, "Create report failed: " + e.getMessage());
-        }
+    public ResultVO<ReportFile> createReport(@RequestParam("fileName") String fileName,
+                                             @RequestParam("provider") String providerPrefix) {
+        return designerService.createReport(fileName, providerPrefix);
     }
 
     /**
-     * 解码内容
+     * 复制报表
+     * - sourceFilePath: 源报表完整路径（带 provider 前缀），如 file:xxx.ureport.xml / db:123
+     * - newFilePath: 新报表完整路径（带 provider 前缀），如 file:xxx_copy.ureport.xml / db:xxx_copy
+     * - newTitle: 新报表展示名（db: provider 用作 title）
+     *
+     * 注意：newFilePath 必须与 sourceFilePath 属于同一 provider。
      */
-    protected String decode(String content) {
-        if (content == null) {
-            return content;
-        }
-        try {
-            content = URLDecoder.decode(content, "utf-8");
-            return content;
-        } catch (Exception ex) {
-            return content;
-        }
+    @RequestMapping("/copyReport")
+    @ResponseBody
+    public ResultVO<ReportFile> copyReport(@RequestParam("sourceFilePath") String sourceFilePath,
+                                          @RequestParam("newFilePath") String newFilePath,
+                                          @RequestParam(value = "newTitle", required = false) String newTitle) {
+        return designerService.copyReport(sourceFilePath, newFilePath, newTitle);
     }
-
-    /**
-     * 设置应用上下文
-     */
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        Collection<ReportProvider> providers = applicationContext.getBeansOfType(ReportProvider.class).values();
-        for (ReportProvider provider : providers) {
-            if (provider.disabled() || provider.getName() == null) {
-                continue;
-            }
-            reportProviders.add(provider);
-        }
-    }
-
 }

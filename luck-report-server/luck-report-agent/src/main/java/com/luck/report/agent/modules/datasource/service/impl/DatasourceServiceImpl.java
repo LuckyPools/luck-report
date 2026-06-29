@@ -2,6 +2,7 @@ package com.luck.report.agent.modules.datasource.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.luck.report.agent.common.util.SnowflakeIdGenerator;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
@@ -70,7 +71,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public DatasourceVO getDatasourceById(Integer id) {
+    public DatasourceVO getDatasourceById(String id) {
         Datasource datasource = datasourceMapper.selectById(id);
         return datasource != null ? toVO(datasource) : null;
     }
@@ -98,6 +99,9 @@ public class DatasourceServiceImpl implements DatasourceService {
             datasource.setUsername("");
         }
 
+        // 由 Java 端生成 Snowflake ID（不再依赖数据库自增）
+        datasource.setId(SnowflakeIdGenerator.generateId());
+
         datasourceMapper.insert(datasource);
         // 同步更新内置数据源缓存
         buildinDatasourceLoader.addOrUpdateDatasource(datasource);
@@ -106,7 +110,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public DatasourceVO updateDatasource(Integer id, Datasource datasource) {
+    public DatasourceVO updateDatasource(String id, Datasource datasource) {
         // 重新生成连接URL
         DatasourceTypeHandler handler = handlerRegistry.getRequired(datasource.getType());
         String connectionUrl = handler.resolveConnectionUrl(datasource);
@@ -138,7 +142,7 @@ public class DatasourceServiceImpl implements DatasourceService {
 
     @Override
     @Transactional
-    public void deleteDatasource(Integer id) {
+    public void deleteDatasource(String id) {
         // 先获取数据源信息，用于删除缓存
         Datasource datasource = datasourceMapper.selectById(id);
         String datasourceName = datasource != null ? datasource.getName() : null;
@@ -164,7 +168,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public boolean testConnection(Integer id) {
+    public boolean testConnection(String id) {
         Datasource datasource = datasourceMapper.selectById(id);
         if (datasource == null) {
             return false;
@@ -183,7 +187,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public List<String> getDatasourceTables(Integer id) throws Exception {
+    public List<String> getDatasourceTables(String id) throws Exception {
         Datasource datasource = datasourceMapper.selectById(id);
         if (datasource == null) {
             throw new RuntimeException("数据源不存在，ID: " + id);
@@ -192,7 +196,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public List<String> getTableColumns(Integer id, String tableName) throws Exception {
+    public List<String> getTableColumns(String id, String tableName) throws Exception {
         Datasource datasource = datasourceMapper.selectById(id);
         if (datasource == null) {
             throw new RuntimeException("数据源不存在，ID: " + id);
@@ -201,7 +205,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public void initTableSchema(Integer id, List<String> tables, Long modelId) throws Exception {
+    public void initTableSchema(String id, List<String> tables, String modelId) throws Exception {
         Datasource datasource = datasourceMapper.selectById(id);
         if (datasource == null) {
             throw new RuntimeException("数据源不存在，ID: " + id);
@@ -336,7 +340,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public void updateStatus(Integer id, String status) {
+    public void updateStatus(String id, String status) {
         datasourceMapper.updateStatusById(id, status);
         // 同步更新内置数据源缓存
         Datasource datasource = datasourceMapper.selectById(id);
@@ -353,12 +357,12 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public List<LogicalRelation> getLogicalRelations(Integer datasourceId) {
+    public List<LogicalRelation> getLogicalRelations(String datasourceId) {
         return logicalRelationMapper.selectByDatasourceId(datasourceId);
     }
 
     @Override
-    public LogicalRelation addLogicalRelation(Integer datasourceId, LogicalRelation logicalRelation) {
+    public LogicalRelation addLogicalRelation(String datasourceId, LogicalRelation logicalRelation) {
         logicalRelation.setDatasourceId(datasourceId);
 
         // 检查是否已存在相同的外键关系
@@ -369,13 +373,15 @@ public class DatasourceServiceImpl implements DatasourceService {
             throw new RuntimeException("该逻辑外键关系已存在");
         }
 
+        // 生成 Snowflake ID
+        logicalRelation.setId(SnowflakeIdGenerator.generateId());
         logicalRelationMapper.insert(logicalRelation);
         log.info("添加逻辑外键: datasourceId={}, id={}", datasourceId, logicalRelation.getId());
         return logicalRelation;
     }
 
     @Override
-    public LogicalRelation updateLogicalRelation(Integer datasourceId, Integer relationId, LogicalRelation logicalRelation) {
+    public LogicalRelation updateLogicalRelation(String datasourceId, String relationId, LogicalRelation logicalRelation) {
         // 验证外键是否存在且属于该数据源
         LogicalRelation existing = logicalRelationMapper.selectById(relationId);
         if (existing == null) {
@@ -393,7 +399,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public void deleteLogicalRelation(Integer datasourceId, Integer relationId) {
+    public void deleteLogicalRelation(String datasourceId, String relationId) {
         LogicalRelation existing = logicalRelationMapper.selectById(relationId);
         if (existing == null) {
             throw new RuntimeException("逻辑外键不存在，ID: " + relationId);
@@ -408,14 +414,14 @@ public class DatasourceServiceImpl implements DatasourceService {
 
     @Override
     @Transactional
-    public List<LogicalRelation> saveLogicalRelations(Integer datasourceId, List<LogicalRelation> logicalRelations) {
+    public List<LogicalRelation> saveLogicalRelations(String datasourceId, List<LogicalRelation> logicalRelations) {
         // 获取现有外键
         List<LogicalRelation> existingRelations = logicalRelationMapper.selectByDatasourceId(datasourceId);
-        Map<Integer, LogicalRelation> existingMap = existingRelations.stream()
+        Map<String, LogicalRelation> existingMap = existingRelations.stream()
                 .collect(Collectors.toMap(LogicalRelation::getId, r -> r));
 
         // 收集传入列表中已存在的ID
-        Set<Integer> incomingIds = logicalRelations.stream()
+        Set<String> incomingIds = logicalRelations.stream()
                 .map(LogicalRelation::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -445,7 +451,7 @@ public class DatasourceServiceImpl implements DatasourceService {
             if (relation.getId() != null && existingMap.containsKey(relation.getId())) {
                 logicalRelationMapper.updateById(relation);
             } else {
-                relation.setId(null);
+                relation.setId(SnowflakeIdGenerator.generateId());
                 logicalRelationMapper.insert(relation);
             }
         }
@@ -482,7 +488,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public SchemaDTO buildSchemaDTO(Integer datasourceId, String query) {
+    public SchemaDTO buildSchemaDTO(String datasourceId, String query) {
         Datasource datasource = datasourceMapper.selectById(datasourceId);
         if (datasource == null) {
             throw new RuntimeException("数据源不存在，ID: " + datasourceId);
@@ -591,7 +597,7 @@ public class DatasourceServiceImpl implements DatasourceService {
     }
 
     @Override
-    public SchemaDTO getTableRelations(Integer datasourceId, String query) {
+    public SchemaDTO getTableRelations(String datasourceId, String query) {
         return buildSchemaDTO(datasourceId, query);
     }
 
@@ -687,9 +693,9 @@ public class DatasourceServiceImpl implements DatasourceService {
         List<VectorStoreSearchResult> columnSearchResults = agentVectorStore.search(query, "COLUMN", 50, 0.4, null);
 
         // 第三步：TABLE文档按datasourceId分组，同时收集表名映射
-        Map<Integer, List<VectorStoreSearchResult>> tableResultsByDsId = new LinkedHashMap<>();
-        Map<Integer, Map<String, VectorDocument>> tableDocMapByDsId = new LinkedHashMap<>();
-        Map<Integer, Set<String>> recalledTableNamesByDsId = new LinkedHashMap<>();
+        Map<String, List<VectorStoreSearchResult>> tableResultsByDsId = new LinkedHashMap<>();
+        Map<String, Map<String, VectorDocument>> tableDocMapByDsId = new LinkedHashMap<>();
+        Map<String, Set<String>> recalledTableNamesByDsId = new LinkedHashMap<>();
 
         for (VectorStoreSearchResult result : tableSearchResults) {
             VectorDocument doc = result.getDocument();
@@ -700,7 +706,7 @@ public class DatasourceServiceImpl implements DatasourceService {
             if (dsIdObj == null) {
                 continue;
             }
-            Integer dsId = dsIdObj instanceof Integer ? (Integer) dsIdObj : Integer.valueOf(dsIdObj.toString());
+            String dsId = String.valueOf(dsIdObj);
             String tableName = (String) doc.getMetadata().get("name");
 
             tableResultsByDsId.computeIfAbsent(dsId, k -> new ArrayList<>()).add(result);
@@ -718,7 +724,7 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
 
         // 第四步：COLUMN文档按datasourceId + tableName分组，仅保留与召回表匹配的列
-        Map<Integer, Map<String, List<VectorDocument>>> columnDocMapByDsId = new LinkedHashMap<>();
+        Map<String, Map<String, List<VectorDocument>>> columnDocMapByDsId = new LinkedHashMap<>();
         for (VectorStoreSearchResult result : columnSearchResults) {
             VectorDocument doc = result.getDocument();
             if (doc == null || doc.getMetadata() == null) {
@@ -728,7 +734,7 @@ public class DatasourceServiceImpl implements DatasourceService {
             if (dsIdObj == null) {
                 continue;
             }
-            Integer dsId = dsIdObj instanceof Integer ? (Integer) dsIdObj : Integer.valueOf(dsIdObj.toString());
+            String dsId = String.valueOf(dsIdObj);
             String tableName = (String) doc.getMetadata().get("tableName");
 
             Set<String> recalledTables = recalledTableNamesByDsId.get(dsId);
@@ -739,15 +745,15 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
 
         // 第五步：批量查询命中的数据源和逻辑外键
-        List<Integer> hitDsIds = new ArrayList<>(tableResultsByDsId.keySet());
-        Map<Integer, Datasource> datasourceMap = datasourceMapper.selectByIds(hitDsIds).stream()
+        List<String> hitDsIds = new ArrayList<>(tableResultsByDsId.keySet());
+        Map<String, Datasource> datasourceMap = datasourceMapper.selectByIds(hitDsIds).stream()
                 .collect(Collectors.toMap(Datasource::getId, ds -> ds, (a, b) -> a));
-        Map<Integer, List<LogicalRelation>> relationMapByDsId = logicalRelationMapper.selectByDatasourceIds(hitDsIds).stream()
+        Map<String, List<LogicalRelation>> relationMapByDsId = logicalRelationMapper.selectByDatasourceIds(hitDsIds).stream()
                 .collect(Collectors.groupingBy(LogicalRelation::getDatasourceId));
 
         // 第六步：按数据源组装SchemaDTO和提示词
         List<SchemaSearchResultVO> results = new ArrayList<>();
-        for (Integer dsId : hitDsIds) {
+        for (String dsId : hitDsIds) {
             Datasource datasource = datasourceMap.get(dsId);
             if (datasource == null) {
                 continue;

@@ -36,5 +36,5 @@ public class CreateAgentKnowledgeDTO {
 
     /** 嵌入模型配置ID，用于指定向量化时使用的嵌入模型 */
     @NotNull(message = "嵌入模型不能为空")
-    private Long modelId;
+    private String modelId;
 }

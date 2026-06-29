@@ -638,7 +638,6 @@ export function tableToXml(context: any): string {
         xml+=searchFormXml;
     }
     xml+=`</ureport>`;
-    xml=encodeURIComponent(xml);
     return xml;
 };
 
@@ -818,8 +817,8 @@ export function encode(text: string): string {
 export function getParameter(name: string): string | null {
     var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
     var r = getUrlQueryString().match(reg);
-    if (r != null) return r[2];
-    return null;
+    if (r == null) return null;
+    try { return decodeURIComponent(r[2]); } catch (e) { return r[2]; }
 };
 
 /**

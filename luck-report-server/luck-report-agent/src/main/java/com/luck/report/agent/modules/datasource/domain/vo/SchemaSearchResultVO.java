@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 public class SchemaSearchResultVO {
 
     /** 数据源ID */
-    private Integer datasourceId;
+    private String datasourceId;
 
     /** 数据源名称 */
     private String datasourceName;

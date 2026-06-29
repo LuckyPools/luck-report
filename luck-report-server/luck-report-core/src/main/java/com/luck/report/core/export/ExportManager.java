@@ -28,23 +28,23 @@ public interface ExportManager {
     /**
      * 导出Html报表
      *
-     * @param file        报表模版文件名
+     * @param filePath        报表模版文件名
      * @param contextPath 当前项目的context path
      * @param parameters  参数
      * @return 返回一个HtmlReport对象，里面有报表产生的HTML及相关CSS
      */
-    HtmlReport exportHtml(String file, String contextPath, Map<String, Object> parameters);
+    HtmlReport exportHtml(String filePath, String contextPath, Map<String, Object> parameters);
 
     /**
      * 导出指定页码的Html报表
      *
-     * @param file        报表模版文件名
+     * @param filePath        报表模版文件名
      * @param contextPath 当前项目的context path
      * @param parameters  参数
      * @param pageIndex   页码
      * @return 返回一个HtmlReport对象，里面有报表产生的HTML及相关CSS
      */
-    HtmlReport exportHtml(String file, String contextPath, Map<String, Object> parameters, int pageIndex);
+    HtmlReport exportHtml(String filePath, String contextPath, Map<String, Object> parameters, int pageIndex);
 
     /**
      * 导出PDF报表

@@ -39,9 +39,9 @@ public interface BuildinDatasource {
      * 用于Agent调用table-relations接口时传递数据源信息
      * 动态生成的内置数据源返回数据库中的ID，静态配置的内置数据源返回null
      *
-     * @return 数据源ID（Integer类型），如果未实现则返回null
+     * @return 数据源ID（String类型），如果未实现则返回null
      */
-    default Integer getId() {
+    default String getId() {
         return null;
     }
 }

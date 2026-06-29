@@ -11,7 +11,7 @@
  *
  * 工作流程：
  * 1. mounted 初始化 handsontable 实例 + 注册 hooks + 加载默认模板
- * 2. reportPath 变化 → loadFile 拉取报表定义 → buildReportData 渲染
+ * 2. filePath 变化 → loadFile 拉取报表定义 → buildReportData 渲染
  * 3. 用户右键 / 编辑 / 拖放 → 经 utils/* 中的工具处理后回写到 cellsMap
  * 4. 调用方通过 getReportData() / saveReport() 读取 / 触发保存
  *
@@ -57,15 +57,17 @@ export default defineComponent({
   name: 'ContentTable',
   components: { PrintLine },
   props: {
-    reportPath: {
+    filePath: {
       type: String,
       default: ''
     }
   },
   emits: ['cell-selected', 'save', 'error'],
-  setup(props: { reportPath: string }, { emit, expose }) {
+  setup(props: { filePath: string }, { emit, expose }) {
     // Pinia store（替代原 vuex.useStore）
     const reportStore = useReportStore()
+    // i18n（替代原 window.$t 全局调用）
+    const { t } = useI18n()
 
     // 模板 ref
     const contentTableRef: Ref<HTMLElement | null> = ref(null)
@@ -76,7 +78,7 @@ export default defineComponent({
     const reportDef: Ref<ReportDef | null> = ref(null)
     const cellsMap: Map<string, ReportCell> = new Map()
     const context: Ref<ReportContext | null> = ref(null)
-    const defaultReportPath = 'classpath:template/template.ureport.xml'
+    const defaultReportPath = 'classpath:template/template'
 
     /**
      * 初始化 handsontable 实例 + 注册钩子
@@ -423,12 +425,11 @@ export default defineComponent({
         buildReportData(def)
         buildMenu()
         handleReportLoaded()
-
+        reportStore.setFilePath(filePath)
         if (filePath !== defaultReportPath) {
-          reportStore.setFileName(filePath)
+          reportStore.setReportName(reportDef.value.reportName)
         } else {
-          const t = (window as { $t?: (k: string) => string }).$t
-          reportStore.setFileName(`${t ? t('table.report.tip') : 'Tip'}`)
+          reportStore.setReportName(t('table.report.tip'))
         }
         const masterElement = document.querySelector('.ht_master') as HTMLElement | null
         if (masterElement) {
@@ -566,7 +567,7 @@ export default defineComponent({
     const initTable = (): void => {
       utils.undoManager.setLimit(100)
       initHandsontable()
-      let filePath = utils.getParameter('reportPath')
+      let filePath = utils.getParameter('filePath')
       if (!filePath || filePath === '') {
         filePath = defaultReportPath
       }
@@ -576,8 +577,8 @@ export default defineComponent({
       loadFile(filePath)
     }
 
-    // 监听 reportPath 变化，重新加载
-    watch(() => props.reportPath, (val) => {
+    // 监听 filePath 变化，重新加载
+    watch(() => props.filePath, (val) => {
       if (val) {
         loadFile(val)
       }

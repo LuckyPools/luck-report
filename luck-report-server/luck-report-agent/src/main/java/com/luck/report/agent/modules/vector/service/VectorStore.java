@@ -30,7 +30,7 @@ public interface VectorStore {
      * @param documents 待添加的文档列表
      * @param modelId   嵌入模型配置ID，为null时使用默认嵌入模型
      */
-    void add(List<VectorDocument> documents, Long modelId);
+    void add(List<VectorDocument> documents, String modelId);
 
     /**
      * 按文档ID删除

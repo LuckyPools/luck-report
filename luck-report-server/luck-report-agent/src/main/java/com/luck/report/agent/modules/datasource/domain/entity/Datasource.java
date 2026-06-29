@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 public class Datasource {
 
     /** 主键ID */
-    private Integer id;
+    private String id;
 
     /** 数据源名称 */
     private String name;
@@ -61,13 +61,13 @@ public class Datasource {
     private String description;
 
     /** 嵌入模型配置ID，用于指定向量化时使用的嵌入模型 */
-    private Long modelId;
+    private String modelId;
 
     /** 已初始化的表名列表（JSON格式存储，如["table1","table2"]） */
     private String initializedTables;
 
     /** 创建人ID */
-    private Long creatorId;
+    private String creatorId;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

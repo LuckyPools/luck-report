@@ -22,7 +22,7 @@
  * 工作流程：
  * 1. 点击按钮 → visible = true 打开另存为弹窗
  * 2. SaveDialog 内部完成保存，emit('save-after', fullFile)
- * 3. 本组件 window.location.replace 跳转 ?reportPath=
+ * 3. 本组件 window.location.replace 跳转 ?filePath=
  *
  * 迁移说明：
  * - Options API → vue3 <script setup>
@@ -51,7 +51,7 @@ const context = computed<ReportContext | null>(() => report.getContext)
 function handleSaveAfter(fullFile: string): void {
   // 从 sessionStorage 读取 token（iframe 嵌入场景下已由 captureTokenFromUrl 写入）
   const token = getRequestToken()
-  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ''
-  window.location.replace('?reportPath=' + fullFile + tokenParam)
+  const tokenParam = token ? `&token=${token}` : ''
+  window.location.replace('?filePath=' + fullFile + tokenParam)
 }
 </script>

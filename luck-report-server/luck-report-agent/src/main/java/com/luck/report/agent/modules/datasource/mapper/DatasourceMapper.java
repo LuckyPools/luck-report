@@ -38,7 +38,7 @@ public interface DatasourceMapper {
      * @param id 数据源ID
      * @return 数据源实体
      */
-    Datasource selectById(@Param("id") Integer id);
+    Datasource selectById(@Param("id") String id);
 
     /**
      * 查询所有数据源
@@ -69,7 +69,7 @@ public interface DatasourceMapper {
      * @param id 数据源ID
      * @return 影响行数
      */
-    int deleteById(@Param("id") Integer id);
+    int deleteById(@Param("id") String id);
 
     /**
      * 更新连接测试状态
@@ -78,7 +78,7 @@ public interface DatasourceMapper {
      * @param testStatus 测试状态
      * @return 影响行数
      */
-    int updateTestStatusById(@Param("id") Integer id, @Param("testStatus") String testStatus);
+    int updateTestStatusById(@Param("id") String id, @Param("testStatus") String testStatus);
 
     /**
      * 更新数据源状态（启用/禁用）
@@ -87,7 +87,7 @@ public interface DatasourceMapper {
      * @param status 状态
      * @return 影响行数
      */
-    int updateStatusById(@Param("id") Integer id, @Param("status") String status);
+    int updateStatusById(@Param("id") String id, @Param("status") String status);
 
     /**
      * 根据名称查询数据源
@@ -104,7 +104,7 @@ public interface DatasourceMapper {
      * @param initializedTables 已初始化的表名列表（JSON格式）
      * @return 影响行数
      */
-    int updateInitializedTables(@Param("id") Integer id, @Param("initializedTables") String initializedTables);
+    int updateInitializedTables(@Param("id") String id, @Param("initializedTables") String initializedTables);
 
     /**
      * 根据ID列表批量查询数据源
@@ -112,7 +112,7 @@ public interface DatasourceMapper {
      * @param ids 数据源ID列表，不可为空
      * @return 数据源列表
      */
-    List<Datasource> selectByIds(@Param("ids") List<Integer> ids);
+    List<Datasource> selectByIds(@Param("ids") List<String> ids);
 
     /**
      * 分页条件查询数据源

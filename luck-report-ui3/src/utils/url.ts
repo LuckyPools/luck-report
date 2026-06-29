@@ -1,7 +1,7 @@
 /**
  * 获取当前URL的查询字符串（不含?前缀）
  * 同时支持 history 模式和 hash 模式路由
- * @returns 查询字符串，如 "reportPath=xxx&mode=preview"
+ * @returns 查询字符串，如 "filePath=xxx&mode=preview"
  */
 export function getUrlQueryString(): string {
   const hashIndex = window.location.href.indexOf('#')

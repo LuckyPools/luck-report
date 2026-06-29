@@ -78,7 +78,7 @@ export function mount(el: HTMLElement | string, options: LuckReportOptions = {})
     const current = router.currentRoute.value
     // 比对 fullPath（path + query + hash），已匹配就不动 URL
     if (current.fullPath === target || current.path === target) return
-    // 透传 query（保留 reportPath 等参数）
+    // 透传 query（保留 filePath 等参数）
     const query = current.query
     router.replace({ path: target, query }).catch(() => undefined)
   })

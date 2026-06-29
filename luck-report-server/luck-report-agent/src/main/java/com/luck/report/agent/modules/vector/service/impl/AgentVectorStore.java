@@ -58,7 +58,7 @@ public class AgentVectorStore {
      * @param documents 待添加的文档列表
      * @param modelId   嵌入模型配置ID，为null时使用默认嵌入模型
      */
-    public void addDocuments(List<VectorDocument> documents, Long modelId) {
+    public void addDocuments(List<VectorDocument> documents, String modelId) {
         Assert.notEmpty(documents, "文档列表不能为空");
 
         for (VectorDocument doc : documents) {

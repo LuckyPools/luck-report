@@ -125,7 +125,7 @@ public class ChatMessageController {
      * @return 操作结果
      */
     @DeleteMapping("/messages/item/{id}")
-    public ResultVO<Void> deleteMessage(@PathVariable Long id) {
+    public ResultVO<Void> deleteMessage(@PathVariable String id) {
         chatMessageService.deleteMessage(id);
         return ResultVO.success("删除成功", null);
     }
