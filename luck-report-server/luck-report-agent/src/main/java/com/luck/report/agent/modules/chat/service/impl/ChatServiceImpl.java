@@ -579,7 +579,7 @@ public class ChatServiceImpl implements ChatService {
 
     /**
      * 将前端传入的工具定义转换为 OpenAI Function Calling 格式
-     * 前端 ToolDefinition 格式：{ type: "function", function: { name, description, parameters } }
+     * 前端 ToolDefinition 格式：{ type: "function", function: { name, description, parameters, outputSchema? } }
      *
      * @param tools 前端传入的工具定义列表，可为 null
      * @return OpenAI 格式的工具定义列表，无工具时返回 null
@@ -594,11 +594,15 @@ public class ChatServiceImpl implements ChatService {
             Map<String, Object> tool = new LinkedHashMap<>(2);
             tool.put("type", "function");
 
-            Map<String, Object> function = new LinkedHashMap<>(3);
+            Map<String, Object> function = new LinkedHashMap<>(4);
             function.put("name", td.getFunction().getName());
             function.put("description", td.getFunction().getDescription());
             // 前端传入的 inputSchema 映射为 OpenAI 的 parameters
             function.put("parameters", td.getFunction().getParameters());
+            // 透传 outputSchema（未声明时不发送，避免 LLM 收到无意义的空 schema）
+            if (td.getFunction().getOutputSchema() != null) {
+                function.put("outputSchema", td.getFunction().getOutputSchema());
+            }
 
             tool.put("function", function);
             openaiTools.add(tool);

@@ -13,10 +13,10 @@ import {
   extractTargetTableNames,
   filterActiveErrors,
   inferTableQuery,
-  parseSchemaPromptText,
   resolveBuildinDatasource,
   runToolWithEvent
 } from '../utils.ts'
+import type { SchemaDTO, TableDTO } from '@/api/datasource'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 
 /** 1. prepare_schema — 搜索表结构 + 加载 buildin 列表 */
@@ -66,24 +66,30 @@ export function buildResolveTableNode() {
     if (!tableQuery) tableQuery = inferTableQuery(userMsg)
 
     try {
-      const structure = await runToolWithEvent(runtime, stepId, 'get_table_relation', {
+      const structure: SchemaDTO = await runToolWithEvent(runtime, stepId, 'get_table_relation', {
         datasourceName: dsName,
         query: tableQuery
       })
-      const parsed = parseSchemaPromptText(structure, userMsg, tableQuery)
-      if (!parsed.tableName) {
+      const firstTable: TableDTO | undefined = structure?.table?.[0]
+      const tableName = firstTable?.name
+      if (!tableName) {
         return { errors: [`resolve_table: 无法解析物理表名 (query=${tableQuery})`] } as ReportStateUpdate
       }
+      const columns: string[] = Array.isArray(firstTable?.column)
+        ? firstTable!.column
+            .map((c) => c?.name)
+            .filter((n): n is string => typeof n === 'string' && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(n))
+        : []
       const resolved = {
         datasourceName: dsName,
-        tableName: parsed.tableName,
+        tableName,
         tableQuery,
-        columns: parsed.columns,
-        schemaPrompt: parsed.schemaPrompt,
-        tables: [{ tableName: parsed.tableName, structure }]
+        columns,
+        schema: structure,
+        tables: [{ tableName, structure }]
       }
       return {
-        targetTableNames: [parsed.tableName],
+        targetTableNames: [tableName],
         tableStructures: resolved
       } as ReportStateUpdate
     } catch (e: any) {

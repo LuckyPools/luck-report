@@ -255,16 +255,17 @@ export async function chatStream(
   }
 
   if (tools && tools.length > 0) {
-    // 将前端 ToolApiFormat 格式 {name, description, inputSchema}
-    // 转换为后端 ChatRequest.ToolDefinition 格式 {type: "function", function: {name, description, parameters}}
-    requestBody.tools = tools.map(t => ({
-      type: 'function',
-      function: {
+    // 将前端 ToolApiFormat 格式 {name, description, inputSchema, outputSchema?}
+    // 转换为后端 ChatRequest.ToolDefinition 格式 {type: "function", function: {name, description, parameters, outputSchema?}}
+    requestBody.tools = tools.map(t => {
+      const fn: Record<string, unknown> = {
         name: t.name,
         description: t.description,
         parameters: t.inputSchema
       }
-    }))
+      if (t.outputSchema) fn.outputSchema = t.outputSchema
+      return { type: 'function', function: fn }
+    })
   }
 
   if (toolChoice !== undefined) {

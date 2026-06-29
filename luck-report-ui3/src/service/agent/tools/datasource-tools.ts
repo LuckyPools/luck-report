@@ -11,8 +11,9 @@ import {
   testConnection,
   loadBeanMethods
 } from '@/utils/tools'
-import { getSchemaPrompt, getBuildinDatasources, searchSchema } from '@/api/datasource'
+import { getTableRelations, getBuildinDatasources, searchSchema } from '@/api/datasource'
 import {DatasourceSchema, getBuildinDatasourceTemplate, validateDatasource, normalizeDatasource} from './schema'
+import { SchemaDTOSchema, SchemaSearchResultSchema } from './schema/table-schema'
 
 /**
  * 获取数据源列表工具
@@ -167,7 +168,7 @@ export const getTableRelationTool: ToolDefinition<{
     '- query (必填, string): 待查询的表名，如"用户表"或"user"\n' +
     '- datasourceId (与 datasourceName 二选一, integer): 数据源ID\n' +
     '- datasourceName (与 datasourceId 二选一, string): 数据源名称（字面量），如 "UserDatasource"\n' +
-    '【返回】格式化的表结构信息，包括表名、字段、表关联关系等，用于构建SQL数据集。',
+    '【返回】结构化 SchemaDTO（详见 outputSchema 字段），包含 name/description/table/foreignKeys，用于构建 SQL 数据集。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -191,6 +192,8 @@ export const getTableRelationTool: ToolDefinition<{
       { required: ['datasourceName'] }
     ]
   },
+  // 输出结构：直接告诉 LLM 返回 JSON 的字段含义（SchemaDTO）
+  outputSchema: SchemaDTOSchema,
   execute: async ({ datasourceId, datasourceName, query }) => {
     const params: { id?: number; name?: string; query: string } = { query }
 
@@ -203,7 +206,7 @@ export const getTableRelationTool: ToolDefinition<{
     }
 
     // request.post 已在拦截器里解包 ResultVO.data，失败时直接 throw，无需再 .code/.data
-    return getSchemaPrompt(params)
+    return getTableRelations(params)
   },
   readOnly: true,
   requireConfirm: false
@@ -239,7 +242,8 @@ export const searchSchemaTool: ToolDefinition<{
   query: string;
 }> = {
   name: 'search_schema',
-  description: '搜索数据源-表结构信息。传入自然语言查询，返回所有匹配的数据源及其表结构信息。当不确定应该使用哪个内置数据源时，调用此工具快速定位包含相关表的数据源。',
+  description: '搜索数据源-表结构信息。传入自然语言查询，返回所有匹配的数据源及其表结构信息。当不确定应该使用哪个内置数据源时，调用此工具快速定位包含相关表的数据源。\n' +
+    '【返回】数据源Schema搜索结果数组（详见 outputSchema 字段），每项含 datasourceId/datasourceName/datasourceType/schema。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -250,6 +254,8 @@ export const searchSchemaTool: ToolDefinition<{
     },
     required: ['query']
   },
+  // 输出结构：搜索结果数组，嵌套引用 SchemaDTO 的 schema
+  outputSchema: SchemaSearchResultSchema,
   execute: async ({ query }) => {
     // request.post 已在拦截器里解包 ResultVO.data，失败时直接 throw，无需再 .code/.data
     return searchSchema(query)

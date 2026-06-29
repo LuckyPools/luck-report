@@ -3,6 +3,8 @@
  * 业务节点通过 import { extractDocsMap, runToolWithEvent, ... } from '../utils' 使用
  */
 
+import type { SchemaDTO } from '@/api/datasource'
+
 // 兼容旧版 load_report_doc 返回字符串的兜底分隔
 export const DOC_SEPARATOR = /\n*---- 分界线 ----\n*/
 
@@ -136,7 +138,8 @@ export function pickTargetTableNames(rawNames: string[], userMessage: string, li
 }
 
 /**
- * 从 search_schema 结果中解析指定数据源下的候选表名（中文名 + 括号内英文名）
+ * 从 search_schema 结果中解析指定数据源下的候选表名
+ * 优先使用结构化 schema.table 列表（每项含 name=物理表名）
  */
 export function extractTargetTableNames(
   searchSchema: any,
@@ -153,6 +156,16 @@ export function extractTargetTableNames(
   const tableNames: string[] = []
   if (!pickedItem) return tableNames
 
+  // 1. 结构化 schema.table 列表（首选）
+  const tables = pickedItem?.schema?.table
+  if (Array.isArray(tables)) {
+    for (const t of tables) {
+      if (typeof t === 'string' && t.length > 0) tableNames.push(t)
+      else if (t?.name) tableNames.push(String(t.name))
+    }
+  }
+
+  // 2. 兼容旧字段：顶层 tables / tableName
   if (Array.isArray(pickedItem.tables)) {
     for (const t of pickedItem.tables) {
       if (typeof t === 'string' && t.length > 0) tableNames.push(t)
@@ -163,17 +176,6 @@ export function extractTargetTableNames(
     tableNames.push(pickedItem.tableName)
   }
 
-  const promptText: string = typeof pickedItem?.schemaPrompt === 'string' ? pickedItem.schemaPrompt : ''
-  if (promptText) {
-    const re = /表名\s*[:：]\s*([^\n(（]+?)(?:\s*[（(]([^)）]+)[)）])?/g
-    let m: RegExpExecArray | null
-    while ((m = re.exec(promptText)) !== null) {
-      const cn = m[1]?.trim()
-      const en = m[2]?.trim()
-      if (cn) tableNames.push(cn)
-      if (en) tableNames.push(en)
-    }
-  }
   return pickTargetTableNames(tableNames, userMessage, limit)
 }
 
@@ -200,57 +202,8 @@ export interface ResolvedSchema {
   tableName: string
   tableQuery: string
   columns: string[]
-  schemaPrompt: string
-}
-
-/** 从 get_table_relation / schemaPrompt 文本解析物理表名与字段 */
-export function parseSchemaPromptText(
-  structure: any,
-  userMessage = '',
-  fallbackQuery = ''
-): { tableName: string; columns: string[]; schemaPrompt: string } {
-  const schemaPrompt = typeof structure === 'string' ? structure : JSON.stringify(structure ?? '')
-  let tableName = ''
-
-  const parenMatch = schemaPrompt.match(/表名\s*[:：][^\n(（]*[（(]([^)）]+)[)）]/)
-  if (parenMatch?.[1] && isPlausibleTableName(parenMatch[1].trim())) {
-    tableName = parenMatch[1].trim()
-  }
-  if (!tableName) {
-    const rawNames: string[] = []
-    const re = /表名\s*[:：]\s*([^\n(（]+?)(?:\s*[（(]([^)）]+)[)）])?/g
-    let m: RegExpExecArray | null
-    while ((m = re.exec(schemaPrompt)) !== null) {
-      if (m[2]?.trim()) rawNames.push(m[2].trim())
-      if (m[1]?.trim()) rawNames.push(m[1].trim())
-    }
-    const candidates = [...rawNames]
-    if (fallbackQuery && isPlausibleTableName(fallbackQuery)) candidates.unshift(fallbackQuery)
-    tableName = pickTargetTableNames(candidates, userMessage, 1)[0] ?? ''
-  }
-  if (!tableName) {
-    const sysMatch = schemaPrompt.match(/\b(sys_[a-z0-9_]+)\b/i)
-    if (sysMatch?.[1] && isPlausibleTableName(sysMatch[1])) tableName = sysMatch[1]
-  }
-
-  const columns: string[] = []
-  const fieldMatch = schemaPrompt.match(/字段\s*[:：]\s*([^\n]+)/)
-  if (fieldMatch) {
-    for (const f of fieldMatch[1].split(/[,，]/)) {
-      const col = f.trim()
-      if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col)) columns.push(col)
-    }
-  }
-  return { tableName, columns, schemaPrompt }
-}
-
-/** 从 ResolvedSchema 生成 SQL（优先使用已解析字段） */
-export function inferSqlFromResolvedSchema(resolved: ResolvedSchema | null | undefined): string | null {
-  if (!resolved?.tableName || !isPlausibleTableName(resolved.tableName)) return null
-  if (Array.isArray(resolved.columns) && resolved.columns.length > 0) {
-    return `SELECT ${resolved.columns.join(', ')} FROM ${resolved.tableName}`
-  }
-  return `SELECT * FROM ${resolved.tableName}`
+  /** 完整结构化 SchemaDTO，供 LLM 消费或后续解析 */
+  schema?: SchemaDTO
 }
 
 /** 从 tableStructures 读取 ResolvedSchema（兼容旧结构） */
@@ -262,14 +215,14 @@ export function readResolvedSchema(tableStructures: any): ResolvedSchema | null 
   const dsName = tableStructures.datasourceName ?? ''
   const entry = Array.isArray(tableStructures.tables) ? tableStructures.tables[0] : null
   if (!entry) return null
-  const parsed = parseSchemaPromptText(entry.structure, '', entry.tableName)
-  if (!parsed.tableName) return null
+  const resolved = resolveFromStructure(entry?.structure, entry?.tableName)
+  if (!resolved) return null
   return {
     datasourceName: dsName,
-    tableName: parsed.tableName,
-    tableQuery: entry.tableName ?? parsed.tableName,
-    columns: parsed.columns,
-    schemaPrompt: parsed.schemaPrompt
+    tableName: resolved.tableName,
+    tableQuery: entry.tableName ?? resolved.tableName,
+    columns: resolved.columns,
+    schema: resolved.schema
   }
 }
 
@@ -287,15 +240,48 @@ export function inferSqlFromTableStructures(tableStructures: any, userMessage = 
       - scoreTableRelevance(String(a?.tableName ?? ''), userMessage)
     )
   const entry = ranked[0] ?? tables[0]
-  const parsed = parseSchemaPromptText(entry?.structure, userMessage, entry?.tableName)
-  if (!parsed.tableName) return null
+  const resolvedEntry = resolveFromStructure(entry?.structure, entry?.tableName)
+  if (!resolvedEntry) return null
   return inferSqlFromResolvedSchema({
     datasourceName: tableStructures.datasourceName ?? '',
-    tableName: parsed.tableName,
-    tableQuery: entry?.tableName ?? parsed.tableName,
-    columns: parsed.columns,
-    schemaPrompt: parsed.schemaPrompt
+    tableName: resolvedEntry.tableName,
+    tableQuery: entry?.tableName ?? resolvedEntry.tableName,
+    columns: resolvedEntry.columns,
+    schema: resolvedEntry.schema
   })
+}
+
+/** 从 ResolvedSchema 生成 SQL（优先使用已解析字段） */
+export function inferSqlFromResolvedSchema(resolved: ResolvedSchema | null | undefined): string | null {
+  if (!resolved?.tableName || !isPlausibleTableName(resolved.tableName)) return null
+  if (Array.isArray(resolved.columns) && resolved.columns.length > 0) {
+    return `SELECT ${resolved.columns.join(', ')} FROM ${resolved.tableName}`
+  }
+  return `SELECT * FROM ${resolved.tableName}`
+}
+
+/**
+ * 从 getTableRelations 返回的 SchemaDTO 解析物理表名与字段
+ * 优先取 tables[0].name 与 tables[0].column[].name
+ */
+function resolveFromStructure(
+  structure: any,
+  fallbackTableName = ''
+): { tableName: string; columns: string[]; schema?: SchemaDTO } | null {
+  if (!structure || typeof structure !== 'object') return null
+  const schema = structure as SchemaDTO
+  const firstTable = Array.isArray(schema.table) ? schema.table[0] : null
+  const tableName = firstTable?.name || fallbackTableName
+  if (!tableName || !isPlausibleTableName(tableName)) return null
+  const columns: string[] = []
+  if (Array.isArray(firstTable?.column)) {
+    for (const c of firstTable.column) {
+      if (c?.name && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(String(c.name))) {
+        columns.push(String(c.name))
+      }
+    }
+  }
+  return { tableName, columns, schema }
 }
 
 /**

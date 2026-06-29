@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;
+import com.luck.report.agent.modules.datasource.domain.dto.ForeignKeyDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.SchemaDTO;
 import com.luck.report.agent.modules.datasource.domain.vo.SchemaSearchResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.TableDTO;
@@ -12,7 +13,6 @@ import com.luck.report.agent.modules.datasource.domain.entity.Datasource;
 import com.luck.report.agent.modules.datasource.domain.entity.LogicalRelation;
 import com.luck.report.agent.modules.datasource.domain.vo.DatasourceVO;
 import com.luck.report.agent.modules.datasource.config.BuildinDatasourceLoader;
-import com.luck.report.agent.modules.datasource.handler.DatasourcePromptHelper;
 import com.luck.report.agent.modules.datasource.handler.DatasourceTypeHandler;
 import com.luck.report.agent.modules.datasource.handler.DatasourceTypeHandlerRegistry;
 import com.luck.report.agent.modules.datasource.mapper.DatasourceMapper;
@@ -544,16 +544,19 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
 
         // 第四步：合并物理外键和逻辑外键
-        Set<String> foreignKeySet = new LinkedHashSet<>();
+        List<ForeignKeyDTO> foreignKeyList = new ArrayList<>();
+        Set<String> foreignKeyKeys = new LinkedHashSet<>();
 
-        // 4.1 从TABLE文档metadata提取物理外键
+        // 4.1 从TABLE文档metadata提取物理外键（格式：t1.col1=t2.col2，多个用"、"分隔）
         for (VectorDocument tableDoc : tableDocMap.values()) {
             String fkStr = (String) tableDoc.getMetadata().getOrDefault("foreignKey", "");
-            if (StringUtils.isNotBlank(fkStr)) {
-                for (String fk : fkStr.split("、")) {
-                    if (StringUtils.isNotBlank(fk)) {
-                        foreignKeySet.add(fk);
-                    }
+            if (StringUtils.isBlank(fkStr)) {
+                continue;
+            }
+            for (String fk : fkStr.split("、")) {
+                ForeignKeyDTO parsed = parseForeignKeyString(fk);
+                if (parsed != null && foreignKeyKeys.add(foreignKeyKey(parsed))) {
+                    foreignKeyList.add(parsed);
                 }
             }
         }
@@ -563,10 +566,17 @@ public class DatasourceServiceImpl implements DatasourceService {
         for (LogicalRelation relation : allRelations) {
             boolean sourceInRecalled = recalledTableNames.contains(relation.getSourceTableName());
             boolean targetInRecalled = recalledTableNames.contains(relation.getTargetTableName());
-            if (sourceInRecalled || targetInRecalled) {
-                String fkStr = relation.getSourceTableName() + "." + relation.getSourceColumnName()
-                        + "=" + relation.getTargetTableName() + "." + relation.getTargetColumnName();
-                foreignKeySet.add(fkStr);
+            if (!sourceInRecalled && !targetInRecalled) {
+                continue;
+            }
+            ForeignKeyDTO fk = ForeignKeyDTO.builder()
+                    .sourceTable(relation.getSourceTableName())
+                    .sourceColumn(relation.getSourceColumnName())
+                    .targetTable(relation.getTargetTableName())
+                    .targetColumn(relation.getTargetColumnName())
+                    .build();
+            if (foreignKeyKeys.add(foreignKeyKey(fk))) {
+                foreignKeyList.add(fk);
             }
         }
 
@@ -576,14 +586,13 @@ public class DatasourceServiceImpl implements DatasourceService {
                 .description(datasource.getDescription())
                 .tableCount(tableList.size())
                 .table(tableList)
-                .foreignKeys(new ArrayList<>(foreignKeySet))
+                .foreignKeys(foreignKeyList)
                 .build();
     }
 
     @Override
-    public String getSchemaPrompt(Integer datasourceId, String query) {
-        SchemaDTO schemaDTO = buildSchemaDTO(datasourceId, query);
-        return DatasourcePromptHelper.buildSchemaPrompt(schemaDTO);
+    public SchemaDTO getTableRelations(Integer datasourceId, String query) {
+        return buildSchemaDTO(datasourceId, query);
     }
 
     @Override
@@ -757,14 +766,17 @@ public class DatasourceServiceImpl implements DatasourceService {
             }
 
             // 合并物理外键和逻辑外键
-            Set<String> foreignKeySet = new LinkedHashSet<>();
+            List<ForeignKeyDTO> foreignKeyList = new ArrayList<>();
+            Set<String> foreignKeyKeys = new LinkedHashSet<>();
             for (VectorDocument tableDoc : tableDocMap.values()) {
                 String fkStr = (String) tableDoc.getMetadata().getOrDefault("foreignKey", "");
-                if (StringUtils.isNotBlank(fkStr)) {
-                    for (String fk : fkStr.split("、")) {
-                        if (StringUtils.isNotBlank(fk)) {
-                            foreignKeySet.add(fk);
-                        }
+                if (StringUtils.isBlank(fkStr)) {
+                    continue;
+                }
+                for (String fk : fkStr.split("、")) {
+                    ForeignKeyDTO parsed = parseForeignKeyString(fk);
+                    if (parsed != null && foreignKeyKeys.add(foreignKeyKey(parsed))) {
+                        foreignKeyList.add(parsed);
                     }
                 }
             }
@@ -772,10 +784,17 @@ public class DatasourceServiceImpl implements DatasourceService {
             for (LogicalRelation relation : relations) {
                 boolean sourceInRecalled = recalledTableNames.contains(relation.getSourceTableName());
                 boolean targetInRecalled = recalledTableNames.contains(relation.getTargetTableName());
-                if (sourceInRecalled || targetInRecalled) {
-                    String fkStr = relation.getSourceTableName() + "." + relation.getSourceColumnName()
-                            + "=" + relation.getTargetTableName() + "." + relation.getTargetColumnName();
-                    foreignKeySet.add(fkStr);
+                if (!sourceInRecalled && !targetInRecalled) {
+                    continue;
+                }
+                ForeignKeyDTO fk = ForeignKeyDTO.builder()
+                        .sourceTable(relation.getSourceTableName())
+                        .sourceColumn(relation.getSourceColumnName())
+                        .targetTable(relation.getTargetTableName())
+                        .targetColumn(relation.getTargetColumnName())
+                        .build();
+                if (foreignKeyKeys.add(foreignKeyKey(fk))) {
+                    foreignKeyList.add(fk);
                 }
             }
 
@@ -784,15 +803,14 @@ public class DatasourceServiceImpl implements DatasourceService {
                     .description(datasource.getDescription())
                     .tableCount(tableList.size())
                     .table(tableList)
-                    .foreignKeys(new ArrayList<>(foreignKeySet))
+                    .foreignKeys(foreignKeyList)
                     .build();
 
-            String schemaPrompt = DatasourcePromptHelper.buildSchemaPrompt(schemaDTO);
             results.add(SchemaSearchResultVO.builder()
                     .datasourceId(dsId)
                     .datasourceName(datasource.getName())
                     .datasourceType(datasource.getType())
-                    .schemaPrompt(schemaPrompt)
+                    .schema(schemaDTO)
                     .build());
 
             log.info("跨数据源搜索命中: datasourceId={}, name={}, 匹配表数={}",
@@ -801,5 +819,44 @@ public class DatasourceServiceImpl implements DatasourceService {
 
         log.info("跨数据源搜索完成: query={}, 命中数据源数={}", query, results.size());
         return results;
+    }
+
+    /**
+     * 解析物理外键字符串（格式：t1.col1=t2.col2）
+     *
+     * @param fkStr 物理外键字符串
+     * @return 解析成功返回 ForeignKeyDTO，格式不合法返回 null
+     */
+    private ForeignKeyDTO parseForeignKeyString(String fkStr) {
+        if (StringUtils.isBlank(fkStr)) {
+            return null;
+        }
+        String[] sides = fkStr.split("=", 2);
+        if (sides.length != 2) {
+            return null;
+        }
+        String[] source = sides[0].split("\\.", 2);
+        String[] target = sides[1].split("\\.", 2);
+        if (source.length != 2 || target.length != 2) {
+            return null;
+        }
+        if (StringUtils.isBlank(source[0]) || StringUtils.isBlank(source[1])
+                || StringUtils.isBlank(target[0]) || StringUtils.isBlank(target[1])) {
+            return null;
+        }
+        return ForeignKeyDTO.builder()
+                .sourceTable(source[0].trim())
+                .sourceColumn(source[1].trim())
+                .targetTable(target[0].trim())
+                .targetColumn(target[1].trim())
+                .build();
+    }
+
+    /**
+     * 外键去重 key（按 sourceTable.sourceColumn=targetTable.targetColumn 拼接）
+     */
+    private String foreignKeyKey(ForeignKeyDTO fk) {
+        return fk.getSourceTable() + "." + fk.getSourceColumn()
+                + "=" + fk.getTargetTable() + "." + fk.getTargetColumn();
     }
 }

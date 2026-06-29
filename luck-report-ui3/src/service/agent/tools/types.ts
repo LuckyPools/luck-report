@@ -8,6 +8,12 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
   description: string
   /** 输入参数 JSON Schema，用于 LLM 生成调用参数和前端校验 */
   inputSchema: Record<string, any>
+  /**
+   * 输出结构 JSON Schema（可选）
+   * 描述工具返回给 LLM 的数据结构与字段含义，让 LLM 调用前能预先理解返回值
+   * 透传至后端 OpenAI tools[].function.outputSchema，主流 LLM（OpenAI/Qwen/DeepSeek）已支持
+   */
+  outputSchema?: Record<string, any>
   /** 执行函数，通过 PostMessage 操作设计器 */
   execute: (input: TInput) => Promise<TOutput>
   /** 是否为只读工具（只读工具可并发执行，写操作需串行） */
@@ -60,6 +66,8 @@ export interface ToolApiFormat {
   description: string
   /** 输入参数 JSON Schema */
   inputSchema: Record<string, any>
+  /** 输出结构 JSON Schema（可选），供 LLM 理解工具返回值 */
+  outputSchema?: Record<string, any>
 }
 
 /**

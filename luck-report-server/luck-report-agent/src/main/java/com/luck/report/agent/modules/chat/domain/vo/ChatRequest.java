@@ -53,7 +53,8 @@ public class ChatRequest {
     /**
      * 工具定义列表（Agent Function Calling）
      * 供大模型识别可调用的工具，格式遵循 OpenAI Function Calling 协议
-     * 每个工具包含 name、description、inputSchema
+     * 每个工具包含 name、description、inputSchema（前端字段，对应 OpenAI 的 parameters）
+     * 可选包含 outputSchema，描述工具返回结构供 LLM 理解
      */
     private List<ToolDefinition> tools;
 

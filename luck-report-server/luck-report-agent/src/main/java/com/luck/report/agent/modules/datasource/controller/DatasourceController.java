@@ -395,17 +395,17 @@ public class DatasourceController {
     }
 
     /**
-     * 获取格式化的Schema提示词文本
-     * 传入查询文本，返回格式化的Schema提示词，供前端Agent拼接到LLM的system prompt中
-     * 支持通过数据源ID或名称查询（二选一）
+     * 获取与查询相关的表结构信息（结构化 SchemaDTO）
+     * 传入查询文本，通过向量检索召回相关表并组装为结构化 SchemaDTO
+     * 支持通过数据源ID或名称查询（二选一），返回结构化数据由前端/Agent 转发给 LLM 消费
      *
      * @param name   数据源名称（与id二选一）
      * @param id     数据源ID（与name二选一）
      * @param query  用户自然语言查询
-     * @return 格式化后的Schema提示词文本
+     * @return SchemaDTO 结构化数据（包含表结构、字段、外键关系）
      */
-    @PostMapping("/schema-prompt")
-    public ResultVO<String> getSchemaPrompt(
+    @PostMapping("/table-relations")
+    public ResultVO<SchemaDTO> getTableRelations(
         @RequestParam(value = "name", required = false) String name,
         @RequestParam(value = "id", required = false) Integer id,
         @RequestParam(value = "query") String query) {
@@ -424,11 +424,11 @@ public class DatasourceController {
                 return ResultVO.error("必须提供id或name参数");
             }
 
-            String prompt = datasourceService.getSchemaPrompt(datasourceId, query);
-            return ResultVO.success("获取Schema提示词成功", prompt);
+            SchemaDTO schemaDTO = datasourceService.getTableRelations(datasourceId, query);
+            return ResultVO.success("获取表结构信息成功", schemaDTO);
         } catch (Exception e) {
-            log.error("获取Schema提示词失败", e);
-            return ResultVO.error("获取Schema提示词失败：" + e.getMessage());
+            log.error("获取表结构信息失败", e);
+            return ResultVO.error("获取表结构信息失败：" + e.getMessage());
         }
     }
 

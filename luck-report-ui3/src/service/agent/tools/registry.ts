@@ -99,7 +99,9 @@ export class ToolRegistry {
     return this.getAll().map(t => ({
       name: t.name,
       description: t.description,
-      inputSchema: t.inputSchema
+      inputSchema: t.inputSchema,
+      // 透传 outputSchema（未声明的工具不发送，避免 LLM 收到无意义的空 schema）
+      ...(t.outputSchema ? { outputSchema: t.outputSchema } : {})
     }))
   }
 

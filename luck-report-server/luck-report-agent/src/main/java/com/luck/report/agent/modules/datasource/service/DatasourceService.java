@@ -166,7 +166,7 @@ public interface DatasourceService {
     /**
      * 构建SchemaDTO
      * 通过向量检索召回与查询相关的表结构，合并逻辑外键，组装为统一的SchemaDTO
-     * 供DatasourcePromptHelper格式化为LLM可读的提示词文本
+     * 直接序列化返回给前端，由前端/Agent 转发给 LLM 消费
      *
      * @param datasourceId 数据源ID
      * @param query        用户自然语言查询
@@ -175,14 +175,15 @@ public interface DatasourceService {
     SchemaDTO buildSchemaDTO(Integer datasourceId, String query);
 
     /**
-     * 获取格式化的Schema提示词文本
-     * 传入查询文本，返回格式化的Schema提示词，供前端Agent拼接到LLM的system prompt中
+     * 获取与查询相关的表结构信息（含表/字段/外键）
+     * 传入查询文本，通过向量检索召回相关表并组装为结构化 SchemaDTO
+     * 供前端 Agent 序列化后给 LLM 生成 SQL 做参考
      *
      * @param datasourceId 数据源ID
      * @param query        用户自然语言查询
-     * @return 格式化后的Schema提示词文本
+     * @return SchemaDTO 结构化数据（包含表结构、字段、外键关系）
      */
-    String getSchemaPrompt(Integer datasourceId, String query);
+    SchemaDTO getTableRelations(Integer datasourceId, String query);
 
     /**
      * 根据名称获取数据源

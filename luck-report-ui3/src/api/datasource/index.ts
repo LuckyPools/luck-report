@@ -221,12 +221,65 @@ export async function saveLogicalRelations(
 }
 
 /**
- * 获取格式化的Schema提示词文本
+ * 外键关系（sourceTable.sourceColumn 关联 targetTable.targetColumn）
+ * LLM 可直接读取，组合 SchemaDTO.table 推断 JOIN 条件
  */
-export async function getSchemaPrompt(
+export interface ForeignKeyDTO {
+  sourceTable: string
+  sourceColumn: string
+  targetTable: string
+  targetColumn: string
+}
+
+/**
+ * 字段结构（name/type/description/data/enumeration/range/mapping）
+ * LLM 可读取 name 写 SQL、读 description 理解字段含义、读 data/mapping 推断枚举值
+ */
+export interface ColumnDTO {
+  name: string
+  description: string
+  type: string
+  /** 示例数据 */
+  data?: string[]
+  /** 枚举标记（0-非枚举，1-枚举） */
+  enumeration?: number
+  /** 值范围描述 */
+  range?: string
+  /** 状态码→状态名映射 */
+  mapping?: Record<string, string>
+}
+
+/**
+ * 表结构（name/description/column/primaryKeys）
+ * LLM 读取 name 用于 FROM/JOIN，读取 column 列表用于 SELECT/WHERE
+ */
+export interface TableDTO {
+  name: string
+  description: string
+  column: ColumnDTO[]
+  primaryKeys?: string[]
+}
+
+/**
+ * Schema 结构（name=数据库名 / description / tableCount / table / foreignKeys）
+ * 直接序列化给 LLM 消费；前端代码也可读取 table/foreignKeys 做后续处理
+ */
+export interface SchemaDTO {
+  name: string
+  description?: string
+  tableCount: number
+  table: TableDTO[]
+  foreignKeys: ForeignKeyDTO[]
+}
+
+/**
+ * 获取与查询相关的表结构信息（结构化 SchemaDTO）
+ * 替换原 getSchemaPrompt（String 提示词），返回结构化数据由前端/Agent 转发给 LLM
+ */
+export async function getTableRelations(
   params: { id?: number; name?: string; query: string }
-): Promise<string> {
-  return request.post<string>('/datasource/schema-prompt', null, {
+): Promise<SchemaDTO> {
+  return request.post<SchemaDTO>('/datasource/table-relations', null, {
     params
   })
 }
@@ -240,6 +293,7 @@ export async function getBuildinDatasources(): Promise<Array<{name: string, id: 
 
 /**
  * Schema搜索结果项接口定义
+ * schema 字段为结构化 SchemaDTO，替换原 schemaPrompt 字符串
  */
 export interface SchemaSearchResult {
   /** 数据源ID */
@@ -248,8 +302,8 @@ export interface SchemaSearchResult {
   datasourceName: string
   /** 数据源类型 */
   datasourceType: string
-  /** 匹配的Schema提示词文本 */
-  schemaPrompt: string
+  /** 命中的Schema结构（含表结构、字段、外键） */
+  schema: SchemaDTO
 }
 
 /**

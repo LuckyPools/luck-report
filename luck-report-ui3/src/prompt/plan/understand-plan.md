@@ -57,6 +57,10 @@ read-before-write 的软模式（如 modify_cell 前调 read_cells）由你根�
 - tasks 必为 JSON 数组，至少 1 项；每项含 id（t1/t2/...）+ action
 - action 必须是受控枚举（schema 校验拒绝拼出值）
 - dependsOn：被依赖全 success 才跑；onFail: abort(默认)/skip/continue
+- 最小调用示例（arguments 必须是合法 JSON）：
+  ```json
+  {"tasks":[{"id":"t1","action":"create_datasource","params":{"purpose":"查用户信息"}},{"id":"t2","action":"create_dataset","params":{"name":"用户数据集","filterFields":["name","createdAt"]},"dependsOn":["t1"]},{"id":"t3","action":"modify_cell","params":{"cells":[{"cellAddress":"A1","value":"姓名"},{"cellAddress":"B1","value":"创建日期"}]},"dependsOn":["t2"]}]}
+  ```
 
 【askUser 调用场景】
 应该问：① 必填参数完全缺失且无法反向豁免；② 语义模糊（"添加数据"）；③ 用户对上一轮回复完全不相关
