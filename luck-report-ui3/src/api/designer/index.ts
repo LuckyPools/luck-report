@@ -40,6 +40,44 @@ export interface ImportExcelResult {
 }
 
 /**
+ * 报表提供者元数据。
+ *
+ * 字段与后端 {@code com.luck.report.web.domain.vo.report.ReportProviderVo} 对齐。
+ * 后端对应接口：{@code GET /designer/loadReportProviders}。
+ */
+export interface ReportProviderVO {
+  /** 展示名（如"服务器文件系统"、"数据库"） */
+  name: string
+  /** provider 前缀（如"file:"、"db:"），用于 filePath 拼接 */
+  prefix: string
+  /** 是否禁用；禁用的 provider 不会出现在管理 UI 中 */
+  disabled: boolean
+}
+
+/**
+ * 报表文件记录。
+ *
+ * 字段与后端 {@code com.luck.report.core.provider.report.ReportFile} 对齐。
+ */
+export interface ReportFileItemVO {
+  name: string
+  path: string
+  directory: boolean
+  updateDate?: string
+}
+
+/**
+ * 报表提供者详情。
+ *
+ * 在 {@link ReportProviderVO} 基础上附加指定路径下的报表文件列表。
+ * 后端对应接口：{@code GET /designer/loadReportFiles?path=xxx}，
+ * 响应为 {@code ReportProviderDetailVO} 数组，前端按 {@code vo.prefix} 识别 provider。
+ */
+export interface ReportProviderDetailVO extends ReportProviderVO {
+  reportFiles: ReportFileItemVO[]
+}
+
+/**
  * 加载报表定义文件
  */
 export async function loadReport(formData: FormData): Promise<any> {
@@ -253,21 +291,33 @@ export async function savePreviewFile(
 }
 
 /**
- * 加载报表提供者（报表目录树）
- *  - 不传 path：返回所有 ReportProvider 列表
- *  - 传 path：返回按 provider prefix 分组的 Map
+ * 加载报表提供者列表。
+ *
+ * 后端对应：{@code GET /designer/loadReportProviders}
+ * 响应 data：{@link ReportProviderVO} 数组（仅 provider 元数据，不含文件）。
+ *
+ * 使用场景：管理页 provider 下拉、报表来源过滤等"仅需元数据"的地方。
  */
-export async function loadReportProviders<T = any>(): Promise<T> {
-  return await request.get<T>('/designer/loadReportProviders');
+export async function loadReportProviders(): Promise<ReportProviderVO[]> {
+  return await request.get<ReportProviderVO[]>('/designer/loadReportProviders');
 }
 
 /**
- * 加载指定路径下的报表提供者
+ * 按路径加载每个 provider 的报表文件列表（含目录）。
+ *
+ * 后端对应：{@code GET /designer/loadReportFiles?path=xxx}
+ * 响应 data：{@link ReportProviderDetailVO} 数组，前端按 {@code vo.prefix} 识别 provider。
+ *
+ * 使用场景：设计器的"打开报表"弹窗、"另存为"弹窗等需要展示文件树的地方。
+ * 根目录请传空串 {@code ''}。
  */
-export async function loadReportProvidersByPath<T = any>(path: string): Promise<T> {
-  return await request.get<T>('/designer/loadReportProviders', {
-    params: { path }
-  });
+export async function loadReportFiles(
+  path: string
+): Promise<ReportProviderDetailVO[]> {
+  return await request.get<ReportProviderDetailVO[]>(
+    '/designer/loadReportFiles',
+    { params: { path } }
+  );
 }
 
 /**

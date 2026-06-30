@@ -1,6 +1,6 @@
 package com.luck.report.agent.modules.modelConfig.service.impl;
 
-import com.luck.report.agent.common.util.SnowflakeIdGenerator;
+import com.luck.report.agent.utils.SnowflakeIdGenerator;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigDTO;
 import com.luck.report.agent.modules.modelConfig.domain.dto.ModelConfigQueryDTO;

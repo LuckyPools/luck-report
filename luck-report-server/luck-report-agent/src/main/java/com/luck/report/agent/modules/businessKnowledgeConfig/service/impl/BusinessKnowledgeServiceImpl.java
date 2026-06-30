@@ -1,6 +1,6 @@
 package com.luck.report.agent.modules.businessKnowledgeConfig.service.impl;
 
-import com.luck.report.agent.common.util.SnowflakeIdGenerator;
+import com.luck.report.agent.utils.SnowflakeIdGenerator;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
 import com.luck.report.agent.modules.vector.domain.dto.VectorStoreSearchResult;

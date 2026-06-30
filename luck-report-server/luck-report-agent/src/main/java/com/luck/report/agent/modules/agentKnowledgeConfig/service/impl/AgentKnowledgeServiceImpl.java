@@ -1,6 +1,6 @@
 package com.luck.report.agent.modules.agentKnowledgeConfig.service.impl;
 
-import com.luck.report.agent.common.util.SnowflakeIdGenerator;
+import com.luck.report.agent.utils.SnowflakeIdGenerator;
 import com.luck.report.agent.modules.agentKnowledgeConfig.constant.AgentKnowledgeMetadataConstant;
 import com.luck.report.agent.modules.agentKnowledgeConfig.converter.AgentKnowledgeConverter;
 import com.luck.report.agent.modules.agentKnowledgeConfig.domain.dto.AgentKnowledgeQueryDTO;

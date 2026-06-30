@@ -17,6 +17,7 @@ package com.luck.report.core.provider.report.file;
 
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.provider.report.ReportFile;
+import com.luck.report.core.provider.report.ReportFilePage;
 import com.luck.report.core.provider.report.ReportProvider;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -87,6 +88,62 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
 
     @Override
     public List<ReportFile> getReportFiles(String relativePath) {
+        return listSortedReportFiles(relativePath);
+    }
+
+    @Override
+    public ReportFilePage pageReportFiles(int pageNum, int pageSize, Map<String, Object> params) {
+        if (pageNum < 1) {
+            pageNum = 1;
+        }
+        if (pageSize < 1) {
+            pageSize = 10;
+        }
+        String path = params == null ? null : (String) params.get(PARAM_PATH);
+        List<ReportFile> sorted = listSortedReportFiles(path);
+        if (sorted.isEmpty()) {
+            return ReportFilePage.empty();
+        }
+        // 名称模糊匹配（不区分大小写、子串）
+        String name = params == null ? null : (String) params.get(PARAM_NAME);
+        List<ReportFile> filtered = sorted;
+        if (name != null && !name.isEmpty()) {
+            final String needle = name.toLowerCase();
+            filtered = new ArrayList<>(sorted.size());
+            for (ReportFile f : sorted) {
+                if (f.getName() != null && f.getName().toLowerCase().contains(needle)) {
+                    filtered.add(f);
+                }
+            }
+        }
+        // 是否包含目录项
+        Object includeDir = params == null ? null : params.get(PARAM_INCLUDE_DIRECTORY);
+        if (includeDir != null && !Boolean.parseBoolean(includeDir.toString())) {
+            List<ReportFile> noDir = new ArrayList<>(filtered.size());
+            for (ReportFile f : filtered) {
+                if (!f.isDirectory()) {
+                    noDir.add(f);
+                }
+            }
+            filtered = noDir;
+        }
+        long total = filtered.size();
+        if (total == 0) {
+            return ReportFilePage.empty();
+        }
+        int start = (pageNum - 1) * pageSize;
+        if (start >= total) {
+            return ReportFilePage.of(Collections.emptyList(), total);
+        }
+        int end = Math.min(start + pageSize, (int) total);
+        return ReportFilePage.of(new ArrayList<>(filtered.subList(start, end)), total);
+    }
+
+    /**
+     * 列出指定目录下的报表文件，目录项在前，其余按更新时间倒序。
+     * <p>供 {@link #getReportFiles()} / {@link #getReportFiles(String)} / {@link #pageReportFiles(int, int, Map)} 复用。
+     */
+    private List<ReportFile> listSortedReportFiles(String relativePath) {
         File file;
         if (relativePath == null || relativePath.isEmpty()) {
             file = new File(fileStoreDir);
@@ -94,13 +151,14 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
             file = new File(fileStoreDir + "/" + relativePath);
         }
 
-        List<ReportFile> list = new ArrayList<ReportFile>();
+        List<ReportFile> list = new ArrayList<>();
         File[] files = file.listFiles();
         if (files == null) {
             return list;
         }
 
         String storeDirAbsolute = new File(fileStoreDir).getAbsolutePath();
+        String relPath = relativePath == null ? StringUtils.EMPTY : relativePath;
         for (File f : files) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(f.lastModified());
@@ -113,7 +171,7 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
                 }
                 currentPath = currentPath.replace(File.separator, "/");
             } else {
-                currentPath = relativePath.isEmpty() ? f.getName() : relativePath + "/" + f.getName();
+                currentPath = relPath.isEmpty() ? f.getName() : relPath + "/" + f.getName();
             }
             // name 去掉 .ureport.xml 后缀（用于前端展示），path 保留后缀（磁盘文件标识），与 ReportProvider.getReportFile 默认实现对齐
             String name = ReportProvider.stripReportSuffix(f.getName());

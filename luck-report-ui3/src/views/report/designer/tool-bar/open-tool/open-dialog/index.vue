@@ -120,30 +120,22 @@ import { ref, computed, watch } from 'vue'
 import { formatDate } from '@/utils/table'
 import { showAlert, showConfirm } from '@/utils/comnon'
 import {
-  loadReportProviders,
-  loadReportProvidersByPath,
-  deleteReportFile
+  loadReportFiles,
+  deleteReportFile,
+  type ReportFileItemVO,
+  type ReportProviderDetailVO,
+  type ReportProviderVO
 } from '@/api/designer'
 import { useI18n } from 'vue-i18n'
 import { getRequestToken } from '@/utils/token'
 
 defineOptions({ name: 'OpenDialog' })
 
-/** 报表文件元数据 */
-interface ReportFileItem {
-  name: string
-  path: string
-  directory: boolean
-  updateDate?: string | number | Date
-}
+/** 报表文件元数据（后端 ReportFile 对齐） */
+type ReportFileItem = ReportFileItemVO
 
-/** 报表提供者元数据 */
-interface ReportProvider {
-  prefix: string
-  name: string
-  reportFiles?: ReportFileItem[]
-  [key: string]: unknown
-}
+/** 报表提供者元数据（与后端 ReportProviderDetailVo / ReportProviderVo 对齐） */
+type ReportProvider = ReportProviderDetailVO | ReportProviderVO
 
 const props = withDefaults(
   defineProps<{ visible: boolean }>(),
@@ -208,15 +200,11 @@ watch(
  */
 function loadProviders(): void {
   loading.value = true
-  loadReportProviders()
-    .then((list: ReportProvider[]) => {
-      providers.value = list || []
-      // 把每个 provider 的 reportFiles 按 prefix 缓存
-      for (const provider of providers.value) {
-        const { reportFiles, prefix } = provider
-        if (prefix) {
-          reportFilesData.value[prefix] = reportFiles || []
-        }
+  loadReportFiles('')
+    .then((result: ReportProviderDetailVO[]) => {
+      providers.value = result || []
+      for (const vo of providers.value) {
+        reportFilesData.value[vo.prefix] = vo.reportFiles || []
       }
       if (providers.value.length > 0) {
         selectedProvider.value = providers.value[0].prefix
@@ -241,11 +229,10 @@ function loadProviders(): void {
  */
 function loadProvidersByPath(path: string): void {
   loading.value = true
-  loadReportProvidersByPath(path)
-    .then((result: Record<string, { reportFiles: ReportFileItem[] }>) => {
-      for (const prefix in result) {
-        const providerData = result[prefix]
-        reportFilesData.value[`${prefix}:${path}`] = providerData.reportFiles || []
+  loadReportFiles(path)
+    .then((result: ReportProviderDetailVO[]) => {
+      for (const vo of result) {
+        reportFilesData.value[`${vo.prefix}:${path}`] = vo.reportFiles || []
       }
       onProviderChange()
     })

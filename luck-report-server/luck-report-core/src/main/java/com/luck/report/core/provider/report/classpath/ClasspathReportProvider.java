@@ -17,6 +17,7 @@ package com.luck.report.core.provider.report.classpath;
 
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.provider.report.ReportFile;
+import com.luck.report.core.provider.report.ReportFilePage;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.core.provider.report.file.FileReportProvider;
 import org.springframework.beans.BeansException;
@@ -27,6 +28,7 @@ import org.springframework.core.io.Resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Jacky.gao
@@ -80,6 +82,11 @@ public class ClasspathReportProvider implements ReportProvider, ApplicationConte
     @Override
     public List<ReportFile> getReportFiles() {
         return null;
+    }
+
+    @Override
+    public ReportFilePage pageReportFiles(int pageNum, int pageSize, Map<String, Object> params) {
+        return ReportFilePage.empty();
     }
 
     @Override

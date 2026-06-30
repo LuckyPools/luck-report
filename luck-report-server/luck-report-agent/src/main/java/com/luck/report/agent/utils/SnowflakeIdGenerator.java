@@ -1,4 +1,4 @@
-package com.luck.report.agent.common.util;
+package com.luck.report.agent.utils;
 
 /**
  * Snowflake ID 生成器（静态工具类）

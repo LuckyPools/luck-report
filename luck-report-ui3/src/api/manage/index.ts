@@ -28,15 +28,6 @@ export interface ReportFileVO {
 }
 
 /**
- * 报表提供者元数据
- */
-export interface ReportProviderVO {
-  name: string
-  prefix: string
-  disabled: boolean
-}
-
-/**
  * 报表分页查询 DTO
  */
 export interface ReportQueryDTO {
@@ -50,14 +41,6 @@ export interface ReportQueryDTO {
   pageNum: number
   /** 每页大小 */
   pageSize: number
-}
-
-/**
- * 加载报表来源（provider）列表
- * @returns 报表来源数组
- */
-export async function loadReportProviders(): Promise<ReportProviderVO[]> {
-  return request.get<ReportProviderVO[]>('/manage/loadReportProviders')
 }
 
 /**
@@ -110,4 +93,40 @@ export async function copyReport(
   return request.get<ReportFileVO>('/designer/copyReport', {
     params: { sourceFilePath, newFilePath, newTitle }
   })
+}
+
+/**
+ * 导入报表模板源文件
+ * - 上传 .ureport.xml 文件到指定 provider，文件名需以 .ureport.xml 结尾
+ * - 后端调用 provider.saveReport 写入
+ * @param provider 报表来源前缀（例如 file:）
+ * @param file 上传的报表文件
+ * @returns 导入结果 ReportFile（path 不含 provider 前缀）
+ */
+export async function importTemplate(
+  provider: string,
+  file: File
+): Promise<ReportFileVO> {
+  const formData = new FormData()
+  formData.append('provider', provider)
+  formData.append('file', file)
+  return request.post<ReportFileVO>('/manage/importTemplate', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+/**
+ * 导出报表模板源文件（触发浏览器下载）
+ * - 后端通过 provider.getReportFile 获取 name 作为下载文件名，
+ *   再通过 provider.loadReport 读取 XML 字节流，
+ *   返回 Content-Disposition: attachment 触发下载
+ * @param filePath 报表完整路径（带 provider 前缀），如 file:xxx.ureport.xml / db:123
+ * @returns 后端返回的字节流（由前端触发浏览器另存为）
+ */
+export async function exportTemplate(filePath: string): Promise<BlobPart> {
+  const res = await request.get<BlobPart>('/manage/exportTemplate', {
+    params: { filePath },
+    responseType: 'blob'
+  })
+  return res
 }

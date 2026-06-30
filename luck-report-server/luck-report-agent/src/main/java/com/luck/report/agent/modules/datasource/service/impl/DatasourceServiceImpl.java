@@ -2,7 +2,7 @@ package com.luck.report.agent.modules.datasource.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.luck.report.agent.common.util.SnowflakeIdGenerator;
+import com.luck.report.agent.utils.SnowflakeIdGenerator;
 import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.agent.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.agent.modules.datasource.domain.dto.DatasourceQueryDTO;

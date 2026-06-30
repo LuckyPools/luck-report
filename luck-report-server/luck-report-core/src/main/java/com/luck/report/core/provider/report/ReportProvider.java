@@ -16,13 +16,21 @@
 package com.luck.report.core.provider.report;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Jacky.gao
  * @since 2016年12月4日
  */
 public interface ReportProvider {
+
+    /**
+     * 报表文件后缀（{@value}），与 {@code FileReportProvider.SUFFIX} / {@code ClasspathReportProvider.SUFFIX} 保持一致。
+     */
+    String REPORT_FILE_SUFFIX = ".ureport.xml";
+
     /**
      * 根据报表名加载报表文件
      *
@@ -56,6 +64,54 @@ public interface ReportProvider {
     }
 
     /**
+     * 分页查询报表文件，将过滤与分页下沉到 Provider 实现，避免在调用方拉取全量数据。
+     * <p>默认实现：调用 {@link #getReportFiles()} 在内存中过滤并分页，保证向后兼容；
+     * 数据量大的实现（如 db:）应重写此方法以利用底层存储的分页/索引能力。
+     *
+     * @param pageNum 当前页码（从 1 开始）
+     * @param pageSize 每页大小
+     * @param params 查询参数，约定 key 参见 {@link #PARAM_PATH}、{@link #PARAM_NAME}、{@link #PARAM_INCLUDE_DIRECTORY}
+     * @return 分页结果，包含当前页数据与过滤后总数
+     */
+    default ReportFilePage pageReportFiles(int pageNum, int pageSize, Map<String, Object> params) {
+        if (pageNum < 1) {
+            pageNum = 1;
+        }
+        if (pageSize < 1) {
+            pageSize = 10;
+        }
+        List<ReportFile> all;
+        String path = params == null ? null : (String) params.get(PARAM_PATH);
+        if (path != null && !path.isEmpty()) {
+            all = getReportFiles(path);
+        } else {
+            all = getReportFiles();
+        }
+        if (all == null) {
+            return ReportFilePage.empty();
+        }
+        String name = params == null ? null : (String) params.get(PARAM_NAME);
+        if (name != null && !name.isEmpty()) {
+            final String needle = name.toLowerCase();
+            all.removeIf(f -> f.getName() == null || !f.getName().toLowerCase().contains(needle));
+        }
+        long total = all.size();
+        int start = (pageNum - 1) * pageSize;
+        if (start >= total) {
+            return ReportFilePage.of(Collections.emptyList(), total);
+        }
+        int end = Math.min(start + pageSize, (int) total);
+        return ReportFilePage.of(new java.util.ArrayList<>(all.subList(start, end)), total);
+    }
+
+    /** {@link #pageReportFiles(int, int, Map)} params 中的目录路径 key（对应 {@link #getReportFiles(String)} 入参）。 */
+    String PARAM_PATH = "path";
+    /** {@link #pageReportFiles(int, int, Map)} params 中的名称模糊匹配 key（不区分大小写、子串匹配）。 */
+    String PARAM_NAME = "name";
+    /** {@link #pageReportFiles(int, int, Map)} params 中是否包含目录项 key，默认 true。 */
+    String PARAM_INCLUDE_DIRECTORY = "includeDirectory";
+
+    /**
      * 保存报表文件（带展示名）
      * - db: provider 等需要 title 的 provider 可重写此方法
      *
@@ -70,11 +126,6 @@ public interface ReportProvider {
      *         只读 provider（如 classpath）可返回 {@code new ReportFile()} 占位
      */
     ReportFile saveReport(String title, String filePath, String content);
-
-    /**
-     * 报表文件后缀（{@value}），与 {@code FileReportProvider.SUFFIX} / {@code ClasspathReportProvider.SUFFIX} 保持一致。
-     */
-    String REPORT_FILE_SUFFIX = ".ureport.xml";
 
     /**
      * 去除报表文件后缀 {@value #REPORT_FILE_SUFFIX}，用于统一 {@link ReportFile#name} 的格式约定。

@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS `luck_agent_knowledge_test` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能体知识表';
 
 -- 报表文件表（无需调整，id 已是 varchar(32)）
-CREATE TABLE IF NOT EXISTS `luck_report_file_test` (
+CREATE TABLE IF NOT EXISTS `luck_report_template_test` (
   `id` VARCHAR(32) NOT NULL COMMENT '主键ID（Snowflake）',
   `title` VARCHAR(255) NOT NULL COMMENT '报表标题',
   `template` MEDIUMTEXT DEFAULT NULL COMMENT '报表模板内容（XML）',
@@ -254,10 +254,10 @@ SELECT `id`, `title`, `type`, `question`, `content`, `enabled`, `embedding_statu
 FROM `luck_agent_knowledge`;
 
 -- 报表文件表数据迁移
-INSERT INTO `luck_report_file_test`
+INSERT INTO `luck_report_template_test`
     (`id`, `title`, `template`, `is_deleted`, `created_time`, `updated_time`)
 SELECT `id`, `title`, `template`, `is_deleted`, `created_time`, `updated_time`
-FROM `luck_report_file`;
+FROM `luck_report_template`;
 
 -- =============================================
 -- 第三步：删除原表
@@ -270,7 +270,7 @@ DROP TABLE IF EXISTS `luck_datasource`;
 DROP TABLE IF EXISTS `luck_model_config`;
 DROP TABLE IF EXISTS `luck_business_knowledge`;
 DROP TABLE IF EXISTS `luck_agent_knowledge`;
-DROP TABLE IF EXISTS `luck_report_file`;
+DROP TABLE IF EXISTS `luck_report_template`;
 
 -- =============================================
 -- 第四步：_test 表重命名为原表名（原子操作）
@@ -284,4 +284,4 @@ RENAME TABLE
     `luck_logical_relation_test`    TO `luck_logical_relation`,
     `luck_business_knowledge_test`  TO `luck_business_knowledge`,
     `luck_agent_knowledge_test`     TO `luck_agent_knowledge`,
-    `luck_report_file_test`         TO `luck_report_file`;
+    `luck_report_template_test`         TO `luck_report_template`;

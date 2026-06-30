@@ -14,11 +14,14 @@ import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.ReportScopedCache;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
+import com.luck.report.web.domain.vo.report.ReportProviderDetailVo;
+import com.luck.report.web.domain.vo.report.ReportProviderVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.utils.ReportUtils;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +36,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 报表设计器服务，负责设计器相关业务（脚本校验、新建 / 保存 / 删除 / 加载报表等）。
@@ -174,26 +176,42 @@ public class DesignerService implements ApplicationContextAware {
     }
 
     /**
-     * 加载报表来源列表。
-     * <p>无 path 时返回全部 Provider；有 path 时返回每个 Provider 在指定路径下的文件。
+     * 加载所有已启用的报表提供者元数据列表。
+     * 仅返回基础信息（name/prefix/disabled），不包含任何文件。
+     * 禁用的 provider（{@code disabled() == true}）和未命名的 provider（{@code getName() == null}）会被过滤。
      */
-    public Object loadReportProviders(String path) {
-        if (path == null || path.isEmpty()) {
-            return reportProviders;
+    public List<ReportProviderVo> listReportProviders() {
+        List<ReportProviderVo> list = new ArrayList<>();
+        for (ReportProvider provider : getValidProviders()) {
+            list.add(new ReportProviderVo(provider.getName(), provider.getPrefix(), provider.disabled()));
         }
-        Map<String, Object> result = new HashMap<>();
-        for (ReportProvider provider : reportProviders) {
-            if (provider.disabled() || provider.getName() == null) {
-                continue;
-            }
-            Map<String, Object> providerData = new HashMap<>();
-            providerData.put("name", provider.getName());
-            providerData.put("prefix", provider.getPrefix());
-            providerData.put("disabled", provider.disabled());
-            providerData.put("reportFiles", provider.getReportFiles(path));
-            result.put(provider.getPrefix(), providerData);
+        return list;
+    }
+
+    /**
+     * 加载每个 provider 在指定路径下的报表文件列表（含目录）。
+     * <p>复用 {@link #listReportProviders()} 的过滤逻辑：先获取已启用的 provider 列表，
+     * 再遍历每个 provider 调用 {@code getReportFiles(path)} 收集文件，
+     * 最终组装为 {@code List<ReportProviderDetailVo>}（与 {@link #listReportProviders()} 形式一致）。
+     */
+    public List<ReportProviderDetailVo> loadReportFiles(String path) {
+        List<ReportProviderDetailVo> result = new ArrayList<>();
+        for (ReportProvider provider : getValidProviders()) {
+            result.add(new ReportProviderDetailVo(
+                    provider.getName(),
+                    provider.getPrefix(),
+                    provider.disabled(),
+                    provider.getReportFiles(path)
+            ));
         }
         return result;
+    }
+
+    /** 过滤出已启用且命名的 provider 列表，供 {@link #listReportProviders()} 与 {@link #loadReportFiles(String)} 复用。 */
+    private List<ReportProvider> getValidProviders() {
+        return reportProviders.stream()
+                .filter(p -> !p.disabled() && p.getName() != null)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -221,11 +239,9 @@ public class DesignerService implements ApplicationContextAware {
             }
 
             // 检查报表是否已存在
-            List<ReportFile> existingFiles = targetProvider.getReportFiles();
-            for (ReportFile rf : existingFiles) {
-                if (!rf.isDirectory() && (filePath.endsWith(rf.getName()) || filePath.equals(providerPrefix + rf.getName()))) {
-                    return ResultVO.error(409, "Report [" + fileName + "] already exists in provider [" + providerPrefix + "].");
-                }
+            ReportFile existingFile = targetProvider.getReportFile(fileName);
+            if(existingFile != null){
+                return ResultVO.error(409, "Report [" + fileName + "] already exists in provider [" + providerPrefix + "].");
             }
 
             // 读取空白模板
@@ -375,7 +391,7 @@ public class DesignerService implements ApplicationContextAware {
             return;
         }
         for (ReportProvider provider : applicationContext.getBeansOfType(ReportProvider.class).values()) {
-            if (provider.disabled() || provider.getName() == null) {
+            if (provider.disabled()) {
                 continue;
             }
             reportProviders.add(provider);

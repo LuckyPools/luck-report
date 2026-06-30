@@ -1,6 +1,6 @@
 package com.luck.report.agent.modules.chat.service.impl;
 
-import com.luck.report.agent.common.util.SnowflakeIdGenerator;
+import com.luck.report.agent.utils.SnowflakeIdGenerator;
 import com.luck.report.agent.modules.chat.domain.entity.ChatMessage;
 import com.luck.report.agent.modules.chat.mapper.ChatMessageMapper;
 import com.luck.report.agent.modules.chat.service.ChatMessageService;

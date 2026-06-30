@@ -136,7 +136,7 @@ async function del<T = any>(url: string, config: AxiosRequestConfig = {}): Promi
 
 /**
  * 处理响应结果
- * 提取响应数据，文件下载类型直接返回整个 response 对象
+ * 提取响应数据：文件下载（responseType=blob）返回 res.data（Blob），其余自动解包 ResultVO。
  * 如果响应是统一的 ResultVO 格式（包含 code 和 data 字段），则自动解包到内层 data。
  * 这样业务侧可以直接拿到 `resultvo.data`，不再需要手动 `res.data.data`。
  *
@@ -146,7 +146,7 @@ async function del<T = any>(url: string, config: AxiosRequestConfig = {}): Promi
 function dealAxiosResult<T = any>(res: AxiosResponse): Promise<T> {
     let realRes: any = res.data ? res.data : res
     if ((res.request as any)?.responseType === 'blob') {
-        return Promise.resolve(res as unknown as T)
+        return Promise.resolve(res.data as unknown as T)
     }
     // 自动解包后端统一封装的 ResultVO 格式：{ code, message, data }
     // code=0 表示成功，非 0 表示业务失败，需走异常处理（携带 auxCode 供前端展示）

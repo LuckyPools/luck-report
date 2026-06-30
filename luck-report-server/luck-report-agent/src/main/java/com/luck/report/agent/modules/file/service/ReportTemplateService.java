@@ -1,17 +1,18 @@
 package com.luck.report.agent.modules.file.service;
 
-import com.luck.report.agent.modules.file.domain.entity.ReportFile;
+import com.luck.report.agent.modules.file.domain.entity.ReportTemplate;
+import com.luck.report.common.domain.vo.PageResultVO;
 
 import java.io.InputStream;
 import java.util.List;
 
 /**
  * 报表文件服务接口
- * 用于对 luck_report_file 表进行增删改查，并提供数据库存储报表的读写能力
+ * 用于对 luck_report_template 表进行增删改查，并提供数据库存储报表的读写能力
  *
  * @author luck
  */
-public interface ReportFileService {
+public interface ReportTemplateService {
 
     /**
      * 根据ID查询报表文件
@@ -19,7 +20,7 @@ public interface ReportFileService {
      * @param id 报表文件ID
      * @return 报表文件实体
      */
-    ReportFile getById(String id);
+    ReportTemplate getById(String id);
 
     /**
      * 根据标题查询报表文件
@@ -27,7 +28,7 @@ public interface ReportFileService {
      * @param title 报表标题
      * @return 报表文件实体
      */
-    ReportFile getByTitle(String title);
+    ReportTemplate getByTitle(String title);
 
     /**
      * 新增报表文件
@@ -35,7 +36,7 @@ public interface ReportFileService {
      * @param reportFile 报表文件实体
      * @return 新增后的报表文件实体（含ID）
      */
-    ReportFile save(ReportFile reportFile);
+    ReportTemplate save(ReportTemplate reportFile);
 
     /**
      * 更新报表文件
@@ -43,7 +44,7 @@ public interface ReportFileService {
      * @param reportFile 报表文件实体
      * @return 更新后的报表文件实体
      */
-    ReportFile update(ReportFile reportFile);
+    ReportTemplate update(ReportTemplate reportFile);
 
     /**
      * 根据ID逻辑删除报表文件
@@ -66,5 +67,15 @@ public interface ReportFileService {
      *
      * @return 报表文件列表
      */
-    List<ReportFile> listAll();
+    List<ReportTemplate> listAll();
+
+    /**
+     * 分页查询报表文件（按更新时间倒序）
+     *
+     * @param name     标题模糊匹配（null/空不过滤）
+     * @param pageNum  当前页码（从 1 开始）
+     * @param pageSize 每页大小
+     * @return 包含 records 和 total 的分页结果
+     */
+    PageResultVO<ReportTemplate> listPage(String name, int pageNum, int pageSize);
 }

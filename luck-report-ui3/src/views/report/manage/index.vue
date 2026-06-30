@@ -48,6 +48,10 @@
                 <template #icon><PlusOutlined /></template>
                 新建报表
               </a-button>
+              <a-button @click="openImportDialog">
+                <template #icon><UploadOutlined /></template>
+                导入
+              </a-button>
               <a-button @click="loadReports">
                 <template #icon><ReloadOutlined /></template>
                 刷新
@@ -102,6 +106,12 @@
                     <a-menu>
                       <a-menu-item key="preview" @click="openPreview(item)">
                         <EyeOutlined /> 预览
+                      </a-menu-item>
+                      <a-menu-item key="copyLink" @click="handleCopyLink(item)">
+                        <LinkOutlined /> 复制链接
+                      </a-menu-item>
+                      <a-menu-item key="export" @click="handleExport(item)">
+                        <DownloadOutlined /> 导出
                       </a-menu-item>
                       <a-menu-item key="edit" @click="openEdit(item)">
                         <EditOutlined /> 编辑
@@ -196,6 +206,58 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 导入报表弹窗 -->
+    <a-modal
+      v-model:open="importDialogVisible"
+      title="导入报表"
+      width="500px"
+      :confirm-loading="importLoading"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
+      @ok="handleImport"
+      @cancel="handleImportCancel"
+    >
+      <a-form
+        ref="importFormRef"
+        :model="importForm"
+        :rules="importFormRules"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item label="报表来源" name="provider">
+          <a-select
+            v-model:value="importForm.provider"
+            placeholder="请选择报表来源"
+            :loading="providerLoading"
+          >
+            <a-select-option
+              v-for="p in providers"
+              :key="p.prefix"
+              :value="p.prefix"
+            >
+              {{ p.name }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="上传文件" name="file">
+          <a-upload
+            :auto-upload="false"
+            :max-count="1"
+            :file-list="importFileList"
+            :before-upload="() => false"
+            accept=".xml,.ureport.xml"
+            @change="handleImportFileChange"
+          >
+            <a-button>
+              <template #icon><UploadOutlined /></template>
+              选择 .ureport.xml 文件
+            </a-button>
+          </a-upload>
+          <div class="form-tip">请上传以 .ureport.xml 结尾的报表源文件</div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -212,7 +274,7 @@
  * 6. 删除：调用后端接口删除
  */
 import {onMounted, reactive, ref, watch} from 'vue'
-import type {FormInstance} from 'ant-design-vue'
+import type {FormInstance, UploadFile} from 'ant-design-vue'
 import {
   Button as AButton,
   Card as ACard,
@@ -231,29 +293,34 @@ import {
   Select as ASelect,
   SelectOption as ASelectOption,
   Spin as ASpin,
-  Tooltip as ATooltip
+  Tooltip as ATooltip,
+  Upload as AUpload
 } from 'ant-design-vue'
 import {
   ArrowRightOutlined,
   CopyOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   EyeOutlined,
+  LinkOutlined,
   MoreOutlined,
   PlusOutlined,
   ReloadOutlined,
-  SearchOutlined
+  SearchOutlined,
+  UploadOutlined
 } from '@ant-design/icons-vue'
 import {
   copyReport,
   createReport,
   deleteReport,
-  loadReportProviders,
+  exportTemplate,
+  importTemplate,
   queryReports,
   type ReportFileVO,
-  type ReportProviderVO,
   type ReportQueryDTO
 } from '@/api/manage'
+import {loadReportProviders, type ReportProviderVO} from '@/api/designer'
 import {getRequestToken} from '@/utils/token'
 import {t} from "@/locales";
 import excelIcon from '@/assets/icons/excel.svg'
@@ -282,6 +349,15 @@ const createForm = reactive<{ provider: string; fileName: string }>({
   fileName: ''
 })
 
+/** 导入弹窗 */
+const importDialogVisible = ref(false)
+const importLoading = ref(false)
+const importFormRef = ref<FormInstance>()
+const importForm = reactive<{ provider: string }>({ provider: '' })
+const importFileList = ref<UploadFile[]>([])
+/** 实际待上传的文件对象（originFileObj 才是真正的 File） */
+let importFileObj: File | null = null
+
 /**
  * 表单校验规则
  */
@@ -292,6 +368,11 @@ const createFormRules = {
     { max: 100, message: '名称长度不能超过 100', trigger: 'blur' }
   ]
 }
+
+// 用 as any 显式忽略 ant-design-vue 的 RuleObject.type 必填约束，与现有 createFormRules 保持一致
+const importFormRules = {
+  provider: [{ required: true, message: '请选择报表来源', trigger: 'change' }]
+} as any
 
 /**
  * 加载报表来源
@@ -409,6 +490,49 @@ const openPreview = (item: ReportFileVO): void => {
 }
 
 /**
+ * 复制预览链接到剪贴板
+ * - 链接生成逻辑与 openPreview 一致（buildReportUrl + 'preview'）
+ * - 优先使用 navigator.clipboard，不可用时回退到 textarea + execCommand
+ */
+const handleCopyLink = async (item: ReportFileVO): Promise<void> => {
+  const fullPath = buildFullFilePath(item.path)
+  const url = buildReportUrl(fullPath, 'preview')
+
+  const writeText = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch (e) {
+      console.warn('clipboard.writeText failed, falling back:', e)
+    }
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      return ok
+    } catch (e) {
+      console.error('Fallback copy failed:', e)
+      return false
+    }
+  }
+
+  const ok = await writeText(url)
+  if (ok) {
+    message.success('预览链接已复制')
+  } else {
+    message.error('复制失败，请手动复制：' + url)
+  }
+}
+
+/**
  * 打开新建弹窗
  */
 const openCreateDialog = (): void => {
@@ -485,6 +609,126 @@ const handleDelete = (item: ReportFileVO): void => {
       }
     }
   })
+}
+
+/**
+ * 打开导入弹窗
+ */
+const openImportDialog = (): void => {
+  importForm.provider = selectedProvider.value || (providers.value[0]?.prefix ?? '')
+  importFileList.value = []
+  importFileObj = null
+  importDialogVisible.value = true
+  setTimeout(() => {
+    importFormRef.value?.clearValidate()
+  }, 0)
+}
+
+/**
+ * 关闭导入弹窗：清空状态
+ */
+const handleImportCancel = (): void => {
+  importDialogVisible.value = false
+  importFormRef.value?.clearValidate()
+  importFileList.value = []
+  importFileObj = null
+}
+
+/**
+ * 处理上传文件变化
+ * - 仅取最后一个文件（max-count=1）
+ * - originFileObj 才是真正的 File 对象
+ */
+const handleImportFileChange = (info: { fileList: UploadFile[] }): void => {
+  importFileList.value = info.fileList.slice(-1)
+  if (info.fileList.length > 0) {
+    const last = info.fileList[info.fileList.length - 1] as UploadFile & { originFileObj?: File }
+    importFileObj = last.originFileObj || (last as unknown as File)
+  } else {
+    importFileObj = null
+  }
+}
+
+/**
+ * 提交导入
+ * 1. 校验表单（provider + file）
+ * 2. 上传文件到后端 importTemplate 接口
+ * 3. 上传成功后刷新当前 provider 的列表
+ */
+const handleImport = async (): Promise<void> => {
+  if (!importFormRef.value) return
+  try {
+    await importFormRef.value.validate()
+  } catch {
+    return
+  }
+  if (!importFileObj) {
+    message.error('请选择要导入的 .ureport.xml 文件')
+    return
+  }
+  const fileName = (importFileObj as File).name || ''
+  if (!fileName.toLowerCase().endsWith('.ureport.xml') && !fileName.toLowerCase().endsWith('.xml')) {
+    message.error('仅支持 .ureport.xml / .xml 报表源文件')
+    return
+  }
+  importLoading.value = true
+  try {
+    await importTemplate(importForm.provider, importFileObj as File)
+    message.success('导入成功')
+    importDialogVisible.value = false
+    importFileList.value = []
+    importFileObj = null
+    // 刷新当前列表；如果当前 provider 不是导入的 provider，自动切到导入的 provider
+    if (selectedProvider.value !== importForm.provider) {
+      selectedProvider.value = importForm.provider
+      pageNum.value = 1
+    } else {
+      pageNum.value = 1
+    }
+    await loadReports()
+  } catch (e: any) {
+    console.error('Failed to import report:', e)
+    message.error(e?.message || '导入失败')
+  } finally {
+    importLoading.value = false
+  }
+}
+
+/**
+ * 导出报表：调用后端 exportTemplate，下载字节流到本地
+ * - 后端通过 provider.getReportFile 推断 name 作为下载文件名（已含 .ureport.xml 后缀）
+ * - 前端通过 Content-Disposition 头解析文件名（兼容 RFC 5987 / fallback）
+ * - 用 a[download] + URL.createObjectURL(blob) 触发浏览器下载
+ */
+const handleExport = async (item: ReportFileVO): Promise<void> => {
+  const fullPath = buildFullFilePath(item.path)
+  try {
+    const data = await exportTemplate(fullPath)
+    const blob = data instanceof Blob ? data : new Blob([data as BlobPart])
+    // 优先用 item.name + .ureport.xml，与后端 name 字段对齐
+    const fallbackName = (item.name || 'report') + '.ureport.xml'
+    triggerDownload(blob, fallbackName)
+    message.success('已导出 ' + fallbackName)
+  } catch (e: any) {
+    console.error('Failed to export report:', e)
+    message.error(e?.message || '导出失败')
+  }
+}
+
+/**
+ * 触发浏览器下载 Blob
+ */
+const triggerDownload = (blob: Blob, fallbackName: string): void => {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fallbackName
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  // 延迟释放，确保下载开始
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 /**
@@ -746,5 +990,11 @@ onMounted(async () => {
 
 .empty-state {
   padding: 48px 0;
+}
+
+.form-tip {
+  color: #999;
+  font-size: 12px;
+  margin-top: 4px;
 }
 </style>

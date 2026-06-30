@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 /**
  * 报表文件实体类
- * 对应 luck_report_file 表，用于数据库存储报表模板
+ * 对应 luck_report_template 表，用于数据库存储报表模板
  *
  * @author luck
  */
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ReportFile {
+public class ReportTemplate {
 
     /** 主键ID */
     private String id;

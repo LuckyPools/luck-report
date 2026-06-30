@@ -133,8 +133,10 @@ import { showAlert, showConfirm } from '@/utils/comnon'
 import {
   saveReportFile,
   deleteReportFile,
-  loadReportProviders,
-  loadReportProvidersByPath
+  loadReportFiles,
+  type ReportFileItemVO,
+  type ReportProviderDetailVO,
+  type ReportProviderVO
 } from '@/api/designer'
 import { useReportStore } from '@/store/modules/report'
 import { useI18n } from 'vue-i18n'
@@ -142,25 +144,11 @@ import type { ReportContext } from '@/types/report-def'
 
 defineOptions({ name: 'SaveDialog' })
 
-/** 报表文件元数据 */
-interface ReportFileItem {
-  name: string
-  path: string
-  directory: boolean
-  updateDate?: string | number | Date
-  [key: string]: unknown
-}
+/** 报表文件元数据（后端 ReportFile 对齐） */
+type ReportFileItem = ReportFileItemVO
 
-/** 报表提供者元数据 */
-interface ReportProvider {
-  prefix: string
-  name: string
-  reportFiles?: ReportFileItem[]
-  [key: string]: unknown
-}
-
-/** 接口统一返回结构（可能直接是数组，也可能是 { data: [...] }） */
-type ProvidersResponse = ReportProvider[] | { data?: ReportProvider[] } | null | undefined
+/** 报表提供者元数据（与后端 ReportProviderDetailVo / ReportProviderVo 对齐） */
+type ReportProvider = ReportProviderDetailVO | ReportProviderVO
 
 const props = withDefaults(
   defineProps<{ visible: boolean }>(),
@@ -246,35 +234,15 @@ onBeforeUnmount(() => {
 })
 
 /**
- * 把后端响应统一解析为 provider 数组
- */
-function pickProviders(response: ProvidersResponse): ReportProvider[] | null {
-  if (Array.isArray(response)) return response
-  if (response && Array.isArray((response as { data?: ReportProvider[] }).data)) {
-    return (response as { data: ReportProvider[] }).data
-  }
-  return null
-}
-
-/**
- * 拉取所有 provider
+ * 拉取所有 provider 的根目录文件
  */
 function loadReports(): void {
   loading.value = true
-  loadReportProviders()
-    .then((response: ProvidersResponse) => {
-      const list = pickProviders(response)
-      if (!list) {
-        showAlert(t('dialog.save.loadFail'))
-        return
-      }
-      providers.value = list
-      // 初始化报表文件数据
-      for (const provider of providers.value) {
-        const { reportFiles, prefix } = provider
-        if (prefix) {
-          reportFilesData.value[prefix] = reportFiles || []
-        }
+  loadReportFiles('')
+    .then((result: ReportProviderDetailVO[]) => {
+      providers.value = result || []
+      for (const vo of providers.value) {
+        reportFilesData.value[vo.prefix] = vo.reportFiles || []
       }
       if (providers.value.length > 0) {
         selectedProvider.value = providers.value[0].prefix
@@ -298,11 +266,10 @@ function loadReports(): void {
  */
 function loadProvidersByPath(path: string): void {
   loading.value = true
-  loadReportProvidersByPath(path)
-    .then((result: Record<string, { reportFiles: ReportFileItem[] }>) => {
-      for (const prefix in result) {
-        const providerData = result[prefix]
-        reportFilesData.value[`${prefix}:${path}`] = providerData.reportFiles || []
+  loadReportFiles(path)
+    .then((result: ReportProviderDetailVO[]) => {
+      for (const vo of result) {
+        reportFilesData.value[`${vo.prefix}:${path}`] = vo.reportFiles || []
       }
       onProviderChange()
     })

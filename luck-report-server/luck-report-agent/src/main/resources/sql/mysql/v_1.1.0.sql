@@ -1,11 +1,11 @@
 -- =============================================
 -- Luck Report Agent 数据库变更脚本 v1.1.0
 -- 数据库类型：MySQL
--- 说明：新增 luck_report_file 表，用于数据库存储报表
+-- 说明：新增 luck_report_template 表，用于数据库存储报表
 -- =============================================
 
 -- 报表文件表（数据库存储）
-CREATE TABLE IF NOT EXISTS `luck_report_file` (
+CREATE TABLE IF NOT EXISTS `luck_report_template` (
   `id` VARCHAR(32) NOT NULL COMMENT '主键ID（Snowflake）',
   `title` VARCHAR(255) NOT NULL COMMENT '报表标题',
   `template` MEDIUMTEXT DEFAULT NULL COMMENT '报表模板内容（XML）',

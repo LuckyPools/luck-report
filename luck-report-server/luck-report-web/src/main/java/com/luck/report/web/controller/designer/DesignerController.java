@@ -4,6 +4,8 @@ import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.expression.ErrorInfo;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
+import com.luck.report.web.domain.vo.report.ReportProviderDetailVo;
+import com.luck.report.web.domain.vo.report.ReportProviderVo;
 import com.luck.report.web.service.DesignerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -110,12 +112,26 @@ public class DesignerController {
     }
 
     /**
-     * 加载报表提供者
+     * 加载所有已启用的报表提供者元数据列表。
+     * <p>仅返回 provider 基础信息（name/prefix/disabled），不包含任何文件。
+     * 用于：管理页下拉、报表来源过滤等"仅需 provider 元数据"的场景。
      */
     @RequestMapping("/loadReportProviders")
     @ResponseBody
-    public ResultVO<Object> loadReportProviders(@RequestParam(value = "path", required = false) String path) {
-        return ResultVO.success(designerService.loadReportProviders(path));
+    public ResultVO<List<ReportProviderVo>> loadReportProviders() {
+        return ResultVO.success(designerService.listReportProviders());
+    }
+
+    /**
+     * 加载每个 provider 在指定路径下的报表文件列表（含目录）。
+     * <p>响应结构：{@code List<ReportProviderDetailVo>}，与 {@link #loadReportProviders()} 形式一致；
+     * 前端按 {@code vo.prefix} 识别 provider。
+     * 用于：设计器的"打开报表"弹窗、"另存为"弹窗等需要展示文件树的场景。
+     */
+    @RequestMapping("/loadReportFiles")
+    @ResponseBody
+    public ResultVO<List<ReportProviderDetailVo>> loadReportFiles(@RequestParam("path") String path) {
+        return ResultVO.success(designerService.loadReportFiles(path));
     }
 
     /**
