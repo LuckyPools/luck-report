@@ -67,10 +67,11 @@ public interface ReportProvider {
      * 分页查询报表文件，将过滤与分页下沉到 Provider 实现，避免在调用方拉取全量数据。
      * <p>默认实现：调用 {@link #getReportFiles()} 在内存中过滤并分页，保证向后兼容；
      * 数据量大的实现（如 db:）应重写此方法以利用底层存储的分页/索引能力。
+     * <p>params 参数的 key 由各实现类自行定义，常见的有 path（目录路径）、name（名称模糊匹配）、includeDirectory（是否包含目录项）等。
      *
      * @param pageNum 当前页码（从 1 开始）
      * @param pageSize 每页大小
-     * @param params 查询参数，约定 key 参见 {@link #PARAM_PATH}、{@link #PARAM_NAME}、{@link #PARAM_INCLUDE_DIRECTORY}
+     * @param params 查询参数，key 由各实现类自行约定
      * @return 分页结果，包含当前页数据与过滤后总数
      */
     default ReportFilePage pageReportFiles(int pageNum, int pageSize, Map<String, Object> params) {
@@ -81,7 +82,7 @@ public interface ReportProvider {
             pageSize = 10;
         }
         List<ReportFile> all;
-        String path = params == null ? null : (String) params.get(PARAM_PATH);
+        String path = params == null ? null : (String) params.get("path");
         if (path != null && !path.isEmpty()) {
             all = getReportFiles(path);
         } else {
@@ -90,7 +91,7 @@ public interface ReportProvider {
         if (all == null) {
             return ReportFilePage.empty();
         }
-        String name = params == null ? null : (String) params.get(PARAM_NAME);
+        String name = params == null ? null : (String) params.get("name");
         if (name != null && !name.isEmpty()) {
             final String needle = name.toLowerCase();
             all.removeIf(f -> f.getName() == null || !f.getName().toLowerCase().contains(needle));
@@ -103,13 +104,6 @@ public interface ReportProvider {
         int end = Math.min(start + pageSize, (int) total);
         return ReportFilePage.of(new java.util.ArrayList<>(all.subList(start, end)), total);
     }
-
-    /** {@link #pageReportFiles(int, int, Map)} params 中的目录路径 key（对应 {@link #getReportFiles(String)} 入参）。 */
-    String PARAM_PATH = "path";
-    /** {@link #pageReportFiles(int, int, Map)} params 中的名称模糊匹配 key（不区分大小写、子串匹配）。 */
-    String PARAM_NAME = "name";
-    /** {@link #pageReportFiles(int, int, Map)} params 中是否包含目录项 key，默认 true。 */
-    String PARAM_INCLUDE_DIRECTORY = "includeDirectory";
 
     /**
      * 保存报表文件（带展示名）

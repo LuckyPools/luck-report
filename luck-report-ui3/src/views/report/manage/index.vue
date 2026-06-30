@@ -26,22 +26,6 @@
                   <SearchOutlined />
                 </template>
               </a-input>
-
-              <a-select
-                  v-model:value="selectedProvider"
-                  placeholder="选择报表来源"
-                  style="width: 180px; margin-left: 12px"
-                  :loading="providerLoading"
-                  @change="handleProviderFilterChange"
-              >
-                <a-select-option
-                    v-for="p in providers"
-                    :key="p.prefix"
-                    :value="p.prefix"
-                >
-                  {{ p.name }}
-                </a-select-option>
-              </a-select>
             </div>
             <div class="action-buttons">
               <a-button type="primary" @click="openCreateDialog">
@@ -182,21 +166,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="报表来源" name="provider">
-          <a-select
-            v-model:value="createForm.provider"
-            placeholder="请选择报表来源"
-            :loading="providerLoading"
-          >
-            <a-select-option
-              v-for="p in providers"
-              :key="p.prefix"
-              :value="p.prefix"
-            >
-              {{ p.name }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
+        <!-- 报表来源已隐藏，默认使用第一个 provider -->
         <a-form-item label="报表名称" name="fileName">
           <a-input
             v-model:value="createForm.fileName"
@@ -225,21 +195,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="报表来源" name="provider">
-          <a-select
-            v-model:value="importForm.provider"
-            placeholder="请选择报表来源"
-            :loading="providerLoading"
-          >
-            <a-select-option
-              v-for="p in providers"
-              :key="p.prefix"
-              :value="p.prefix"
-            >
-              {{ p.name }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
+        <!-- 报表来源已隐藏，默认使用第一个 provider -->
         <a-form-item label="上传文件" name="file">
           <a-upload
             :auto-upload="false"
@@ -362,17 +318,13 @@ let importFileObj: File | null = null
  * 表单校验规则
  */
 const createFormRules = {
-  provider: [{ required: true, message: '请选择报表来源', trigger: 'change' }],
   fileName: [
     { required: true, message: '请输入报表名称', trigger: 'blur' },
     { max: 100, message: '名称长度不能超过 100', trigger: 'blur' }
   ]
 }
 
-// 用 as any 显式忽略 ant-design-vue 的 RuleObject.type 必填约束，与现有 createFormRules 保持一致
-const importFormRules = {
-  provider: [{ required: true, message: '请选择报表来源', trigger: 'change' }]
-} as any
+const importFormRules = {} as any
 
 /**
  * 加载报表来源
@@ -557,11 +509,11 @@ const handleCreate = async (): Promise<void> => {
     createLoading.value = true
 
     const fileName = createForm.fileName.trim()
-    const provider = createForm.provider
+    // 使用默认 provider（第一个）
+    const provider = selectedProvider.value || (providers.value[0]?.prefix ?? '')
 
     // 先调用后端创建空报表文件，并取回权威 ReportFile（path 不含 provider 前缀）
     // - db 存储：path 为数据库生成的主键 id
-    // - file 存储：path 为相对文件名（自动补齐 .ureport.xml 后缀）
     const savedFile = await createReport(fileName, provider)
     const fullPath = buildFullFilePath(savedFile.path, provider)
 
@@ -651,17 +603,11 @@ const handleImportFileChange = (info: { fileList: UploadFile[] }): void => {
 
 /**
  * 提交导入
- * 1. 校验表单（provider + file）
+ * 1. 校验文件
  * 2. 上传文件到后端 importTemplate 接口
  * 3. 上传成功后刷新当前 provider 的列表
  */
 const handleImport = async (): Promise<void> => {
-  if (!importFormRef.value) return
-  try {
-    await importFormRef.value.validate()
-  } catch {
-    return
-  }
   if (!importFileObj) {
     message.error('请选择要导入的 .ureport.xml 文件')
     return
@@ -671,20 +617,17 @@ const handleImport = async (): Promise<void> => {
     message.error('仅支持 .ureport.xml / .xml 报表源文件')
     return
   }
+  // 使用默认 provider（第一个）
+  const provider = selectedProvider.value || (providers.value[0]?.prefix ?? '')
+  
   importLoading.value = true
   try {
-    await importTemplate(importForm.provider, importFileObj as File)
+    await importTemplate(provider, importFileObj as File)
     message.success('导入成功')
     importDialogVisible.value = false
     importFileList.value = []
     importFileObj = null
-    // 刷新当前列表；如果当前 provider 不是导入的 provider，自动切到导入的 provider
-    if (selectedProvider.value !== importForm.provider) {
-      selectedProvider.value = importForm.provider
-      pageNum.value = 1
-    } else {
-      pageNum.value = 1
-    }
+    pageNum.value = 1
     await loadReports()
   } catch (e: any) {
     console.error('Failed to import report:', e)

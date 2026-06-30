@@ -1,8 +1,10 @@
 package com.luck.report.web.controller.designer;
 
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.expression.ErrorInfo;
 import com.luck.report.core.provider.report.ReportFile;
+import com.luck.report.web.domain.dto.ReportQueryDTO;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
 import com.luck.report.web.domain.vo.report.ReportProviderDetailVo;
 import com.luck.report.web.domain.vo.report.ReportProviderVo;
@@ -10,10 +12,13 @@ import com.luck.report.web.service.DesignerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -120,6 +125,16 @@ public class DesignerController {
     @ResponseBody
     public ResultVO<List<ReportProviderVo>> loadReportProviders() {
         return ResultVO.success(designerService.listReportProviders());
+    }
+
+    /**
+     * 分页查询报表列表
+     * <p>用于设计器的"打开报表"弹窗、"另存为"弹窗等需要分页加载报表的场景。
+     */
+    @PostMapping("/queryReports")
+    @ResponseBody
+    public PageResultVO<ReportFile> queryReports(@Valid @RequestBody ReportQueryDTO queryDTO) {
+        return designerService.queryReports(queryDTO);
     }
 
     /**

@@ -89,7 +89,7 @@ public class DatabaseReportProvider implements ReportProvider {
         if (pageSize < 1) {
             pageSize = 10;
         }
-        String name = params == null ? null : (String) params.get(PARAM_NAME);
+        String name = params == null ? null : (String) params.get("name");
         PageResultVO<ReportTemplate> result = luckReportFileService.listPage(name, pageNum, pageSize);
         if (result == null || result.getRecords() == null || result.getRecords().isEmpty()) {
             return ReportFilePage.of(Collections.emptyList(), result == null ? 0L : result.getTotal());

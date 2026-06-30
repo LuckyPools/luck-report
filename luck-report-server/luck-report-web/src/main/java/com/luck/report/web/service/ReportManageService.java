@@ -60,13 +60,13 @@ public class ReportManageService implements ApplicationContextAware {
             // 透传给 Provider 的参数：路径、名称模糊匹配、是否包含目录项
             Map<String, Object> params = new HashMap<>(4);
             if (directory != null && !directory.isEmpty()) {
-                params.put(ReportProvider.PARAM_PATH, directory);
+                params.put("path", directory);
             }
             if (reportName != null && !reportName.isEmpty()) {
-                params.put(ReportProvider.PARAM_NAME, reportName);
+                params.put("name", reportName);
             }
             // 管理列表场景下不展示目录项，仅展示报表文件
-            params.put(ReportProvider.PARAM_INCLUDE_DIRECTORY, Boolean.FALSE);
+            params.put("includeDirectory", Boolean.FALSE);
 
             ReportFilePage result = targetProvider.pageReportFiles(pageNum, pageSize, params);
             List<ReportFile> records = result == null ? Collections.emptyList() : result.getRecords();

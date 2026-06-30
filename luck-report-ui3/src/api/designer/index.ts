@@ -333,3 +333,37 @@ export async function importExcelFile(file: File): Promise<ImportExcelResult> {
     }
   });
 }
+
+/**
+ * 报表分页查询 DTO（用于设计器打开/保存对话框）
+ */
+export interface DesignerReportQueryDTO {
+  /** 报表来源前缀（例如 file:） */
+  provider: string
+  /** 报表名称（模糊查询，可选） */
+  reportName?: string
+  /** 目录路径（可选） */
+  directory?: string
+  /** 当前页码 */
+  pageNum: number
+  /** 每页大小 */
+  pageSize: number
+}
+
+/**
+ * 分页查询报表列表（设计器专用）
+ *
+ * 后端对应：{@code POST /designer/queryReports}
+ * 响应 data：{@code PageResultVO<ReportFileItemVO>}
+ * utils/request.ts 已自动解包 ResultVO.data，这里直接拿到的是业务数据本身。
+ *
+ * 使用场景：设计器的"打开报表"弹窗、"另存为"弹窗的分页加载。
+ */
+export async function queryDesignerReports(
+  queryDTO: DesignerReportQueryDTO
+): Promise<{ records: ReportFileItemVO[]; total: number }> {
+  return await request.post<{ records: ReportFileItemVO[]; total: number }>(
+    '/designer/queryReports',
+    queryDTO
+  );
+}

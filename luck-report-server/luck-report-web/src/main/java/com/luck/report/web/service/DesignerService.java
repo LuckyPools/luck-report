@@ -1,5 +1,6 @@
 package com.luck.report.web.service;
 
+import com.luck.report.common.domain.vo.PageResultVO;
 import com.luck.report.common.domain.vo.ResultVO;
 import com.luck.report.core.cache.ReportDefinitionWrapperCache;
 import com.luck.report.core.definition.ReportDefinition;
@@ -11,8 +12,10 @@ import com.luck.report.core.expression.ErrorInfo;
 import com.luck.report.core.expression.ScriptErrorListener;
 import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportFile;
+import com.luck.report.core.provider.report.ReportFilePage;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.ReportScopedCache;
+import com.luck.report.web.domain.dto.ReportQueryDTO;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
 import com.luck.report.web.domain.vo.report.ReportProviderDetailVo;
 import com.luck.report.web.domain.vo.report.ReportProviderVo;
@@ -36,7 +39,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -205,6 +210,60 @@ public class DesignerService implements ApplicationContextAware {
             ));
         }
         return result;
+    }
+
+    /**
+     * 分页查询报表列表。
+     * <p>过滤与分页下沉到 {@link ReportProvider#pageReportFiles(int, int, Map)}，避免在调用方拉取全量数据。
+     *
+     * @param queryDTO 查询条件
+     * @return 分页结果
+     */
+    public PageResultVO<ReportFile> queryReports(ReportQueryDTO queryDTO) {
+        try {
+            String provider = queryDTO.getProvider();
+            String reportName = queryDTO.getReportName();
+            String directory = queryDTO.getDirectory();
+            int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
+            int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+
+            ReportProvider targetProvider = findProviderByPrefix(provider);
+            if (targetProvider == null) {
+                return PageResultVO.error("未找到对应的报表来源");
+            }
+
+            // 透传给 Provider 的参数：路径、名称模糊匹配、是否包含目录项
+            Map<String, Object> params = new HashMap<>(4);
+            if (directory != null && !directory.isEmpty()) {
+                params.put("path", directory);
+            }
+            if (reportName != null && !reportName.isEmpty()) {
+                params.put("name", reportName);
+            }
+            // 设计器场景下不展示目录项，仅展示报表文件
+            params.put("includeDirectory", Boolean.FALSE);
+
+            ReportFilePage result = targetProvider.pageReportFiles(pageNum, pageSize, params);
+            List<ReportFile> records = result == null ? Collections.emptyList() : result.getRecords();
+            long total = result == null ? 0L : result.getTotal();
+            return PageResultVO.success(records, total, pageNum, pageSize);
+        } catch (Exception e) {
+            logger.error("查询报表列表异常", e);
+            return PageResultVO.error("查询报表列表失败: " + e.getMessage());
+        }
+    }
+
+    /** 根据 prefix 查找对应的 ReportProvider。 */
+    private ReportProvider findProviderByPrefix(String prefix) {
+        if (prefix == null) {
+            return null;
+        }
+        for (ReportProvider p : reportProviders) {
+            if (prefix.equals(p.getPrefix())) {
+                return p;
+            }
+        }
+        return null;
     }
 
     /** 过滤出已启用且命名的 provider 列表，供 {@link #listReportProviders()} 与 {@link #loadReportFiles(String)} 复用。 */

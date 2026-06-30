@@ -19,7 +19,6 @@ import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportFilePage;
 import com.luck.report.core.provider.report.ReportProvider;
-import com.luck.report.core.provider.report.file.FileReportProvider;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
