@@ -55,30 +55,9 @@ defaultRequest.interceptors.response.use(
         return response
     },
     (error: AxiosError) => {
-        // ★ 401 → 通知父页面（保险 2，被动续期）
-        // 父页面监听到 LR_TOKEN_EXPIRED 后会调 /report/auth/token/renew 拿新 token，
-        // 再 postMessage({type:'LR_TOKEN_REFRESH', token}) 推给本 iframe，
-        // 本 iframe 在 main.ts/lib-entry.ts 已挂 message 监听调 setRequestToken 写 sessionStorage
+        // 401 错误处理：直接显示错误信息
         if (error.response?.status === 401) {
-            console.warn('[LR-Token] 401, token 失效，通知父页面续期')
-            try {
-                // targetOrigin 优先用 document.referrer 解析父页面 origin；
-                // 生产环境强烈建议改成硬编码的具体父页面 origin（防恶意伪造）
-                let targetOrigin = '*'
-                try {
-                    if (document.referrer) {
-                        targetOrigin = new URL(document.referrer).origin
-                    }
-                } catch {
-                    /* 解析失败兜底 '*' */
-                }
-                window.parent?.postMessage(
-                    { type: 'LR_TOKEN_EXPIRED' },
-                    targetOrigin
-                )
-            } catch (e) {
-                /* 跨域时可能抛错，吞掉 */
-            }
+            console.warn('[LR-Token] 401, token 无效或已过期')
         }
         if (error.response && error.response.data) {
             const errorData: BizError = error.response.data as BizError

@@ -42,3 +42,9 @@ luck-report:
     header-name: X-Access-Token
     # 是否允许 URL 上传 token
     allow-query-token: true
+    # 报表管理员角色白名单（命中任一角色的用户可访问 /ureport/designer / 角色报表管理 API）
+    # ★ 必改项：按实际第三方系统的角色编码替换下列示例值
+    # 角色编码就是 luck_report_role 表里 role_code 列的值；多个角色逗号分隔
+    # 留空数组 = 没有管理员，所有 designer / 角色管理请求都会被 TokenInterceptor 拒绝
+    admin-roles:
+      - admin

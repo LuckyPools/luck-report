@@ -140,6 +140,7 @@ import {
   ApartmentOutlined,
   BookOutlined,
   ExperimentOutlined,
+  TeamOutlined,
   SettingOutlined,
   ProfileOutlined
 } from '@ant-design/icons-vue'
@@ -208,7 +209,8 @@ const menuGroups: MenuGroup[] = [
       { path: '/report/datasource', title: '数据源', icon: DatabaseOutlined },
       { path: '/report/model-config', title: '模型管理', icon: ApartmentOutlined },
       { path: '/report/business-knowledge', title: '业务知识库', icon: BookOutlined },
-      { path: '/report/agent-knowledge', title: '智能体知识库', icon: ExperimentOutlined }
+      { path: '/report/agent-knowledge', title: '智能体知识库', icon: ExperimentOutlined },
+      { path: '/report/role', title: '预览授权', icon: TeamOutlined }
     ]
   }
 ]

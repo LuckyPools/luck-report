@@ -16,9 +16,14 @@
 package com.luck.report.web.config;
 
 import com.luck.report.web.filter.RequestHolderFilter;
-import com.luck.report.web.security.TokenInterceptor;
+import com.luck.report.web.interceptor.ManageInterceptor;
+import com.luck.report.web.interceptor.PreviewInterceptor;
+import com.luck.report.web.interceptor.TokenInterceptor;
+import com.luck.report.web.security.ReportAccessChecker;
+import com.luck.report.web.security.TokenProperties;
+import com.luck.report.web.security.service.TokenService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +38,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
+@Slf4j
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
@@ -44,11 +50,24 @@ public class WebConfig implements WebMvcConfigurer {
     private String servletPrefix;
 
     /**
-     * 报表 Token 拦截器（{@code enabled=false} 时内部直接放行，不影响本地调试）。
+     * 报表预览权限校验器（判断用户能否访问指定报表）。
      */
     @Autowired
-    @Qualifier("bean.tokenInterceptor")
-    private TokenInterceptor tokenInterceptor;
+    private ReportAccessChecker reportAccessChecker;
+
+    /**
+     * Token 配置项（含 enabled + adminRoles）。
+     */
+    @Autowired
+    private TokenProperties tokenProperties;
+
+    /**
+     * Token 服务（用于获取用户角色）。
+     * <p>注入时会自动使用标记为 @Primary 的实现。
+     * 如果第三方项目提供了自定义实现并标记为 @Primary，会使用第三方的实现。
+     */
+    @Autowired
+    private TokenService tokenService;
 
     /**
      * 注册RequestHolderFilter，确保在所有请求处理过程中设置和清理RequestHolder
@@ -94,9 +113,16 @@ public class WebConfig implements WebMvcConfigurer {
      * 注册报表 Token 拦截器，覆盖所有业务路径，<b>排除</b> {@code /<prefix>/auth/**}。
      * <p>拦截器由 {@code luck-report.token.enabled} 控制总开关：
      * <ul>
-     *   <li>{@code enabled=true}：走完整校验链（解析 token → 验签 → scope → 写上下文）</li>
+     *   <li>{@code enabled=true}：走完整校验链（解析 token → 验签 → 写上下文）</li>
      *   <li>{@code enabled=false}：直接放行（本地 ui3 项目联调）</li>
      * </ul>
+     *
+     * <p>拦截器链（按 order 顺序执行）：
+     * <ol>
+     *   <li>TokenInterceptor (order=1) - token 有效性校验</li>
+     *   <li>ManageInterceptor (order=2) - 管理端 admin 角色校验</li>
+     *   <li>PreviewInterceptor (order=3) - 预览/导出报表授权校验</li>
+     * </ol>
      *
      * <p>覆盖路径：{@code /<prefix>/{manage,api,chart,designer,excel,pdf,word,image,importexcel,html}/**}
      * <br>排除路径：{@code /<prefix>/auth/**}（由第三方业务系统登录过滤器管）
@@ -104,23 +130,74 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         String prefix = servletPrefix == null || servletPrefix.isEmpty() ? "report" : servletPrefix;
-        registry.addInterceptor(tokenInterceptor)
+
+        // 1. Token 拦截器（order=1）- 校验 token 有效性
+        // 拦截所有 modules 下的接口
+        registry.addInterceptor(new TokenInterceptor(tokenService, tokenProperties))
                 .addPathPatterns(
                         "/" + prefix + "/manage/**",
-                        "/" + prefix + "/api/**",
-                        "/" + prefix + "/chart/**",
                         "/" + prefix + "/designer/**",
+                        "/" + prefix + "/preview/**",
+                        "/" + prefix + "/datasource/**",
+                        "/" + prefix + "/model-config/**",
+                        "/" + prefix + "/business-knowledge/**",
+                        "/" + prefix + "/agent-knowledge/**",
+                        "/" + prefix + "/vector/**",
+                        "/" + prefix + "/role/**",
+                        "/" + prefix + "/chat/**",
+                        "/" + prefix + "/sessions/**",
+                        "/" + prefix + "/chart/**",
                         "/" + prefix + "/excel/**",
-                        "/" + prefix + "/pdf/**",
+                        "/" + prefix + "/excel97/**",
+                        "/" + prefix + "/html/**",
                         "/" + prefix + "/word/**",
+                        "/" + prefix + "/pdf/**",
                         "/" + prefix + "/image/**",
-                        "/" + prefix + "/importexcel/**",
-                        "/" + prefix + "/html/**"
+                        "/" + prefix + "/import/**",
+                        "/" + prefix + "/res/**"
                 )
                 .excludePathPatterns(
-                        // /auth/** 不归 TokenInterceptor 管，由第三方业务系统登录过滤器管
                         "/" + prefix + "/auth/**"
                 );
+
+        // 2. 管理端拦截器（order=2）- 校验用户是否为 admin 角色
+        // URL: /manage/**, /designer/**, /datasource/**, /model-config/**, /business-knowledge/**, /agent-knowledge/**, /vector/**, /role/**, /chat/**, /sessions/**, /import/**
+        registry.addInterceptor(new ManageInterceptor(tokenService, tokenProperties))
+                .addPathPatterns(
+                        "/" + prefix + "/manage/**",
+                        "/" + prefix + "/designer/**",
+                        "/" + prefix + "/datasource/**",
+                        "/" + prefix + "/model-config/**",
+                        "/" + prefix + "/business-knowledge/**",
+                        "/" + prefix + "/agent-knowledge/**",
+                        "/" + prefix + "/vector/**",
+                        "/" + prefix + "/role/**",
+                        "/" + prefix + "/chat/**",
+                        "/" + prefix + "/sessions/**",
+                        "/" + prefix + "/import/**"
+                )
+                .excludePathPatterns(
+                        "/" + prefix + "/auth/**"
+                )
+                .order(2);
+
+        // 3. 预览/导出拦截器（order=3）- 校验用户是否有权访问指定报表
+        // URL: /preview/**, /html/**, /chart/**, /excel/**, /excel97/**, /pdf/**, /word/**, /image/**
+        registry.addInterceptor(new PreviewInterceptor(reportAccessChecker, tokenProperties))
+                .addPathPatterns(
+                        "/" + prefix + "/preview/**",
+                        "/" + prefix + "/html/**",
+                        "/" + prefix + "/chart/**",
+                        "/" + prefix + "/excel/**",
+                        "/" + prefix + "/excel97/**",
+                        "/" + prefix + "/pdf/**",
+                        "/" + prefix + "/word/**",
+                        "/" + prefix + "/image/**"
+                )
+                .excludePathPatterns(
+                        "/" + prefix + "/auth/**"
+                )
+                .order(3);
         // 静态资源由 ResourceHandler 单独处理，不进 MVC
     }
 }

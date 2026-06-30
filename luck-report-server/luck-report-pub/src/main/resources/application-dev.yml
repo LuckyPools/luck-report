@@ -40,3 +40,8 @@ luck-report:
     header-name: X-Access-Token
     # 是否允许 URL 上传 token（用于 iframe 首次 GET）
     allow-query-token: true
+    # 报表管理员角色白名单（命中任一角色的用户可访问 /ureport/designer / 角色报表管理 API）
+    # 注：角色编码是第三方系统定义的 ID（如 "ROLE_ADMIN"），与 luck_report_role.role_code 一致
+    # dev 模式 token.enabled=false 时本配置不生效；开启后必须按实际第三方角色编码修改
+    admin-roles:
+      - admin

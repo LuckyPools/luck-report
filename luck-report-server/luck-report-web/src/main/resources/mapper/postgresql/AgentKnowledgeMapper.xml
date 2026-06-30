@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.web.modules.agentKnowledgeConfig.mapper.AgentKnowledgeMapper">
+
+    <!-- 插入智能体知识，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_agent_knowledge (id, title, type, question, content, enabled,
+                embedding_status, error_msg, source_filename, file_path, file_size, file_type,
+                splitter_type, model_id, is_deleted, is_resource_cleaned, created_time, updated_time)
+        VALUES (#{id}, #{title}, #{type}, #{question}, #{content}, #{enabled},
+                #{embeddingStatus}, #{errorMsg}, #{sourceFilename}, #{filePath}, #{fileSize}, #{fileType},
+                #{splitterType}, #{modelId}, #{isDeleted}, #{isResourceCleaned}, #{createdTime}, #{updatedTime})
+    </insert>
+
+    <!-- 根据ID更新智能体知识（动态更新非空字段），updatedTime由Java侧赋值 -->
+    <update id="update">
+        UPDATE luck_agent_knowledge
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="question != null">question = #{question},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <if test="embeddingStatus != null">embedding_status = #{embeddingStatus},</if>
+            <if test="errorMsg != null">error_msg = #{errorMsg},</if>
+            <if test="sourceFilename != null">source_filename = #{sourceFilename},</if>
+            <if test="filePath != null">file_path = #{filePath},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="fileType != null">file_type = #{fileType},</if>
+            <if test="splitterType != null">splitter_type = #{splitterType},</if>
+            <if test="modelId != null">model_id = #{modelId},</if>
+            <if test="isDeleted != null">is_deleted = #{isDeleted},</if>
+            <if test="isResourceCleaned != null">is_resource_cleaned = #{isResourceCleaned},</if>
+            updated_time = #{updatedTime},
+        </trim>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询智能体知识（排除已删除） -->
+    <select id="selectById" resultType="com.luck.report.web.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge">
+        SELECT id, title, type, question, content, enabled, embedding_status,
+               error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id,
+               is_deleted, is_resource_cleaned, created_time, updated_time
+        FROM luck_agent_knowledge WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 分页条件查询智能体知识，LIKE用bind拼接 -->
+    <select id="selectByConditionsWithPage" resultType="com.luck.report.web.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge">
+        SELECT id, title, type, question, content, enabled, embedding_status,
+               error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id,
+               is_deleted, is_resource_cleaned, created_time, updated_time
+        FROM luck_agent_knowledge
+        WHERE is_deleted = 0
+        <if test="queryDTO.title != null and queryDTO.title != ''">
+            <bind name="titlePattern" value="'%' + queryDTO.title + '%'" />
+            AND title LIKE #{titlePattern}
+        </if>
+        <if test="queryDTO.type != null and queryDTO.type != ''">
+            AND type = #{queryDTO.type}
+        </if>
+        <if test="queryDTO.embeddingStatus != null and queryDTO.embeddingStatus != ''">
+            AND embedding_status = #{queryDTO.embeddingStatus}
+        </if>
+        ORDER BY created_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <!-- 统计符合条件的智能体知识数量 -->
+    <select id="countByConditions" resultType="long">
+        SELECT COUNT(*) FROM luck_agent_knowledge
+        WHERE is_deleted = 0
+        <if test="queryDTO.title != null and queryDTO.title != ''">
+            <bind name="titlePattern" value="'%' + queryDTO.title + '%'" />
+            AND title LIKE #{titlePattern}
+        </if>
+        <if test="queryDTO.type != null and queryDTO.type != ''">
+            AND type = #{queryDTO.type}
+        </if>
+        <if test="queryDTO.embeddingStatus != null and queryDTO.embeddingStatus != ''">
+            AND embedding_status = #{queryDTO.embeddingStatus}
+        </if>
+    </select>
+
+    <!-- 查询所有生效的智能体知识ID列表 -->
+    <select id="selectEnabledKnowledgeIds" resultType="string">
+        SELECT id FROM luck_agent_knowledge WHERE enabled = 1 AND is_deleted = 0
+    </select>
+
+    <!-- 根据ID列表批量查询智能体知识 -->
+    <select id="selectByIds" resultType="com.luck.report.web.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge">
+        SELECT id, title, type, question, content, enabled, embedding_status,
+               error_msg, source_filename, file_path, file_size, file_type, splitter_type, model_id,
+               is_deleted, is_resource_cleaned, created_time, updated_time
+        FROM luck_agent_knowledge
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </select>
+
+</mapper>

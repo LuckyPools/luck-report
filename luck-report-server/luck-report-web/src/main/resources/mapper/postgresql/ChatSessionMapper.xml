@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.web.modules.chat.mapper.ChatSessionMapper">
+
+    <!-- 查询所有未删除的会话列表，按置顶优先、更新时间倒序排列 -->
+    <select id="selectAll" resultType="com.luck.report.web.modules.chat.domain.entity.ChatSession">
+        SELECT id, title, status, is_pinned, user_id, create_time, update_time
+        FROM luck_chat_session
+        WHERE status != 'deleted'
+        ORDER BY is_pinned DESC, update_time DESC
+    </select>
+
+    <!-- 根据用户ID查询会话列表 -->
+    <select id="selectByUserId" resultType="com.luck.report.web.modules.chat.domain.entity.ChatSession">
+        SELECT id, title, status, is_pinned, user_id, create_time, update_time
+        FROM luck_chat_session
+        WHERE user_id = #{userId} AND status != 'deleted'
+        ORDER BY is_pinned DESC, update_time DESC
+    </select>
+
+    <!-- 根据用户ID分页查询会话列表 -->
+    <select id="selectByUserIdWithPage" resultType="com.luck.report.web.modules.chat.domain.entity.ChatSession">
+        SELECT id, title, status, is_pinned, user_id, create_time, update_time
+        FROM luck_chat_session
+        WHERE user_id = #{userId} AND status != 'deleted'
+        ORDER BY is_pinned DESC, update_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <!-- 统计指定用户下未删除的会话总数 -->
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(*) FROM luck_chat_session
+        WHERE user_id = #{userId} AND status != 'deleted'
+    </select>
+
+    <!-- 根据会话ID查询会话详情 -->
+    <select id="selectBySessionId" resultType="com.luck.report.web.modules.chat.domain.entity.ChatSession">
+        SELECT id, title, status, is_pinned, user_id, create_time, update_time
+        FROM luck_chat_session
+        WHERE id = #{sessionId} AND status != 'deleted'
+    </select>
+
+    <!-- 插入新会话 -->
+    <insert id="insert">
+        INSERT INTO luck_chat_session (id, title, status, is_pinned, user_id, create_time, update_time)
+        VALUES (#{id}, #{title}, #{status}, #{isPinned}, #{userId}, #{createTime}, #{updateTime})
+    </insert>
+
+    <!-- 更新会话最后活动时间 -->
+    <update id="updateSessionTime">
+        UPDATE luck_chat_session SET update_time = #{updateTime} WHERE id = #{sessionId}
+    </update>
+
+    <!-- 更新会话置顶状态 -->
+    <update id="updatePinStatus">
+        UPDATE luck_chat_session SET is_pinned = #{isPinned}, update_time = #{updateTime} WHERE id = #{sessionId}
+    </update>
+
+    <!-- 重命名会话 -->
+    <update id="updateTitle">
+        UPDATE luck_chat_session SET title = #{title}, update_time = #{updateTime} WHERE id = #{sessionId}
+    </update>
+
+    <!-- 软删除单个会话 -->
+    <update id="softDeleteById">
+        UPDATE luck_chat_session SET status = 'deleted', update_time = #{updateTime} WHERE id = #{sessionId}
+    </update>
+
+    <!-- 软删除指定用户下的所有会话 -->
+    <update id="softDeleteByUserId">
+        UPDATE luck_chat_session SET status = 'deleted', update_time = #{updateTime} WHERE user_id = #{userId}
+    </update>
+
+</mapper>

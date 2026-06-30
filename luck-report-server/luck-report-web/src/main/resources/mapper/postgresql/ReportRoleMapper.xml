@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.web.modules.role.mapper.ReportRoleMapper">
+
+    <!-- 插入一条绑定；重复主键由 SQL 抛异常 -->
+    <insert id="insert">
+        INSERT INTO luck_report_role (role_code, file_path)
+        VALUES (#{roleCode}, #{filePath})
+    </insert>
+
+    <!-- 物理删除某角色对某 file_path 的绑定 -->
+    <delete id="deleteBinding">
+        DELETE FROM luck_report_role
+        WHERE role_code = #{roleCode} AND file_path = #{filePath}
+    </delete>
+
+    <!-- 物理删除某角色全部绑定（含 '*'） -->
+    <delete id="deleteByRoleCode">
+        DELETE FROM luck_report_role WHERE role_code = #{roleCode}
+    </delete>
+
+    <!-- 物理删除某角色在指定 provider 前缀下的全部绑定 -->
+    <delete id="deleteByRoleCodeAndProvider">
+        DELETE FROM luck_report_role
+        WHERE role_code = #{roleCode}
+          AND file_path LIKE #{providerPrefix} || '%'
+    </delete>
+
+    <!-- 某角色在某 provider 下已绑定的 file_path 列表 -->
+    <select id="selectFilePathsByRoleAndProvider" resultType="string">
+        SELECT file_path
+        FROM luck_report_role
+        WHERE role_code = #{roleCode}
+          AND file_path LIKE #{providerPrefix} || '%'
+    </select>
+
+    <!-- 某角色是否绑定 '*' -->
+    <select id="countAllBindingByRole" resultType="int">
+        SELECT COUNT(*) FROM luck_report_role
+        WHERE role_code = #{roleCode} AND file_path = '*'
+    </select>
+
+    <!-- 某角色全部绑定数（含 '*'） -->
+    <select id="countBindingsByRole" resultType="int">
+        SELECT COUNT(*) FROM luck_report_role WHERE role_code = #{roleCode}
+    </select>
+
+    <!-- 某角色在指定 provider 下的全部绑定 -->
+    <select id="selectBindingsByRoleAndProvider" resultType="com.luck.report.web.modules.role.domain.entity.ReportRole">
+        SELECT role_code AS roleCode, file_path AS filePath
+        FROM luck_report_role
+        WHERE role_code = #{roleCode}
+          AND file_path LIKE #{providerPrefix} || '%'
+    </select>
+
+    <!-- 某 file_path 被哪些 role_code 绑定（预览鉴权用） -->
+    <select id="selectRoleCodesByFilePath" resultType="string">
+        SELECT role_code FROM luck_report_role WHERE file_path = #{filePath}
+    </select>
+
+    <!-- 列出所有去重后的 roleCode -->
+    <select id="selectDistinctRoleCodes" resultType="string">
+        SELECT DISTINCT role_code FROM luck_report_role ORDER BY role_code ASC
+    </select>
+
+</mapper>

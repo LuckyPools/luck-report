@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.web.modules.file.mapper.ReportTemplateMapper">
+
+    <!-- 插入报表文件，createdTime/updatedTime 由 Java 侧赋值，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_report_template (id, title, template, is_deleted, created_time, updated_time)
+        VALUES (#{id}, #{title}, #{template}, #{isDeleted}, #{createdTime}, #{updatedTime})
+    </insert>
+
+    <!-- 根据ID更新报表文件，动态更新非空字段，updatedTime 由 Java 侧赋值 -->
+    <update id="updateById">
+        UPDATE luck_report_template
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null">title = #{title},</if>
+            <if test="template != null">template = #{template},</if>
+            <if test="isDeleted != null">is_deleted = #{isDeleted},</if>
+            updated_time = #{updatedTime},
+        </trim>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询报表文件（排除已删除） -->
+    <select id="selectById" resultType="com.luck.report.web.modules.file.domain.entity.ReportTemplate">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_template
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据标题查询报表文件（排除已删除） -->
+    <select id="selectByTitle" resultType="com.luck.report.web.modules.file.domain.entity.ReportTemplate">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_template
+        WHERE title = #{title} AND is_deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 查询所有未删除的报表文件列表，按更新时间倒序 -->
+    <select id="selectAll" resultType="com.luck.report.web.modules.file.domain.entity.ReportTemplate">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_template
+        WHERE is_deleted = 0
+        ORDER BY updated_time DESC
+    </select>
+
+    <!-- 根据ID逻辑删除报表文件 -->
+    <update id="deleteById">
+        UPDATE luck_report_template SET is_deleted = 1 WHERE id = #{id}
+    </update>
+
+    <!-- 分页查询报表文件（按更新时间倒序），name 为空则不过滤 -->
+    <select id="selectPage" resultType="com.luck.report.web.modules.file.domain.entity.ReportTemplate">
+        SELECT id, title, template, is_deleted, created_time, updated_time
+        FROM luck_report_template
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND title LIKE '%' || #{name} || '%'
+        </if>
+        ORDER BY updated_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 统计符合条件的报表文件数，name 为空则统计全表 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*) FROM luck_report_template
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND title LIKE '%' || #{name} || '%'
+        </if>
+    </select>
+
+</mapper>

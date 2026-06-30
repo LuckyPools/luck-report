@@ -2,6 +2,9 @@ package com.luck.report.web.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 报表 Token 配置项。
  * <p>前缀：{@code luck-report.token}。
@@ -44,6 +47,13 @@ public class TokenProperties {
      * 是否允许 URL 上传 token（用于 iframe 首次 GET 请求）。
      */
     private boolean allowQueryToken = true;
+
+    /**
+     * 报表管理员角色白名单（第三方系统角色编码）。
+     * <p>配置示例：admin-roles: ROLE_ADMIN,ROLE_FINANCE
+     * <p>命中任一角色的用户可访问 /ureport/designer、角色报表管理 API。
+     */
+    private List<String> adminRoles = new ArrayList<>();
 
     public boolean isEnabled() {
         return enabled;
@@ -91,5 +101,13 @@ public class TokenProperties {
 
     public void setAllowQueryToken(boolean allowQueryToken) {
         this.allowQueryToken = allowQueryToken;
+    }
+
+    public List<String> getAdminRoles() {
+        return adminRoles;
+    }
+
+    public void setAdminRoles(List<String> adminRoles) {
+        this.adminRoles = adminRoles;
     }
 }

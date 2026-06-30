@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.web.modules.datasource.mapper.DatasourceMapper">
+
+    <!-- 插入数据源，ID由Snowflake生成 -->
+    <insert id="insert">
+        INSERT INTO luck_datasource (id, name, type, host, port, database_name, username, password,
+                connection_url, status, test_status, description, model_id, initialized_tables, creator_id)
+        VALUES (#{id}, #{name}, #{type}, #{host}, #{port}, #{databaseName}, #{username}, #{password},
+                #{connectionUrl}, #{status}, #{testStatus}, #{description}, #{modelId}, #{initializedTables}, #{creatorId})
+    </insert>
+
+    <!-- 根据ID更新数据源 -->
+    <update id="updateById">
+        UPDATE luck_datasource SET name = #{name}, type = #{type}, host = #{host}, port = #{port},
+                database_name = #{databaseName}, username = #{username}, password = #{password},
+                connection_url = #{connectionUrl}, status = #{status}, description = #{description},
+                model_id = #{modelId}, initialized_tables = #{initializedTables}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询数据源 -->
+    <select id="selectById" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有数据源 -->
+    <select id="selectAll" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource ORDER BY create_time DESC
+    </select>
+
+    <!-- 按状态查询数据源 -->
+    <select id="selectByStatus" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource WHERE status = #{status} ORDER BY create_time DESC
+    </select>
+
+    <!-- 按类型查询数据源 -->
+    <select id="selectByType" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource WHERE type = #{type} ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据ID删除数据源 -->
+    <delete id="deleteById">
+        DELETE FROM luck_datasource WHERE id = #{id}
+    </delete>
+
+    <!-- 更新连接测试状态 -->
+    <update id="updateTestStatusById">
+        UPDATE luck_datasource SET test_status = #{testStatus} WHERE id = #{id}
+    </update>
+
+    <!-- 更新数据源状态 -->
+    <update id="updateStatusById">
+        UPDATE luck_datasource SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <!-- 根据名称查询数据源 -->
+    <select id="selectByName" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource WHERE name = #{name}
+    </select>
+
+    <!-- 根据ID列表批量查询数据源 -->
+    <select id="selectByIds" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 更新已初始化的表名列表 -->
+    <update id="updateInitializedTables">
+        UPDATE luck_datasource SET initialized_tables = #{initializedTables} WHERE id = #{id}
+    </update>
+
+    <!-- 分页条件查询数据源，LIKE用bind拼接 -->
+    <select id="selectByConditionsWithPage" resultType="com.luck.report.web.modules.datasource.domain.entity.Datasource">
+        SELECT id, name, type, host, port, database_name, username, password, connection_url,
+               status, test_status, description, model_id, initialized_tables, creator_id, create_time, update_time
+        FROM luck_datasource
+        WHERE 1=1
+        <if test="queryDTO.name != null and queryDTO.name != ''">
+            <bind name="namePattern" value="'%' + queryDTO.name + '%'" />
+            AND name LIKE #{namePattern}
+        </if>
+        <if test="queryDTO.type != null and queryDTO.type != ''">
+            AND type = #{queryDTO.type}
+        </if>
+        <if test="queryDTO.status != null and queryDTO.status != ''">
+            AND status = #{queryDTO.status}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 统计符合条件的数据源数量 -->
+    <select id="countByConditions" resultType="long">
+        SELECT COUNT(*) FROM luck_datasource
+        WHERE 1=1
+        <if test="queryDTO.name != null and queryDTO.name != ''">
+            <bind name="namePattern" value="'%' + queryDTO.name + '%'" />
+            AND name LIKE #{namePattern}
+        </if>
+        <if test="queryDTO.type != null and queryDTO.type != ''">
+            AND type = #{queryDTO.type}
+        </if>
+        <if test="queryDTO.status != null and queryDTO.status != ''">
+            AND status = #{queryDTO.status}
+        </if>
+    </select>
+
+</mapper>

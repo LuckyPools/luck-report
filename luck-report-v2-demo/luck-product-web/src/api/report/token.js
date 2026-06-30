@@ -6,10 +6,10 @@ import { getToken } from '@/utils/auth';
  * @param data - { scope: 'designer'|'preview'|'manage', subject: 用户标识 }
  * @returns {Promise} 原始响应对象 { data: { code, data: { token, expiresIn, scope }, message, ok } }
  */
-export function getReportToken(data) {
+export function getReportToken() {
   // 使用原始 axios，不经过 dealAxiosResult 处理（该项目 code: 0 表示成功）
   const token = getToken();
-  return axios.post('/api/report/auth/getToken', data, {
+  return axios.post('/api/report/auth/getToken',{}, {
     headers: token ? { 'Authorization': 'Bearer ' + token } : {},
     timeout: 10000
   });

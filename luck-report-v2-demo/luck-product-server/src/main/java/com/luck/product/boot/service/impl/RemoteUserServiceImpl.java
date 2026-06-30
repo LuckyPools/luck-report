@@ -7,7 +7,9 @@ import com.luck.product.boot.utils.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,6 +36,11 @@ public class RemoteUserServiceImpl implements RemoteUserService {
         admin.setEmail("admin@example.com");
         admin.setPhone("13800138000");
         admin.setStatus(1);
+        // 填充角色
+        List<String> roles = new ArrayList<>();
+        roles.add("admin");
+        admin.setRoles(roles);
+
         USER_MAP.put("admin", admin);
     }
 

@@ -69,53 +69,15 @@ export default {
   mounted() {
     this.fetchToken();
   },
-  beforeDestroy() {
-    this.clearRenewTimer();
-  },
   methods: {
     /** 向后端申请报表 token */
     async fetchToken() {
       try {
-        const params = { scope: this.type };
-        // 如果传入了 subject，则带上
-        if (this.subject) {
-          params.subject = this.subject;
-        }
-        const res = await getReportToken(params);
+        const res = await getReportToken();
         // 响应格式：{ data: { code: 0, data: { token, expiresIn, scope }, message, ok } }
         this.reportToken = res.data?.data?.token || '';
-        // 启动续期定时器：过期前 60s 续期
-        this.startRenewTimer(res.data?.data?.expiresIn);
       } catch (e) {
         console.error('[ReportIframe] 获取报表token失败:', e);
-      }
-    },
-    /** 启动 token 续期定时器 */
-    startRenewTimer(expiresIn) {
-      this.clearRenewTimer();
-      if (!expiresIn || expiresIn <= 60) return;
-      // 过期前 60s 续期
-      const interval = (expiresIn - 60) * 1000;
-      this.renewTimer = setInterval(async () => {
-        try {
-          const params = { scope: this.type };
-          // 如果传入了 subject，则带上
-          if (this.subject) {
-            params.subject = this.subject;
-          }
-          const res = await getReportToken(params);
-          // 响应格式：{ data: { code: 0, data: { token, expiresIn, scope }, message, ok } }
-          this.reportToken = res.data?.data?.token || '';
-        } catch (e) {
-          console.error('[ReportIframe] 续期token失败:', e);
-        }
-      }, interval);
-    },
-    /** 清除续期定时器 */
-    clearRenewTimer() {
-      if (this.renewTimer) {
-        clearInterval(this.renewTimer);
-        this.renewTimer = null;
       }
     },
     /** iframe 加载完成 */

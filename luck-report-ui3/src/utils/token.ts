@@ -1,9 +1,8 @@
 /**
- * iframe 嵌入场景下的 token 透传。
- * 第三方父页面拼 token 到 URL（?token=xxx 或 ?X-Access-Token=xxx），
- * 子页面在 main.ts 启动时调用 captureTokenFromUrl 抓取并写入 sessionStorage，
- * axios 请求拦截器注入到 X-Access-Token header，
- * 由第三方实现的 JmReportTokenServiceI.getToken(request) 读取。
+ * Token 存储与注入。
+ * Token 可通过 URL 参数（?token=xxx）或 mount options 传入，
+ * 写入 sessionStorage 后，axios 拦截器自动注入到 X-Access-Token header。
+ * 后端 TokenInterceptor 从 header 中读取，TokenService.getCurrentUserRoles(request) 获取用户角色。
  */
 
 const STORAGE_KEY = 'luck-report-token'

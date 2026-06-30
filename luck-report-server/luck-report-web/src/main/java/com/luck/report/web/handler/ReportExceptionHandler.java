@@ -1,6 +1,9 @@
 package com.luck.report.web.handler;
 
+import com.luck.report.common.domain.enums.HttpCodeEnum;
 import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.exception.AuthException;
+import com.luck.report.web.exception.TokenException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -17,7 +21,7 @@ import java.util.Random;
  * 仅处理报表相关的异常，不影响业务系统的异常处理规则
  * @author luck
  */
-@ControllerAdvice("com.luck.report.web.controller")
+@ControllerAdvice(basePackages = "com.luck.report")
 public class ReportExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ReportExceptionHandler.class);

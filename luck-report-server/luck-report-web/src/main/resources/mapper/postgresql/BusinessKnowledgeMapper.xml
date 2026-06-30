@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.report.web.modules.businessKnowledgeConfig.mapper.BusinessKnowledgeMapper">
+
+    <!-- 插入业务知识 -->
+    <insert id="insert">
+        INSERT INTO luck_business_knowledge (id, business_term, description, synonyms, enabled, model_id,
+                embedding_status, error_msg, is_deleted, created_time, updated_time)
+        VALUES (#{id}, #{businessTerm}, #{description}, #{synonyms}, #{enabled}, #{modelId},
+                #{embeddingStatus}, #{errorMsg}, #{isDeleted}, #{createdTime}, #{updatedTime})
+    </insert>
+
+    <!-- 根据ID更新业务知识 -->
+    <update id="updateById">
+        UPDATE luck_business_knowledge SET business_term = #{businessTerm}, description = #{description},
+                synonyms = #{synonyms}, enabled = #{enabled}, model_id = #{modelId}, embedding_status = #{embeddingStatus},
+                error_msg = #{errorMsg}, updated_time = #{updatedTime} WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询业务知识 -->
+    <select id="selectById" resultType="com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
+        SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,
+               error_msg, is_deleted, created_time, updated_time
+        FROM luck_business_knowledge WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 搜索业务知识，LIKE用bind拼接 -->
+    <select id="search" resultType="com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
+        <bind name="keywordPattern" value="'%' + keyword + '%'" />
+        SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,
+               error_msg, is_deleted, created_time, updated_time
+        FROM luck_business_knowledge
+        WHERE is_deleted = 0
+          AND (business_term LIKE #{keywordPattern}
+               OR description LIKE #{keywordPattern}
+               OR synonyms LIKE #{keywordPattern})
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 查询所有业务知识列表 -->
+    <select id="selectAll" resultType="com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
+        SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,
+               error_msg, is_deleted, created_time, updated_time
+        FROM luck_business_knowledge WHERE is_deleted = 0 ORDER BY created_time DESC
+    </select>
+
+    <!-- 逻辑删除业务知识，updatedTime由Java侧赋值 -->
+    <update id="logicalDelete">
+        UPDATE luck_business_knowledge SET is_deleted = #{isDeleted}, updated_time = #{updatedTime} WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID列表批量查询业务知识 -->
+    <select id="selectByIds" resultType="com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
+        SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,
+               error_msg, is_deleted, created_time, updated_time
+        FROM luck_business_knowledge
+        WHERE is_deleted = 0 AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 分页条件查询业务知识，LIKE用bind拼接 -->
+    <select id="selectByConditionsWithPage" resultType="com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
+        SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,
+               error_msg, is_deleted, created_time, updated_time
+        FROM luck_business_knowledge
+        WHERE is_deleted = 0
+        <if test="queryDTO.businessTerm != null and queryDTO.businessTerm != ''">
+            <bind name="businessTermPattern" value="'%' + queryDTO.businessTerm + '%'" />
+            AND business_term LIKE #{businessTermPattern}
+        </if>
+        <if test="queryDTO.enabled != null">
+            AND enabled = #{queryDTO.enabled}
+        </if>
+        <if test="queryDTO.embeddingStatus != null and queryDTO.embeddingStatus != ''">
+            AND embedding_status = #{queryDTO.embeddingStatus}
+        </if>
+        ORDER BY created_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <!-- 统计符合条件的业务知识数量 -->
+    <select id="countByConditions" resultType="long">
+        SELECT COUNT(*) FROM luck_business_knowledge
+        WHERE is_deleted = 0
+        <if test="queryDTO.businessTerm != null and queryDTO.businessTerm != ''">
+            <bind name="businessTermPattern" value="'%' + queryDTO.businessTerm + '%'" />
+            AND business_term LIKE #{businessTermPattern}
+        </if>
+        <if test="queryDTO.enabled != null">
+            AND enabled = #{queryDTO.enabled}
+        </if>
+        <if test="queryDTO.embeddingStatus != null and queryDTO.embeddingStatus != ''">
+            AND embedding_status = #{queryDTO.embeddingStatus}
+        </if>
+    </select>
+
+</mapper>

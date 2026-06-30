@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
  * @author luckyPools
  * @since 2017年3月8日
  */
-@Service
 public class LocalCacheService implements ReportCache {
 
     /**

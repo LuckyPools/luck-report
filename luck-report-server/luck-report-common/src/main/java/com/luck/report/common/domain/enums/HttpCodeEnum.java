@@ -15,6 +15,8 @@ public enum HttpCodeEnum {
 
     OK(0, "操作成功"),
     BAD_REQUEST(400, "请求参数错误"),
+    UNAUTHORIZED(401, "未授权"),
+    FORBIDDEN(403, "禁止访问"),
     UN_KNOW_ERROR(500, "未知错误");
 
     /** 状态码 */

@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.luck.report.web.config.LuckReportAutoConfiguration
+com.luck.report.web.config.ReportAutoConfiguration
