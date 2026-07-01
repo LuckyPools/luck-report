@@ -62,8 +62,10 @@ public class ImageUtils {
         try {
             if (width > 0 && height > 0) {
                 BufferedImage inputImage = ImageIO.read(inputStream);
-                BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
+                BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g = outputImage.createGraphics();
+                g.setComposite(AlphaComposite.SrcOver);
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 g.drawImage(inputImage, 0, 0, width, height, null);
                 g.dispose();
                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
