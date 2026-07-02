@@ -91,8 +91,7 @@ function handleFileChange(event: Event): void {
 
 async function handleUpload(): Promise<void> {
   if (!selectedFile.value) {
-    const t = (window as { $t?: (k: string) => string }).$t
-    showAlert(t?.('dialog.import.selectFile') ?? t?.('dialog.import.file') ?? '请先选择文件')
+    showAlert(t('dialog.import.selectFile') ?? t('dialog.import.file') ?? '请先选择文件')
     return
   }
 
@@ -102,12 +101,11 @@ async function handleUpload(): Promise<void> {
     emit('update:visible', false)
   } catch (error) {
     console.error('上传文件失败:', error)
-    const t = (window as { $t?: (k: string) => string }).$t
     const err = error as { msg?: string }
     if (err.msg) {
-      showAlert((t?.('dialog.import.fail') ?? '导入失败') + (t?.('colon') ?? ':') + err.msg, { useHTMLString: true })
+      showAlert(t('dialog.import.fail') + t('colon') + err.msg, { useHTMLString: true })
     } else {
-      showAlert(t?.('dialog.import.fail') ?? '导入失败')
+      showAlert(t('dialog.import.fail'))
     }
   }
 }

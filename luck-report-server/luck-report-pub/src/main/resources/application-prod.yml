@@ -28,16 +28,9 @@ luck-report:
       maximum-pool-size: 5
   # ============ 报表 Token 校验 ============
   # 生产环境必须 enabled=true：拦截器强制校验，未带 token 一律 401
-  # secret 必须从环境变量 LUCK_REPORT_TOKEN_SECRET 注入强密钥（>= 16 字符）
-  # 启动时若 secret 仍为默认值 please-change-me，会直接启动失败
+  # 注意：secret/ttl-seconds/clock-skew-seconds 已移除，由第三方 TokenService 实现自行管理
   token:
     enabled: true
-    # ★ 强制从环境变量注入；部署时必须设置 LUCK_REPORT_TOKEN_SECRET
-    secret: "${LUCK_REPORT_TOKEN_SECRET:please-change-me}"
-    # 默认过期秒数（5 分钟）
-    ttl-seconds: 300
-    # 时钟偏移容忍（秒）
-    clock-skew-seconds: 30
     # token header 名称
     header-name: X-Access-Token
     # 是否允许 URL 上传 token

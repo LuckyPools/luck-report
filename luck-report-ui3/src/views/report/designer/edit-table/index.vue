@@ -443,11 +443,10 @@ export default defineComponent({
       } catch (error) {
         emit('error', error)
         const err = error as { msg?: string }
-        const t = (window as { $t?: (k: string) => string }).$t
         if (err.msg) {
-          showAlert((t ? t('dialog.save.serverError') : 'Server error:') + (t ? t('colon') : ':') + err.msg, { useHTMLString: true })
+          showAlert(t('dialog.save.serverError') + t('colon') + err.msg, { useHTMLString: true })
         } else {
-          showAlert((t ? t('table.report.load') : 'Load ') + `${filePath}` + (t ? t('table.report.fail') : ' failed'))
+          showAlert(t('table.report.load') + `${filePath}` + t('table.report.fail'))
         }
       }
     }

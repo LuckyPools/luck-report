@@ -18,7 +18,9 @@ package com.luck.report.web.config;
 import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.interceptor.ManageInterceptor;
 import com.luck.report.web.interceptor.PreviewInterceptor;
+import com.luck.report.web.modules.report.constant.ReportUrls;
 import com.luck.report.web.interceptor.TokenInterceptor;
+import com.luck.report.web.modules.role.mapper.ReportRoleMapper;
 import com.luck.report.web.security.ReportAccessChecker;
 import com.luck.report.web.security.TokenProperties;
 import com.luck.report.web.security.service.TokenService;
@@ -68,6 +70,12 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Autowired
     private TokenService tokenService;
+
+    /**
+     * 角色绑定 Mapper（用于匿名报表判断）。
+     */
+    @Autowired
+    private ReportRoleMapper reportRoleMapper;
 
     /**
      * 注册RequestHolderFilter，确保在所有请求处理过程中设置和清理RequestHolder
@@ -131,29 +139,11 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         String prefix = servletPrefix == null || servletPrefix.isEmpty() ? "report" : servletPrefix;
 
-        // 1. Token 拦截器（order=1）- 校验 token 有效性
-        // 拦截所有 modules 下的接口
-        registry.addInterceptor(new TokenInterceptor(tokenService, tokenProperties))
+        // 1. Token 拦截器（order=1）- 校验 token 有效性（含匿名报表检查）
+        registry.addInterceptor(new TokenInterceptor(tokenService, tokenProperties, reportRoleMapper))
+                .addPathPatterns(ReportUrls.managePathPatterns(prefix))
+                .addPathPatterns(ReportUrls.previewPathPatterns(prefix))
                 .addPathPatterns(
-                        "/" + prefix + "/manage/**",
-                        "/" + prefix + "/designer/**",
-                        "/" + prefix + "/preview/**",
-                        "/" + prefix + "/datasource/**",
-                        "/" + prefix + "/model-config/**",
-                        "/" + prefix + "/business-knowledge/**",
-                        "/" + prefix + "/agent-knowledge/**",
-                        "/" + prefix + "/vector/**",
-                        "/" + prefix + "/role/**",
-                        "/" + prefix + "/chat/**",
-                        "/" + prefix + "/sessions/**",
-                        "/" + prefix + "/chart/**",
-                        "/" + prefix + "/excel/**",
-                        "/" + prefix + "/excel97/**",
-                        "/" + prefix + "/html/**",
-                        "/" + prefix + "/word/**",
-                        "/" + prefix + "/pdf/**",
-                        "/" + prefix + "/image/**",
-                        "/" + prefix + "/import/**",
                         "/" + prefix + "/res/**"
                 )
                 .excludePathPatterns(
@@ -161,39 +151,16 @@ public class WebConfig implements WebMvcConfigurer {
                 );
 
         // 2. 管理端拦截器（order=2）- 校验用户是否为 admin 角色
-        // URL: /manage/**, /designer/**, /datasource/**, /model-config/**, /business-knowledge/**, /agent-knowledge/**, /vector/**, /role/**, /chat/**, /sessions/**, /import/**
         registry.addInterceptor(new ManageInterceptor(tokenService, tokenProperties))
-                .addPathPatterns(
-                        "/" + prefix + "/manage/**",
-                        "/" + prefix + "/designer/**",
-                        "/" + prefix + "/datasource/**",
-                        "/" + prefix + "/model-config/**",
-                        "/" + prefix + "/business-knowledge/**",
-                        "/" + prefix + "/agent-knowledge/**",
-                        "/" + prefix + "/vector/**",
-                        "/" + prefix + "/role/**",
-                        "/" + prefix + "/chat/**",
-                        "/" + prefix + "/sessions/**",
-                        "/" + prefix + "/import/**"
-                )
+                .addPathPatterns(ReportUrls.managePathPatterns(prefix))
                 .excludePathPatterns(
                         "/" + prefix + "/auth/**"
                 )
                 .order(2);
 
-        // 3. 预览/导出拦截器（order=3）- 校验用户是否有权访问指定报表
-        // URL: /preview/**, /html/**, /chart/**, /excel/**, /excel97/**, /pdf/**, /word/**, /image/**
+        // 3. 预览/导出拦截器（order=3）- 校验用户是否有权访问指定报表（含匿名报表放行）
         registry.addInterceptor(new PreviewInterceptor(reportAccessChecker, tokenProperties))
-                .addPathPatterns(
-                        "/" + prefix + "/preview/**",
-                        "/" + prefix + "/html/**",
-                        "/" + prefix + "/chart/**",
-                        "/" + prefix + "/excel/**",
-                        "/" + prefix + "/excel97/**",
-                        "/" + prefix + "/pdf/**",
-                        "/" + prefix + "/word/**",
-                        "/" + prefix + "/image/**"
-                )
+                .addPathPatterns(ReportUrls.previewPathPatterns(prefix))
                 .excludePathPatterns(
                         "/" + prefix + "/auth/**"
                 )

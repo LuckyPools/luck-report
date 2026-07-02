@@ -93,7 +93,7 @@ function checkSelection(): boolean {
   const hot = TableManager.get()
   const selected = hot?.getSelected()
   if (!selected || selected.length === 0) {
-    showAlert((window as { $t?: (k: string) => string }).$t?.('selectTargetCellFirst') ?? 'selectTargetCellFirst')
+    showAlert(t('selectTargetCellFirst') ?? 'selectTargetCellFirst')
     return false
   }
   return true

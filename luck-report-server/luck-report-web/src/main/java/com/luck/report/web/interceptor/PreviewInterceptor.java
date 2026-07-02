@@ -1,6 +1,7 @@
 package com.luck.report.web.interceptor;
 
 import com.luck.report.web.exception.AuthException;
+import com.luck.report.web.modules.report.constant.ReportUrls;
 import com.luck.report.web.security.ReportAccessChecker;
 import com.luck.report.web.security.TokenProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +13,12 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * 预览/导出权限拦截器。
  * <p>拦截预览和导出相关请求，校验用户是否有权访问指定报表。
- * <p>校验逻辑：调用 {@link ReportAccessChecker#canPreview} 做四层校验（管理员 / * 通配 / 精确匹配）。
- * <p>URL pattern：{@code /html/**}, {@code /chart/**}, {@code /excel/**}, {@code /pdf/**}, {@code /word/**}, {@code /image/**}。
+ * <p>校验逻辑：
+ * <ol>
+ *   <li>总开关关闭 → 放行</li>
+ *   <li>报表绑定了 ANONYMOUS 角色（从 request attribute 读取，由 TokenInterceptor 写入）→ 放行</li>
+ *   <li>调用 {@link ReportAccessChecker#canPreview} 做四层校验（管理员 / * 通配 / 精确匹配）</li>
+ * </ol>
  * <p>order=3（在 ManageInterceptor 之后），确保管理端请求已被拦截器分流。
  * <p>权限拒绝时抛出 {@link AuthException}，由 {@code ReportExceptionHandler} 统一处理。
  *
@@ -46,7 +51,13 @@ public class PreviewInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 3. 权限校验
+        // 3. 匿名报表放行（从 TokenInterceptor 写入的 request attribute 读取，避免重复查库）
+        Object attr = request.getAttribute(ReportUrls.ATTR_ANONYMOUS_REPORT);
+        if (Boolean.TRUE.equals(attr)) {
+            return true;
+        }
+
+        // 4. 权限校验
         if (!accessChecker.canPreview(request, filePath)) {
             log.warn("报表预览/导出权限拒绝: filePath={}, uri={}", filePath, request.getRequestURI());
             throw new AuthException("无权访问该报表 " + filePath);

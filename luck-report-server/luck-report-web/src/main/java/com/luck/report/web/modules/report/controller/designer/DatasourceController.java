@@ -84,9 +84,15 @@ public class DatasourceController {
 
     /**
      * 测试数据库连接
+     * 使用 @RequestParam 接收 multipart/form-data 参数
      */
     @RequestMapping("/testConnection")
-    public ResultVO<Map<String, Object>> testConnection(TestConnectionRequest req) {
+    public ResultVO<Map<String, Object>> testConnection(
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "password", required = false) String password,
+            @RequestParam("driver") String driver,
+            @RequestParam("url") String url) {
+        TestConnectionRequest req = new TestConnectionRequest(username, password, driver, url);
         return ResultVO.success(datasourceService.testConnection(req));
     }
 }

@@ -1,5 +1,6 @@
 package com.luck.report.web.modules.role.service.impl;
 
+import com.luck.report.web.security.AnonymousRole;
 import com.luck.report.web.security.TokenProperties;
 import com.luck.report.web.modules.role.domain.entity.ReportRole;
 import com.luck.report.web.modules.role.domain.vo.ReportRoleListVo;
@@ -56,16 +57,32 @@ public class ReportRoleServiceImpl implements ReportRoleService, ApplicationCont
     // ==================== 管理端：列表/绑定/保存/删除 ====================
 
     @Override
+    public List<RoleInfo> listAllRoles() {
+        List<RoleInfo> roles = new ArrayList<>();
+        try {
+            List<RoleInfo> thirdPartyRoles = tokenService.listAllRoles();
+            if (thirdPartyRoles != null) {
+                roles.addAll(thirdPartyRoles);
+            }
+        } catch (Exception e) {
+            log.warn("调用 TokenService.listAllRoles() 失败: {}", e.getMessage());
+        }
+        // 追加内置匿名角色
+        roles.add(new RoleInfo(AnonymousRole.CODE, AnonymousRole.NAME));
+        return roles;
+    }
+
+    @Override
     public List<ReportRoleListVo> listBoundRoles() {
         List<String> roleCodes = roleMapper.selectDistinctRoleCodes();
         if (roleCodes == null || roleCodes.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 角色名通过 TokenService.listAllRoles() 解析（第三方实现：调角色管理接口 / 查角色表）
+        // 角色名通过 listAllRoles() 解析（第三方角色 + 内置匿名角色）
         Map<String, String> nameMap = new HashMap<>();
         try {
-            List<RoleInfo> allRoles = tokenService.listAllRoles();
+            List<RoleInfo> allRoles = listAllRoles();
             if (allRoles != null) {
                 for (RoleInfo r : allRoles) {
                     if (r != null && r.getCode() != null) {
@@ -74,7 +91,7 @@ public class ReportRoleServiceImpl implements ReportRoleService, ApplicationCont
                 }
             }
         } catch (Exception e) {
-            log.warn("调用 TokenService.listAllRoles() 失败，按角色编码降级展示: {}", e.getMessage());
+            log.warn("获取角色列表失败，按角色编码降级展示: {}", e.getMessage());
         }
 
         List<ReportRoleListVo> result = new ArrayList<>(roleCodes.size());

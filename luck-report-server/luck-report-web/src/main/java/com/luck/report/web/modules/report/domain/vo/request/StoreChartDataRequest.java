@@ -31,6 +31,16 @@ public class StoreChartDataRequest {
      */
     private Integer _height;
 
+    /**
+     * 报表文件路径（前端从 URL 参数传递）。
+     */
+    private String filePath;
+
+    /**
+     * 预览模式标识（前端从 URL 参数传递）。
+     */
+    private String _m;
+
     public StoreChartDataRequest() {
     }
 
@@ -71,5 +81,21 @@ public class StoreChartDataRequest {
 
     public void set_height(Integer _height) {
         this._height = _height;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public String get_m() {
+        return _m;
+    }
+
+    public void set_m(String _m) {
+        this._m = _m;
     }
 }

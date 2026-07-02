@@ -93,7 +93,7 @@ function handleClick(): void {
   const table = TableManager.get()
   const selected = table?.getSelected()
   if (!selected) {
-    showAlert((window as { $t?: (k: string) => string }).$t?.('selectTargetCellFirst') ?? 'selectTargetCellFirst')
+    showAlert(t('selectTargetCellFirst') ?? 'selectTargetCellFirst')
     return
   }
 

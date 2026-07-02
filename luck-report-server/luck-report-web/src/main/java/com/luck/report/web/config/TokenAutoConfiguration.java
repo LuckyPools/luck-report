@@ -2,7 +2,6 @@ package com.luck.report.web.config;
 
 import com.luck.report.web.security.TokenProperties;
 import com.luck.report.web.security.service.TokenService;
-import com.luck.report.web.security.service.impl.JwtTokenServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,9 +14,9 @@ import org.springframework.context.annotation.Primary;
  * <p>负责：
  * <ul>
  *   <li>注册 {@link TokenProperties} 为 Spring Bean（{@code bean.tokenProperties}）</li>
- *   <li>把 {@link JwtTokenServiceImpl} 标记为 {@link Primary} 的 {@link TokenService} 实现</li>
  *   <li>启动时打印当前模式（PROD / DISABLED），方便审计与 CI 拦截</li>
  * </ul>
+ * <p><b>注意：secret、ttl-seconds、clock-skew-seconds 已移除，由第三方 TokenService 实现自行管理。</b>
  *
  * @author luck-report
  * @since 1.0.0
@@ -44,18 +43,15 @@ public class TokenAutoConfiguration {
      */
     public void logStartup(TokenProperties props) {
         String mode = props.isEnabled() ? "PROD (强制校验，未带 token 一律 401)" : "DISABLED (拦截器已停用，所有接口匿名访问，仅限本地调试)";
-        String secretSource = JwtTokenServiceImpl.DEFAULT_SECRET.equals(props.getSecret()) ? "DEFAULT (未配置)" : "CUSTOM";
         StringBuilder sb = new StringBuilder();
         sb.append("\n========== LuckReport Token ==========\n");
         sb.append("enabled       : ").append(props.isEnabled()).append('\n');
         sb.append("mode          : ").append(mode).append('\n');
         sb.append("header-name   : ").append(props.getHeaderName()).append('\n');
         sb.append("allow-query   : ").append(props.isAllowQueryToken()).append('\n');
-        sb.append("ttl-seconds   : ").append(props.getTtlSeconds()).append('\n');
-        sb.append("clock-skew    : ").append(props.getClockSkewSeconds()).append('\n');
-        sb.append("secret-source : ").append(secretSource).append('\n');
         sb.append("admin-roles   : ").append(props.getAdminRoles()).append('\n');
-        sb.append("======================================");
+        sb.append("======================================\n");
+        sb.append("注: secret/ttl/clock-skew 已移除，由第三方 TokenService 实现\n");
         if (props.isEnabled()) {
             log.info(sb.toString());
         } else {

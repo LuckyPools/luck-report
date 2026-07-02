@@ -28,14 +28,9 @@ luck-report:
   # ============ 报表 Token 校验 ============
   # dev 环境默认 false：ui3 项目 npm run dev 直连后端零摩擦
   # 改 yml 必须重启（生产 enabled 误关会被启动日志 ERROR 拦截）
+  # 注意：secret/ttl-seconds/clock-skew-seconds 已移除，由第三方 TokenService 实现自行管理
   token:
     enabled: false
-    # JWT 签名密钥：dev 默认值；生产环境必须从环境变量 LUCK_REPORT_TOKEN_SECRET 注入（>= 16 字符）
-    secret: "luck-report-dev-secret-key-please-change-in-production-environment"
-    # 默认过期秒数（5 分钟）
-    ttl-seconds: 300
-    # 时钟偏移容忍（秒）
-    clock-skew-seconds: 30
     # token header 名称（与 JimuReport 兼容）
     header-name: X-Access-Token
     # 是否允许 URL 上传 token（用于 iframe 首次 GET）

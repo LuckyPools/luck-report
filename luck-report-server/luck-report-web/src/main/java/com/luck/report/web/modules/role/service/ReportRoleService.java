@@ -1,5 +1,6 @@
 package com.luck.report.web.modules.role.service;
 
+import com.luck.report.web.modules.role.domain.dto.RoleInfo;
 import com.luck.report.web.modules.role.domain.vo.ReportRoleListVo;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.web.security.service.TokenService;
@@ -19,9 +20,18 @@ public interface ReportRoleService {
     int TRANSFER_REPORT_LIMIT = 10000;
 
     /**
+     * 获取全量角色列表（第三方角色 + 内置匿名角色）。
+     * <p>第三方角色由 {@link TokenService#listAllRoles()} 提供，
+     * 内置匿名角色 {@link com.luck.report.web.security.AnonymousRole} 由框架追加。
+     *
+     * @return 全量角色列表
+     */
+    List<RoleInfo> listAllRoles();
+
+    /**
      * 列出所有已绑定角色（去重，用于管理端表格行）。
      * <p>每个角色附 bindingCount（不含 '*'）与 hasAll 标记。
-     * 角色名通过 {@link TokenService#listAllRoles()} 解析。
+     * 角色名通过 {@link #listAllRoles()} 解析。
      *
      * @return 角色列表
      */

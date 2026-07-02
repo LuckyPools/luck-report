@@ -27,7 +27,7 @@ import java.util.List;
  * 角色报表授权管理 Controller。
  * <p>提供：
  * <ul>
- *   <li>{@code GET  /role/list}                第三方全量角色列表（管理页表格，不分页）</li>
+ *   <li>{@code GET  /role/list}                全量角色列表（第三方 + 内置匿名角色，管理页表格，不分页）</li>
  *   <li>{@code GET  /role/reports}             某 provider 下所有非目录报表（穿梭框左侧）</li>
  *   <li>{@code GET  /role/bindings/{code}}     某角色在某 provider 下的已绑 file_path（穿梭框右侧）</li>
  *   <li>{@code POST /role/bindings}            保存某角色在某 provider 下的报表绑定</li>
@@ -53,10 +53,10 @@ public class ReportRoleController {
     private final TokenService tokenService;
     private final TokenProperties props;
 
-    /** 第三方全量角色列表（管理页表格，不分页） */
+    /** 全量角色列表（第三方角色 + 内置匿名角色，管理页表格，不分页） */
     @GetMapping("/list")
     public ResultVO<List<RoleInfo>> list() {
-        return ResultVO.success(tokenService.listAllRoles());
+        return ResultVO.success(roleDataService.listAllRoles());
     }
 
     // 注：已移除原 /all-roles 接口，因为角色列表直接查询第三方全量角色，

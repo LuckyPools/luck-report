@@ -292,6 +292,7 @@ public class DatasourceService {
 
     /**
      * 测试数据库连接是否可用。
+     * 连接失败时抛出 RuntimeException，由全局异常处理器统一处理。
      */
     public Map<String, Object> testConnection(TestConnectionRequest req) {
         Connection conn = null;
@@ -302,12 +303,13 @@ public class DatasourceService {
             map.put("result", true);
         } catch (Exception e) {
             log.error("Connection Exception", e);
+            throw new RuntimeException("数据库连接测试失败: " + e.getMessage(), e);
         } finally {
             if (conn != null) {
                 try {
                     conn.close();
                 } catch (SQLException e) {
-                    log.error("Connection Exception", e);
+                    log.error("Connection close Exception", e);
                 }
             }
         }
