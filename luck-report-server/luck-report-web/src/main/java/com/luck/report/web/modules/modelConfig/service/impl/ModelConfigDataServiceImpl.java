@@ -9,7 +9,7 @@ import com.luck.report.web.modules.modelConfig.domain.enums.ModelType;
 import com.luck.report.web.modules.modelConfig.converter.ModelConfigConverter;
 import com.luck.report.web.modules.modelConfig.mapper.ModelConfigMapper;
 import com.luck.report.web.modules.modelConfig.service.ModelConfigDataService;
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.infra.modules.cache.utils.CacheUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

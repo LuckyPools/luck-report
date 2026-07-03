@@ -31,6 +31,12 @@
             <version>${revision}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.luck.cloud</groupId>
+            <artifactId>luck-report-redis</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
         <!-- 数据库驱动 -->
         <dependency>
             <groupId>mysql</groupId>

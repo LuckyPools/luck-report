@@ -17,6 +17,7 @@ package com.luck.report.core.cache;
 
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.definition.ReportDefinitionWrapper;
+import com.luck.report.infra.modules.cache.utils.CacheUtils;
 
 /**
  * 报表定义包装类缓存，用于缓存 ReportDefinitionWrapper 对象。

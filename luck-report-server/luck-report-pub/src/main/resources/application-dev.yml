@@ -5,7 +5,23 @@ spring:
     url: jdbc:mysql://localhost:3306/luck_report_agent?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    password: root
+    timeout: PT1800S
+    jedis:
+      pool:
+        max-idle: 100
+        min-idle: 1
+        max-active: 100
+        max-wait: -1
+    expire: 7200
+
 luck-report:
+  # 禁用本地缓存，使用 Redis 分布式缓存
+  disableLocalReportCache: true
   # 请求前缀
   servletPrefix: report
   # 报表存储路径

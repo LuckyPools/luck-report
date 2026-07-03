@@ -18,5 +18,11 @@
             <artifactId>luck-report-infra</artifactId>
             <version>${revision}</version>
         </dependency>
+
+        <!-- Redis 依赖，提供 RedisTemplate 与连接池支持 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
     </dependencies>
 </project>
