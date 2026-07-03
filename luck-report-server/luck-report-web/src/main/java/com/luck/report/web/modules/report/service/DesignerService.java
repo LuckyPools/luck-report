@@ -1,7 +1,7 @@
 package com.luck.report.web.modules.report.service;
 
-import com.luck.report.common.domain.vo.PageResultVO;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.core.cache.ReportDefinitionWrapperCache;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.definition.ReportDefinitionWrapper;

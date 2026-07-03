@@ -4,8 +4,8 @@ import com.luck.report.web.modules.agentKnowledgeConfig.domain.dto.AgentKnowledg
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.dto.CreateAgentKnowledgeDTO;
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.dto.UpdateAgentKnowledgeDTO;
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.common.domain.vo.PageResultVO;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
 import javax.validation.Valid;
 

@@ -39,7 +39,7 @@ public class ReportThymeleafConfig {
      *
      * @return 模板解析器
      */
-    @Bean(name = "luckReportTemplateResolver")
+    @Bean(name = "bean.luckReportTemplateResolver")
     public SpringResourceTemplateResolver luckReportTemplateResolver() {
         SpringResourceTemplateResolver resolver = new SpringResourceTemplateResolver();
         resolver.setPrefix("classpath:/html/");
@@ -61,7 +61,7 @@ public class ReportThymeleafConfig {
      *
      * @return 模板引擎
      */
-    @Bean(name = "luckReportTemplateEngine")
+    @Bean(name = "bean.luckReportTemplateEngine")
     public SpringTemplateEngine luckReportTemplateEngine() {
         SpringTemplateEngine engine = new SpringTemplateEngine();
         engine.setTemplateResolver(luckReportTemplateResolver());

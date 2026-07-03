@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.luck.cloud</groupId>
+        <artifactId>luck-report-plugins</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>luck-report-chroma-vector</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.luck.cloud</groupId>
+            <artifactId>luck-report-infra</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- ✅ Chroma Java 客户端 -->
+        <dependency>
+            <groupId>io.github.amikos-tech</groupId>
+            <artifactId>chromadb-java-client</artifactId>
+            <version>0.1.7</version>
+        </dependency>
+
+        <!-- ✅ Spring Boot Starter（自动装配） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- ✅ Lombok（@Data 简化 properties） -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+</project>

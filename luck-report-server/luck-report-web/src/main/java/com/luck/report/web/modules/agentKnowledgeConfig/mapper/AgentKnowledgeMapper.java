@@ -63,10 +63,11 @@ public interface AgentKnowledgeMapper {
 
     /**
      * 查询所有生效的智能体知识ID列表
+     * 用于向量检索时动态过滤（检索时只召回 enabled=1 的知识）
      *
      * @return 生效的智能体知识ID列表
      */
-    List<Long> selectEnabledKnowledgeIds();
+    List<String> selectEnabledKnowledgeIds();
 
     /**
      * 根据ID列表批量查询智能体知识

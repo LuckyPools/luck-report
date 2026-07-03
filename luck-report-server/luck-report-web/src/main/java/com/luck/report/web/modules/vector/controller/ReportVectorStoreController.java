@@ -1,17 +1,18 @@
 package com.luck.report.web.modules.vector.controller;
 
 import com.luck.report.web.modules.chat.domain.vo.ComponentDocAddRequest;
-import com.luck.report.common.domain.vo.ResultVO;
-import com.luck.report.web.modules.vector.domain.vo.VectorAddRequest;
-import com.luck.report.web.modules.vector.domain.vo.VectorSearchRequest;
-import com.luck.report.web.modules.vector.domain.vo.VectorSearchResult;
+import com.luck.report.web.common.vo.ResultVO;
+import com.luck.report.infra.modules.vector.domain.vo.VectorAddRequest;
+import com.luck.report.infra.modules.vector.domain.vo.VectorSearchRequest;
+import com.luck.report.infra.modules.vector.domain.vo.VectorSearchResult;
 import com.luck.report.web.modules.businessKnowledgeConfig.constant.DocumentMetadataConstant;
 import com.luck.report.web.modules.businessKnowledgeConfig.service.BusinessKnowledgeService;
 import com.luck.report.web.modules.agentKnowledgeConfig.constant.AgentKnowledgeMetadataConstant;
 import com.luck.report.web.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
-import com.luck.report.web.modules.vector.service.impl.AgentVectorStore;
-import com.luck.report.web.modules.vector.domain.entity.VectorDocument;
-import com.luck.report.web.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.infra.modules.vector.service.impl.AgentVectorStore;
+import com.luck.report.infra.modules.vector.domain.entity.VectorDocument;
+import com.luck.report.infra.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.infra.modules.vector.domain.param.VectorSearchParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,23 +63,34 @@ public class ReportVectorStoreController {
         int topK = request.getTopK() != null ? request.getTopK() : 5;
         double threshold = request.getThreshold() != null ? request.getThreshold() : 0.5;
 
-        // 1. 调用向量检索
-        List<VectorStoreSearchResult> results = reportAgentVectorStore.search(
-                request.getQuery(),
-                request.getVectorType(),
-                topK,
-                threshold,
-                request.getMetadataFilters()
-        );
+        // 1. 根据 vectorType 获取生效的业务ID列表（检索时动态过滤，只召回 enabled=1 的知识）
+        String idMetaKey = resolveIdMetaKey(request.getVectorType());
+        List<String> validIds = resolveValidIds(request.getVectorType());
 
-        // 2. 根据 vectorType 回填原文内容
+        // 无生效知识时直接返回空列表，不检索向量库
+        if (idMetaKey != null && (validIds == null || validIds.isEmpty())) {
+            return ResultVO.success(Collections.emptyList());
+        }
+
+        // 2. 调用向量检索（统一构造 VectorSearchParam，metadataEquals 为 null 时自动不过滤）
+        VectorSearchParam param = VectorSearchParam.builder()
+                .topK(topK)
+                .threshold(threshold)
+                .vectorType(request.getVectorType())
+                .metadataEquals(request.getMetadataFilters())
+                .idMetaKey(idMetaKey)
+                .validIds(validIds)
+                .build();
+        List<VectorStoreSearchResult> results = reportAgentVectorStore.search(request.getQuery(), param);
+
+        // 3. 根据 vectorType 回填原文内容
         if (DocumentMetadataConstant.BUSINESS_TERM.equals(request.getVectorType())) {
             businessKnowledgeService.fillBusinessTermContent(results);
         } else if (AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE.equals(request.getVectorType())) {
             agentKnowledgeService.fillAgentKnowledgeContent(results);
         }
 
-        // 3. 转换为 VO 返回
+        // 4. 转换为 VO 返回
         List<VectorSearchResult> voList = results.stream()
                 .map(r -> new VectorSearchResult(
                         r.getDocument().getId(),
@@ -89,6 +101,40 @@ public class ReportVectorStoreController {
                 .collect(Collectors.toList());
 
         return ResultVO.success(voList);
+    }
+
+    /**
+     * 根据 vectorType 解析业务ID对应的 metadata 字段名
+     * 仅业务知识和智能体知识支持按生效状态动态过滤，其他类型返回 null
+     *
+     * @param vectorType 知识类型
+     * @return metadata 中业务ID字段名，为 null 表示该类型不按ID过滤
+     */
+    private String resolveIdMetaKey(String vectorType) {
+        if (DocumentMetadataConstant.BUSINESS_TERM.equals(vectorType)) {
+            return DocumentMetadataConstant.DB_BUSINESS_TERM_ID;
+        }
+        if (AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE.equals(vectorType)) {
+            return AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID;
+        }
+        return null;
+    }
+
+    /**
+     * 根据 vectorType 从 MySQL 查询生效的业务ID列表
+     * 仅业务知识和智能体知识需要查询，其他类型返回 null
+     *
+     * @param vectorType 知识类型
+     * @return 生效的业务ID列表，为 null 表示该类型不按ID过滤
+     */
+    private List<String> resolveValidIds(String vectorType) {
+        if (DocumentMetadataConstant.BUSINESS_TERM.equals(vectorType)) {
+            return businessKnowledgeService.selectEnabledKnowledgeIds();
+        }
+        if (AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE.equals(vectorType)) {
+            return agentKnowledgeService.selectEnabledKnowledgeIds();
+        }
+        return null;
     }
 
     /**

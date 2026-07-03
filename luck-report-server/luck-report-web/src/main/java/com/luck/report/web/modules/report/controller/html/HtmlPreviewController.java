@@ -1,6 +1,6 @@
 package com.luck.report.web.modules.report.controller.html;
 
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.web.modules.report.domain.vo.report.HtmlReportVo;
 import com.luck.report.web.modules.report.service.HtmlPreviewService;

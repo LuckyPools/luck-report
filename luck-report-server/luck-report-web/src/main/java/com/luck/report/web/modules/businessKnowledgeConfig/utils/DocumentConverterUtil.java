@@ -2,7 +2,7 @@ package com.luck.report.web.modules.businessKnowledgeConfig.utils;
 
 import com.luck.report.web.modules.businessKnowledgeConfig.constant.DocumentMetadataConstant;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge;
-import com.luck.report.web.modules.vector.domain.entity.VectorDocument;
+import com.luck.report.infra.modules.vector.domain.entity.VectorDocument;
 
 import java.util.HashMap;
 import java.util.Map;

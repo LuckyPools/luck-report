@@ -51,7 +51,6 @@ public class TokenAutoConfiguration {
         sb.append("allow-query   : ").append(props.isAllowQueryToken()).append('\n');
         sb.append("admin-roles   : ").append(props.getAdminRoles()).append('\n');
         sb.append("======================================\n");
-        sb.append("注: secret/ttl/clock-skew 已移除，由第三方 TokenService 实现\n");
         if (props.isEnabled()) {
             log.info(sb.toString());
         } else {

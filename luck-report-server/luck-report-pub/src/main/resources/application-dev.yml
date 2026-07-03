@@ -17,14 +17,27 @@ luck-report:
   # 打印启动标语
   banner:
     enable: true
-  # 向量数据库
-  datasource:
-    vector:
-      url: jdbc:postgresql://localhost:5432/postgres?currentSchema=luck_report_vector
-      username: postgres
-      password: root
-      driver-class-name: org.postgresql.Driver
-      maximum-pool-size: 5
+  # 向量数据库（plugin 自治：各 vector plugin 自管配置）
+  vector:
+    type: chroma
+    datasource:
+      url: http://localhost:8000
+      collection-name: luck_vector_document
+    # PostgreSQL 向量库配置（切回 pgvector 时取消注释，同时把 type 改为 postgresql）
+    #type: postgresql
+    #datasource:
+    #  url: jdbc:postgresql://localhost:5432/postgres?currentSchema=luck_report_vector
+    #  username: postgres
+    #  password: root
+    #  driver-class-name: org.postgresql.Driver
+    #  maximum-pool-size: 5
+  # ============ MyBatis 主数据源 Bean 名 ============
+  # 默认 mainDbDataSource（DataSourceConfig 从 spring.datasource.* 构建）
+  # 接入 dynamic-datasource-spring-boot-starter 等 3rd 方多数据源时：
+  #   1. 把上面 spring.datasource.* 换成 spring.datasource.dynamic.* 格式
+  #   2. 把这里改为 starter 的默认 DataSource Bean 名（通常 "dataSource"）
+  mybatis:
+    primary-datasource: mainDbDataSource
   # ============ 报表 Token 校验 ============
   # dev 环境默认 false：ui3 项目 npm run dev 直连后端零摩擦
   # 改 yml 必须重启（生产 enabled 误关会被启动日志 ERROR 拦截）

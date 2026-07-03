@@ -1,7 +1,7 @@
 package com.luck.report.web.modules.file.service;
 
 import com.luck.report.web.modules.file.domain.entity.ReportTemplate;
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportFilePage;

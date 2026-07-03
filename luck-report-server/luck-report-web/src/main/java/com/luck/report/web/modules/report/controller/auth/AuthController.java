@@ -1,6 +1,6 @@
 package com.luck.report.web.modules.report.controller.auth;
 
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.exception.TokenException;
 import com.luck.report.web.security.service.TokenService;
 import org.springframework.web.bind.annotation.PostMapping;

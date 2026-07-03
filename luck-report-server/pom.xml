@@ -14,7 +14,7 @@
         <module>luck-report-core</module>
         <module>luck-report-font</module>
         <module>luck-report-pub</module>
-        <module>luck-report-common</module>
+        <module>luck-report-plugins</module>
     </modules>
 
     <properties>

@@ -71,7 +71,7 @@ public class ViewController {
      * LuckReport 专用的 Thymeleaf 模板引擎，不与第三方项目的模板引擎冲突。
      */
     @Autowired
-    @Qualifier("luckReportTemplateEngine")
+    @Qualifier("bean.luckReportTemplateEngine")
     private SpringTemplateEngine templateEngine;
 
     /**

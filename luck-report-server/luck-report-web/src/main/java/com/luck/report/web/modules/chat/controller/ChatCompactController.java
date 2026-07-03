@@ -2,7 +2,7 @@ package com.luck.report.web.modules.chat.controller;
 
 import com.luck.report.web.modules.chat.domain.vo.CompactRequest;
 import com.luck.report.web.modules.chat.domain.vo.CompactResult;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.chat.service.ChatService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;

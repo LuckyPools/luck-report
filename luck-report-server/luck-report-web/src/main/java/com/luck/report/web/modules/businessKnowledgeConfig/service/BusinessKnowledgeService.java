@@ -1,8 +1,8 @@
 package com.luck.report.web.modules.businessKnowledgeConfig.service;
 
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
-import com.luck.report.web.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.infra.modules.vector.domain.dto.VectorStoreSearchResult;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.CreateBusinessKnowledgeDTO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.UpdateBusinessKnowledgeDTO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge;
@@ -95,6 +95,14 @@ public interface BusinessKnowledgeService {
      * @return 业务知识实体列表
      */
     List<BusinessKnowledge> selectByIds(List<String> ids);
+
+    /**
+     * 查询所有生效的业务知识ID列表
+     * 用于向量检索时动态过滤，只召回 enabled=1 的知识
+     *
+     * @return 生效的业务知识ID列表
+     */
+    List<String> selectEnabledKnowledgeIds();
 
     /**
      * 回填业务知识原文内容

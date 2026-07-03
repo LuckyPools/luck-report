@@ -1,6 +1,6 @@
 package com.luck.report.web.modules.chat.service;
 
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.chat.domain.entity.ChatSession;
 
 import java.util.List;

@@ -1,11 +1,11 @@
 package com.luck.report.web.modules.modelConfig.controller;
 
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.modelConfig.domain.dto.ModelConfigDTO;
 import com.luck.report.web.modules.modelConfig.domain.dto.ModelConfigQueryDTO;
 import com.luck.report.web.modules.modelConfig.domain.enums.ModelType;
 import com.luck.report.web.modules.chat.domain.vo.ModelCheckVo;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.modelConfig.service.ModelConfigDataService;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;

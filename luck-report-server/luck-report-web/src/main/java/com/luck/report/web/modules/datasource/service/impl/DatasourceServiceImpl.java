@@ -2,9 +2,8 @@ package com.luck.report.web.modules.datasource.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.luck.report.web.modules.datasource.service.impl.DynamicDatasourceManager;
 import com.luck.report.web.utils.SnowflakeIdGenerator;
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.datasource.domain.dto.ColumnDTO;
 import com.luck.report.web.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.web.modules.datasource.domain.dto.ForeignKeyDTO;
@@ -20,9 +19,10 @@ import com.luck.report.web.modules.datasource.handler.DatasourceTypeHandlerRegis
 import com.luck.report.web.modules.datasource.mapper.DatasourceMapper;
 import com.luck.report.web.modules.datasource.mapper.LogicalRelationMapper;
 import com.luck.report.web.modules.datasource.service.DatasourceService;
-import com.luck.report.web.modules.vector.domain.dto.VectorStoreSearchResult;
-import com.luck.report.web.modules.vector.domain.entity.VectorDocument;
-import com.luck.report.web.modules.vector.service.impl.AgentVectorStore;
+import com.luck.report.infra.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.infra.modules.vector.domain.entity.VectorDocument;
+import com.luck.report.infra.modules.vector.domain.param.VectorSearchParam;
+import com.luck.report.infra.modules.vector.service.impl.AgentVectorStore;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -160,10 +160,8 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
         // 删除向量库中该数据源的所有Schema文档（TABLE + COLUMN + 旧版DATASOURCE）
         for (String vectorType : Arrays.asList("TABLE", "COLUMN", "DATASOURCE")) {
-            Map<String, Object> filter = new HashMap<>();
-            filter.put("vectorType", vectorType);
-            filter.put("datasourceId", id);
-            agentVectorStore.deleteByMetadata(filter);
+            // 调用新的组合删除接口：按 vectorType + datasourceId 删除
+            agentVectorStore.deleteByMetadata(vectorType, "datasourceId", id);
         }
         log.info("删除数据源: id={}", id);
     }
@@ -214,10 +212,8 @@ public class DatasourceServiceImpl implements DatasourceService {
 
         // 先删除该数据源已有的Schema文档（TABLE + COLUMN + 旧版DATASOURCE）
         for (String vectorType : Arrays.asList("TABLE", "COLUMN", "DATASOURCE")) {
-            Map<String, Object> deleteFilter = new HashMap<>();
-            deleteFilter.put("vectorType", vectorType);
-            deleteFilter.put("datasourceId", id);
-            agentVectorStore.deleteByMetadata(deleteFilter);
+            // 调用新的组合删除接口：按 vectorType + datasourceId 删除
+            agentVectorStore.deleteByMetadata(vectorType, "datasourceId", id);
         }
 
         // 查询物理外键
@@ -496,9 +492,13 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
 
         // 第一步：向量检索召回与查询相关的TABLE文档
-        Map<String, Object> extraFilters = new HashMap<>();
-        extraFilters.put("datasourceId", datasourceId);
-        List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(query, "TABLE", 10, 0.5, extraFilters);
+        // 调用新的组合检索接口：按 vectorType + datasourceId 检索
+        List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(query,
+            VectorSearchParam.builder()
+                .topK(10).threshold(0.5)
+                .vectorType("TABLE")
+                .metadataEquals(Collections.singletonMap("datasourceId", datasourceId))
+                .build());
 
         if (tableSearchResults.isEmpty()) {
             log.warn("向量检索未找到相关表Schema: datasourceId={}, query={}", datasourceId, query);
@@ -526,7 +526,13 @@ public class DatasourceServiceImpl implements DatasourceService {
         }
 
         // 第二步：向量检索召回与查询相关的COLUMN文档
-        List<VectorStoreSearchResult> columnSearchResults = agentVectorStore.search(query, "COLUMN", 20, 0.4, extraFilters);
+        // 调用新的组合检索接口：按 vectorType + datasourceId 检索
+        List<VectorStoreSearchResult> columnSearchResults = agentVectorStore.search(query,
+            VectorSearchParam.builder()
+                .topK(20).threshold(0.4)
+                .vectorType("COLUMN")
+                .metadataEquals(Collections.singletonMap("datasourceId", datasourceId))
+                .build());
 
         // 按表名分组COLUMN文档
         Map<String, List<VectorDocument>> columnDocMap = new LinkedHashMap<>();
@@ -684,14 +690,24 @@ public class DatasourceServiceImpl implements DatasourceService {
     @Override
     public List<SchemaSearchResultVO> searchSchema(String query) {
         // 第一步：一次性向量检索所有TABLE文档（不按datasourceId过滤，topK放大以覆盖多数据源）
-        List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(query, "TABLE", 30, 0.5, null);
+        // 调用新的类型检索接口：按 vectorType 检索
+        List<VectorStoreSearchResult> tableSearchResults = agentVectorStore.search(query,
+            VectorSearchParam.builder()
+                .topK(30).threshold(0.5)
+                .vectorType("TABLE")
+                .build());
         if (tableSearchResults.isEmpty()) {
             log.info("跨数据源搜索未命中任何TABLE文档: query={}", query);
             return new ArrayList<>();
         }
 
         // 第二步：一次性向量检索所有COLUMN文档
-        List<VectorStoreSearchResult> columnSearchResults = agentVectorStore.search(query, "COLUMN", 50, 0.4, null);
+        // 调用新的类型检索接口：按 vectorType 检索
+        List<VectorStoreSearchResult> columnSearchResults = agentVectorStore.search(query,
+            VectorSearchParam.builder()
+                .topK(50).threshold(0.4)
+                .vectorType("COLUMN")
+                .build());
 
         // 第三步：TABLE文档按datasourceId分组，同时收集表名映射
         Map<String, List<VectorStoreSearchResult>> tableResultsByDsId = new LinkedHashMap<>();

@@ -76,6 +76,14 @@ public interface BusinessKnowledgeMapper {
     List<BusinessKnowledge> selectByIds(@Param("ids") List<String> ids);
 
     /**
+     * 查询所有生效的业务知识ID列表
+     * 用于向量检索时动态过滤（检索时只召回 enabled=1 的知识）
+     *
+     * @return 生效的业务知识ID列表
+     */
+    List<String> selectEnabledKnowledgeIds();
+
+    /**
      * 分页条件查询业务知识
      * 分页由拦截器自动改写，SQL 中无需手写 LIMIT
      *

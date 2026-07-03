@@ -1,6 +1,6 @@
 package com.luck.report.web.modules.report.controller.importexcel;
 
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.report.service.ImportExcelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

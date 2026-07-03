@@ -3,7 +3,7 @@ package com.luck.report.web.modules.chat.service;
 import com.luck.report.web.modules.chat.domain.vo.ChatRequest;
 import com.luck.report.web.modules.chat.domain.vo.CompactRequest;
 import com.luck.report.web.modules.chat.domain.vo.CompactResult;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**

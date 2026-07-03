@@ -18,9 +18,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 动态数据源管理器
- * 为每个用户数据源维护独立的HikariCP连接池，支持动态创建、获取、删除和连接测试
- * 与现有的DynamicDataSourceConfig分离，不集成到AbstractRoutingDataSource中
+ * 用户数据源管理器
+ * 为每个用户配置的数据源维护独立的 HikariCP 连接池，支持动态创建、获取、删除和连接测试
+ * 与主数据源（spring.datasource.*）分离，不共享连接池
  *
  * @author luck
  */

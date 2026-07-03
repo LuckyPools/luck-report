@@ -5,8 +5,8 @@ import com.luck.report.web.modules.agentKnowledgeConfig.domain.dto.CreateAgentKn
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.dto.UpdateAgentKnowledgeDTO;
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.entity.AgentKnowledge;
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.common.domain.vo.PageResultVO;
-import com.luck.report.web.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.web.common.vo.PageResultVO;
+import com.luck.report.infra.modules.vector.domain.dto.VectorStoreSearchResult;
 
 import java.util.List;
 
@@ -83,6 +83,14 @@ public interface AgentKnowledgeService {
      * @return 智能体知识实体列表
      */
     List<AgentKnowledge> selectByIds(List<String> ids);
+
+    /**
+     * 查询所有生效的智能体知识ID列表
+     * 用于向量检索时动态过滤，只召回 enabled=1 的知识
+     *
+     * @return 生效的智能体知识ID列表
+     */
+    List<String> selectEnabledKnowledgeIds();
 
     /**
      * 回填智能体知识原文内容

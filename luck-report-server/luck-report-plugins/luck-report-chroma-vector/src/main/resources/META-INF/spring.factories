@@ -1,0 +1,3 @@
+# Chroma Vector Store Auto Configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.luck.report.chroma.vector.config.ChromaVectorStoreAutoConfiguration

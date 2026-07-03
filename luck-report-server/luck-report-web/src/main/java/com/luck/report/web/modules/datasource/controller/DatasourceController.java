@@ -1,7 +1,7 @@
 package com.luck.report.web.modules.datasource.controller;
 
-import com.luck.report.common.domain.vo.PageResultVO;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.datasource.domain.dto.CreateLogicalRelationDTO;
 import com.luck.report.web.modules.datasource.domain.dto.DatasourceQueryDTO;
 import com.luck.report.web.modules.datasource.domain.dto.DatasourceTypeDTO;

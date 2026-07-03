@@ -1,4 +1,4 @@
-package com.luck.report.web.modules.vector.domain.vo;
+package com.luck.report.infra.modules.vector.domain.vo;
 
 import java.util.Map;
 

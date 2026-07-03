@@ -4,7 +4,7 @@ import com.luck.report.web.security.TokenProperties;
 import com.luck.report.web.modules.role.domain.dto.ReportRoleBindingDTO;
 import com.luck.report.web.modules.role.domain.vo.ReportRoleBindingsVo;
 import com.luck.report.web.modules.role.service.ReportRoleService;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.web.modules.role.domain.dto.RoleInfo;
 import com.luck.report.web.security.service.TokenService;

@@ -4,7 +4,7 @@ import com.luck.report.web.utils.SnowflakeIdGenerator;
 import com.luck.report.web.modules.file.domain.entity.ReportTemplate;
 import com.luck.report.web.modules.file.mapper.ReportTemplateMapper;
 import com.luck.report.web.modules.file.service.ReportTemplateService;
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

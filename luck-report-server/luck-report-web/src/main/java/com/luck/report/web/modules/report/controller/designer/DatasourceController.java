@@ -1,6 +1,6 @@
 package com.luck.report.web.modules.report.controller.designer;
 
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.core.definition.dataset.Field;
 import com.luck.report.core.exception.ReportServiceException;
 import com.luck.report.web.modules.report.domain.vo.dataset.DataResult;

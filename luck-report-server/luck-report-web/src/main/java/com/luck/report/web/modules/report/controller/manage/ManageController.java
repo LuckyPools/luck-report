@@ -1,7 +1,7 @@
 package com.luck.report.web.modules.report.controller.manage;
 
-import com.luck.report.common.domain.vo.PageResultVO;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.modules.report.domain.dto.ReportQueryDTO;

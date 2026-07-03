@@ -10,12 +10,12 @@ import com.luck.report.web.modules.agentKnowledgeConfig.domain.entity.AgentKnowl
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.enums.EmbeddingStatus;
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.enums.KnowledgeType;
 import com.luck.report.web.modules.agentKnowledgeConfig.domain.vo.AgentKnowledgeVO;
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.agentKnowledgeConfig.mapper.AgentKnowledgeMapper;
 import com.luck.report.web.modules.agentKnowledgeConfig.service.AgentKnowledgeService;
-import com.luck.report.web.modules.vector.domain.entity.VectorDocument;
-import com.luck.report.web.modules.vector.domain.dto.VectorStoreSearchResult;
-import com.luck.report.web.modules.vector.service.impl.AgentVectorStore;
+import com.luck.report.infra.modules.vector.domain.entity.VectorDocument;
+import com.luck.report.infra.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.infra.modules.vector.service.impl.AgentVectorStore;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -92,7 +92,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
             }
         });
 
-        // 向量操作在事务外执行，此时 @DataSource("vector") 可正常切换数据源
+        // 向量操作在事务外执行，使用 plugin 自治的 vector 数据源
         embedToVectorStore(entity);
 
         return agentKnowledgeConverter.toVo(entity);
@@ -309,10 +309,12 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
      * @param knowledgeId 智能体知识ID
      */
     private void deleteVectorByKnowledgeId(String knowledgeId) {
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put(AgentKnowledgeMetadataConstant.VECTOR_TYPE, AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE);
-        metadata.put(AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID, knowledgeId);
-        reportAgentVectorStore.deleteByMetadata(metadata);
+        // 调用新的组合删除接口：按 vectorType + metadata 字段删除
+        reportAgentVectorStore.deleteByMetadata(
+            AgentKnowledgeMetadataConstant.AGENT_KNOWLEDGE,
+            AgentKnowledgeMetadataConstant.DB_AGENT_KNOWLEDGE_ID,
+            knowledgeId
+        );
     }
 
     /**
@@ -337,7 +339,7 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
 
     /**
      * 更新智能体知识的生效状态
-     * 生效时同步到向量库，不生效时从向量库删除
+     * 仅更新MySQL，不更新向量库；检索时通过动态过滤生效ID列表来隔离未生效数据
      *
      * @param id 智能体知识ID
      * @param enabled 是否生效
@@ -351,28 +353,9 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
             throw new RuntimeException("智能体知识不存在, id: " + id);
         }
 
+        // 仅更新MySQL生效状态，向量库数据保留；检索时由调用方传入生效ID列表进行动态过滤
         knowledge.setEnabled(enabled ? 1 : 0);
         agentKnowledgeMapper.update(knowledge);
-
-        // 生效状态变更时同步向量库
-        if (enabled) {
-            // 设为生效：同步到向量库
-            try {
-                syncToVectorStore(knowledge);
-                knowledge.setEmbeddingStatus(EmbeddingStatus.COMPLETED);
-                knowledge.setErrorMsg(null);
-                agentKnowledgeMapper.update(knowledge);
-            } catch (Exception e) {
-                String errorMsg = truncateErrorMsg("同步向量存储失败: " + e.getMessage());
-                knowledge.setEmbeddingStatus(EmbeddingStatus.FAILED);
-                knowledge.setErrorMsg(errorMsg);
-                agentKnowledgeMapper.update(knowledge);
-                log.error("同步向量存储失败, id: {}, error: {}", id, errorMsg);
-            }
-        } else {
-            // 设为不生效：从向量库删除
-            deleteVectorByKnowledgeId(id);
-        }
 
         return agentKnowledgeConverter.toVo(knowledge);
     }
@@ -445,6 +428,17 @@ public class AgentKnowledgeServiceImpl implements AgentKnowledgeService {
             return Collections.emptyList();
         }
         return agentKnowledgeMapper.selectByIds(ids);
+    }
+
+    /**
+     * 查询所有生效的智能体知识ID列表
+     * 用于向量检索时动态过滤，只召回 enabled=1 的知识
+     *
+     * @return 生效的智能体知识ID列表
+     */
+    @Override
+    public List<String> selectEnabledKnowledgeIds() {
+        return agentKnowledgeMapper.selectEnabledKnowledgeIds();
     }
 
     /**

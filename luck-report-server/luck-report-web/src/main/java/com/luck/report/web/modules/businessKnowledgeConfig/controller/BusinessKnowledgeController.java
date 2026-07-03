@@ -1,7 +1,7 @@
 package com.luck.report.web.modules.businessKnowledgeConfig.controller;
 
-import com.luck.report.common.domain.vo.PageResultVO;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.CreateBusinessKnowledgeDTO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.UpdateBusinessKnowledgeDTO;

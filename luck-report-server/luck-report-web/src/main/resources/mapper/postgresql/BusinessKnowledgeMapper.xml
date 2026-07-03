@@ -61,6 +61,11 @@
         </foreach>
     </select>
 
+    <!-- 查询所有生效的业务知识ID列表，用于向量检索时动态过滤 -->
+    <select id="selectEnabledKnowledgeIds" resultType="string">
+        SELECT id FROM luck_business_knowledge WHERE enabled = 1 AND is_deleted = 0
+    </select>
+
     <!-- 分页条件查询业务知识，LIKE用bind拼接 -->
     <select id="selectByConditionsWithPage" resultType="com.luck.report.web.modules.businessKnowledgeConfig.domain.entity.BusinessKnowledge">
         SELECT id, business_term, description, synonyms, enabled, model_id, embedding_status,

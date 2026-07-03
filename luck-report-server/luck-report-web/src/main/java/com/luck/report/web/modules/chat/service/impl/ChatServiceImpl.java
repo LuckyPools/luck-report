@@ -5,7 +5,7 @@ import com.luck.report.web.modules.chat.service.ChatService;
 import com.luck.report.web.modules.chat.utils.ChatUtils;
 import com.luck.report.web.modules.modelConfig.domain.entity.ModelConfig;
 import com.luck.report.web.modules.modelConfig.service.ModelConfigDataService;
-import com.luck.report.common.domain.vo.ResultVO;
+import com.luck.report.web.common.vo.ResultVO;
 import lombok.AllArgsConstructor;
 import okhttp3.*;
 import okio.BufferedSource;

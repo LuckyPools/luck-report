@@ -1,9 +1,6 @@
 package com.luck.report.web.handler;
 
-import com.luck.report.common.domain.enums.HttpCodeEnum;
-import com.luck.report.common.domain.vo.ResultVO;
-import com.luck.report.web.exception.AuthException;
-import com.luck.report.web.exception.TokenException;
+import com.luck.report.web.common.vo.ResultVO;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +8,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;

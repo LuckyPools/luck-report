@@ -21,7 +21,7 @@
         </dependency>
         <dependency>
             <groupId>com.luck.cloud</groupId>
-            <artifactId>luck-report-common</artifactId>
+            <artifactId>luck-report-infra</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
@@ -91,10 +91,6 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

@@ -1,10 +1,10 @@
 package com.luck.report.web.modules.businessKnowledgeConfig.service.impl;
 
 import com.luck.report.web.utils.SnowflakeIdGenerator;
-import com.luck.report.common.domain.vo.PageResultVO;
+import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.BusinessKnowledgeQueryDTO;
-import com.luck.report.web.modules.vector.domain.dto.VectorStoreSearchResult;
-import com.luck.report.web.modules.vector.domain.entity.VectorDocument;
+import com.luck.report.infra.modules.vector.domain.dto.VectorStoreSearchResult;
+import com.luck.report.infra.modules.vector.domain.entity.VectorDocument;
 import com.luck.report.web.modules.businessKnowledgeConfig.constant.DocumentMetadataConstant;
 import com.luck.report.web.modules.businessKnowledgeConfig.converter.BusinessKnowledgeConverter;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.dto.CreateBusinessKnowledgeDTO;
@@ -15,7 +15,7 @@ import com.luck.report.web.modules.businessKnowledgeConfig.mapper.BusinessKnowle
 import com.luck.report.web.modules.businessKnowledgeConfig.service.BusinessKnowledgeService;
 import com.luck.report.web.modules.businessKnowledgeConfig.utils.DocumentConverterUtil;
 import com.luck.report.web.modules.businessKnowledgeConfig.domain.vo.BusinessKnowledgeVO;
-import com.luck.report.web.modules.vector.service.impl.AgentVectorStore;
+import com.luck.report.infra.modules.vector.service.impl.AgentVectorStore;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -110,7 +109,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             }
         });
 
-        // 向量操作在事务外执行，此时 @DataSource("vector") 可正常切换数据源
+        // 向量操作在事务外执行，使用 plugin 自治的 vector 数据源
         try {
             VectorDocument document = DocumentConverterUtil.convertBusinessKnowledgeToDocument(entity);
             reportAgentVectorStore.addDocuments(Collections.singletonList(document), entity.getModelId());
@@ -155,7 +154,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             }
         });
 
-        // 向量操作在事务外执行，此时 @DataSource("vector") 可正常切换数据源
+        // 向量操作在事务外执行，使用 plugin 自治的 vector 数据源
         try {
             syncToVectorStore(knowledge);
             knowledge.setEmbeddingStatus(EmbeddingStatus.COMPLETED);
@@ -204,7 +203,7 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             return;
         }
 
-        // 向量操作在事务外执行，此时 @DataSource("vector") 可正常切换数据源
+        // 向量操作在事务外执行，使用 plugin 自治的 vector 数据源
         doDelVector(knowledge);
 
         // MySQL操作放在编程式事务内
@@ -221,10 +220,12 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      * @param knowledge 业务知识实体
      */
     private void doDelVector(BusinessKnowledge knowledge) {
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put(DocumentMetadataConstant.VECTOR_TYPE, DocumentMetadataConstant.BUSINESS_TERM);
-        metadata.put(DocumentMetadataConstant.DB_BUSINESS_TERM_ID, knowledge.getId());
-        reportAgentVectorStore.deleteByMetadata(metadata);
+        // 调用新的组合删除接口：按 vectorType + metadata 字段删除
+        reportAgentVectorStore.deleteByMetadata(
+            DocumentMetadataConstant.BUSINESS_TERM,
+            DocumentMetadataConstant.DB_BUSINESS_TERM_ID,
+            knowledge.getId()
+        );
     }
 
     /**
@@ -256,10 +257,8 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
      */
     @Override
     public void refreshAllKnowledgeToVectorStore() throws Exception {
-        // 删除向量库中的业务知识
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put(DocumentMetadataConstant.VECTOR_TYPE, DocumentMetadataConstant.BUSINESS_TERM);
-        reportAgentVectorStore.deleteByMetadata(metadata);
+        // 删除向量库中的业务知识：调用新的类型删除接口
+        reportAgentVectorStore.deleteByVectorType(DocumentMetadataConstant.BUSINESS_TERM);
 
         // 获取所有生效的业务知识
         List<BusinessKnowledge> allKnowledge = businessKnowledgeMapper.selectAll();
@@ -341,6 +340,17 @@ public class BusinessKnowledgeServiceImpl implements BusinessKnowledgeService {
             return Collections.emptyList();
         }
         return businessKnowledgeMapper.selectByIds(ids);
+    }
+
+    /**
+     * 查询所有生效的业务知识ID列表
+     * 用于向量检索时动态过滤，只召回 enabled=1 的知识
+     *
+     * @return 生效的业务知识ID列表
+     */
+    @Override
+    public List<String> selectEnabledKnowledgeIds() {
+        return businessKnowledgeMapper.selectEnabledKnowledgeIds();
     }
 
     /**
