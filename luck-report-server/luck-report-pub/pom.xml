@@ -25,6 +25,12 @@
 <!--            <version>${revision}</version>-->
 <!--        </dependency>-->
 
+<!--        <dependency>-->
+<!--            <groupId>com.luck.cloud</groupId>-->
+<!--            <artifactId>luck-report-milvus-vector</artifactId>-->
+<!--            <version>${revision}</version>-->
+<!--        </dependency>-->
+
         <dependency>
             <groupId>com.luck.cloud</groupId>
             <artifactId>luck-report-chroma-vector</artifactId>

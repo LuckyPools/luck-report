@@ -42,6 +42,7 @@ import type { ReportContext, ReportDef, ReportCell } from '@/types/report-def'
 import { useReportStore } from '@/store/modules/report'
 import '../../../../assets/css/designer/table.css'
 import { useI18n } from 'vue-i18n'
+import fullLoading from '@/components/full-loading'
 
 /** 单元格坐标 */
 interface CellCoords { row: number; col: number }
@@ -417,6 +418,7 @@ export default defineComponent({
      * @param filePath 报表路径
      */
     const loadFile = async (filePath: string): Promise<void> => {
+      fullLoading.show(t('table.report.load'))
       try {
         const formData = new FormData()
         formData.append('filePath', filePath)
@@ -448,6 +450,9 @@ export default defineComponent({
         } else {
           showAlert(t('table.report.load') + `${filePath}` + t('table.report.fail'))
         }
+      } finally {
+        // 无论成功或失败都关闭加载动画，避免卡死
+        fullLoading.hide()
       }
     }
 

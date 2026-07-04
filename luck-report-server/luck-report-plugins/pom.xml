@@ -19,5 +19,6 @@
         <module>luck-report-infra</module>
         <module>luck-report-chroma-vector</module>
         <module>luck-report-redis</module>
+        <module>luck-report-milvus-vector</module>
     </modules>
 </project>

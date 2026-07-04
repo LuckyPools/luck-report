@@ -35,10 +35,20 @@ luck-report:
     enable: true
   # 向量数据库（plugin 自治：各 vector plugin 自管配置）
   vector:
+
+#    type: milvus
+#    datasource:
+#      host: https://in01-9e0434383fcd98a.ali-cn-shenzhen.vectordb.zilliz.com.cn
+#      port: 19530
+#      username: db_admin
+#      password: Gv3}hYZ!y]&S*-e8
+#      dimension: 1536
+
     type: chroma
     datasource:
       url: http://localhost:8000
       collection-name: luck_vector_document
+
     # PostgreSQL 向量库配置（切回 pgvector 时取消注释，同时把 type 改为 postgresql）
     #type: postgresql
     #datasource:

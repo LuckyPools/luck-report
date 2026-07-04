@@ -1,0 +1,3 @@
+# Milvus Vector Store Auto Configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.luck.report.milvus.vector.config.MilvusVectorStoreAutoConfiguration
