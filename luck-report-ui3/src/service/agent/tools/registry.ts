@@ -144,6 +144,15 @@ export class ToolRegistry {
     if (!tool) {
       throw new Error(`工具 "${name}" 不存在`)
     }
+    // 检测后端 JSON 解析失败的兜底信号：input 中带 _parseError 说明 LLM 上轮输出的 arguments 非法 JSON
+    // 把原始 arguments 和解析错误反馈给 LLM，让其识别问题并自我修正
+    // 不在前端尝试修复 JSON，因为异常形态多样无法全部兜底，交给 LLM 识别更通用
+    const rawInput = input as any
+    if (rawInput && typeof rawInput === 'object' && rawInput._parseError) {
+      throw new Error(
+        `工具 "${name}" 参数解析失败：LLM 上轮输出的 arguments 非法 JSON，解析错误=${rawInput._parseError}; 原始内容=${rawInput._rawArguments ?? ''}; 请检查 JSON 是否完整闭合，重新输出完整合法的 JSON`
+      )
+    }
     if (tool.validate) {
       const err = tool.validate(input)
       if (err) {

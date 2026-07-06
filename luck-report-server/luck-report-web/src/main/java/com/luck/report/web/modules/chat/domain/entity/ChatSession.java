@@ -29,8 +29,8 @@ public class ChatSession {
     /** 是否置顶：0-否，1-是 */
     private Integer isPinned;
 
-    /** 用户ID，预留字段，后续接入账号体系时使用 */
-    private Long userId;
+    /** 用户ID（字符串形式，兼容数字主键、UUID、工号等第三方用户标识） */
+    private String userId;
 
     /** 创建时间 */
     private LocalDateTime createTime;

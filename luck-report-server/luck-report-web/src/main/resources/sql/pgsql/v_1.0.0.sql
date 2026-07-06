@@ -38,7 +38,7 @@ COMMENT ON COLUMN luck_chat_session.id IS '会话ID（UUID）';
 COMMENT ON COLUMN luck_chat_session.title IS '会话标题';
 COMMENT ON COLUMN luck_chat_session.status IS '状态：active-活跃，archived-归档，deleted-已删除';
 COMMENT ON COLUMN luck_chat_session.is_pinned IS '是否置顶：0-否，1-是';
-COMMENT ON COLUMN luck_chat_session.user_id IS '用户ID';
+COMMENT ON COLUMN luck_chat_session.user_id IS '用户ID（字符串形式，兼容数字主键、UUID、工号等）';
 COMMENT ON COLUMN luck_chat_session.create_time IS '创建时间';
 COMMENT ON COLUMN luck_chat_session.update_time IS '更新时间';
 

@@ -31,12 +31,12 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     @Override
-    public List<ChatSession> findByUserId(Long userId) {
+    public List<ChatSession> findByUserId(String userId) {
         return chatSessionMapper.selectByUserId(userId);
     }
 
     @Override
-    public PageResultVO<ChatSession> findByUserIdWithPage(Long userId, int pageNum, int pageSize) {
+    public PageResultVO<ChatSession> findByUserIdWithPage(String userId, int pageNum, int pageSize) {
         long total = chatSessionMapper.countByUserId(userId);
         int offset = (pageNum - 1) * pageSize;
         List<ChatSession> records = chatSessionMapper.selectByUserIdWithPage(userId, offset, pageSize);
@@ -49,7 +49,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     @Override
-    public ChatSession createSession(String title, Long userId) {
+    public ChatSession createSession(String title, String userId) {
         LocalDateTime now = LocalDateTime.now();
         ChatSession session = new ChatSession();
         session.setId(UUID.randomUUID().toString());
@@ -89,7 +89,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     @Override
-    public void deleteSessionsByUserId(Long userId) {
+    public void deleteSessionsByUserId(String userId) {
         int count = chatSessionMapper.softDeleteByUserId(userId, LocalDateTime.now());
         log.info("删除用户下所有会话: userId={}, count={}", userId, count);
     }

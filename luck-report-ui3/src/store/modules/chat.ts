@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import type { Message, ResponseStatus, HistoryType, SearchStatus, McpToolCall } from '@/views/report/designer/chat/types/chat'
 import type { TokenUsage } from '@/api/chat'
 import type { ToolCall } from '@/service/agent/tools/types'
-import { getUserId } from '@/utils/user'
 import {
   createSession,
   batchSaveMessages,
@@ -12,7 +11,7 @@ import {
   deleteMessage as apiDeleteMessage,
   renameSession as apiRenameSession,
   listSessions,
-  listSessionsByUserPage,
+  listSessionsOfMePage,
   pinSession as apiPinSession,
   type SessionInfo,
   type BatchMessageItem
@@ -114,8 +113,7 @@ export const useChatStore = defineStore('chat', () => {
     sessionListPageNum.value = 1
     sessionListHasMore.value = true
     try {
-      const userId = getUserId()
-      const result = await listSessionsByUserPage(userId, 1, PAGE_SIZE)
+      const result = await listSessionsOfMePage(1, PAGE_SIZE)
       sessionList.value = result.records
       sessionListTotal.value = result.total
       sessionListHasMore.value = sessionList.value.length < result.total
@@ -139,9 +137,8 @@ export const useChatStore = defineStore('chat', () => {
     }
     sessionListLoading.value = true
     try {
-      const userId = getUserId()
       const nextPage = sessionListPageNum.value + 1
-      const result = await listSessionsByUserPage(userId, nextPage, PAGE_SIZE)
+      const result = await listSessionsOfMePage(nextPage, PAGE_SIZE)
       if (result.records.length > 0) {
         sessionList.value = [...sessionList.value, ...result.records]
       }

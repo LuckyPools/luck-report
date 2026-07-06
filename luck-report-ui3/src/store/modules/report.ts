@@ -9,6 +9,8 @@
  * - 对 views 暴露的 API：import { useReportStore } from '@/store/modules/report'；const report = useReportStore()；report.contextAddCell(cell)
  */
 import { defineStore, type Store } from 'pinia'
+import { toRaw } from 'vue'
+import { deepCopy } from '@/utils/comnon'
 import type {
     ReportCell,
     ReportContext,
@@ -83,6 +85,8 @@ export interface ContextRemoveDatasetPayload {
  */
 export interface ReportStoreState {
     context: ReportContext | null
+    /** 报表数据版本备份，key 为 userMessage.id */
+    reportBackups: Map<string, ReportContext>
     reportName: string
     filePath: string
     disableSaveBtn: boolean
@@ -158,11 +162,29 @@ export type ReportStore = Store<
     /** 批量执行 context 操作（接收一个回调，回调里直接操作 context） */
     contextBatchExecute(operationFn: (context: ReportContext) => void): void
 
+    // ============ 备份操作 ============
+    backupReportContext(messageId: string | number): void
+    restoreReportBackup(messageId: string | number): void
+
     // ============ 参数化 getter（仅在类型中体现，运行时 Pinia options 会展开为独立 getter） ============
     getDatasources(name?: string): ReportDatasource | ReportDatasource[] | null
     getDatasets(datasourceName?: string, datasetName?: string): ReportDataset | ReportDataset[] | Array<{ datasourceName: string; dataset: ReportDataset }> | null
     getRows(rowNumber?: number): ReportRowDef | ReportRowDef[] | null
     getColumns(columnNumber?: number): ReportColumnDef | ReportColumnDef[] | null
+    getReportBackup(messageId: string | number): ReportContext | null
+}
+
+/**
+ * 深拷贝 ReportContext（deepCopy 不支持 Map，需手动处理 cellsMap）
+ */
+function cloneReportContext(ctx: ReportContext): ReportContext {
+    const cellsMapEntries: Array<[string, ReportCell]> = []
+    if (ctx.cellsMap) {
+        ctx.cellsMap.forEach((v, k) => cellsMapEntries.push([k, deepCopy(v)]))
+    }
+    const cloned = deepCopy(ctx)
+    cloned.cellsMap = new Map(cellsMapEntries)
+    return cloned
 }
 
 /**
@@ -176,6 +198,8 @@ export const useReportStore = defineStore('report', {
     state: (): ReportStoreState => ({
         // 设计器全局上下文
         context: null,
+        // 报表数据版本备份
+        reportBackups: new Map<string, ReportContext>(),
         // 报表名称
         reportName: '',
         // 报表完整路径
@@ -338,6 +362,10 @@ export const useReportStore = defineStore('report', {
                 return state.context.reportDef.columns.find((c) => c.columnNumber === columnNumber) || null
             }
             return state.context.reportDef.columns
+        },
+
+        getReportBackup: (state) => (messageId: string | number): ReportContext | null => {
+            return state.reportBackups.get(String(messageId)) ?? null
         }
     },
 
@@ -734,6 +762,26 @@ export const useReportStore = defineStore('report', {
         contextBatchExecute(operationFn: (context: ReportContext) => void) {
             if (this.context) {
                 operationFn(this.context)
+            }
+        },
+
+        // ============ 备份操作 ============
+
+        backupReportContext(messageId: string | number) {
+            if (!this.context) return
+            const key = String(messageId)
+            const backup = cloneReportContext(toRaw(this.context))
+            this.reportBackups.set(key, backup)
+            if (this.reportBackups.size > 10) {
+                const firstKey = this.reportBackups.keys().next().value
+                if (firstKey !== undefined) this.reportBackups.delete(firstKey)
+            }
+        },
+
+        restoreReportBackup(messageId: string | number) {
+            const backup = this.reportBackups.get(String(messageId))
+            if (backup) {
+                this.context = cloneReportContext(backup)
             }
         }
     }

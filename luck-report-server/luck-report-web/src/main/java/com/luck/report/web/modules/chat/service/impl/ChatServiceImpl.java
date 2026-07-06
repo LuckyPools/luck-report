@@ -489,8 +489,11 @@ public class ChatServiceImpl implements ChatService {
             try {
                 input = ChatUtils.getObjectMapper().readValue(argumentsStr, Map.class);
             } catch (Exception e) {
+                // 解析失败时把原始 arguments 和解析错误带回前端，让 LLM 在错误反馈中识别问题
                 log.warn("解析tool_call arguments失败: {}", argumentsStr);
                 input = new HashMap<>();
+                input.put("_rawArguments", argumentsStr != null ? argumentsStr : "");
+                input.put("_parseError", e.getMessage() != null ? e.getMessage() : "unknown parse error");
             }
 
             // 构建前端 Agent 期望的 tool_use 事件格式

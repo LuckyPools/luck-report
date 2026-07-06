@@ -17,7 +17,6 @@
  */
 
 import request from '@/utils/request'
-import { getUserId } from '@/utils/user'
 import type { PageResultVO } from '@/types/api'
 
 /** 消息对象 */
@@ -42,7 +41,7 @@ export interface BatchMessageItem {
 /** 会话信息 */
 export interface SessionInfo {
   id: string
-  userId?: number
+  userId?: string
   title: string
   isPinned?: number
   createTime?: string
@@ -52,40 +51,29 @@ export interface SessionInfo {
 // ==================== 会话管理 ====================
 
 /**
- * 根据用户ID查询会话列表
- *
- * @param userId - 用户ID
- * @returns 会话列表
- */
-export async function listSessionsByUser(userId: number): Promise<SessionInfo[]> {
-  return request.get<SessionInfo[]>(`/sessions/user/${userId}`)
-}
-
-/**
  * 查询当前用户的会话列表
- * 通过 getUserId() 获取当前用户ID，按置顶优先、更新时间倒序
+ * 用户 ID 由后端 TokenService 从第三方系统解析，前端无需传递
  *
  * @returns 当前用户的会话列表
  */
 export async function listSessions(): Promise<SessionInfo[]> {
-  return listSessionsByUser(getUserId())
+  return request.get<SessionInfo[]>(`/sessions/me`)
 }
 
 /**
- * 分页查询指定用户的会话列表
+ * 分页查询当前用户的会话列表
+ * 用户 ID 由后端 TokenService 从第三方系统解析，前端无需传递
  *
- * @param userId - 用户ID
  * @param pageNum - 页码，从1开始
  * @param pageSize - 每页数量，默认10
  * @returns 分页结果
  */
-export async function listSessionsByUserPage(
-  userId: number,
+export async function listSessionsOfMePage(
   pageNum: number = 1,
   pageSize: number = 10
 ): Promise<PageResultVO<SessionInfo>> {
   return request.get<PageResultVO<SessionInfo>>(
-    `/sessions/user/${userId}/page?pageNum=${pageNum}&pageSize=${pageSize}`
+    `/sessions/me/page?pageNum=${pageNum}&pageSize=${pageSize}`
   )
 }
 
@@ -101,13 +89,13 @@ export async function getSession(sessionId: string): Promise<SessionInfo> {
 
 /**
  * 创建新会话
- * 前端首次发送消息时调用，自动注入当前用户ID
+ * 前端首次发送消息时调用，用户 ID 由后端 TokenService 从第三方系统解析
  *
  * @param title - 可选，会话标题
  * @returns 新建的会话对象
  */
 export async function createSession(title?: string): Promise<SessionInfo> {
-  return request.post<SessionInfo>('/sessions', { title, userId: getUserId() })
+  return request.post<SessionInfo>('/sessions', { title })
 }
 
 /**

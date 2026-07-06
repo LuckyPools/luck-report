@@ -28,31 +28,31 @@ public interface ChatSessionMapper {
      * 根据用户ID查询会话列表
      * 按置顶优先、更新时间倒序排列
      *
-     * @param userId 用户ID
+     * @param userId 用户ID（字符串形式）
      * @return 会话列表
      */
-    List<ChatSession> selectByUserId(@Param("userId") Long userId);
+    List<ChatSession> selectByUserId(@Param("userId") String userId);
 
     /**
      * 根据用户ID分页查询会话列表
      * 分页由拦截器自动改写，SQL 中无需手写 LIMIT
      *
-     * @param userId   用户ID
+     * @param userId   用户ID（字符串形式）
      * @param offset   偏移量
      * @param pageSize 每页数量
      * @return 会话列表
      */
-    List<ChatSession> selectByUserIdWithPage(@Param("userId") Long userId,
+    List<ChatSession> selectByUserIdWithPage(@Param("userId") String userId,
                                               @Param("offset") int offset,
                                               @Param("pageSize") int pageSize);
 
     /**
      * 统计指定用户下未删除的会话总数
      *
-     * @param userId 用户ID
+     * @param userId 用户ID（字符串形式）
      * @return 会话总数
      */
-    long countByUserId(@Param("userId") Long userId);
+    long countByUserId(@Param("userId") String userId);
 
     /**
      * 根据会话ID查询会话详情
@@ -114,9 +114,9 @@ public interface ChatSessionMapper {
     /**
      * 软删除指定用户下的所有会话
      *
-     * @param userId     用户ID
+     * @param userId     用户ID（字符串形式）
      * @param updateTime 更新时间
      * @return 影响行数
      */
-    int softDeleteByUserId(@Param("userId") Long userId, @Param("updateTime") LocalDateTime updateTime);
+    int softDeleteByUserId(@Param("userId") String userId, @Param("updateTime") LocalDateTime updateTime);
 }

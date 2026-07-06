@@ -56,6 +56,7 @@
                 :all-provider-list-by-key="allProviderListByKey"
                 @retry="handleRetry"
                 @delete="handleDelete"
+                @rollback="handleRollback"
                 @select-option="selectAskUserOption"
               />
               <ResponsingMessage
@@ -120,6 +121,7 @@ import { useGlobalConfig } from './composables/useGlobalConfig.ts'
 import { useMcpServer } from './composables/useMcpServer.ts'
 import { useScroll } from './composables/useScroll.ts'
 import { useChatStore } from '@/store/modules/chat'
+import { useReportStore } from '@/store/modules/report'
 import { storeToRefs } from 'pinia'
 import ChatHeader from './components/ChatHeader.vue'
 import MessageItem from './components/MessageItem.vue'
@@ -444,6 +446,23 @@ const handleRetry = (index: number) => {
  */
 const handleDelete = (index: number) => {
   deleteMessage(index)
+}
+
+/**
+ * 撤回到指定消息对应的报表版本
+ * @param messageId - 用户消息 ID
+ */
+const handleRollback = (messageId: string | number) => {
+  const reportStore = useReportStore()
+  Modal.confirm({
+    title: '确认撤回',
+    content: '撤回后报表将恢复到该消息发送前的状态，当前未保存的修改将丢失。是否继续？',
+    okText: '确定',
+    cancelText: '取消',
+    onOk() {
+      reportStore.restoreReportBackup(messageId)
+    }
+  })
 }
 
 /**

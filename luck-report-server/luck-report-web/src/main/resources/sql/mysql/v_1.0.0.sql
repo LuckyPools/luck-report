@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `luck_chat_session` (
     `title` varchar(255) DEFAULT '新对话' COMMENT '会话标题',
     `status` varchar(50) DEFAULT 'active' COMMENT '状态：active-活跃，archived-归档，deleted-已删除',
     `is_pinned` tinyint DEFAULT 0 COMMENT '是否置顶：0-否，1-是',
-    `user_id` bigint DEFAULT NULL COMMENT '用户ID',
+    `user_id` varchar(64) DEFAULT NULL COMMENT '用户ID（字符串形式，兼容数字主键、UUID、工号等）',
     `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),

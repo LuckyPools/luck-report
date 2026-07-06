@@ -232,7 +232,9 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 tool_calls: [{
                   id: mappedToolCallId,
                   type: 'function',
-                  function: { name: event.toolName, arguments: JSON.stringify(event.input) }
+                  // 后端解析失败时 input 是 {_rawArguments, _parseError} 兜底信号
+                  // 用 _rawArguments 作为 arguments 让 LLM 看到自己上轮真正输出的内容
+                  function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
                 }]
               })
               messages.push({
@@ -289,7 +291,9 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 tool_calls: [{
                   id: mappedToolCallId,
                   type: 'function',
-                  function: { name: event.toolName, arguments: JSON.stringify(event.input) }
+                  // 后端解析失败时 input 是 {_rawArguments, _parseError} 兜底信号
+                  // 用 _rawArguments 作为 arguments 让 LLM 看到自己上轮真正输出的内容
+                  function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
                 }]
               })
               messages.push({

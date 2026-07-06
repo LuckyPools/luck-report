@@ -4,11 +4,14 @@ import com.luck.report.web.common.vo.PageResultVO;
 import com.luck.report.web.modules.chat.domain.entity.ChatSession;
 import com.luck.report.web.common.vo.ResultVO;
 import com.luck.report.web.modules.chat.service.ChatSessionService;
+import com.luck.report.web.exception.TokenException;
+import com.luck.report.web.security.service.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +19,10 @@ import java.util.Map;
  * 聊天会话控制器
  * 提供会话的创建、查询、重命名、置顶、删除等 REST 接口
  * 前端进入对话页面时通过此接口加载会话列表，进入旧对话时通过此接口获取会话信息
+ *
+ * <p>用户身份解析：所有"当前用户"相关的接口（/sessions/me、/sessions/me/page、
+ * POST /sessions、DELETE /sessions/me）均通过 {@link TokenService#getCurrentUserId(HttpServletRequest)}
+ * 从第三方系统获取真实用户 ID，前端不再传 userId。
  *
  * @author luck
  */
@@ -27,6 +34,7 @@ import java.util.Map;
 public class ChatSessionController {
 
     private final ChatSessionService chatSessionService;
+    private final TokenService tokenService;
 
     /**
      * 查询所有未删除的会话列表
@@ -41,34 +49,36 @@ public class ChatSessionController {
     }
 
     /**
-     * 根据用户ID查询会话列表
-     * 后续接入账号体系后，前端传 userId 获取对应用户的会话
+     * 查询当前用户的会话列表
+     * 用户 ID 由 TokenService 从第三方系统解析，前端无需传递
      *
-     * @param userId 用户ID
-     * @return 会话列表
+     * @param request HTTP 请求
+     * @return 当前用户的会话列表
      */
-    @GetMapping("/user/{userId}")
-    public ResultVO<List<ChatSession>> getSessionsByUser(@PathVariable Long userId) {
+    @GetMapping("/me")
+    public ResultVO<List<ChatSession>> getSessionsOfMe(HttpServletRequest request) {
+        String userId = resolveCurrentUserId(request);
         List<ChatSession> sessions = chatSessionService.findByUserId(userId);
         return ResultVO.success("查询成功", sessions);
     }
 
     /**
-     * 分页查询指定用户的会话列表
+     * 分页查询当前用户的会话列表
      * 按置顶优先、更新时间倒序返回，支持滚动加载
      *
-     * @param userId   用户ID
+     * @param request  HTTP 请求
      * @param pageNum  页码，从1开始，默认1
      * @param pageSize 每页数量，默认10
      * @return 分页结果
      */
-    @GetMapping("/user/{userId}/page")
-    public ResultVO<PageResultVO<ChatSession>> getSessionsByUserWithPage(
-            @PathVariable Long userId,
+    @GetMapping("/me/page")
+    public ResultVO<PageResultVO<ChatSession>> getSessionsOfMeWithPage(
+            HttpServletRequest request,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
         // 限制每页最大数量，防止一次加载过多
         pageSize = Math.min(pageSize, 50);
+        String userId = resolveCurrentUserId(request);
         PageResultVO<ChatSession> result = chatSessionService.findByUserIdWithPage(userId, pageNum, pageSize);
         return ResultVO.success("查询成功", result);
     }
@@ -91,14 +101,17 @@ public class ChatSessionController {
     /**
      * 创建新会话
      * 前端首次发送消息时调用，返回包含 UUID 的会话对象
+     * 用户 ID 由 TokenService 从第三方系统解析，前端 body 无需传递 userId
      *
-     * @param request 请求体，可选字段：title-标题，userId-用户ID
+     * @param request HTTP 请求
+     * @param body    请求体，可选字段：title-标题
      * @return 新建的会话实体
      */
     @PostMapping
-    public ResultVO<ChatSession> createSession(@RequestBody(required = false) Map<String, Object> request) {
-        String title = request != null ? (String) request.get("title") : null;
-        Long userId = request != null ? toLong(request.get("userId")) : null;
+    public ResultVO<ChatSession> createSession(HttpServletRequest request,
+                                               @RequestBody(required = false) Map<String, Object> body) {
+        String title = body != null ? (String) body.get("title") : null;
+        String userId = resolveCurrentUserId(request);
 
         ChatSession session = chatSessionService.createSession(title, userId);
         return ResultVO.success("创建成功", session);
@@ -155,35 +168,32 @@ public class ChatSessionController {
     }
 
     /**
-     * 删除指定用户下的所有会话（软删除）
+     * 删除当前用户下的所有会话（软删除）
+     * 用户 ID 由 TokenService 从第三方系统解析
      *
-     * @param userId 用户ID
+     * @param request HTTP 请求
      * @return 操作结果
      */
-    @DeleteMapping("/user/{userId}")
-    public ResultVO<Void> deleteSessionsByUser(@PathVariable Long userId) {
+    @DeleteMapping("/me")
+    public ResultVO<Void> deleteSessionsOfMe(HttpServletRequest request) {
+        String userId = resolveCurrentUserId(request);
         chatSessionService.deleteSessionsByUserId(userId);
         return ResultVO.success("已清空所有会话", null);
     }
 
     /**
-     * 安全地将 Object 转为 Long
-     * 前端 JSON 中的数字可能被解析为 Long 或 Integer，统一处理
+     * 解析当前请求的用户 ID。
+     * <p>通过 TokenService.getCurrentUserId 获取第三方系统返回的用户 ID 字符串，
+     * 为空（未登录或解析失败）抛出 TokenException。
      *
-     * @param value 原始值
-     * @return Long 或 null
+     * @param request HTTP 请求
+     * @return 当前用户 ID（字符串形式）
      */
-    private Long toLong(Object value) {
-        if (value == null) {
-            return null;
+    private String resolveCurrentUserId(HttpServletRequest request) {
+        String userId = tokenService.getCurrentUserId(request);
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new TokenException("无法解析当前用户 ID");
         }
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        try {
-            return Long.parseLong(value.toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return userId;
     }
 }

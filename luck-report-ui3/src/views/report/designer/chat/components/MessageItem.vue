@@ -34,6 +34,11 @@
                 <template #icon><CopyOutlined /></template>
               </a-button>
             </a-tooltip>
+            <a-tooltip v-if="canRollback" title="撤回到此版本">
+              <a-button type="text" size="small" @click="emit('rollback', message.id)">
+                <template #icon><UndoOutlined /></template>
+              </a-button>
+            </a-tooltip>
             <a-tooltip title="重试">
               <a-button type="text" size="small" @click="emit('retry', index)">
                 <template #icon><SyncOutlined /></template>
@@ -358,9 +363,11 @@ import {
   CloseCircleOutlined,
   LoadingOutlined,
   QuestionCircleOutlined,
-  StopOutlined
+  StopOutlined,
+  UndoOutlined
 } from '@ant-design/icons-vue'
 import type { Message, Attachment, ModelProvider } from '../types/chat'
+import { useReportStore } from '@/store/modules/report'
 import aiAvatarUrl from '@/assets/images/ai/agent-header.png'
 import MarkdownRender from './MarkdownRender.vue'
 import TaskProgressDisplay from './TaskProgressDisplay.vue'
@@ -387,6 +394,7 @@ interface Props {
 interface Emits {
   (e: 'retry', index: number): void
   (e: 'delete', index: number): void
+  (e: 'rollback', messageId: string | number): void
   /** ask_user 提问的 option 被点击（父组件拿到后直接 sendMessage 走完整流程） */
   (e: 'select-option', option: string): void
 }
@@ -397,6 +405,14 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+const reportStore = useReportStore()
+
+/** 是否可以撤回到此消息对应的报表版本 */
+const canRollback = computed(() => {
+  if (props.message.role !== 'user') return false
+  return reportStore.getReportBackup(props.message.id) !== null
+})
 
 /**
  * 获取当前消息的 Provider 信息

@@ -4,6 +4,7 @@ import { AgentEngine } from '@/service/agent/composables/useAgent'
 import type { AgentEvent } from '@/service/agent/core/agent-loop'
 import type { ToolCall } from '@/service/agent/tools/types'
 import { useChatStore } from '@/store/modules/chat'
+import { useReportStore } from '@/store/modules/report'
 import { contextConfig } from '@/config'
 import { storeToRefs } from 'pinia'
 
@@ -471,6 +472,11 @@ const sendMessage = async (
     }
 
     messageList.value.push(userMessage)
+
+    // 备份当前报表上下文（空 context 跳过，对应消息不显示撤回按钮）
+    const reportStore = useReportStore()
+    reportStore.backupReportContext(userMessage.id)
+
     responseStatus.value = 'pending'
     responseMessage.value = ''
     responseReasoning.value = ''
