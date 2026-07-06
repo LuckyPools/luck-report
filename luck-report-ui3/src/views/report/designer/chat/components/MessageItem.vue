@@ -36,7 +36,7 @@
             </a-tooltip>
             <a-tooltip v-if="canRollback" title="撤回到此版本">
               <a-button type="text" size="small" @click="emit('rollback', message.id)">
-                <template #icon><UndoOutlined /></template>
+                <template #icon><RollbackOutlined /></template>
               </a-button>
             </a-tooltip>
             <a-tooltip title="重试">
@@ -364,7 +364,7 @@ import {
   LoadingOutlined,
   QuestionCircleOutlined,
   StopOutlined,
-  UndoOutlined
+  RollbackOutlined
 } from '@ant-design/icons-vue'
 import type { Message, Attachment, ModelProvider } from '../types/chat'
 import { useReportStore } from '@/store/modules/report'

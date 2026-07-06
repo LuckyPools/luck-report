@@ -27,7 +27,7 @@ export const getRowsTool: ToolDefinition<{
   rowNumbers?: number[];
 }> = {
   name: 'get_rows',
-  description: '获取表格行数据。rowNumbers 为行号数组（从1开始），按需返回 { 行号: 行定义 } 格式的对象；不传 rowNumbers 则返回全部行。',
+  description: '获取表格行数据。rowNumbers 为行号数组（从1开始），支持一次获取多行，按需返回 { 行号: 行定义 } 格式的对象；不传 rowNumbers 则返回全部行。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -53,7 +53,7 @@ export const setRowsTool: ToolDefinition<{
   rows: Record<string, any>;
 }> = {
   name: 'set_rows',
-  description: `批量更新行数据。rows 为 { 行号: 行定义 } 格式的对象，行号作为 key（从1开始）。执行前自动备份，异常时自动回滚。返回 { success, message } 结构。
+  description: `批量更新行数据。rows 为 { 行号: 行定义 } 格式的对象，行号作为 key（从1开始），支持一次传入多行。执行前自动备份，异常时自动回滚。返回 { success, message } 结构。
 【数据约束】key 为行号（从1开始）；value.height: 行高(pt)必填；value.band: null/headerrepeat/footerrepeat/title/summary。`,
   inputSchema: {
     type: 'object',
@@ -110,7 +110,7 @@ export const getColumnsTool: ToolDefinition<{
   columnNumbers?: number[];
 }> = {
   name: 'get_columns',
-  description: '获取表格列数据。columnNumbers 为列号数组（从1开始），按需返回 { 列号: 列定义 } 格式的对象；不传 columnNumbers 则返回全部列。',
+  description: '获取表格列数据。columnNumbers 为列号数组（从1开始），支持一次获取多列，按需返回 { 列号: 列定义 } 格式的对象；不传 columnNumbers 则返回全部列。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -136,7 +136,7 @@ export const setColumnsTool: ToolDefinition<{
   columns: Record<string, any>;
 }> = {
   name: 'set_columns',
-  description: `批量更新列数据。columns 为 { 列号: 列定义 } 格式的对象，列号作为 key（从1开始）。执行前自动备份，异常时自动回滚。返回 { success, message } 结构。
+  description: `批量更新列数据。columns 为 { 列号: 列定义 } 格式的对象，列号作为 key（从1开始），支持一次传入多列。执行前自动备份，异常时自动回滚。返回 { success, message } 结构。
 【数据约束】key 为列号（从1开始）；value.width: 列宽(px)必填；value.hide: 是否隐藏列可选。`,
   inputSchema: {
     type: 'object',
@@ -194,7 +194,7 @@ export const insertRowTool: ToolDefinition<{
   number?: number;
 }> = {
   name: 'insert_row',
-  description: `在指定位置插入行。会同时处理单元格数据和行头信息，确保数据一致性。position为行索引从0开始，number为插入行数默认1。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
+  description: `在指定位置插入行。会同时处理单元格数据和行头信息，确保数据一致性。position为行索引从0开始，number为插入行数默认1。支持批量操作，number 参数可一次插入连续多行。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -218,7 +218,7 @@ export const deleteRowTool: ToolDefinition<{
   endRow: number;
 }> = {
   name: 'delete_row',
-  description: `删除指定范围的行。会同时处理单元格数据、合并单元格配置和行头信息。startRow和endRow为行索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
+  description: `删除指定范围的行。会同时处理单元格数据、合并单元格配置和行头信息。startRow和endRow为行索引从0开始。支持批量操作，指定起止行范围即可一次删除连续多行。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -242,7 +242,7 @@ export const insertColTool: ToolDefinition<{
   number?: number;
 }> = {
   name: 'insert_col',
-  description: `在指定位置插入列。会同时处理单元格数据，确保数据一致性。position为列索引从0开始，number为插入列数默认1。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
+  description: `在指定位置插入列。会同时处理单元格数据，确保数据一致性。position为列索引从0开始，number为插入列数默认1。支持批量操作，number 参数可一次插入连续多列。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -266,7 +266,7 @@ export const deleteColTool: ToolDefinition<{
   endCol: number;
 }> = {
   name: 'delete_col',
-  description: `删除指定范围的列。会同时处理单元格数据、合并单元格配置。startCol和endCol为列索引从0开始。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
+  description: `删除指定范围的列。会同时处理单元格数据、合并单元格配置。startCol和endCol为列索引从0开始。支持批量操作，指定起止列范围即可一次删除连续多列。返回 { success: true/false, message: '...' } 结构，success=true 表示成功，message 包含详细信息。`,
   inputSchema: {
     type: 'object',
     properties: {

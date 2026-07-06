@@ -1,5 +1,11 @@
-import type {CompiledReportGraph} from "@/service/agent/workflow";
-import {createToolCallNode} from "@/service/agent/workflow/nodes/tool-call-node.ts";
+import { StateGraph, START, END } from '@langchain/langgraph'
+import {
+  ReportStateAnnotation,
+  WorkflowRuntimeAnnotation
+} from '../index.ts'
+import type { CompiledReportGraph } from '../index.ts'
+import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-node.ts'
+import { createToolCallNode } from "@/service/agent/workflow/nodes/tool-call-node.ts"
 
 /**
  * 修改页面配置工作流（LangGraph 版本）

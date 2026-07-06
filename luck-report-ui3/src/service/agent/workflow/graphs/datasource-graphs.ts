@@ -206,7 +206,7 @@ export function modifyDatasourceGraph(): CompiledReportGraph {
 /**
  * 读数据源工作流（dispatcher read_datasources 动作调用）
  * 单节点，调 get_datasources，结果写入 state.datasources
- * 支持 task.params.name 过滤（不传 = 全量）
+ * 参数：taskParams.name（可选，指定数据源名称）
  */
 export function readDatasourcesGraph(): CompiledReportGraph {
   const readNode = createToolCallNode({

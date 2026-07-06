@@ -47,9 +47,9 @@ export function createRowGraph(): CompiledReportGraph {
       '【必须用 native 格式】请使用 OpenAI 原生 function calling（tool_calls 字段）输出工具调用，' +
       '不要把工具调用写到文本 content 里（不要用 ```json {"tool": ...} ``` 这种格式）。\n' +
       'rowData 已在 context 中，不需要再调 get_rows。\n' +
-      'insert_row 参数：position（插入位置，从0开始）、number（插入行数，默认1）。\n' +
-      '注意：用户说的行号通常从1开始，而 insert_row 的 position 从0开始，需要减1转换。\n' +
-      '例如：在第2行前插入 → position=1, number=1。'
+      'taskParams 可能包含 rowNumber（起始行号，从1开始）和 count（行数），若 count>1 则一次插入多行。\n' +
+      'insert_row 参数：position（插入位置，从0开始，= rowNumber - 1）、number（插入行数，= count ?? 1）。\n' +
+      '例如：taskParams={"rowNumber":4,"count":2} → insert_row({position:3, number:2})。'
   })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
@@ -128,9 +128,9 @@ export function createColGraph(): CompiledReportGraph {
       '【必须用 native 格式】请使用 OpenAI 原生 function calling（tool_calls 字段）输出工具调用，' +
       '不要把工具调用写到文本 content 里（不要用 ```json {"tool": ...} ``` 这种格式）。\n' +
       'colData 已在 context 中，不需要再调 get_columns。\n' +
-      'insert_col 参数：position（插入位置，从0开始）、number（插入列数，默认1）。\n' +
-      '注意：用户说的列号通常从1开始，而 insert_col 的 position 从0开始，需要减1转换。\n' +
-      '例如：在第2列前插入 → position=1, number=1。'
+      'taskParams 可能包含 columnNumber（起始列号，从1开始）和 count（列数），若 count>1 则一次插入多列。\n' +
+      'insert_col 参数：position（插入位置，从0开始，= columnNumber - 1）、number（插入列数，= count ?? 1）。\n' +
+      '例如：taskParams={"columnNumber":2,"count":3} → insert_col({position:1, number:3})。'
   })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
@@ -268,7 +268,7 @@ export function deleteColGraph(): CompiledReportGraph {
 /**
  * 读行结构（dispatcher read_rows 动作调用）
  * 单节点，调 get_rows，结果写入 state.rowData
- * 支持 task.params.rowNumbers=[1,2,3] 过滤
+ * 参数：taskParams.rowNumbers=[1,2,3]（可选过滤）
  */
 export function readRowsGraph(): CompiledReportGraph {
   const readNode = createToolCallNode({
@@ -295,7 +295,7 @@ export function readRowsGraph(): CompiledReportGraph {
 /**
  * 读列结构（dispatcher read_cols 动作调用）
  * 单节点，调 get_columns，结果写入 state.colData
- * 支持 task.params.columnNumbers=[1,2,3] 过滤
+ * 参数：taskParams.columnNumbers=[1,2,3]（可选过滤）
  */
 export function readColsGraph(): CompiledReportGraph {
   const readNode = createToolCallNode({

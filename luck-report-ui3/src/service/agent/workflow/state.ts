@@ -211,9 +211,11 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => ({ ...a, ...(b ?? {}) }),
     default: () => ({})
   }),
-  /** Planner 失败时的错误信息；Dispatcher 看到非空时直接进 summary */
+  /** Planner 失败时的错误信息；Dispatcher 看到非空时直接进 summary。
+   *  注意：null 表示"规划成功"，必须能覆盖旧错误值（否则第二轮成功后仍死循环）。
+   *  与其他字段的 `b ?? a` 不同，这里直接用新值，因为 plannerError 只在 understand_and_plan 节点设置，无并发问题。 */
   plannerError: Annotation<string | null>({
-    reducer: (a, b) => b ?? a,
+    reducer: (_, b) => b,
     default: () => null
   }),
   /**

@@ -221,7 +221,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
             }
 
             // 关键决策点：校验 LLM 输出的工具名是否在 allowedTools 白名单内
-            // LLM 可能幻觉调用不在白名单中的工具（如 modify_and_write_cells 节点幻觉调 read_cells），
+            // LLM 可能幻觉调用不在白名单中的工具（如 write_cells 节点幻觉调 read_cells），
             // 必须拦截并返回错误，否则会以错误参数执行导致死循环
             if (options.allowedTools.length > 0 && !options.allowedTools.includes(event.toolName)) {
               const errMsg = `工具 ${event.toolName} 不在当前步骤的允许列表 [${options.allowedTools.join(', ')}] 中，禁止调用。请只使用允许的工具。`

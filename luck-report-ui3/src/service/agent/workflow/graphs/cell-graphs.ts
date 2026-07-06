@@ -1,7 +1,7 @@
 /**
  * 单元格相关子工作流（LangGraph 版本）
- * - modifyCellGraph：read → check_and_apply_row_col → modify_and_write_cells
- * - readCellsGraph：单节点拉取 cellsData（被 dispatcher read_cells 动作调用）
+ * - modifyCellGraph：read → check_and_apply_row_col → write_cells
+ * - readCellsGraph：单节点调 read_cells 工具，读取单元格数据
  *
  * 与自建引擎版本的差异：
  * 1. 不再 new LastValueAfterFinishChannel — channel 概念被 Annotation 取代
@@ -27,8 +27,8 @@ import type { ReportState, ReportStateUpdate } from '../state.ts'
  * 边映射：
  * - __start__ → read_cells
  * - read_cells → check_and_apply_row_col（行/列补齐）
- * - check_and_apply_row_col → modify_and_write_cells
- * - modify_and_write_cells → __end__
+ * - check_and_apply_row_col → write_cells
+ * - write_cells → __end__
  *
  * @returns 编译后的可执行图
  */
@@ -44,7 +44,7 @@ export function modifyCellGraph(): CompiledReportGraph {
     description:
       '从 taskParams.cellAddresses（数组）或 cellAddress（单值）读取坐标，一次 read_cells 取全部。\n' +
       'A=1/B=2/.../Z=26/AA=27（1-based），A1→{row:1,col:1}。\n' +
-      '读到后立即结束，cellsData 会进入 modify_and_write_cells 的 context。'
+      '读到后立即结束，cellsData 会进入 write_cells 的 context。'
   })
 
   // 节点2：补齐行列（解析 cellsData 目标坐标，差值时调 insert_row/insert_col）
@@ -83,8 +83,8 @@ export function modifyCellGraph(): CompiledReportGraph {
   }, { nodeName: 'check_and_apply_row_col' })
 
   // 节点3：修改并写入单元格（LLM 节点；maxIterations 内部循环）
-  const modifyAndWriteCellsLLM = createLLMDecideNode({
-    nodeId: 'modify_and_write_cells',
+  const writeCellsLLM = createLLMDecideNode({
+    nodeId: 'write_cells',
     allowedTools: ['write_cells', 'get_cell_template', 'load_report_doc'],
     requiredToolResults: ['write_cells'],
     maxIterations: 6,
@@ -94,13 +94,13 @@ export function modifyCellGraph(): CompiledReportGraph {
       '失败重试同一次 write_cells，不要拆成多次。'
   })
 
-  // 边序：__start__ → read_cells → check_and_apply_row_col → modify_and_write_cells（写入）→ __end__
+  // 边序：__start__ → read_cells → check_and_apply_row_col → write_cells（写入）→ __end__
   // 关键决策点：当 Dispatcher 已执行 read_cells 任务时，state.cellsData 已有数据，
   // 此时跳过内部 read_cells 节点，直接进入 check_and_apply_row_col，避免冗余读取
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('read_cells', readCells)
     .addNode('check_and_apply_row_col', checkAndApplyRowCol)
-    .addNode('modify_and_write_cells', modifyAndWriteCellsLLM)
+    .addNode('write_cells', writeCellsLLM)
     .addConditionalEdges(START, (state: ReportState) => {
       const cellsData = state.cellsData
       if (cellsData && typeof cellsData === 'object' && Object.keys(cellsData).length > 0) {
@@ -112,8 +112,8 @@ export function modifyCellGraph(): CompiledReportGraph {
       check_and_apply_row_col: 'check_and_apply_row_col'
     })
     .addEdge('read_cells', 'check_and_apply_row_col')
-    .addEdge('check_and_apply_row_col', 'modify_and_write_cells')
-    .addEdge('modify_and_write_cells', END)
+    .addEdge('check_and_apply_row_col', 'write_cells')
+    .addEdge('write_cells', END)
 
   return g.compile()
 }
@@ -139,8 +139,8 @@ export function cellAddressToPosition(addr: string): { row: number; col: number 
 
 /**
  * 读单元格工作流（dispatcher read_cells 动作调用）
- * 单节点，调 read_cells，结果写入 state.cellsData
- * 支持 task.params.cellAddress="A1" 或 task.params.cellAddresses=["A1","B2"]
+ * 单节点，调 read_cells 工具，结果写入 state.cellsData
+ * 参数：taskParams.cellPositionArray = [{row: number, col: number}, ...]
  */
 export function readCellsGraph(): CompiledReportGraph {
   const readNode = createToolCallNode({
@@ -148,11 +148,11 @@ export function readCellsGraph(): CompiledReportGraph {
     toolName: 'read_cells',
     args: (state) => {
       const p = state.taskParams ?? {}
-      const addrs: string[] = Array.isArray(p.cellAddresses) ? p.cellAddresses
-        : (p.cellAddress ? [p.cellAddress] : [])
-      const positions = addrs.map(cellAddressToPosition).filter(Boolean) as Array<{ row: number; col: number }>
-      if (positions.length === 0) return {} // 空 args → 工具按需返回
-      return { cellPositionArray: positions }
+      // 直接从 taskParams.cellPositionArray 获取参数，不做格式转换
+      if (Array.isArray(p.cellPositionArray) && p.cellPositionArray.length > 0) {
+        return { cellPositionArray: p.cellPositionArray }
+      }
+      return {}  // 空 args → 工具按需返回
     },
     resultKey: 'cellsData'
   })

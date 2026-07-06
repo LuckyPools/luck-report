@@ -46,7 +46,7 @@
  *
  * 调用方：src/router/index.ts（/report/designer 路由）
  */
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 // 第三方样式
@@ -61,6 +61,7 @@ import TopToolBar from '@/views/report/designer/tool-bar/index.vue'
 import AgentView from '@/views/report/designer/chat/index.vue'
 import { getUrlSearchParams } from '@/utils/url'
 import { setLocale } from '@/locales'
+import { useReportStore } from '@/store/modules/report'
 
 /**
  * 组件 props 定义
@@ -119,11 +120,31 @@ const aiIframe = ref(null)
 /** vue-router 实例（供 navigateTo 使用） */
 const router = useRouter()
 
+/** report store 实例 */
+const reportStore = useReportStore()
+
 // 监听 props.filePath 变化同步到本地
 watch(
   () => props.filePath,
   (val) => {
     localReportPath.value = val
+  }
+)
+
+/**
+ * 监听表格整体刷新标记（撤回/还原报表数据时触发）
+ * - 在所有子组件 watch 执行完毕后统一重置标记
+ * - 避免子组件竞态问题
+ */
+watch(
+  () => reportStore.getIsTableRefresh,
+  (needRefresh) => {
+    if (needRefresh) {
+      // 延迟重置，确保所有子组件的 watch 都先执行
+      nextTick(() => {
+        reportStore.setTableRefresh(false)
+      })
+    }
   }
 )
 

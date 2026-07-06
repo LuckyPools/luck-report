@@ -93,8 +93,12 @@ export interface ReportStoreState {
     isSaved: boolean
     showPrintLine: boolean
     isPrintLineRefresh: boolean
+    /** 单元格属性面板是否需要更新（用于选中单元格属性刷新） */
     isCellUpdate: boolean
+    /** 数据源面板是否需要更新 */
     isDatasourcePanelUpdate: boolean
+    /** 表格整体是否需要刷新（用于撤回/还原报表数据时重新渲染整个表格） */
+    isTableRefresh: boolean
 }
 
 /**
@@ -159,6 +163,8 @@ export type ReportStore = Store<
     triggerCellUpdate(): void
     setDatasourcePanelUpdate(isDatasourcePanelUpdate: boolean): void
     triggerDatasourcePanelUpdate(): void
+    setTableRefresh(isTableRefresh: boolean): void
+    triggerTableRefresh(): void
     /** 批量执行 context 操作（接收一个回调，回调里直接操作 context） */
     contextBatchExecute(operationFn: (context: ReportContext) => void): void
 
@@ -212,10 +218,12 @@ export const useReportStore = defineStore('report', {
         showPrintLine: true,
         // 打印线是否需要刷新
         isPrintLineRefresh: false,
-        // 单元格是否需要更新
+        // 单元格是否需要更新（用于属性面板刷新）
         isCellUpdate: false,
         // 数据源面板是否需要更新
-        isDatasourcePanelUpdate: false
+        isDatasourcePanelUpdate: false,
+        // 表格整体是否需要刷新（用于撤回/还原场景）
+        isTableRefresh: false
     }),
 
     getters: {
@@ -235,10 +243,12 @@ export const useReportStore = defineStore('report', {
         getPrintLineShouldRefresh: (state): boolean => state.isPrintLineRefresh,
         // 获取打印线显示状态
         getShowPrintLine: (state): boolean => state.showPrintLine,
-        // 获取单元格更新状态
+        // 获取单元格更新状态（用于属性面板）
         getIsCellUpdate: (state): boolean => state.isCellUpdate,
         // 获取数据源面板更新状态
         getIsDatasourcePanelUpdate: (state): boolean => state.isDatasourcePanelUpdate,
+        // 获取表格整体刷新状态（用于撤回/还原场景）
+        getIsTableRefresh: (state): boolean => state.isTableRefresh,
 
         // ============ Datasource Getters ============
 
@@ -754,6 +764,19 @@ export const useReportStore = defineStore('report', {
         },
 
         /**
+         * 设置表格整体刷新标记
+         * @param {boolean} isTableRefresh - 是否需要刷新整个表格
+         */
+        setTableRefresh(isTableRefresh: boolean) {
+            this.isTableRefresh = isTableRefresh
+        },
+
+        /** 触发表格整体刷新（置 true，撤回/还原场景使用） */
+        triggerTableRefresh() {
+            this.isTableRefresh = true
+        },
+
+        /**
          * 批量执行 context 操作
          * - 在一个同步操作里对 context 内部 cellsMap / rowHeaders / datasources 等做任意修改
          * - 由于 Pinia 的 state 是 reactive，无需 commit/事务，直接调用回调即可
@@ -782,6 +805,11 @@ export const useReportStore = defineStore('report', {
             const backup = this.reportBackups.get(String(messageId))
             if (backup) {
                 this.context = cloneReportContext(backup)
+                // 触发所有依赖 context 的组件刷新
+                this.isTableRefresh = true           // 触发表格整体刷新（撤回场景专用）
+                this.isCellUpdate = true             // 触发属性面板刷新
+                this.isDatasourcePanelUpdate = true  // 触发数据源面板刷新
+                this.isPrintLineRefresh = true       // 触发打印线刷新
             }
         }
     }

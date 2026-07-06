@@ -193,7 +193,7 @@ export function deleteDatasetGraph(): CompiledReportGraph {
 /**
  * 读数据集工作流（dispatcher read_datasets 动作调用）
  * 单节点，调 get_datasets，结果写入 state.datasets
- * 支持 task.params.datasourceName / name 过滤
+ * 参数：taskParams.datasourceName / taskParams.name（可选过滤）
  */
 export function readDatasetsGraph(): CompiledReportGraph {
   const readNode = createToolCallNode({

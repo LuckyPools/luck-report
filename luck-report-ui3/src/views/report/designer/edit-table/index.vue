@@ -588,6 +588,37 @@ export default defineComponent({
       }
     })
 
+    /**
+     * 监听表格整体刷新标记（撤回/还原报表数据时触发）
+     * - 同步 store context 到组件内部的 cellsMap、reportDef、context
+     * - 重新渲染 handsontable 表格数据
+     * - 注意：不在此处重置标记，由顶层 designer/index.vue 统一重置
+     */
+    watch(
+      () => reportStore.getIsTableRefresh,
+      (needRefresh) => {
+        if (!needRefresh) return
+        const newContext = reportStore.getContext as ReportContext | null
+        if (!newContext || !newContext.reportDef) return
+
+        // 同步 cellsMap：清空旧的，填充 store 的最新数据
+        cellsMap.clear()
+        const newCellsMap = newContext.cellsMap
+        if (newCellsMap) {
+          newCellsMap.forEach((v, k) => cellsMap.set(k, deepCopy(v) as ReportCell))
+        }
+
+        // 同步 reportDef 和 context
+        reportDef.value = newContext.reportDef
+        context.value = newContext
+
+        // 重新渲染表格
+        buildReportData(newContext.reportDef)
+        processRowHeaders()
+        hot.value?.render()
+      }
+    )
+
     onMounted(() => {
       initTable()
     })

@@ -24,6 +24,7 @@ import {
   setColumns as doSetColumns,
   getContext
 } from "@/utils/contextActions";
+import { useReportStore } from '@/store/modules/report';
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 import { doMergeCells } from '@/views/report/designer/edit-table/utils/MergeCellUtils.js';
 import { insertRow as doInsertRow } from '@/views/report/designer/edit-table/utils/operation/InsertRowOperation.js';
@@ -363,6 +364,130 @@ export function mergeCells({ startRow, startCol, endRow, endCol }) {
 }
 
 /**
+ * 同步行定义到 useReport store（插入行后调用）
+ * @param position 插入位置（0-based）
+ * @param number 插入行数
+ * @param defaultHeight 默认行高
+ */
+function syncInsertRows(position: number, number: number, defaultHeight = 25): void {
+    try {
+        const store = useReportStore();
+        const currentRows: any[] = store.getRows() || [];
+        const newRows: any[] = [];
+        for (let i = 0; i < currentRows.length; i++) {
+            const row = currentRows[i];
+            const rowIndex = row.rowNumber - 1;
+            if (rowIndex >= position) {
+                newRows.push({ ...row, rowNumber: row.rowNumber + number });
+            } else {
+                newRows.push(row);
+            }
+        }
+        for (let i = 0; i < number; i++) {
+            const newRowNumber = position + 1 + i;
+            newRows.push({ rowNumber: newRowNumber, height: defaultHeight });
+        }
+        newRows.sort((a, b) => a.rowNumber - b.rowNumber);
+        store.contextSetRows(newRows);
+        console.log(`[AiIframe] syncInsertRows: 已同步行定义到 store，插入 ${number} 行，位置 ${position}，当前总行数=${newRows.length}`);
+    } catch (e: any) {
+        console.warn('[AiIframe] syncInsertRows 同步失败:', e?.message);
+    }
+}
+
+/**
+ * 同步行定义到 useReport store（删除行后调用）
+ * @param startRow 起始行索引（0-based）
+ * @param endRow 结束行索引（0-based）
+ */
+function syncDeleteRows(startRow: number, endRow: number): void {
+    try {
+        const store = useReportStore();
+        const currentRows: any[] = store.getRows() || [];
+        const deleteCount = endRow - startRow + 1;
+        const newRows: any[] = [];
+        for (const row of currentRows) {
+            const rowIndex = row.rowNumber - 1;
+            if (rowIndex >= startRow && rowIndex <= endRow) {
+                continue;
+            }
+            if (rowIndex > endRow) {
+                newRows.push({ ...row, rowNumber: row.rowNumber - deleteCount });
+            } else {
+                newRows.push(row);
+            }
+        }
+        newRows.sort((a, b) => a.rowNumber - b.rowNumber);
+        store.contextSetRows(newRows);
+        console.log(`[AiIframe] syncDeleteRows: 已同步行定义到 store，删除 ${deleteCount} 行(${startRow}-${endRow})，当前总行数=${newRows.length}`);
+    } catch (e: any) {
+        console.warn('[AiIframe] syncDeleteRows 同步失败:', e?.message);
+    }
+}
+
+/**
+ * 同步列定义到 useReport store（插入列后调用）
+ * @param position 插入位置（0-based）
+ * @param number 插入列数
+ * @param defaultWidth 默认列宽
+ */
+function syncInsertCols(position: number, number: number, defaultWidth = 100): void {
+    try {
+        const store = useReportStore();
+        const currentCols: any[] = store.getColumns() || [];
+        const newCols: any[] = [];
+        for (let i = 0; i < currentCols.length; i++) {
+            const col = currentCols[i];
+            const colIndex = col.columnNumber - 1;
+            if (colIndex >= position) {
+                newCols.push({ ...col, columnNumber: col.columnNumber + number });
+            } else {
+                newCols.push(col);
+            }
+        }
+        for (let i = 0; i < number; i++) {
+            const newColNumber = position + 1 + i;
+            newCols.push({ columnNumber: newColNumber, width: defaultWidth });
+        }
+        newCols.sort((a, b) => a.columnNumber - b.columnNumber);
+        store.contextSetColumns(newCols);
+        console.log(`[AiIframe] syncInsertCols: 已同步列定义到 store，插入 ${number} 列，位置 ${position}，当前总列数=${newCols.length}`);
+    } catch (e: any) {
+        console.warn('[AiIframe] syncInsertCols 同步失败:', e?.message);
+    }
+}
+
+/**
+ * 同步列定义到 useReport store（删除列后调用）
+ * @param startCol 起始列索引（0-based）
+ * @param endCol 结束列索引（0-based）
+ */
+function syncDeleteCols(startCol: number, endCol: number): void {
+    try {
+        const store = useReportStore();
+        const currentCols: any[] = store.getColumns() || [];
+        const deleteCount = endCol - startCol + 1;
+        const newCols: any[] = [];
+        for (const col of currentCols) {
+            const colIndex = col.columnNumber - 1;
+            if (colIndex >= startCol && colIndex <= endCol) {
+                continue;
+            }
+            if (colIndex > endCol) {
+                newCols.push({ ...col, columnNumber: col.columnNumber - deleteCount });
+            } else {
+                newCols.push(col);
+            }
+        }
+        newCols.sort((a, b) => a.columnNumber - b.columnNumber);
+        store.contextSetColumns(newCols);
+        console.log(`[AiIframe] syncDeleteCols: 已同步列定义到 store，删除 ${deleteCount} 列(${startCol}-${endCol})，当前总列数=${newCols.length}`);
+    } catch (e: any) {
+        console.warn('[AiIframe] syncDeleteCols 同步失败:', e?.message);
+    }
+}
+
+/**
  * 插入行（AI Agent 版本）
  * 在指定位置插入行，执行前自动备份单元格和行数据
  *
@@ -400,6 +525,7 @@ export function insertRow({ position, number = 1 }) {
     try {
         doInsertRow(table, position, number);
         console.log(`[AiIframe] insertRow: 已在位置 ${position} 插入 ${number} 行`);
+        syncInsertRows(position, number);
         return ToolResult.success(`已在位置 ${position} 插入 ${number} 行`);
     } catch (error) {
         console.error('[AiIframe] insertRow 执行失败:', error);
@@ -451,6 +577,7 @@ export function deleteRow({ startRow, endRow }) {
     try {
         doDeleteRow(table, startRow, endRow);
         console.log(`[AiIframe] deleteRow: 已删除行 ${startRow}-${endRow}`);
+        syncDeleteRows(startRow, endRow);
         return ToolResult.success(`已删除行 ${startRow}-${endRow}`);
     } catch (error) {
         console.error('[AiIframe] deleteRow 执行失败:', error);
@@ -499,6 +626,7 @@ export function insertCol({ position, number = 1 }) {
     try {
         doInsertCol(table, position, number);
         console.log(`[AiIframe] insertCol: 已在位置 ${position} 插入 ${number} 列`);
+        syncInsertCols(position, number);
         return ToolResult.success(`已在位置 ${position} 插入 ${number} 列`);
     } catch (error) {
         console.error('[AiIframe] insertCol 执行失败:', error);
@@ -550,6 +678,7 @@ export function deleteCol({ startCol, endCol }) {
     try {
         doDeleteCol(table, startCol, endCol);
         console.log(`[AiIframe] deleteCol: 已删除列 ${startCol}-${endCol}`);
+        syncDeleteCols(startCol, endCol);
         return ToolResult.success(`已删除列 ${startCol}-${endCol}`);
     } catch (error) {
         console.error('[AiIframe] deleteCol 执行失败:', error);
