@@ -349,7 +349,7 @@ function formatDateOf(date?: string | number | Date): string {
 /**
  * 保存按钮：校验 → 序列化 → saveReportFile
  * - 同名文件拦截
- * - 成功后更新 store + emit('save-after')
+ * - 成功后从返回值获取真实 path，拼接 provider 前缀更新 store
  */
 function handleSave(): void {
   if (fileName.value === '') {
@@ -381,14 +381,17 @@ function handleSave(): void {
   const content = tableToXml(context.value)
 
   saveReportFile(fileName.value, filePath, content)
-    .then(() => {
+    .then((savedFile) => {
+      // 后端返回的 ReportFile.path 是真实路径（不含 provider 前缀）
+      // 需要拼接 provider 前缀才能正确加载
+      const realFilePath = currentProviderPrefix.value + savedFile.path
       report.setIsSaved(true)
       report.setReportName(fileName.value)
-      report.setFilePath(filePath)
+      report.setFilePath(realFilePath)
       resetDirty()
       showAlert(t('dialog.save.success')).then(() => {
         handleClose()
-        emit('save-after', filePath)
+        emit('save-after', realFilePath)
       })
     })
     .catch((error: { msg?: string }) => {

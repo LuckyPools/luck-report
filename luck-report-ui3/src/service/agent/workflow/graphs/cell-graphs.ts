@@ -18,6 +18,7 @@ import {
 import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-node.ts'
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
+import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 import { runToolWithEvent } from '../utils.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 
@@ -25,8 +26,9 @@ import type { ReportState, ReportStateUpdate } from '../state.ts'
  * 修改单元格工作流（LangGraph 版本）
  *
  * 边映射：
- * - __start__ → read_cells
- * - read_cells → check_and_apply_row_col（行/列补齐）
+ * - __start__ → read_cells（或跳过read_cells直接进入check_if_cells_match）
+ * - read_cells → check_if_cells_match（检查当前数据是否已符合需求）
+ * - check_if_cells_match → [条件边] → check_and_apply_row_col 或 END
  * - check_and_apply_row_col → write_cells
  * - write_cells → __end__
  *
@@ -44,10 +46,18 @@ export function modifyCellGraph(): CompiledReportGraph {
     description:
       '从 taskParams.cellAddresses（数组）或 cellAddress（单值）读取坐标，一次 read_cells 取全部。\n' +
       'A=1/B=2/.../Z=26/AA=27（1-based），A1→{row:1,col:1}。\n' +
-      '读到后立即结束，cellsData 会进入 write_cells 的 context。'
+      '读到后立即结束，cellsData 会进入 check_if_cells_match 的 context。'
   })
 
-  // 节点2：补齐行列（解析 cellsData 目标坐标，差值时调 insert_row/insert_col）
+  // 节点2：检查当前单元格数据是否已符合需求
+  const checkIfCellsMatch = buildCheckIfNeedModifyNode({
+    nodeId: 'check_if_cells_match',
+    dataKey: 'cellsData',
+    skipKey: 'skipCellModify',
+    dataDescription: '单元格数据格式为 {"row,col": {value, type, ...}}，row和col从1开始'
+  })
+
+  // 节点3：补齐行列（解析 cellsData 目标坐标，差值时调 insert_row/insert_col）
   const checkAndApplyRowCol = withInput(async (state: ReportState, _config, runtime) => {
     const nodeId = 'check_and_apply_row_col'
     const cellsData = state.cellsData
@@ -82,7 +92,7 @@ export function modifyCellGraph(): CompiledReportGraph {
     return { cellsData } as ReportStateUpdate
   }, { nodeName: 'check_and_apply_row_col' })
 
-  // 节点3：修改并写入单元格（LLM 节点；maxIterations 内部循环）
+  // 节点4：修改并写入单元格（LLM 节点；maxIterations 内部循环）
   const writeCellsLLM = createLLMDecideNode({
     nodeId: 'write_cells',
     allowedTools: ['write_cells', 'get_cell_template', 'load_report_doc'],
@@ -94,24 +104,36 @@ export function modifyCellGraph(): CompiledReportGraph {
       '失败重试同一次 write_cells，不要拆成多次。'
   })
 
-  // 边序：__start__ → read_cells → check_and_apply_row_col → write_cells（写入）→ __end__
+  // 边序：__start__ → [read_cells 或直接跳到check_if_cells_match] → check_if_cells_match → [条件边] → check_and_apply_row_col → write_cells → __end__
   // 关键决策点：当 Dispatcher 已执行 read_cells 任务时，state.cellsData 已有数据，
-  // 此时跳过内部 read_cells 节点，直接进入 check_and_apply_row_col，避免冗余读取
+  // 此时跳过内部 read_cells 节点，直接进入 check_if_cells_match，避免冗余读取
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('read_cells', readCells)
+    .addNode('check_if_cells_match', checkIfCellsMatch)
     .addNode('check_and_apply_row_col', checkAndApplyRowCol)
     .addNode('write_cells', writeCellsLLM)
     .addConditionalEdges(START, (state: ReportState) => {
       const cellsData = state.cellsData
       if (cellsData && typeof cellsData === 'object' && Object.keys(cellsData).length > 0) {
-        return 'check_and_apply_row_col'
+        return 'check_if_cells_match'  // 已有数据，跳过read_cells，直接检查
       }
       return 'read_cells'
     }, {
       read_cells: 'read_cells',
+      check_if_cells_match: 'check_if_cells_match'
+    })
+    .addEdge('read_cells', 'check_if_cells_match')
+    // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
+    .addConditionalEdges('check_if_cells_match', (state: ReportState) => {
+      if (state.skipCellModify === true) {
+        console.log('[modifyCellGraph] 单元格数据已符合需求，跳过修改操作')
+        return 'END'
+      }
+      return 'check_and_apply_row_col'
+    }, {
+      END: END,
       check_and_apply_row_col: 'check_and_apply_row_col'
     })
-    .addEdge('read_cells', 'check_and_apply_row_col')
     .addEdge('check_and_apply_row_col', 'write_cells')
     .addEdge('write_cells', END)
 

@@ -108,7 +108,6 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
           ? { type: 'function', function: { name: options.requiredToolResultsAny![0] } }
           : undefined)
     let toolChoice: any = baseToolChoice
-    console.log(`[llm-decide] node=${nodeId} tools=${JSON.stringify(options.allowedTools)} toolChoice=${JSON.stringify(toolChoice)}`)
     let iteration = 0
     // 关键决策点：跟踪必需工具是否曾被调用但返回 error，用于触发"系统强制重试"
     // 之前只有 !hasToolCall 才会重试；thinking 模式下 LLM 经常先发空 input 占位再思考，
@@ -178,6 +177,14 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
                 hasToolError = true
                 messages.push({
+                  role: 'assistant',
+                  tool_calls: [{
+                    id: mappedToolCallId,
+                    type: 'function',
+                    function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
+                  }]
+                })
+                messages.push({
                   role: 'tool',
                   tool_call_id: mappedToolCallId,
                   content: JSON.stringify({ error: errMsg, success: false })
@@ -196,6 +203,14 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 const errMsg = `已达到最大询问轮次 ${maxRounds}，禁止继续 ask_user。请直接调用 plan_tasks 提交任务计划（必填字段缺失时用合理默认值填充，并在 description 中注明）。`
                 toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
                 hasToolError = true
+                messages.push({
+                  role: 'assistant',
+                  tool_calls: [{
+                    id: mappedToolCallId,
+                    type: 'function',
+                    function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
+                  }]
+                })
                 messages.push({
                   role: 'tool',
                   tool_call_id: mappedToolCallId,
@@ -247,8 +262,6 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
             }
 
             runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_call', toolCallId: mappedToolCallId, toolName: event.toolName, input: event.input }, status: 'running' }, timestamp: Date.now() })
-            // DEBUG: 打印 LLM 调用工具的完整参数（便于排查 planner 输出空任务等问题）
-            console.log(`[llm-decide] node=${nodeId} tool_call name=${event.toolName} input=${JSON.stringify(event.input)}`)
             try {
               const result = await runtime.toolRegistry.executeTool(event.toolName, event.input)
 
@@ -320,6 +333,14 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 }
               }
               hasToolError = true
+              messages.push({
+                role: 'assistant',
+                tool_calls: [{
+                  id: mappedToolCallId,
+                  type: 'function',
+                  function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
+                }]
+              })
               messages.push({
                 role: 'tool',
                 tool_call_id: mappedToolCallId,
@@ -461,12 +482,6 @@ function buildMessages(options: LLMDecideNodeOptions, state: ReportState, memory
     }
   }
   const userMessage = state.userMessage + knowledgeBlock + buildWorkflowStateContext(state as any) + stepContext
-
-  // DEBUG: 打印 LLM 实际收到的完整消息（便于排查 planner 输出空任务等问题）
-  console.log(`[llm-decide] node=${options.nodeId} userMessage length=${userMessage.length} preview=${userMessage.substring(0, 500)}`)
-  if (state.requirements) {
-    console.log(`[llm-decide] node=${options.nodeId} requirements=${JSON.stringify(state.requirements)}`)
-  }
 
   return [...history, { role: 'user', content: userMessage }]
 }

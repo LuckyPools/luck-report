@@ -245,6 +245,56 @@ export const ReportStateAnnotation = Annotation.Root({
     default: () => null
   }),
 
+  // ==================== modify图跳过标记（细粒度，避免状态污染） ====================
+  /**
+   * modify_cell图跳过标记
+   * read_cells后检查当前单元格数据是否已符合需求，true表示跳过修改操作
+   */
+  skipCellModify: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false
+  }),
+  /**
+   * modify_row图跳过标记
+   * read_rows后检查当前行数据是否已符合需求，true表示跳过修改操作
+   */
+  skipRowModify: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false
+  }),
+  /**
+   * modify_col图跳过标记
+   * read_cols后检查当前列数据是否已符合需求，true表示跳过修改操作
+   */
+  skipColModify: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false
+  }),
+  /**
+   * modify_form图跳过标记
+   * read_form后检查当前表单配置是否已符合需求，true表示跳过修改操作
+   */
+  skipFormModify: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false
+  }),
+  /**
+   * modify_page图跳过标记
+   * read_page后检查当前页面配置是否已符合需求，true表示跳过修改操作
+   */
+  skipPageModify: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false
+  }),
+  /**
+   * modify_dataset图跳过标记
+   * load_existing_dataset后检查当前数据集配置是否已符合需求，true表示跳过修改操作
+   */
+  skipDatasetModify: Annotation<boolean>({
+    reducer: (a, b) => b ?? a,
+    default: () => false
+  }),
+
   // ==================== 旁路字段（注入 reportState 即可，其它依赖走 runtime.context） ====================
   /** 当前主报表对象（来自父图 reportState），节点只读 */
   reportState: Annotation<any>({

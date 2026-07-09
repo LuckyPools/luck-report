@@ -21,10 +21,11 @@ import {
 import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-node.ts'
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
+import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 
 /**
  * 修改查询表单工作流（LangGraph 版本）
- * 边序：__start__ → read_form → modify_and_write_form → __end__
+ * 边序：__start__ → read_form → check_if_form_match → [条件边] → modify_and_write_form → __end__
  * @returns 编译后的可执行图
  */
 export function modifyFormGraph(): CompiledReportGraph {
@@ -34,6 +35,14 @@ export function modifyFormGraph(): CompiledReportGraph {
     toolName: 'get_search_form',
     args: {},
     resultKey: 'searchForm'
+  })
+
+  // 检查节点：判断当前表单配置是否已符合需求
+  const checkIfFormMatch = buildCheckIfNeedModifyNode({
+    nodeId: 'check_if_form_match',
+    dataKey: 'searchForm',
+    skipKey: 'skipFormModify',
+    dataDescription: '表单数据格式为 {datasetId, fields: [{name, label, type, required, defaultValue}], layout}'
   })
 
   // 节点2：修改并写入查询表单
@@ -51,9 +60,21 @@ export function modifyFormGraph(): CompiledReportGraph {
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('read_form', readForm)
+    .addNode('check_if_form_match', checkIfFormMatch)
     .addNode('modify_and_write_form', modifyAndWriteForm)
     .addEdge(START, 'read_form')
-    .addEdge('read_form', 'modify_and_write_form')
+    .addEdge('read_form', 'check_if_form_match')
+    // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
+    .addConditionalEdges('check_if_form_match', (state) => {
+      if (state.skipFormModify === true) {
+        console.log('[modifyFormGraph] 表单配置已符合需求，跳过修改操作')
+        return 'END'
+      }
+      return 'modify_and_write_form'
+    }, {
+      END: END,
+      modify_and_write_form: 'modify_and_write_form'
+    })
     .addEdge('modify_and_write_form', END)
 
   return g.compile()

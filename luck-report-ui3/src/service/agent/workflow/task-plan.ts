@@ -440,6 +440,18 @@ export const ACTION_COVERAGE_RULES: Array<{
     pattern: /(按|输入|根据|通过|支持).*(查询|筛选|搜索|条件|参数)/,
     description: '用户要求筛选/查询数据,但 plan 未包含 modify_form',
     check: (actions) => actions.has('modify_form')
+  },
+  {
+    // 涉及创建/添加数据集 → 必须有 create_dataset
+    pattern: /(创建|添加|新增|增加).*(数据集|dataset)/i,
+    description: '用户要求创建/添加数据集,但 plan 未包含 create_dataset',
+    check: (actions) => actions.has('create_dataset')
+  },
+  {
+    // 涉及 modify_form → 必须先有 create_dataset（依赖检查）
+    pattern: /(筛选|查询|条件|参数)/,
+    description: '用户要求添加查询表单,但 plan 未包含 create_dataset（表单依赖数据集）',
+    check: (actions) => !actions.has('modify_form') || actions.has('create_dataset')
   }
 ]
 

@@ -20,6 +20,7 @@ import {
 import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-node.ts'
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
+import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 
 // ==================== 创建行子工作流 ====================
 
@@ -66,7 +67,7 @@ export function createRowGraph(): CompiledReportGraph {
 
 /**
  * 修改行属性工作流（修改已有行的属性，如高度、可见性等）
- * 边序：__start__ → read_rows → modify_and_write_row → __end__
+ * 边序：__start__ → read_rows → check_if_rows_match → [条件边] → modify_and_write_row → __end__
  * @returns 编译后的可执行图
  */
 export function modifyRowGraph(): CompiledReportGraph {
@@ -75,6 +76,14 @@ export function modifyRowGraph(): CompiledReportGraph {
     toolName: 'get_rows',
     args: {},
     resultKey: 'rowData'
+  })
+
+  // 检查节点：判断当前行数据是否已符合需求
+  const checkIfRowsMatch = buildCheckIfNeedModifyNode({
+    nodeId: 'check_if_rows_match',
+    dataKey: 'rowData',
+    skipKey: 'skipRowModify',
+    dataDescription: '行数据格式为数组 [{"number": 行号, "height": 高度, ...}]'
   })
 
   const modifyAndWriteRowLLM = createLLMDecideNode({
@@ -94,9 +103,21 @@ export function modifyRowGraph(): CompiledReportGraph {
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('read_rows', readRows)
+    .addNode('check_if_rows_match', checkIfRowsMatch)
     .addNode('modify_and_write_row', modifyAndWriteRowLLM)
     .addEdge(START, 'read_rows')
-    .addEdge('read_rows', 'modify_and_write_row')
+    .addEdge('read_rows', 'check_if_rows_match')
+    // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
+    .addConditionalEdges('check_if_rows_match', (state) => {
+      if (state.skipRowModify === true) {
+        console.log('[modifyRowGraph] 行数据已符合需求，跳过修改操作')
+        return 'END'
+      }
+      return 'modify_and_write_row'
+    }, {
+      END: END,
+      modify_and_write_row: 'modify_and_write_row'
+    })
     .addEdge('modify_and_write_row', END)
 
   return g.compile()
@@ -147,7 +168,7 @@ export function createColGraph(): CompiledReportGraph {
 
 /**
  * 修改列属性工作流（修改已有列的属性，如宽度、可见性等）
- * 边序：__start__ → read_cols → modify_and_write_col → __end__
+ * 边序：__start__ → read_cols → check_if_cols_match → [条件边] → modify_and_write_col → __end__
  * @returns 编译后的可执行图
  */
 export function modifyColGraph(): CompiledReportGraph {
@@ -156,6 +177,14 @@ export function modifyColGraph(): CompiledReportGraph {
     toolName: 'get_columns',
     args: {},
     resultKey: 'colData'
+  })
+
+  // 检查节点：判断当前列数据是否已符合需求
+  const checkIfColsMatch = buildCheckIfNeedModifyNode({
+    nodeId: 'check_if_cols_match',
+    dataKey: 'colData',
+    skipKey: 'skipColModify',
+    dataDescription: '列数据格式为数组 [{"number": 列号, "width": 宽度, ...}]'
   })
 
   const modifyAndWriteColLLM = createLLMDecideNode({
@@ -175,9 +204,21 @@ export function modifyColGraph(): CompiledReportGraph {
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('read_cols', readCols)
+    .addNode('check_if_cols_match', checkIfColsMatch)
     .addNode('modify_and_write_col', modifyAndWriteColLLM)
     .addEdge(START, 'read_cols')
-    .addEdge('read_cols', 'modify_and_write_col')
+    .addEdge('read_cols', 'check_if_cols_match')
+    // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
+    .addConditionalEdges('check_if_cols_match', (state) => {
+      if (state.skipColModify === true) {
+        console.log('[modifyColGraph] 列数据已符合需求，跳过修改操作')
+        return 'END'
+      }
+      return 'modify_and_write_col'
+    }, {
+      END: END,
+      modify_and_write_col: 'modify_and_write_col'
+    })
     .addEdge('modify_and_write_col', END)
 
   return g.compile()

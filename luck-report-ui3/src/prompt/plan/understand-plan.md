@@ -10,63 +10,80 @@
 【各动作详解】
 
 - create_datasource
-  必填：name 或 purpose（传 purpose 时子图自动 search_schema 匹配 buildin 数据源）
+  必填参数：name（数据源名称）或 purpose（数据需求），没有 name 时传递 purpose，两者都缺时向用户提问具体的数据源需求。传 purpose 时后续任务会自动调用 search_schema 匹配 buildin 数据源
+  示例：{"name":"myDs"} 或 {"purpose":"查询用户信息"}
 
 - modify_datasource / delete_datasource
-  必填：name
+  说明：不支持通过 Agent 操作，需在报表设计器中手动处理
 
 - create_dataset
-  必填：datasourceName（若本 plan 已含 create_datasource 则可不填，靠 dependsOn 串接）
-  name 由你自动生成
+  必填参数：datasourceName（数据源名称，若本 plan 已含 create_datasource 则可不填）
+  可选参数：name（数据集名称，由你自动生成）
+  示例：{"datasourceName":"myDs","name":"用户信息数据集"}
 
 - modify_dataset / delete_dataset
-  必填：datasourceName, name
+  必填参数：datasourceName（数据源名称）、name（数据集名称）
+  示例：{"datasourceName":"myDs","name":"用户信息数据集"}
 
 - modify_cell
-  触发：用户要求展示/显示/列出/导出/看到/呈现数据，或语义隐含数据呈现（如"做一个用户报表"，空画布无法自动呈现）
-  必填：cells（数组，每项含 cellAddress、value、type）
-  批量：一次传入多个 cell，合并为 1 个任务，不要为每个 cell 单独创建任务
+  触发：用户要求展示/显示/列出/导出/看到/呈现数据，或语义隐含数据呈现
+  必填参数：cells（单元格数组，每项含 cellAddress、value、type）
+  批量：一次传入多个 cell，合并为 1 个任务
+  示例：{"cells":[{"cellAddress":"A1","value":"张三","type":"simple"}]}
 
 - create_row
-  必填：无
-  可选：rowNumber（目标行号，从1开始）、count（行数，默认1）
-  批量：插入连续多行时合并为 1 个任务，如当前3行需写A5单元格 → {"rowNumber":4,"count":2}
+  必填参数：无
+  可选参数：rowNumber（目标行号，从1开始）、count（行数，默认1）
+  批量：插入连续多行时合并为 1 个任务
+  示例：{"rowNumber":4,"count":2}
 
 - modify_row
-  必填：rows（{ 行号: 行定义 } 对象）
+  必填参数：rows（行定义数组，每项含 number、height 等）
   批量：一次传入多行，合并为 1 个任务
+  示例：{"rows":[{"number":3,"height":30},{"number":4,"height":25}]}
 
 - delete_row
-  必填：startRow, endRow（行索引，从0开始）
-  批量：指定起止范围即可一次删除连续多行，合并为 1 个任务
+  必填参数：startRow（起始行索引，从0开始）、endRow（结束行索引）
+  批量：指定起止范围即可一次删除连续多行
+  示例：{"startRow":2,"endRow":4}
 
 - create_col
-  必填：无
-  可选：columnNumber（目标列号，从1开始）、count（列数，默认1）
+  必填参数：无
+  可选参数：columnNumber（目标列号，从1开始）、count（列数，默认1）
   批量：插入连续多列时合并为 1 个任务
+  示例：{"columnNumber":3,"count":2}
 
 - modify_col
-  必填：columns（{ 列号: 列定义 } 对象）
+  必填参数：columns（列定义数组，每项含 number、width 等）
   批量：一次传入多列，合并为 1 个任务
+  示例：{"columns":[{"number":2,"width":100},{"number":3,"width":80}]}
 
 - delete_col
-  必填：startCol, endCol（列索引，从0开始）
-  批量：指定起止范围即可一次删除连续多列，合并为 1 个任务
+  必填参数：startCol（起始列索引，从0开始）、endCol（结束列索引）
+  批量：指定起止范围即可一次删除连续多列
+  示例：{"startCol":1,"endCol":3}
 
 - modify_form
-  触发：涉及查询筛选（"按XX筛选"/"添加XX作为条件"），在 create/modify_dataset 之后追加
-  必填：无
+  触发：涉及查询条件配置，在 create/modify_dataset 之后追加
+  必填参数：无
+  示例：{}
 
 - modify_page
-  必填：无
+  必填参数：无
+  示例：{}
 
 读动作参数约定：
-- read_cells：传 cellPositionArray（[{row,col},...]，行列从1开始；B2 → [{row:2,col:2}]）
-- read_rows：可选传 rowNumbers 数组过滤指定行，不传返回全部
-- read_cols：可选传 columnNumbers 数组过滤指定列，不传返回全部
-- read_datasources：可选传 name 过滤
-- read_datasets：可选传 datasourceName/name 过滤
-- read_form / read_page / read_report：无参数，拉全量
+- read_cells：cellPositionArray（单元格位置数组，[{row,col},...]，行列从1开始）
+  示例：{"cellPositionArray":[{"row":2,"col":2}]}
+- read_rows：rowNumbers（行号数组，可选）
+  示例：{"rowNumbers":[1,2,3]}
+- read_cols：columnNumbers（列号数组，可选）
+  示例：{"columnNumbers":[1,2]}
+- read_datasources：name（数据源名称，可选）
+  示例：{"name":"myDs"}
+- read_datasets：datasourceName（数据源名称，可选）、name（数据集名称，可选）
+  示例：{"datasourceName":"myDs","name":"用户信息数据集"}
+- read_form / read_page / read_report：无参数
 
 【依赖关系】
 以下依赖系统自动补全，你不写 dependsOn 也可以：
@@ -74,7 +91,17 @@
 - create_dataset ← modify_cell、modify_form、create_row、create_col
 - create_row / create_col ← modify_cell
 
+⚠️ 重要说明："自动补全"仅指 dependsOn 字段的依赖关系补全，不代表会自动执行后续任务。
+如果用户需要创建数据集或表单，必须显式规划对应的任务（create_dataset、modify_form）。
+
 read-before-write（如 modify_cell 前先 read_cells）由你自主判断是否需要。
+
+【modify图内置检查机制】
+modify相关的子图（modify_cell/modify_row/modify_col/modify_form/modify_page/modify_dataset）已内置数据检查功能：
+- read完成后会自动分析当前数据是否已符合用户需求
+- 如果已符合需求，子图会自动跳过modify操作，直接结束
+- 无需在任务规划阶段判断是否需要modify，系统会自动处理
+- 示例：用户要求"把A1改为张三"，如果A1已经是"张三"，modify_cell会自动跳过修改操作
 
 【规划时无需关心的细节】
 以下由子图自动处理，不要因此追问用户：
@@ -109,10 +136,20 @@ read-before-write（如 modify_cell 前先 read_cells）由你自主判断是否
   {"id":"t2","action":"modify_cell","params":{"cells":[{"cellAddress":"A5","value":"8848","type":"simple"}]},"dependsOn":["t1"]}
 ]}
 
+【动作语义说明】
+- create_datasource：仅创建数据源容器，不创建数据集
+- create_dataset：在数据源下创建数据集（SQL/Bean 方法），需要显式规划
+- modify_form：添加查询表单组件，绑定数据集参数，需要显式规划
+
+常见误区：
+❌ 错误：用户说"添加数据集"，只规划 create_datasource（缺少 create_dataset）
+✅ 正确：规划 create_datasource + create_dataset（两个独立任务）
+
 【典型场景】
 - "把 A1 改成 3" → t1: read_cells(A1), t2: modify_cell(A1=3) dependsOn:[t1]
 - "看一下报表" → t1: read_report
 - "添加一个查用户信息的数据源" → t1: create_datasource(purpose:"查用户信息")
+- "添加一个查用户信息的数据集" → t1: create_datasource(purpose:"查用户信息"), t2: create_dataset(name:"用户信息数据集") dependsOn:[t1]
 - "设置A5单元格的值为8848"（当前只有3行）→ t1: create_row(rowNumber:4,count:2), t2: modify_cell(A5=8848) dependsOn:[t1]
 - "我要做一个查询用户信息的报表，要求输入名称可以查询用户信息" →
   t1: create_datasource(purpose:"查询用户信息")

@@ -18,6 +18,7 @@ export const PROMPT_DOC_PATH_MAP = {
   SYSTEM: 'plan/system',
   INTENT_ANALYSIS: 'plan/intent-analysis',
   UNDERSTAND_PLAN: 'plan/understand-plan',
+  CHECK: 'plan/check',
   REPORT_DEFINITION: 'instruction/report-definition',
   CELL_RENDER_ORDER: 'instruction/cell-render-order',
   PARENT_CELL_RELATION: 'instruction/parent-cell-relation',
@@ -49,6 +50,7 @@ export const PROMPT_DOC_PATH_MAP = {
 import systemMd from './plan/system.md?raw'
 import intentAnalysisMd from './plan/intent-analysis.md?raw'
 import understandPlanMd from './plan/understand-plan.md?raw'
+import checkMd from './plan/check.md?raw'
 import reportDefinitionMd from './instruction/report-definition.md?raw'
 import cellRenderOrderMd from './instruction/cell-render-order.md?raw'
 import parentCellRelationMd from './instruction/parent-cell-relation.md?raw'
@@ -76,6 +78,7 @@ const promptModules: Record<string, string> = {
   'plan/system': systemMd,
   'plan/intent-analysis': intentAnalysisMd,
   'plan/understand-plan': understandPlanMd,
+  'plan/check': checkMd,
   'instruction/report-definition': reportDefinitionMd,
   'instruction/cell-render-order': cellRenderOrderMd,
   'instruction/parent-cell-relation': parentCellRelationMd,

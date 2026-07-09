@@ -239,18 +239,19 @@ export async function parseDatasetName(expr: string): Promise<ParseDatasetNameRe
  * - fileName: 报表展示名（db: provider 用作 title，file: provider 忽略）
  * - content: 报表 XML 内容
  *
- * 兼容旧版：仅传 file 时，fileName 缺省为空字符串，filePath 取 file
+ * 后端返回 ReportFile，其中 path 是真实的报表路径（不含 provider 前缀）。
+ * 正确的 filePath 应该是：providerPrefix + reportFile.path
  */
 export async function saveReportFile(
   fileName: string,
   filePath: string,
   content: string
-): Promise<void> {
+): Promise<ReportFileItemVO> {
   const formData = new URLSearchParams();
   formData.append('fileName', fileName);
   formData.append('filePath', filePath);
   formData.append('content', content);
-  return await request.post<void>('/designer/saveReportFile', formData, {
+  return await request.post<ReportFileItemVO>('/designer/saveReportFile', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }

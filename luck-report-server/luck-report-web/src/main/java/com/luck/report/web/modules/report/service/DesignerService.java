@@ -154,7 +154,7 @@ public class DesignerService implements ApplicationContextAware {
     /**
      * 保存报表文件：解析 XML 内容、写入缓存并调用 Provider 持久化。
      */
-    public void saveReportFile(String title, String filePath, String content) {
+    public ReportFile saveReportFile(String title, String filePath, String content) {
         if (filePath == null) {
             throw new ReportDesignException("Report file can not be null.");
         }
@@ -176,7 +176,7 @@ public class DesignerService implements ApplicationContextAware {
         }
         ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
         ReportDefinitionWrapperCache.putObject(filePath, wrapper);
-        provider.saveReport(title, filePath, content);
+        return provider.saveReport(title, filePath, content);
     }
 
     /**

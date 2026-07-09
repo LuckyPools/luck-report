@@ -396,26 +396,10 @@ public class ChatServiceImpl implements ChatService {
                             }
                         }
                     }
-                    // 打印累积后的 tool_calls 状态
-                    log.info("[ChatService] 累积tool_calls后: 数量={}, 当前累积内容={}",
-                            accumulatedToolCalls.size(),
-                            accumulatedToolCalls.values().stream()
-                                    .map(tc -> {
-                                        Map<String, Object> func = (Map<String, Object>) tc.get("function");
-                                        String name = func != null ? (String) func.get("name") : "null";
-                                        String args = func != null ? (String) func.get("arguments") : "null";
-                                        return String.format("{id=%s, name=%s, argsLen=%d}",
-                                                tc.get("id"), name, args != null ? args.length() : 0);
-                                    })
-                                    .collect(java.util.stream.Collectors.joining(", ")));
                 }
 
                 // 检查 finish_reason
                 String finishReason = (String) choice.get("finish_reason");
-                if (finishReason != null || delta.containsKey("tool_calls")) {
-                    log.info("[ChatService] SSE chunk: finishReason={}, has_tool_calls={}",
-                            finishReason, delta.containsKey("tool_calls"));
-                }
                 if ("tool_calls".equals(finishReason)) {
                     flushAccumulatedToolCalls(accumulatedToolCalls, emitter);
                     accumulatedToolCalls.clear();
@@ -469,7 +453,6 @@ public class ChatServiceImpl implements ChatService {
      */
     @SuppressWarnings("unchecked")
     private void flushAccumulatedToolCalls(Map<Integer, Map<String, Object>> accumulatedToolCalls, SseEmitter emitter) throws IOException {
-        log.info("[ChatService] flushAccumulatedToolCalls: 累积的tool_calls数量={}", accumulatedToolCalls.size());
         for (Map.Entry<Integer, Map<String, Object>> entry : accumulatedToolCalls.entrySet()) {
             Map<String, Object> tc = entry.getValue();
             String toolCallId = (String) tc.get("id");
@@ -481,8 +464,6 @@ public class ChatServiceImpl implements ChatService {
 
             String toolName = (String) function.get("name");
             String argumentsStr = (String) function.getOrDefault("arguments", "{}");
-            log.info("[ChatService] 准备发送tool_use事件: toolCallId={}, toolName={}, arguments长度={}",
-                    toolCallId, toolName, argumentsStr != null ? argumentsStr.length() : 0);
 
             // 解析 arguments JSON 字符串为 Map
             Map<String, Object> input;
@@ -490,7 +471,11 @@ public class ChatServiceImpl implements ChatService {
                 input = ChatUtils.getObjectMapper().readValue(argumentsStr, Map.class);
             } catch (Exception e) {
                 // 解析失败时把原始 arguments 和解析错误带回前端，让 LLM 在错误反馈中识别问题
-                log.warn("解析tool_call arguments失败: {}", argumentsStr);
+                log.warn("解析tool_call arguments失败: toolName={}, length={}, 完整内容=[{}], error={}",
+                        toolName,
+                        argumentsStr != null ? argumentsStr.length() : 0,
+                        argumentsStr != null ? argumentsStr : "",
+                        e.getMessage());
                 input = new HashMap<>();
                 input.put("_rawArguments", argumentsStr != null ? argumentsStr : "");
                 input.put("_parseError", e.getMessage() != null ? e.getMessage() : "unknown parse error");

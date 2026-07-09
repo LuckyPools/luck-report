@@ -109,11 +109,11 @@ public class DesignerController {
      */
     @RequestMapping("/saveReportFile")
     @ResponseBody
-    public ResultVO<Void> saveReportFile(@RequestParam(value = "title", required = false) String title,
+    public ResultVO<ReportFile> saveReportFile(@RequestParam(value = "title", required = false) String title,
                                          @RequestParam("filePath") String filePath,
                                          @RequestParam("content") String content) {
-        designerService.saveReportFile(title, filePath, content);
-        return ResultVO.success();
+        ReportFile reportFile = designerService.saveReportFile(title, filePath, content);
+        return ResultVO.success(reportFile);
     }
 
     /**

@@ -17,6 +17,7 @@ import {
 import type { CompiledReportGraph } from '../index.ts'
 import { runToolWithEvent } from '../utils.ts'
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
+import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 import {
   buildPrepareSchemaNode,
@@ -98,9 +99,9 @@ function buildWriteDatasetNode(mode: DatasetOpMode) {
 
 /**
  * 创建/修改数据集工作流工厂（LangGraph 版本）
- * 边序：__start__ → [load_existing_dataset?] → prepare_schema → resolve_datasource → resolve_table
- *       → fetch_dataset_template → resolve_filter_conditions → build_dataset
- *       → validate_dataset → write_dataset → confirm_dataset → __end__
+ * 边序：
+ * - create模式：__start__ → prepare_schema → ... → write_dataset → confirm_dataset → __end__
+ * - update模式：__start__ → load_existing_dataset → check_if_dataset_match → [条件边] → prepare_schema → ... → __end__
  * 注：表单同步已移至 planner 统一规划 modify_form 任务，不再由数据集子图内部处理
  * @param mode - 'create' 新建，'update' 修改
  * @returns 编译后的工作流图
@@ -123,11 +124,34 @@ export function createOrUpdateDatasetGraph(mode: DatasetOpMode): CompiledReportG
     .addNode('write_dataset', writeNode)
     .addNode('confirm_dataset', buildConfirmDatasetNode())
 
-  // update 模式前置 load_existing_dataset
-  let startEdges = 'prepare_schema'
+  // update 模式前置 load_existing_dataset 和 check_if_dataset_match
+  let startEdges: string | { condition: (state: ReportState) => string; map: Record<string, string> } = 'prepare_schema'
   if (mode === 'update') {
     builder.addNode('load_existing_dataset', buildLoadExistingDatasetNode())
-    builder.addEdge('load_existing_dataset', 'prepare_schema')
+    
+    // 检查节点：判断当前数据集配置是否已符合需求
+    const checkIfDatasetMatch = buildCheckIfNeedModifyNode({
+      nodeId: 'check_if_dataset_match',
+      dataKey: 'dataset',
+      skipKey: 'skipDatasetModify',
+      dataDescription: '数据集配置包含：name, sql, datasourceName, fields, parameters等'
+    })
+    builder.addNode('check_if_dataset_match', checkIfDatasetMatch)
+    
+    builder.addEdge('load_existing_dataset', 'check_if_dataset_match')
+    
+    // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
+    builder.addConditionalEdges('check_if_dataset_match', (state) => {
+      if (state.skipDatasetModify === true) {
+        console.log('[modifyDatasetGraph] 数据集配置已符合需求，跳过修改操作')
+        return 'END'
+      }
+      return 'prepare_schema'
+    }, {
+      END: END,
+      prepare_schema: 'prepare_schema'
+    })
+    
     startEdges = 'load_existing_dataset'
   }
   // write 节点统一注册为 'write_dataset'，边也引用 'write_dataset'
