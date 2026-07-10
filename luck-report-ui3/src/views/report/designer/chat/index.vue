@@ -54,10 +54,12 @@
                 :index="idx"
                 :is-consecutive="isConsecutiveMessage(idx)"
                 :all-provider-list-by-key="allProviderListByKey"
+                :is-ask-user-active="isAskUserActive(idx)"
                 @retry="handleRetry"
                 @delete="handleDelete"
                 @rollback="handleRollback"
                 @select-option="selectAskUserOption"
+                @submit-reply="handleSubmitReply"
               />
               <ResponsingMessage
                 :response-status="responseStatus"
@@ -157,6 +159,7 @@ const {
   pendingConfirmToolCall,
   currentSessionId,
   sendMessage,
+  submitAskUserReply,
   stopChat,
   clearHistory,
   addBreak,
@@ -231,16 +234,14 @@ const sendQuickQuestion = (item: { icon: string; text: string }) => {
 const deepThinkEnabled = ref(false)
 
 /**
- * 处理 ask_user 提问中 option 被点击：把选项作为用户回复直接发送
- * 走 sendMessage 完整流程（包含 ask_user 上下文包装），planner 看到回复后会继续执行任务
+ * 处理 ask_user 提问中 option 被点击：把选项作为用户回复提交
+ * 走 submitAskUserReply 恢复路径，跳过意图分析
  *
  * @param option - 被点击的选项文本
  */
 const selectAskUserOption = (option: string) => {
   if (!option || responseStatus.value === 'pending') return
-  const modelId = currentModelInfo.value?.id ? Number(currentModelInfo.value.id) : undefined
-  const maxTokens = currentModelInfo.value?.maxTokens
-  sendMessage(option, undefined, undefined, modelId, maxTokens, deepThinkEnabled.value)
+  submitAskUserReply(option)
 }
 
 /** 是否显示引导提示（当模型未配置时） */
@@ -289,6 +290,32 @@ const isConsecutiveMessage = (index: number): boolean => {
   }
 
   return false
+}
+
+/**
+ * 判断指定索引的 ask_user 消息是否处于活跃等待状态
+ * 仅当 responseStatus 为 awaiting_user 且为最后一条 ask_user 消息时返回 true
+ *
+ * @param index - 消息索引
+ * @returns 是否为活跃等待中的 ask_user 消息
+ */
+const isAskUserActive = (index: number): boolean => {
+  if (responseStatus.value !== 'awaiting_user') return false
+  const msg = messageList.value[index]
+  if (msg?.type !== 'ask_user') return false
+  const lastAskUserIdx = messageList.value.findLastIndex(m => m.type === 'ask_user')
+  return index === lastAskUserIdx
+}
+
+/**
+ * 处理 ask_user 卡片的回复提交
+ * 调用 submitAskUserReply 恢复工作流
+ *
+ * @param reply - 用户回复文本
+ */
+const handleSubmitReply = (reply: string) => {
+  if (!reply || responseStatus.value === 'pending') return
+  submitAskUserReply(reply)
 }
 
 /**

@@ -2,9 +2,10 @@ import { createDefaultRegistry } from '../tools/registry'
 import { registerPlannerTool } from '../workflow/task-plan'
 import { MemoryManager } from '../memory/memory-manager'
 import { ContextManager } from '../core/context-manager'
-import { runAgentLoop, type AgentEvent, type AgentLoopConfig } from '../core/agent-loop'
+import { runAgentLoop, resumeAgentLoop, type AgentEvent, type AgentLoopConfig } from '../core/agent-loop'
 import type { ToolCall } from '../tools/types'
 import type { ReportSnapshot, CompactResult } from '../memory/types'
+import type { IntentAnalysisResult } from '../workflow/types'
 import type { ContextMessage } from '@/api/chat'
 import { compactConversation } from '@/api/chat/compact'
 import { contextConfig } from '@/config'
@@ -70,6 +71,10 @@ export class AgentEngine {
   private abortController: AbortController | null = null
   /** 是否正在运行 */
   private _running = false
+  /** 是否因 ask_user 中断而挂起 */
+  private _suspended = false
+  /** 挂起时保存的意图结果，供恢复时复用 */
+  private _suspendedIntent?: IntentAnalysisResult
   /** 是否正在执行异步压缩，防止并发重复触发 */
   private _compacting = false
   /** 工作流模式下每个步骤内 LLM 的最大循环轮次 */
@@ -90,6 +95,13 @@ export class AgentEngine {
    */
   get running(): boolean {
     return this._running
+  }
+
+  /**
+   * 是否因 ask_user 中断而挂起
+   */
+  get suspended(): boolean {
+    return this._suspended
   }
 
   /**
@@ -149,10 +161,19 @@ export class AgentEngine {
     }
 
     try {
-      await runAgentLoop(userMessage, config, onEvent)
+      await runAgentLoop(userMessage, config, (event) => {
+        // ask_user 中断时存储意图，供 resumeFromInterrupt 复用
+        if (event.type === 'done' && event.reason === 'awaiting_user') {
+          this._suspended = true
+          this._suspendedIntent = event.previousIntent
+        }
+        onEvent(event)
+      })
     } finally {
       this._running = false
-      this.abortController = null
+      if (!this._suspended) {
+        this.abortController = null
+      }
       // 第5层：循环结束后自动持久化会话
       this.memoryManager.persistSession()
     }
@@ -168,6 +189,8 @@ export class AgentEngine {
       this.abortController = null
     }
     this._running = false
+    this._suspended = false
+    this._suspendedIntent = undefined
   }
 
   /**
@@ -176,6 +199,53 @@ export class AgentEngine {
    */
   clearMemory(): void {
     this.memoryManager.clear()
+  }
+
+  /**
+   * 从 ask_user 中断处恢复 Agent 循环
+   * 跳过意图分析，复用挂起时的意图结果直接重启工作流
+   *
+   * @param userReply - 用户对 ask_user 提问的回复，string，不可为空
+   * @param onEvent - 事件回调，通知上层状态变化，不可为空
+   * @param signal - 可选的中断信号
+   */
+  async resumeFromInterrupt(
+    userReply: string,
+    onEvent: (event: AgentEvent) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    if (!this._suspended || !this._suspendedIntent) return
+
+    this._suspended = false
+    this._running = true
+    this.abortController = signal ? null : new AbortController()
+    const effectiveSignal = signal || this.abortController!.signal
+
+    const config: AgentLoopConfig = {
+      toolRegistry: this.toolRegistry,
+      memoryManager: this.memoryManager,
+      contextManager: this.contextManager,
+      signal: effectiveSignal,
+      onToolConfirm: this.onToolConfirmFn,
+      sessionId: this.sessionId,
+      onCaptureSnapshot: () => this.captureReportSnapshot(),
+      onAutoCompact: (mm) => this.autoCompact(mm),
+      modelId: this.modelId,
+      maxIterationsPerStep: this.maxIterationsPerStep,
+      deepThink: this.deepThink,
+      onTaskPlanChange: (plan, activeNodeId) => this.taskListManager.updateFromTaskPlan(plan, activeNodeId)
+    }
+
+    try {
+      await resumeAgentLoop(userReply, this._suspendedIntent, config, onEvent)
+    } finally {
+      this._running = false
+      if (!this._suspended) {
+        this.abortController = null
+        this._suspendedIntent = undefined
+      }
+      this.memoryManager.persistSession()
+    }
   }
 
   /**

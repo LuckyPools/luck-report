@@ -55,6 +55,79 @@ export function useChat() {
   let rafId: number | null = null
 
   /**
+   * 提交 ask_user 回复
+   * 从中断处恢复 Agent 循环，跳过意图分析直接继续工作流
+   *
+   * @param reply - 用户对 ask_user 提问的回复，string，不可为空
+   */
+  const submitAskUserReply = async (reply: string) => {
+    if (!reply.trim() || !agentEngine.suspended) return
+
+    const userMessage: Message = {
+      id: Date.now(),
+      role: 'user',
+      content: reply.trim(),
+      createdAt: new Date(),
+      type: 'text'
+    }
+    messageList.value.push(userMessage)
+
+    const reportStore = useReportStore()
+    reportStore.backupReportContext(userMessage.id)
+
+    responseStatus.value = 'pending'
+    responseMessage.value = ''
+    responseReasoning.value = ''
+    rawContent = ''
+    rawReasoning = ''
+    tokenUsage = undefined
+    searchStatus.value = 'none'
+    mcpTools.value = []
+
+    abortController = new AbortController()
+
+    try {
+      await agentEngine.resumeFromInterrupt(reply.trim(), handleAgentEvent, abortController.signal)
+    } catch (error: unknown) {
+      const err = error as Error
+      if (err.name === 'AbortError') {
+        cancelRaf()
+        responseMessage.value = rawContent
+        responseReasoning.value = rawReasoning
+        if (rawContent || rawReasoning) {
+          messageList.value.push(buildAssistantMessage(rawContent, rawReasoning))
+        }
+        if (responseStatus.value !== 'awaiting_user') {
+          responseStatus.value = 'done'
+        }
+      } else {
+        const errorMessage: Message = {
+          id: Date.now(),
+          role: 'assistant',
+          content: err.message || 'Agent 恢复执行失败',
+          createdAt: new Date(),
+          type: 'error',
+          errorType: 'NetworkError',
+          errorMessage: err.message
+        }
+        messageList.value.push(errorMessage)
+      }
+    } finally {
+      if (responseStatus.value !== 'awaiting_user') {
+        responseStatus.value = 'done'
+      }
+      responseMessage.value = ''
+      responseReasoning.value = ''
+      rawContent = ''
+      rawReasoning = ''
+      tokenUsage = undefined
+      searchStatus.value = 'none'
+      mcpTools.value = []
+      abortController = null
+    }
+  }
+
+  /**
    * 使用 requestAnimationFrame 节流更新响应消息
    * 限制 DOM 更新频率为 60fps，避免高频 SSE 数据导致卡顿
    *
@@ -432,10 +505,16 @@ const sendMessage = async (
 ) => {
     if (!content.trim() || responseStatus.value === 'pending') return
 
+    // awaiting_user 状态：用户回复走恢复路径，跳过意图分析
+    if (responseStatus.value === 'awaiting_user') {
+      await submitAskUserReply(content.trim())
+      return
+    }
+
     // 首次发送消息时自动创建会话
     if (!currentSessionId.value) {
       try {
-        console.info('[sendMessage] 馆次发消息，创建会话...')
+        console.info('[sendMessage] 首次发消息，创建会话...')
         const session = await store.createNewSession()
         agentEngine.setSessionId(session.id)
         console.info('[sendMessage] 会话创建成功:', session.id)
@@ -446,20 +525,7 @@ const sendMessage = async (
       }
     }
 
-    // ask_user 模式下：把用户当前的输入作为"对问题的补充回答"
-    // 问题已经在 messageList 中作为 type='ask_user' 的消息存在，作为 LLM 上下文的一部分
-    // 这里仅在系统提示中再次显式标注，避免 planner 把它当新提问并再次触发 ask_user
     const finalContent = content.trim()
-    // 找出最近一条 ask_user 消息（防止 planner 看到 ask_user 问题后再次规划 ask_user 问同样的内容）
-    const lastAskUserMsg = [...messageList.value].reverse().find(m => m.type === 'ask_user' && m.askUserPrompt)
-    const enrichedContent = lastAskUserMsg?.askUserPrompt
-      ? `【上一轮 Agent 提问】${lastAskUserMsg.askUserPrompt.question}\n` +
-        `【本轮用户回答】${finalContent}\n` +
-        `【系统提示】这是对上一轮 Agent 提问的回复，请从"本轮用户回答"中提取参数并直接规划后续执行任务，` +
-        `禁止再次规划 ask_user 问同样的内容。` +
-        `除非"本轮用户回答"明显缺少关键字段（如只回答了"嗯"、完全不相关），` +
-        `且必须用精准单点问题（如"类型未指定，请提供 mysql 或 oracle"），不要整组再问一遍。`
-      : finalContent
 
     const userMessage: Message = {
       id: Date.now(),
@@ -487,7 +553,7 @@ const sendMessage = async (
     mcpTools.value = []
     pendingConfirmToolCall.value = null
 
-    await sendMessageViaAgent(enrichedContent, modelId, maxTokens, deepThinkEnabled)
+    await sendMessageViaAgent(finalContent, modelId, maxTokens, deepThinkEnabled)
   }
 
   /**
@@ -684,6 +750,7 @@ const sendMessage = async (
 
     // 业务方法
     sendMessage,
+    submitAskUserReply,
     stopChat,
     clearHistory,
     addBreak,

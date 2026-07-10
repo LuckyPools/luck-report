@@ -33,7 +33,7 @@ export type AgentEvent =
   | { type: 'tool_call_result'; toolCall: ToolCall }
   | { type: 'token_usage'; usage: TokenUsage }
   | { type: 'user_prompt'; taskId: string; question: string; options?: string[] }
-  | { type: 'done'; reason: 'completed' | 'max_iterations' | 'aborted' | 'error' | 'awaiting_user'; error?: string; prompt?: { taskId: string; question: string; options?: string[] } }
+  | { type: 'done'; reason: 'completed' | 'max_iterations' | 'aborted' | 'error' | 'awaiting_user'; error?: string; prompt?: { taskId: string; question: string; options?: string[] }; previousIntent?: IntentAnalysisResult }
 
 /**
  * Agent 循环配置
@@ -91,6 +91,24 @@ export async function runAgentLoop(
 }
 
 /**
+ * 从 ask_user 中断处恢复 Agent 循环
+ * 跳过意图分析阶段，复用上次的意图结果直接重启工作流
+ *
+ * @param userReply - 用户对 ask_user 提问的回复，string，不可为空
+ * @param previousIntent - 上次中断时的意图分析结果，IntentAnalysisResult，不可为空
+ * @param config - 循环配置，AgentLoopConfig，不可为空
+ * @param onEvent - 事件回调，不可为空
+ */
+export async function resumeAgentLoop(
+  userReply: string,
+  previousIntent: IntentAnalysisResult,
+  config: AgentLoopConfig,
+  onEvent: (event: AgentEvent) => void
+): Promise<void> {
+  await runWorkflowMode(userReply, config, onEvent, previousIntent)
+}
+
+/**
  * 工作流模式
  * 核心流程：意图分析 → 选择工作流图 → 图引擎执行 → 事件适配
  *
@@ -101,7 +119,8 @@ export async function runAgentLoop(
 async function runWorkflowMode(
   userMessage: string,
   config: AgentLoopConfig,
-  onEvent: (event: AgentEvent) => void
+  onEvent: (event: AgentEvent) => void,
+  previousIntent?: IntentAnalysisResult
 ): Promise<void> {
   const { toolRegistry, memoryManager, contextManager, signal } = config
 
@@ -109,6 +128,7 @@ async function runWorkflowMode(
   memoryManager.addMessage({ role: 'user', content: userMessage })
 
   const stepToolCallIdMap = new Map<string, string>()
+  let intent: IntentAnalysisResult | undefined
 
   try {
     // ==================== 阶段1：意图分析 ====================
@@ -117,26 +137,31 @@ async function runWorkflowMode(
     try {
       reportState = getReportSchema()
     } catch { /* 获取报表状态失败不阻塞意图分析 */ }
+    if (previousIntent) {
+      // 恢复模式：复用上次意图，跳过意图分析
+      intent = previousIntent
+      onEvent({ type: 'text_delta', content: '收到您的回复，继续执行任务。\n' })
+    } else {
+      intent = await analyzeIntent(userMessage, config, reportState, onEvent)
 
-    const intent = await analyzeIntent(userMessage, config, reportState, onEvent)
+      // 处理无关意图
+      if (intent.intentType === 'irrelevant') {
+        onEvent({ type: 'text_delta', content: '我是报表小助手，请咨询我报表相关的问题哦' })
+        onEvent({ type: 'done', reason: 'completed' })
+        return
+      }
+      if (intent.intentType === 'create_report') {
+        onEvent({ type: 'text_delta', content: '我是报表小助手，请先手动创建一个新报表哦' })
+        onEvent({ type: 'done', reason: 'completed' })
+        return
+      }
 
-    // 处理无关意图
-    if (intent.intentType === 'irrelevant') {
-      onEvent({ type: 'text_delta', content: '我是报表小助手，请咨询我报表相关的问题哦' })
-      onEvent({ type: 'done', reason: 'completed' })
-      return
+      // 输出意图确认消息
+      const confirmMsg = buildIntentConfirmMessage(intent)
+      onEvent({ type: 'text_delta', content: confirmMsg })
     }
-    if (intent.intentType === 'create_report') {
-      onEvent({ type: 'text_delta', content: '我是报表小助手，请先手动创建一个新报表哦' })
-      onEvent({ type: 'done', reason: 'completed' })
-      return
-    }
 
-    // 输出意图确认消息
-    const confirmMsg = buildIntentConfirmMessage(intent)
-    onEvent({ type: 'text_delta', content: confirmMsg })
-
-    console.log(`[DEBUG][agent-loop] 阶段1完成 intent=${intent.intentType}`)
+    console.log(`[DEBUG][agent-loop] 阶段1完成 intent=${intent.intentType} resume=${!!previousIntent}`)
 
     // ==================== 阶段2：选择工作流图 ====================
     // 顶层唯一入口：report_agent（Planner 自主规划 read + write 混排）
@@ -192,7 +217,9 @@ async function runWorkflowMode(
     })
 
     const graphInput = {
-      userMessage,
+      userMessage: previousIntent
+        ? `【用户对上方提问的回复】${userMessage}`
+        : userMessage,
       originalUserMessage: userMessage,
       intent,
       reportState
@@ -245,7 +272,7 @@ async function runWorkflowMode(
       // ask_user 触发的中断：发完 user_prompt 后立即发 done 事件，让 UI 进入"等待用户输入"态
       // LangGraph 流会在 AskUserInterrupt 抛出时结束，循环自然退出，这里先发 done
       if (pendingPrompt) {
-        onEvent({ type: 'done', reason: 'awaiting_user', prompt: pendingPrompt })
+        onEvent({ type: 'done', reason: 'awaiting_user', prompt: pendingPrompt, previousIntent: intent })
         return
       }
     }
@@ -266,7 +293,8 @@ async function runWorkflowMode(
           taskId: err.taskId,
           question: err.question,
           options: err.options
-        }
+        },
+        previousIntent: intent
       })
     } else {
       onEvent({ type: 'done', reason: 'error', error: err.message })

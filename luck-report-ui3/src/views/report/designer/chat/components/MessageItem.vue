@@ -216,9 +216,25 @@
                   @click="emit('select-option', opt)"
                 >{{ opt }}</a-tag>
               </div>
+              <!-- 回复输入框 -->
+              <div v-if="isAskUserActive" class="ask-user-reply-area">
+                <a-textarea
+                  v-model:value="replyText"
+                  placeholder="请输入您的回复..."
+                  :auto-size="{ minRows: 1, maxRows: 4 }"
+                  @keydown="handleReplyKeydown"
+                />
+                <a-button
+                  type="primary"
+                  size="small"
+                  :disabled="!replyText.trim()"
+                  @click="handleReplySubmit"
+                >确认</a-button>
+              </div>
             </div>
             <div class="ask-user-footer">
-              <span class="ask-user-footer-hint">请在下方输入框回复，回复后会继续执行</span>
+              <span v-if="isAskUserActive" class="ask-user-footer-hint">请在上方输入框回复，回复后会继续执行</span>
+              <span v-else class="ask-user-footer-hint">已回复</span>
             </div>
           </div>
           <div class="action-bar">
@@ -352,7 +368,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { message as antMessage, Button as AButton, Tooltip as ATooltip, Popconfirm as APopconfirm, Alert as AAlert, Image as AImage, Avatar as AAvatar } from 'ant-design-vue'
 import {
   CopyOutlined,
@@ -389,6 +405,8 @@ interface Props {
   isConsecutive?: boolean
   /** Provider 映射表，用于显示 Provider 头像 */
   allProviderListByKey?: Record<string, ModelProvider>
+  /** ask_user 卡片是否仍在等待回复 */
+  isAskUserActive?: boolean
 }
 
 interface Emits {
@@ -397,22 +415,50 @@ interface Emits {
   (e: 'rollback', messageId: string | number): void
   /** ask_user 提问的 option 被点击（父组件拿到后直接 sendMessage 走完整流程） */
   (e: 'select-option', option: string): void
+  /** ask_user 卡片内的回复提交 */
+  (e: 'submit-reply', reply: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isConsecutive: false,
-  allProviderListByKey: () => ({})
+  allProviderListByKey: () => ({}),
+  isAskUserActive: false
 })
 
 const emit = defineEmits<Emits>()
 
 const reportStore = useReportStore()
 
+/** ask_user 卡片回复输入框内容 */
+const replyText = ref('')
+
 /** 是否可以撤回到此消息对应的报表版本 */
 const canRollback = computed(() => {
   if (props.message.role !== 'user') return false
   return reportStore.getReportBackup(props.message.id) !== null
 })
+
+/**
+ * ask_user 卡片回复输入框的键盘事件处理
+ * Enter 发送，Shift+Enter 换行
+ * @param e - 键盘事件
+ */
+const handleReplyKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleReplySubmit()
+  }
+}
+
+/**
+ * 提交 ask_user 卡片内的回复
+ */
+const handleReplySubmit = () => {
+  const text = replyText.value.trim()
+  if (!text) return
+  emit('submit-reply', text)
+  replyText.value = ''
+}
 
 /**
  * 获取当前消息的 Provider 信息
@@ -965,5 +1011,17 @@ const getUserImages = (attachments: Attachment[]): string[] => {
 .ask-user-footer-hint {
   font-size: 12px;
   opacity: 0.85;
+}
+
+/* ask_user 回复输入框样式 */
+.ask-user-reply-area {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: flex-end;
+}
+
+.ask-user-reply-area :deep(.ant-input) {
+  border-radius: 6px;
 }
 </style>
