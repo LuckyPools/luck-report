@@ -219,7 +219,13 @@ public class HtmlProducer {
                         height -= 2;
                     }
                     sb.append("<div style=\"position: relative;width:" + width + "pt;height:" + height + "pt\">");
-                    sb.append("<canvas id=\"" + canvasId + "\" style=\"width:" + width + "px !important;height:" + height + "px !important\"></canvas>");
+                    sb.append("<canvas id=\"" + canvasId + "\" style=\"width:" + width + "px !important;height:" + height + "px !important\"");
+                    // 将 base64Data 写入 data 属性，供打印场景将 canvas 替换为 img
+                    String base64Data = chartData.retriveBase64Data();
+                    if (StringUtils.isNotBlank(base64Data)) {
+                        sb.append(" data-chart-base64=\"data:image/png;base64," + base64Data + "\"");
+                    }
+                    sb.append("></canvas>");
                     sb.append("</div>");
                 } else {
                     String text = obj.toString();

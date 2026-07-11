@@ -431,7 +431,7 @@ export const ACTION_COVERAGE_RULES: Array<{
 }> = [
   {
     // 涉及数据展示/列出/导出 → 必须有 modify_cell 或 create_row
-    pattern: /(展示|显示|列出来|列出|导出|看到|呈现)/,
+    pattern: /(修改|设置|更改|赋值|变成|展示|显示|列出来|列出|导出|看到|呈现)/,
     description: '用户要求展示/显示数据,但 plan 未包含 modify_cell 或 create_row',
     check: (actions) => actions.has('modify_cell') || actions.has('create_row')
   },

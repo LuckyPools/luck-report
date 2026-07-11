@@ -113,7 +113,7 @@ export function createLLMCaller(
       tools,
       options?.sessionId,
       options?.modelId,
-      undefined,
+      options?.toolChoice,
       options?.deepThink
     )
 

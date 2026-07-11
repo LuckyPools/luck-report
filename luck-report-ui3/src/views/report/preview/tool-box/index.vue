@@ -364,6 +364,37 @@ async function print(): Promise<void> {
     styles += `</style>`
 
     iFrame.document.body.innerHTML = styles + html
+
+    // 打印 iframe 无 JS 环境，canvas 无法渲染图表，需将有图片数据的 canvas 替换为 img
+    const canvasList = iFrame.document.querySelectorAll('canvas[data-chart-base64]')
+    canvasList.forEach(canvas => {
+      const base64Src = canvas.getAttribute('data-chart-base64')
+      if (base64Src) {
+        const img = iFrame.document.createElement('img')
+        img.src = base64Src
+        img.style.width = canvas.style.width
+        img.style.height = canvas.style.height
+        const parent = canvas.parentNode
+        if (parent) {
+          parent.replaceChild(img, canvas)
+        }
+      }
+    })
+
+    // 等待 iframe 内所有图片加载完成后再触发打印
+    const images = iFrame.document.querySelectorAll('img')
+    if (images.length > 0) {
+      await Promise.all(
+        Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise(resolve => {
+            img.onload = resolve
+            img.onerror = resolve
+          })
+        })
+      )
+    }
+
     iFrame.window.focus()
     iFrame.window.print()
   } catch (error) {

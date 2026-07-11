@@ -20,15 +20,13 @@
       </a-form-item>
 
       <a-form-item :label="t('dialog.sqlParam.datatype')" name="type">
-        <a-select v-model:value="formData.type" :allow-clear="true">
-          <a-select-option
-            v-for="option in typeOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </a-select-option>
-        </a-select>
+        <a-select
+          v-model:value="formData.type"
+          :options="typeOptions"
+          :allow-clear="true"
+          :getPopupContainer="(triggerNode: any) => triggerNode.parentNode"
+          @dropdownVisibleChange="onDropdownVisibleChange"
+        />
       </a-form-item>
 
       <a-form-item :label="t('dialog.sqlParam.defaultValue')" name="defaultValue">
@@ -60,7 +58,8 @@
  *
  * 迁移说明：
  * - Options API → vue3 <script setup>
- * - UDialog/UForm/UFormItem/USelect/UOption/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-select/a-select-option/a-input/a-button
+ * - UDialog/UForm/UFormItem/USelect/UOption/UInput/UButton（自定义）→ a-modal/a-form/a-form-item/a-select/a-input/a-button
+ * - a-select 使用 :options 传值，不再使用 a-select-option 子节点
  * - $refs.form.validate → formRef.value.validate()
  * - this.$emit → defineEmits
  * - 双向 visible → v-model:visible
@@ -141,6 +140,8 @@ watch(
     if (val) {
       resetFormData()
       initData()
+      console.log('[ParameterDialog] 弹窗打开, formData:', JSON.stringify({ name: formData.name, type: formData.type, defaultValue: formData.defaultValue }))
+      console.log('[ParameterDialog] typeOptions:', JSON.stringify(typeOptions.value))
     }
   }
 )
@@ -148,7 +149,7 @@ watch(
 /** 回填表单 */
 function initData(): void {
   formData.name = props.editData?.name || ''
-  formData.type = props.editData?.type || ''
+  formData.type = props.editData?.type || 'String'
   formData.defaultValue = props.editData?.defaultValue || ''
 }
 
@@ -170,6 +171,11 @@ function resetFormData(): void {
 /** 关闭弹窗（v-model:visible） */
 function handleClose(): void {
   emit('update:visible', false)
+}
+
+/** 下拉展开/收起事件，用于排查下拉列表不显示问题 */
+function onDropdownVisibleChange(open: boolean): void {
+  console.log('[ParameterDialog] 下拉展开状态:', open, ', formData.type:', JSON.stringify(formData.type), ', typeOptions:', JSON.stringify(typeOptions.value))
 }
 
 /** 保存：先校验，再做重名校验 */

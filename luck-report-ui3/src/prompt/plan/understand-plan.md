@@ -26,7 +26,7 @@
   示例：{"datasourceName":"myDs","name":"用户信息数据集"}
 
 - modify_cell
-  触发：用户要求展示/显示/列出/导出/看到/呈现数据，或语义隐含数据呈现
+  触发：用户要求修改/设置/更改/赋值/展示/显示/列出/导出/看到/呈现数据，或语义隐含数据呈现
   必填参数：cells（单元格数组，每项含 cellAddress、value、type）
   批量：一次传入多个 cell，合并为 1 个任务
   示例：{"cells":[{"cellAddress":"A1","value":"张三","type":"simple"}]}
