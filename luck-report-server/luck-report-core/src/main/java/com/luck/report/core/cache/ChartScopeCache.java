@@ -59,6 +59,9 @@ public class ChartScopeCache {
      * @param map 图表数据映射表，不能为空
      */
     public static void storeChartDataMap(Map<String, ChartData> map) {
+        if (map == null || map.isEmpty()) {
+            return;
+        }
         String cacheKey = getCacheKey();
         CacheUtils.put(cacheKey, map);
     }

@@ -84,10 +84,6 @@ public class HtmlPreviewService {
             reportDefinition = reportRender.getReportDefinition(fileName);
         }
         Report report = reportBuilder.buildReport(reportDefinition, parameters);
-        Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
-        if (!chartMap.isEmpty()) {
-            ChartScopeCache.storeChartDataMap(chartMap);
-        }
         FullPageData pageData = PageBuilder.buildFullPageData(report);
         StringBuilder sb = new StringBuilder();
         List<List<Page>> list = pageData.getPageList();
