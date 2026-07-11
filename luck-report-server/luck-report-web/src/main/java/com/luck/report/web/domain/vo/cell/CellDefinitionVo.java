@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.web.domain.vo;
+package com.luck.report.web.domain.vo.cell;
 
 import com.luck.report.core.definition.CellStyle;
 import com.luck.report.core.definition.Expand;

@@ -21,7 +21,7 @@ import com.luck.report.core.definition.mapping.MappingType;
 import com.luck.report.core.definition.value.AggregateType;
 import com.luck.report.core.definition.value.GroupItem;
 import com.luck.report.core.definition.value.ValueType;
-import com.luck.report.web.domain.vo.ConditionVo;
+import com.luck.report.web.domain.vo.cell.ConditionVo;
 
 import java.io.Serializable;
 import java.util.List;

@@ -13,11 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.web.domain.vo;
+package com.luck.report.web.domain.vo.report;
 
 import com.luck.report.core.definition.*;
 import com.luck.report.core.definition.searchform.SearchForm;
 import com.luck.report.web.converter.DefinitionVoConverter;
+import com.luck.report.web.domain.vo.cell.CellDefinitionVo;
 import com.luck.report.web.domain.vo.datasource.DatasourceDefinitionVo;
 
 import java.util.HashMap;

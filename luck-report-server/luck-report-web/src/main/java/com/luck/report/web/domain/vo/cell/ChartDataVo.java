@@ -1,4 +1,4 @@
-package com.luck.report.web.domain.vo;
+package com.luck.report.web.domain.vo.cell;
 
 import java.io.Serializable;
 
