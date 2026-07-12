@@ -1,7 +1,7 @@
 # 图片单元格说明
 
 ## 一、概念说明
-图片单元格用于在报表中嵌入图片内容。单元格的 `value.type` 为 `"image"` 时即为图片单元格，支持两种图片来源：静态路径（`source` 为 `"text"`）和表达式（`source` 为 `"expression"`）。
+图片单元格用于在报表中嵌入图片内容。单元格对象的 `value.type` 为 `"image"` 时即为图片单元格，支持两种图片来源：静态路径（`source` 为 `"text"`）和表达式（`source` 为 `"expression"`）。
 
 ## 二、关键规则
 1. **两种数据来源**：静态路径模式下 `value.value` 存储图片 URL；表达式模式下 `value.value` 存储 JavaScript 表达式。

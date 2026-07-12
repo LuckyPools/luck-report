@@ -1,7 +1,7 @@
 # 条码单元格说明
 
 ## 一、概念说明
-条码单元格用于在报表中生成条码图片。单元格的 `value.type` 为 `"zxing"` 且 `value.category` 为 `"barcode"` 时即为条码单元格，支持多种条码格式。
+条码单元格用于在报表中生成条码图片。单元格对象的 `value.type` 为 `"zxing"` 且 `value.category` 为 `"barcode"` 时即为条码单元格，支持多种条码格式。
 
 ## 二、关键规则
 1. **条码格式可选值**：AZTEC、CODABAR、CODE_39、CODE_93、CODE_128、DATA_MATRIX、EAN_8、EAN_13、ITF、PDF_417、UPC_A、UPC_E。

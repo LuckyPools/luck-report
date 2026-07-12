@@ -279,3 +279,83 @@ export const getCellTemplateTool: ToolDefinition<{
     readOnly: true,
     requireConfirm: false
 }
+
+/**
+ * 单元格行级分批规划虚拟工具
+ * 不操作设计器，仅作为 function calling 协议锚点，
+ * 让 LLM 按结构化格式返回行级分批计划
+ */
+export const planCellBatchesTool: ToolDefinition<{
+  totalRows: number;
+  totalCols: number;
+  batches: Array<{
+    row: number;
+    band: string | null;
+    cells: Array<{
+      col: number;
+      valueType: string;
+      value?: string;
+      datasetName?: string;
+      property?: string;
+      aggregate?: string;
+      expression?: string;
+      cellName?: string;
+      leftParent?: string;
+    }>;
+    styleHint: string;
+    contextNote: string;
+  }>;
+}> = {
+  name: 'plan_cell_batches',
+  description: '规划单元格的行级分批写入结构。只输出每行的骨架信息（行号、band、单元格类型、样式提示），不生成完整单元格定义。每行是一个batch。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      totalRows: { type: 'integer', description: '总行数' },
+      totalCols: { type: 'integer', description: '总列数' },
+      batches: {
+        type: 'array',
+        description: '按行分批的写入计划，每行一个batch',
+        items: {
+          type: 'object',
+          properties: {
+            row: { type: 'integer', description: '行号(1-based)' },
+            band: { type: 'string', description: '行band类型: title/headerrepeat/footerrepeat/summary 或 null', enum: ['title', 'headerrepeat', 'footerrepeat', 'summary', null] },
+            cells: {
+              type: 'array',
+              description: '该行要写入的单元格列表',
+              items: {
+                type: 'object',
+                properties: {
+                  col: { type: 'integer', description: '列号(1-based)' },
+                  valueType: { type: 'string', description: '值类型', enum: ['simple', 'dataset', 'expression'] },
+                  value: { type: 'string', description: 'simple类型的显示值' },
+                  datasetName: { type: 'string', description: '数据集名称(dataset类型)' },
+                  property: { type: 'string', description: '字段名(dataset类型)' },
+                  aggregate: { type: 'string', description: '聚合方式(dataset类型)', enum: ['group', 'select', 'sum', 'count', 'max', 'min', 'avg'] },
+                  expression: { type: 'string', description: '表达式(expression类型)' },
+                  cellName: { type: 'string', description: '单元格名(分组列必须设)' },
+                  leftParent: { type: 'string', description: '左父单元格名(引用分组列的cellName)' }
+                },
+                required: ['col', 'valueType']
+              }
+            },
+            styleHint: { type: 'string', description: '样式提示，如：标题行跨列合并+居中加粗14号字' },
+            contextNote: { type: 'string', description: '与其他行的关联说明' }
+          },
+          required: ['row', 'band', 'cells', 'styleHint', 'contextNote']
+        }
+      }
+    },
+    required: ['totalRows', 'totalCols', 'batches']
+  },
+  execute: async (input) => {
+    if (!input || !Array.isArray(input.batches) || input.batches.length === 0) {
+      return { error: 'batches 不能为空', success: false, message: '必须至少包含1个batch' }
+    }
+    return { success: true, ...input }
+  },
+  readOnly: true,
+  requireConfirm: false,
+  showMessage: false
+}

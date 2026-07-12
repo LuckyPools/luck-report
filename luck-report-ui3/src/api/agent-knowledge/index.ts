@@ -53,6 +53,7 @@ export interface CreateAgentKnowledgeDTO {
  */
 export interface UpdateAgentKnowledgeDTO {
   title?: string
+  question?: string
   content?: string
   modelId?: number
 }

@@ -436,6 +436,12 @@ export const ACTION_COVERAGE_RULES: Array<{
     check: (actions) => actions.has('modify_cell') || actions.has('create_row')
   },
   {
+    // 制作/创建/生成报表 → 必须有 modify_cell（报表必须配置单元格才能展示数据）
+    pattern: /(制作|创建|生成|做|建|设计).*(报表|报告)|报表.*(?:制作|创建|生成|做|建|设计)/,
+    description: '用户要求制作/创建报表,但 plan 未包含 modify_cell（报表必须配置单元格才能展示数据）',
+    check: (actions) => actions.has('modify_cell')
+  },
+  {
     // 涉及查询筛选条件 → 必须有 modify_form
     pattern: /(按|输入|根据|通过|支持).*(查询|筛选|搜索|条件|参数)/,
     description: '用户要求筛选/查询数据,但 plan 未包含 modify_form',

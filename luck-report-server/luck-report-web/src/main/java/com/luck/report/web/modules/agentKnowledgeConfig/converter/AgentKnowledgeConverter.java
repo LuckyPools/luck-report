@@ -103,6 +103,9 @@ public class AgentKnowledgeConverter {
         if (dto.getTitle() != null) {
             entity.setTitle(dto.getTitle());
         }
+        if (dto.getQuestion() != null) {
+            entity.setQuestion(dto.getQuestion());
+        }
         if (dto.getContent() != null) {
             entity.setContent(dto.getContent());
         }

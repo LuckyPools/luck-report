@@ -70,6 +70,14 @@ export function buildUnifiedReportGraph(): CompiledReportGraph {
     }
     if (intent?.needsAgentKnowledge && !sr.search_agent) {
       sr.search_agent = await runToolWithEvent(runtime, 'search_agent', 'search_agent_knowledge', { query: state.userMessage })
+      // 将 search_agent_knowledge 结果同时写入 knowledgeCache，
+      // 使 buildMessages 可以通过 knowledgeCache 读取到知识库内容
+      if (sr.search_agent && runtime.memoryManager) {
+        const cache = runtime.memoryManager.getKnowledgeCache()
+        if (cache) {
+          cache.put('search_agent', typeof sr.search_agent === 'string' ? sr.search_agent : JSON.stringify(sr.search_agent))
+        }
+      }
     }
     if (intent?.needsSchemaSearch && !sr.search_schema) {
       sr.search_schema = await runToolWithEvent(runtime, 'search_schema', 'search_schema', { query: state.userMessage })

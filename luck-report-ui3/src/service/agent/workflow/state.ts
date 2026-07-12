@@ -152,6 +152,23 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => b ?? a,
     default: () => null
   }),
+  /** 行级分批计划（plan_cell_structure 节点输出） */
+  cellBatchPlan: Annotation<{
+    totalRows: number; totalCols: number;
+    batches: Array<{
+      row: number; band: string | null;
+      cells: Array<{ col: number; valueType: string; [k: string]: any }>;
+      styleHint: string; contextNote: string
+    }>
+  } | null>({
+    reducer: (a, b) => b ?? a,
+    default: () => null
+  }),
+  /** 当前写入批次索引 */
+  cellBatchIndex: Annotation<number>({
+    reducer: (a, b) => b ?? a,
+    default: () => 0
+  }),
   rowData: Annotation<Record<string, any>[] | null>({
     reducer: (a, b) => b ?? a,
     default: () => null

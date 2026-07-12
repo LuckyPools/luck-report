@@ -25,8 +25,8 @@ export interface LLMDecideNodeOptions {
   requiredToolResultsAny?: string[]
   /** 步骤内 LLM 最大循环轮次，默认 5 */
   maxIterations?: number
-  /** 步骤描述，供 LLM 理解该步骤的目的 */
-  description?: string
+  /** 步骤描述，供 LLM 理解该步骤的目的；支持动态函数，接收 state 返回描述文本 */
+  description?: string | ((state: ReportState) => string)
   /** 节点结果键（可选）
    * 默认：返回 `{ [toolName]: result, ... }`（LangGraph reducer 自动按 key 合并）
    * 设置后合并到一个对象下：{ [resultKey]: accumulated }
@@ -386,8 +386,24 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
             break
           }
 
-          case 'error':
-            throw new Error(`LLM 调用失败: ${event.message}`)
+          case 'error': {
+            // 关键修复：LLM API错误（如Postprocessor error/JSON截断）不再直接抛异常退出，
+            // 而是返回错误给LLM让其重试（利用maxIterations循环），最多尝试配置的次数
+            hasToolError = true
+            const errMsg = `LLM API错误: ${event.message}`
+            console.warn(`[llm-decide] node=${nodeId} LLM调用错误: ${errMsg} (iteration=${iteration}/${maxIterations})`)
+
+            // 如果还有剩余迭代次数，让LLM重试；否则抛异常退出
+            if (iteration < maxIterations) {
+              messages.push({
+                role: 'user',
+                content: `【系统强制提示】LLM调用发生错误。\n【错误信息】${errMsg}\n请检查输出格式，确保JSON完整闭合后重新调用必需工具。`
+              })
+              break  // 继续循环，让LLM重试
+            }
+            // 达到最大迭代次数仍失败，抛异常退出
+            throw new Error(`LLM 调用失败（已重试${maxIterations}次）: ${event.message}`)
+          }
         }
       }
 
@@ -480,10 +496,38 @@ function buildMessages(options: LLMDecideNodeOptions, state: ReportState, memory
         knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}${alreadyHint}` : alreadyHint
       }
     }
+    // 注入 search_agent_knowledge 的搜索结果
+    const agentKnowledge = (searchResults as any).search_agent
+    if (agentKnowledge) {
+      const agentContent = formatAgentKnowledge(agentKnowledge)
+      if (agentContent) {
+        const agentBlock = `\n\n[Agent知识库]\n以下是从知识库检索到的报表制作经验和最佳实践，请严格参照执行：\n${agentContent}`
+        knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}${agentBlock}` : agentBlock
+      }
+    }
   }
   const userMessage = state.userMessage + knowledgeBlock + buildWorkflowStateContext(state as any) + stepContext
 
   return [...history, { role: 'user', content: userMessage }]
+}
+
+/**
+ * 格式化 search_agent_knowledge 的搜索结果为可注入 LLM 上下文的文本
+ * 支持两种格式：数组 [{content, ...}] 或字符串
+ */
+function formatAgentKnowledge(data: any): string {
+  if (!data) return ''
+  if (typeof data === 'string') return data
+  if (Array.isArray(data)) {
+    return data
+      .filter((item: any) => item && (item.content || item.text))
+      .map((item: any) => item.content || item.text)
+      .join('\n\n---- 分界线 ----\n')
+  }
+  if (typeof data === 'object' && (data.content || data.text)) {
+    return data.content || data.text
+  }
+  return JSON.stringify(data)
 }
 
 /**

@@ -415,6 +415,25 @@ export function buildWorkflowStateContext(state: Record<string, any>): string {
     const list = state.askedQuestions.map(a => `  - ${a.taskId}: ${a.question}`).join('\n')
     parts.push(`已问过的问题（不要再问这些）：\n${list}`)
   }
+  // 注入行级分批计划（write_cells_batch 循环时，LLM 需要知道当前批次和全局结构）
+  if (state.cellBatchPlan && typeof state.cellBatchPlan === 'object') {
+    const plan = state.cellBatchPlan as { totalRows: number; totalCols: number; batches: any[] }
+    const idx = typeof state.cellBatchIndex === 'number' ? state.cellBatchIndex : 0
+    const currentBatch = plan.batches[idx]
+    parts.push(`cellBatchPlan(行级分批计划): 共${plan.totalRows}行${plan.totalCols}列，${plan.batches.length}个批次，当前第${idx + 1}批`)
+    if (currentBatch) {
+      parts.push(`当前批次: 第${currentBatch.row}行(band=${currentBatch.band ?? 'null'})，${currentBatch.cells.length}个单元格`)
+      parts.push(`样式提示: ${currentBatch.styleHint}`)
+      if (currentBatch.contextNote) parts.push(`上下文备注: ${currentBatch.contextNote}`)
+      // 列出已完成的批次信息，让 LLM 能引用已创建的 cellName
+      if (idx > 0) {
+        const completedBatches = plan.batches.slice(0, idx)
+          .map((b: any) => `第${b.row}行: ${b.cells.filter((c: any) => c.cellName).map((c: any) => `${c.cellName}(列${c.col})`).join(', ') || '无cellName'}`)
+          .join('; ')
+        parts.push(`已完成批次的cellName: ${completedBatches}`)
+      }
+    }
+  }
   if (parts.length === 0) return ''
   return `\n\n[工作流状态 — 以下值已就绪，必须直接使用，禁止编造]\n${parts.join('\n')}`
 }

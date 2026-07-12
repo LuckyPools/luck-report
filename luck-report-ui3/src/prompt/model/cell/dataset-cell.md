@@ -1,7 +1,7 @@
 # 数据集单元格说明
 
 ## 一、概念说明
-数据集单元格用于绑定数据集字段，根据聚合方式取值。单元格的 `value.type` 为 `"dataset"` 时即为数据集单元格，通过 `value.datasetName` 指定数据集，通过 `value.property` 指定字段，通过 `value.aggregate` 指定聚合方式。报表渲染时后台根据配置从数据集查询数据并填充到单元格。
+数据集单元格用于绑定数据集字段，根据聚合方式取值。单元格对象的 `value.type` 为 `"dataset"` 时即为数据集单元格，通过 `value.datasetName` 指定数据集，通过 `value.property` 指定字段，通过 `value.aggregate` 指定聚合方式。报表渲染时后台根据配置从数据集查询数据并填充到单元格。
 
 ## 二、关键规则
 1. **必须绑定已定义的数据集**：`datasetName` 必须是报表中已定义的数据集名称。

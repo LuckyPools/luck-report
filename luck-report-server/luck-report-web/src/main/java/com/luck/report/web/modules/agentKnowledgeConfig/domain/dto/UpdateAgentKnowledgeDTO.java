@@ -14,6 +14,9 @@ public class UpdateAgentKnowledgeDTO {
     /** 知识标题 */
     private String title;
 
+    /** 问题（当type=QA, FAQ时可更新） */
+    private String question;
+
     /** 内容（当type=QA, FAQ时可更新） */
     private String content;
 

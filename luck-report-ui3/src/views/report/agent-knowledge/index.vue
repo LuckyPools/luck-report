@@ -716,6 +716,7 @@ const saveKnowledge = async () => {
       // 更新操作
       const updateData: UpdateAgentKnowledgeDTO = {
         title: knowledgeForm.value.title,
+        question: knowledgeForm.value.question || undefined,
         content: knowledgeForm.value.content || undefined,
         modelId: knowledgeForm.value.modelId
       }

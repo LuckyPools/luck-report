@@ -11,6 +11,7 @@ import {
     clearCellAllTool,
     clearCellContentTool,
     clearCellStyleTool, getCellTemplateTool, mergeCellsTool,
+    planCellBatchesTool,
     readCellsTool,
     writeCellsTool
 } from "@/service/agent/tools/cell-tools.ts";
@@ -197,6 +198,7 @@ export function createDefaultRegistry(): ToolRegistry {
     loadReportDocTool,
     readCellsTool,
     writeCellsTool,
+    planCellBatchesTool,
     getDatasourcesTool,
     // setDatasourcesTool,
     addDatasourceTool,
