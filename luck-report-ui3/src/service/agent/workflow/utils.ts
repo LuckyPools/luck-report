@@ -434,8 +434,143 @@ export function buildWorkflowStateContext(state: Record<string, any>): string {
       }
     }
   }
+  // 关键决策点：注入"可用数据集清单"，避免 LLM 在 modify_cell/plan_cell_structure 阶段编造 datasetName/property
+  // 来源：
+  //  1) state.datasets — 本会话上游 create_dataset 写入的 DatasetInfo 数组（带 fields）
+  //  2) state.datasources[*].datasets — 同一会话通过 create_datasource 注入的 dataset 定义
+  //  3) state.reportState.dataBindings — 当前报表已有的数据集（仅含 datasourceName/datasetName/type，无 fields）
+  const availableDatasets = collectAvailableDatasets(state)
+  console.log(`[buildWorkflowStateContext] collectAvailableDatasets 结果: ${JSON.stringify(availableDatasets.map(d => ({ id: `${d.datasourceName}.${d.datasetName}`, fields: d.fields, source: d.source })))}, state.datasets格式=${JSON.stringify(Array.isArray(state.datasets) ? state.datasets.map((d: any) => Object.keys(d)) : typeof state.datasets)}`)
+  if (availableDatasets.length > 0) {
+    const lines = availableDatasets.map(d => {
+      const id = `${d.datasourceName}.${d.datasetName}`
+      const fieldsPart = Array.isArray(d.fields) && d.fields.length > 0
+        ? ` 字段=[${d.fields.join(', ')}]`
+        : ' 字段=(未知，须调 get_datasets 工具获取)'
+      const sourceTag = d.source === 'created' ? '本会话已创建' : (d.source === 'report' ? '当前报表已有' : '未知来源')
+      return `- ${id}${fieldsPart} (${sourceTag})`
+    })
+    parts.push(`【可用数据集清单 — 禁止编造 datasetName 或 property】\n引用 dataset 类型单元格时，必须从下列数据集的 datasetName/字段中选取，未列出的字段禁止使用：\n${lines.join('\n')}`)
+  } else if (state.reportState && Array.isArray((state.reportState as any).dataBindings) && (state.reportState as any).dataBindings.length > 0) {
+    // 兜底：当前报表已有数据集但本会话未拉过详情，提示 LLM 必须先调 get_datasets 拿 fields
+    const names = (state.reportState as any).dataBindings.map((b: any) => `${b.datasourceName}.${b.datasetName}`).join(', ')
+    parts.push(`【可用数据集提示】当前报表已存在数据集: ${names}。但字段详情未注入，必须先调 get_datasets 工具获取真实 datasetName 和 fields 列表，禁止凭推测填写。`)
+  }
   if (parts.length === 0) return ''
   return `\n\n[工作流状态 — 以下值已就绪，必须直接使用，禁止编造]\n${parts.join('\n')}`
+}
+
+/** 数据集在可用清单中的来源标记 */
+type DatasetSource = 'created' | 'datasource' | 'report'
+
+/** 可用数据集的标准化形态 */
+interface AvailableDataset {
+  datasourceName: string
+  datasetName: string
+  fields?: string[]
+  source: DatasetSource
+}
+
+/**
+ * 收集工作流 state 中所有可引用的真实数据集
+ * 合并多源并去重，保留 fields 信息最完整的版本
+ *
+ * @param state - 工作流状态
+ * @returns 可用数据集列表，按 source 优先级（created > datasource > report）去重
+ */
+function collectAvailableDatasets(state: Record<string, any>): AvailableDataset[] {
+  const map = new Map<string, AvailableDataset>()
+  const keyOf = (d: AvailableDataset) => `${d.datasourceName}::${d.datasetName}`
+
+  // 1) 本会话通过 create_dataset 写入的 DatasetInfo 数组（带 fields）
+  //    兼容两种格式：
+  //    a) DatasetInfo 扁平格式: { name, datasourceName, fields }
+  //    b) get_datasets 嵌套格式: { datasourceName, dataset: { name, fields } }
+  if (Array.isArray(state.datasets)) {
+    for (const ds of state.datasets) {
+      if (!ds || typeof ds !== 'object') continue
+      const dsName = (ds as any).datasourceName ?? (ds as any).datasource?.name
+      const name = (ds as any).name ?? (ds as any).datasetName ?? (ds as any).dataset?.name
+      if (!dsName || !name) continue
+      const fields = extractFieldNames((ds as any).fields ?? (ds as any).dataset?.fields)
+      const cur = map.get(keyOf({ datasourceName: dsName, datasetName: name, source: 'created' } as any))
+      // created 优先级最高，fields 已存在则不覆盖
+      if (!cur || cur.source !== 'created') {
+        map.set(keyOf({ datasourceName: dsName, datasetName: name, source: 'created' } as any), {
+          datasourceName: dsName,
+          datasetName: name,
+          fields,
+          source: 'created'
+        })
+      }
+    }
+  }
+
+  // 1.5) 兜底：state.dataset 单对象（build_dataset 节点产出，格式为 DatasetInfo）
+  if (map.size === 0 && state.dataset && typeof state.dataset === 'object') {
+    const ds = state.dataset as any
+    const dsName = state.targetDatasourceName ?? ds.datasourceName
+    const name = ds.name ?? ds.datasetName
+    if (dsName && name) {
+      const fields = extractFieldNames(ds.fields)
+      map.set(keyOf({ datasourceName: dsName, datasetName: name, source: 'created' } as any), {
+        datasourceName: dsName,
+        datasetName: name,
+        fields,
+        source: 'created'
+      })
+    }
+  }
+
+  // 2) state.datasources[*].datasets（create_datasource 注入的 dataset 定义）
+  if (Array.isArray(state.datasources)) {
+    for (const ds of state.datasources) {
+      if (!ds || typeof ds !== 'object') continue
+      const dsName = (ds as any).name
+      const inner = Array.isArray((ds as any).datasets) ? (ds as any).datasets : []
+      for (const sub of inner) {
+        if (!sub || typeof sub !== 'object') continue
+        const name = (sub as any).name ?? (sub as any).datasetName
+        if (!dsName || !name) continue
+        const fields = extractFieldNames((sub as any).fields)
+        const k = keyOf({ datasourceName: dsName, datasetName: name, source: 'datasource' } as any)
+        const cur = map.get(k)
+        if (!cur) {
+          map.set(k, { datasourceName: dsName, datasetName: name, fields, source: 'datasource' })
+        }
+      }
+    }
+  }
+
+  // 3) state.reportState.dataBindings（仅含 name，无 fields；作为兜底）
+  if (state.reportState && Array.isArray((state.reportState as any).dataBindings)) {
+    for (const b of (state.reportState as any).dataBindings) {
+      if (!b || typeof b !== 'object') continue
+      const dsName = (b as any).datasourceName
+      const name = (b as any).datasetName
+      if (!dsName || !name) continue
+      const k = keyOf({ datasourceName: dsName, datasetName: name, source: 'report' } as any)
+      if (!map.has(k)) {
+        map.set(k, { datasourceName: dsName, datasetName: name, fields: undefined, source: 'report' })
+      }
+    }
+  }
+
+  return Array.from(map.values())
+}
+
+/** 从 fields 数组中提取字段名（兼容 [{name}] / ['name'] 两种形态） */
+function extractFieldNames(fields: any): string[] | undefined {
+  if (!Array.isArray(fields) || fields.length === 0) return undefined
+  const names: string[] = []
+  for (const f of fields) {
+    if (typeof f === 'string') {
+      names.push(f)
+    } else if (f && typeof f === 'object' && typeof (f as any).name === 'string') {
+      names.push((f as any).name)
+    }
+  }
+  return names.length > 0 ? names : undefined
 }
 
 /** 过滤 append reducer 产生的 null/undefined 等无效错误项 */

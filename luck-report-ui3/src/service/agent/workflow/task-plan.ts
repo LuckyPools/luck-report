@@ -100,6 +100,7 @@ export const EXECUTABLE_ACTIONS = [
   'delete_dataset',
   // 写：单元格 / 行 / 列
   'modify_cell',
+  'merge_cell',
   'create_row',
   'modify_row',
   'delete_row',
@@ -149,6 +150,7 @@ export const ACTION_LABELS: Record<string, string> = {
   delete_dataset: '删除数据集',
   // 写：单元格 / 行 / 列
   modify_cell: '修改单元格',
+  merge_cell: '合并/拆分单元格',
   create_row: '创建行',
   modify_row: '修改行',
   delete_row: '删除行',
@@ -372,6 +374,7 @@ export const ACTION_DEPENDENCY_TOPOLOGY: Record<string, string[]> = {
   delete_dataset: ['create_datasource'],
   // 单元格（依赖数据集 + 行列）
   modify_cell: ['create_dataset', 'create_row', 'create_col'],
+  merge_cell: ['modify_cell'],
   // 行/列（依赖数据集坐标）
   create_row: ['create_dataset'],
   create_col: ['create_dataset'],

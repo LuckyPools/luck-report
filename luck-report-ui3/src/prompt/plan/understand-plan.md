@@ -32,6 +32,12 @@
   批量：一次传入多个 cell，合并为 1 个任务
   示例：{"cells":[{"cellAddress":"A1","value":"张三","type":"simple"}]}
 
+- merge_cell
+  触发：用户要求合并或拆分/解除合并单元格区域
+  必填参数：startRow、startCol、endRow、endCol（行列索引从0开始）
+  说明：如果选中区域已合并则拆分，未合并则合并
+  示例：{"startRow":0,"startCol":1,"endRow":0,"endCol":3}
+
 - create_row
   必填参数：无
   可选参数：rowNumber（目标行号，从1开始）、count（行数，默认1）
@@ -91,6 +97,7 @@
 - create_datasource ← create_dataset、modify_form
 - create_dataset ← modify_cell、modify_form、create_row、create_col
 - create_row / create_col ← modify_cell
+- modify_cell ← merge_cell
 
 ⚠️ 重要说明："自动补全"仅指 dependsOn 字段的依赖关系补全，不代表会自动执行后续任务。
 如果用户需要创建数据集或表单，必须显式规划对应的任务（create_dataset、modify_form）。
@@ -152,6 +159,8 @@ modify相关的子图（modify_cell/modify_row/modify_col/modify_form/modify_pag
 - "添加一个查用户信息的数据源" → t1: create_datasource(purpose:"查用户信息")
 - "添加一个查用户信息的数据集" → t1: create_datasource(purpose:"查用户信息"), t2: create_dataset(name:"用户信息数据集") dependsOn:[t1]
 - "设置A5单元格的值为8848"（当前只有3行）→ t1: create_row(rowNumber:4,count:2), t2: modify_cell(A5=8848) dependsOn:[t1]
+- "把A1到C1合并" → t1: modify_cell(A1=标题值), t2: merge_cell(startRow:0,startCol:0,endRow:0,endCol:2) dependsOn:[t1]
+- "解除A1:C1的合并" → t1: merge_cell(startRow:0,startCol:0,endRow:0,endCol:2)
 - "我要做一个查询用户信息的报表，要求输入名称可以查询用户信息" →
   t1: create_datasource(purpose:"查询用户信息")
   t2: create_dataset(name:"用户信息数据集",description:"查用户信息",filterFields:["name"]) dependsOn:[t1]

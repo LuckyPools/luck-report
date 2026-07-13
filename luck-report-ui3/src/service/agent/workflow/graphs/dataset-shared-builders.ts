@@ -144,6 +144,7 @@ export function buildBuildDatasetNode(options?: { preserveName?: boolean }) {
       '1. 基于 tableStructures 中的 tableName/columns 生成 baseSql（SELECT columns FROM tableName 形式）\n' +
       '2. 若 filterAnalysis.conditions 非空，根据 operator 拼出 WHERE 子句，并构造 parameters 数组\n' +
       '3. **必须**调用 commit_dataset 工具提交最终 dataset 对象，dataset 至少包含：name（preserveName=true 时用 state.dataset.name）、sql、fields（数组，可从 tableStructures.columns 映射得到 [{name,type,label}]）、parameters\n' +
+      '【命名约束】dataset.name 必须使用英文名称（只允许英文/数字/下划线，且以英文开头），如 user_order、product_list，禁止使用中文名称！可基于 tableName 或用户需求语义推导英文名。\n' +
       '【可选】如对字段格式/数据集规范不确定，可调 load_report_doc 查询 DATASOURCE_DATASET 文档。\n' +
       '写入由后续 validate_dataset → write_dataset 节点完成。\n' +
       '【保留原名】preserveName=true 时，dataset.name 必须使用 state.dataset 已有的 name。'
@@ -173,7 +174,7 @@ export function buildBuildDatasetNode(options?: { preserveName?: boolean }) {
   }, { nodeName: stepId })
 }
 
-/** 7. validate_dataset — 校验数据集结构 + SQL 预览 */
+/** 7. validate_dataset — 校验数据集结构 + SQL 预览 + 重名校验 */
 export function buildValidateDatasetNode() {
   return withInput(async (state: ReportState, _config, runtime) => {
     const stepId = 'validate_dataset'
@@ -190,6 +191,22 @@ export function buildValidateDatasetNode() {
       const errs = Array.isArray(result?.errors) ? result.errors : ['validate_dataset 校验未通过']
       return { errors: errs } as ReportStateUpdate
     }
+
+    // 重名校验：create 模式必须检查；modify 模式仅在名称改变时检查
+    const newName = (result.normalized ?? dataset)?.name as string | undefined
+    const oldName = state.intent?.targetDatasetName || state.intent?.datasetName
+    if (newName) {
+      // 判断是否需要检查重名：create 模式（无 oldName）或名称改变
+      const needCheckDuplicate = !oldName || newName !== oldName
+      if (needCheckDuplicate) {
+        const existingDatasets = state.datasets || []
+        const duplicate = existingDatasets.find((d: any) => d?.name === newName)
+        if (duplicate) {
+          return { errors: [`数据集名称 "${newName}" 已存在，请使用其他名称`] } as ReportStateUpdate
+        }
+      }
+    }
+
     return {
       dataset: result.normalized ?? dataset,
       sqlValidationResult: { success: true, data: result }

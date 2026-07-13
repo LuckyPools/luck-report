@@ -26,7 +26,7 @@ export {
   deleteDatasetGraph
 } from './dataset-create-graphs.ts'
 
-export { modifyCellGraph } from './cell-graphs.ts'
+export { modifyCellGraph, mergeCellsGraph } from './cell-graphs.ts'
 
 export { modifyRowGraph, modifyColGraph, deleteRowGraph, deleteColGraph } from './row-col-graphs.ts'
 

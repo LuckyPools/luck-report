@@ -109,7 +109,7 @@ import SqlDatasetDialog from '@/views/report/designer/resource-panel/datasource-
 import FieldNameDialog from '../field-name-dialog/index.vue'
 import ContextMenu from '../context-menu/index.vue'
 import { buildFields } from '@/api/designer'
-import { getCell, setCell } from '@/utils/contextActions'
+import { addCell, getCell, setCell } from '@/utils/contextActions'
 import TableManager from '@/views/report/designer/edit-table/manager'
 import { useReportStore } from '@/store/modules/report'
 import type { ReportDataset, ReportContext, ReportDatasetField } from '@/types/report-def'

@@ -57,6 +57,7 @@ const ACTION_PRODUCED_FIELDS: Record<string, readonly string[]> = {
   delete_dataset: ['datasets'],
   // 写：单元格 / 行 / 列
   modify_cell: ['cellsData'],
+  merge_cell: ['cellsData'],
   create_row: ['rowData'],
   modify_row: ['rowData'],
   delete_row: ['rowData'],
@@ -361,6 +362,7 @@ export function buildSummaryNode(options?: { maxIterations?: number }) {
       '- create_datasource/modify_datasource/delete_datasource → 数据源\n' +
       '- create_dataset/modify_dataset/delete_dataset → 数据集\n' +
       '- modify_cell → 单元格\n' +
+      '- merge_cell → 合并/拆分单元格\n' +
       '- create_row/modify_row/delete_row → 行\n' +
       '- create_col/modify_col/delete_col → 列\n' +
       '- modify_form → 查询表单\n' +

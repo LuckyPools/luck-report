@@ -729,7 +729,8 @@ export function validateCell(cell: any): string | undefined {
 
   // 仅有 value 字段才继续校验 value 子结构
   if (cell.value && typeof cell.value === 'object') {
-    // dataset 类型值校验
+    // dataset 类型值校验（结构校验仅检查必填字段；property 是否真实存在于数据集 fields 中，
+    // 由 writeCellsTool.execute 阶段的 validateDatasetFieldBindings 校验）
     if (cell.value.type === 'dataset') {
       if (!cell.value.datasetName) {
         errors.push('dataset 类型单元格必须包含 datasetName')

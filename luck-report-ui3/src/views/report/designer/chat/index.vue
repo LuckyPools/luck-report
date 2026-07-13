@@ -75,10 +75,11 @@
                 @reject-tool="rejectAgentTool"
               />
             </template>
-            <ScrollToBottomButton
-              :visible="showScrollButton"
-              @click="scrollToBottom"
-            />
+            <!-- 滚动到底部的按钮，暂时禁用 -->
+<!--            <ScrollToBottomButton-->
+<!--              :visible="showScrollButton"-->
+<!--              @click="scrollToBottom"-->
+<!--            />-->
           </div>
 
           <InputArea
@@ -113,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Alert as AAlert, Button as AButton, Modal, Tag as ATag } from 'ant-design-vue'
+import { Alert as AAlert, Button as AButton, Modal, Tag as ATag, message } from 'ant-design-vue'
 import DotLoading from '@/components/dot-loading/index.vue'
 import '@/assets/css/common/index.css'
 import { useDrag } from './drag.ts'
@@ -487,7 +488,12 @@ const handleRollback = (messageId: string | number) => {
     okText: '确定',
     cancelText: '取消',
     onOk() {
-      reportStore.restoreReportBackup(messageId)
+      const success = reportStore.restoreReportBackup(messageId)
+      if (success) {
+        message.success('撤回成功，报表已恢复到对话前的状态')
+      } else {
+        message.error('撤回失败，未找到对应的报表备份')
+      }
     }
   })
 }

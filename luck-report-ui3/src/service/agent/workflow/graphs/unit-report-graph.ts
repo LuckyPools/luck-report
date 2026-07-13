@@ -38,7 +38,7 @@ import {
   modifyDatasetGraph,
   readDatasetsGraph
 } from './dataset-create-graphs.ts'
-import { modifyCellGraph, readCellsGraph } from './cell-graphs.ts'
+import { modifyCellGraph, mergeCellsGraph, readCellsGraph } from './cell-graphs.ts'
 import { createRowGraph, modifyRowGraph, createColGraph, modifyColGraph, deleteRowGraph, deleteColGraph, readRowsGraph, readColsGraph } from './row-col-graphs.ts'
 import { modifyFormGraph, readFormGraph } from './form-graphs.ts'
 import { buildLoadDocsNode } from './load-docs.ts'
@@ -259,6 +259,10 @@ function buildActionRegistry(): ActionRegistry {
 
     // ============== 写任务：单元格 / 行 / 列 ==============
     modify_cell: wrapWriteAction('modify_cell_subgraph', modifyCellGraph, (sub) => ({
+      cellsData: sub.cellsData,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+    merge_cell: wrapWriteAction('merge_cell_subgraph', mergeCellsGraph, (sub) => ({
       cellsData: sub.cellsData,
       datasetWriteResult: sub.datasetWriteResult
     })),

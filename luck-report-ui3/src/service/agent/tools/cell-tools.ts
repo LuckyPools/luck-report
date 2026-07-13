@@ -9,12 +9,56 @@ import {
     clearCellStyle,
     clearCellAll
 } from '@/utils/tools'
+import { getDatasets } from '@/utils/contextActions'
 import {
     CellPositionSchema,
     CellsSchema, getCellTemplateByType, getExpressionCellWithConditionTemplate,
     normalizeCells,
     validateCells
 } from './schema'
+
+/**
+ * 校验 dataset 类型单元格的 property 是否在对应数据集的 fields 中
+ * 拦截 LLM 捏造不存在的字段绑定
+ * @param cells - 规范化后的单元格对象，key 为 "row,col"
+ * @returns 错误信息数组，空数组表示全部通过
+ */
+function validateDatasetFieldBindings(cells: Record<string, any>): string[] {
+  const errors: string[] = []
+  // 获取所有数据集，构建 datasetName → fieldNames 映射
+  const allDatasets: any = getDatasets()
+  const fieldMap = new Map<string, string[]>()
+  if (Array.isArray(allDatasets)) {
+    for (const item of allDatasets) {
+      // getDatasets() 无参返回 Array<{ datasourceName, dataset }>
+      const ds = item?.dataset
+      if (ds?.name) {
+        const fieldNames: string[] = Array.isArray(ds.fields)
+          ? ds.fields.map((f: any) => f?.name).filter((n: any): n is string => typeof n === 'string')
+          : []
+        fieldMap.set(ds.name, fieldNames)
+      }
+    }
+  }
+  // 无数据集时跳过校验，避免误拦截无数据集的报表
+  if (fieldMap.size === 0) return errors
+
+  for (const [key, cell] of Object.entries(cells)) {
+    if (!cell?.value || cell.value.type !== 'dataset') continue
+    const { datasetName, property } = cell.value
+    if (!datasetName || !property) continue
+
+    const validFields = fieldMap.get(datasetName)
+    if (!validFields) {
+      errors.push(`单元格 ${key} 引用的数据集 "${datasetName}" 不存在，当前可用数据集: ${[...fieldMap.keys()].join(',')}`)
+      continue
+    }
+    if (!validFields.includes(property)) {
+      errors.push(`单元格 ${key} 的字段绑定 "${property}" 不在数据集 "${datasetName}" 的 fields 中，合法字段: ${validFields.join(',')}`)
+    }
+  }
+  return errors
+}
 
 /**
  * 批量读取单元格数据工具
@@ -59,6 +103,11 @@ export const writeCellsTool: ToolDefinition<{
   },
   execute: async ({ cells }) => {
     const normalized = normalizeCells(cells)
+    // 数据集字段校验：拦截 LLM 捏造的 dataset property
+    const fieldErrors = validateDatasetFieldBindings(normalized)
+    if (fieldErrors.length > 0) {
+      return { success: false, message: `数据集字段校验失败:\n${fieldErrors.join('\n')}` }
+    }
     return writeCells({ cells: normalized })
   },
   readOnly: false,

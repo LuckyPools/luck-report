@@ -170,7 +170,7 @@ export type ReportStore = Store<
 
     // ============ 备份操作 ============
     backupReportContext(messageId: string | number): void
-    restoreReportBackup(messageId: string | number): void
+    restoreReportBackup(messageId: string | number): boolean
 
     // ============ 参数化 getter（仅在类型中体现，运行时 Pinia options 会展开为独立 getter） ============
     getDatasources(name?: string): ReportDatasource | ReportDatasource[] | null
@@ -801,7 +801,7 @@ export const useReportStore = defineStore('report', {
             }
         },
 
-        restoreReportBackup(messageId: string | number) {
+        restoreReportBackup(messageId: string | number): boolean {
             const backup = this.reportBackups.get(String(messageId))
             if (backup) {
                 this.context = cloneReportContext(backup)
@@ -810,7 +810,9 @@ export const useReportStore = defineStore('report', {
                 this.isCellUpdate = true             // 触发属性面板刷新
                 this.isDatasourcePanelUpdate = true  // 触发数据源面板刷新
                 this.isPrintLineRefresh = true       // 触发打印线刷新
+                return true
             }
+            return false
         }
     }
 })

@@ -117,6 +117,40 @@ function extractErrorInfo(error) {
 }
 
 /**
+ * 写入单个单元格（Agent 工具层增强版）
+ * 在 doWriteCell 基础上增加 colSpan/rowSpan 同步到 Handsontable mergeCells，
+ * 使合并单元格在视觉上立即生效
+ *
+ * @param {Object} params - 参数对象
+ * @param {number} params.rowIndex - 行索引，从0开始
+ * @param {number} params.colIndex - 列索引，从0开始
+ * @param {Object} params.cell - 单元格定义对象
+ */
+function writeCell({ rowIndex, colIndex, cell }) {
+    doWriteCell({ rowIndex, colIndex, cell });
+
+    // 同步 colSpan/rowSpan 到 Handsontable mergeCells
+    const cellColSpan = cell?.colSpan ?? 0
+    const cellRowSpan = cell?.rowSpan ?? 0
+    if (cellColSpan > 0 || cellRowSpan > 0) {
+        const hot = TableManager.get()
+        if (hot) {
+            const currentMerge = (hot.getSettings().mergeCells || [])
+            // 移除同位置旧合并项
+            const filtered = currentMerge.filter(
+                (m) => !(m.row === rowIndex && m.col === colIndex)
+            )
+            let rowspan = cellRowSpan || 0
+            let colspan = cellColSpan || 0
+            if (rowspan === 0) rowspan = 1
+            if (colspan === 0) colspan = 1
+            filtered.push({ row: rowIndex, col: colIndex, rowspan, colspan })
+            hot.updateSettings({ mergeCells: filtered })
+        }
+    }
+}
+
+/**
  * 工具执行结果常量（快捷构造方法）
  */
 const ToolResult = {
@@ -266,6 +300,7 @@ export function writeCells({ cells }) {
         }
     });
 
+
     // 逐个写入单元格
     // 失败原因用对象记录，key=坐标，value=具体异常原因（来自 extractErrorInfo 解析），
     // 避免之前只 push(key) 导致 message 只能给 LLM 看坐标、看不到为啥失败
@@ -280,7 +315,7 @@ export function writeCells({ cells }) {
         const row = parseInt(parts[0], 10);
         const col = parseInt(parts[1], 10);
         try {
-            doWriteCell({ rowIndex: row - 1, colIndex: col - 1, cell });
+            writeCell({ rowIndex: row - 1, colIndex: col - 1, cell });
         } catch (error) {
             // [关键决策点] 状态变化：写入失败 → 关键日志，便于排查真实原因
             // extractErrorInfo 能从 JavaScript 异常 / axios 错误 / 后端 API 错误里抽出 msg/message
