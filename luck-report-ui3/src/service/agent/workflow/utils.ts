@@ -400,6 +400,33 @@ export function buildWorkflowStateContext(state: Record<string, any>): string {
   if (state.dataset) {
     parts.push(`dataset: ${JSON.stringify(state.dataset)}`)
   }
+  // 关键决策点：注入已读取的业务数据（cellsData/rowData/colData/searchForm/pageConfig/headerConfig/footerConfig）
+  // 修复 modify_cell 等写子图 LLM 看不到 read_cells 返回值的问题
+  // 之前 buildWorkflowStateContext 不注入这些字段，write_cells 节点的 LLM 拿不到 cellsData，
+  // 导致只输出用户要求改的字段，丢失 align/valign/fontFamily/border 等其他属性（例：A1字体14→22，align 从 center 变回默认）
+  // 注入后 LLM 能看到完整单元格定义，全量保留未改字段
+  const dataFields: Array<{ key: string; desc: string }> = [
+    { key: 'cellsData', desc: 'cellsData(已读取的单元格数据，key为"row,col"，value为完整单元格定义 — 写单元格时必须基于此数据修改，全量保留未改字段)' },
+    { key: 'rowData', desc: 'rowData(已读取的行数据)' },
+    { key: 'colData', desc: 'colData(已读取的列数据)' },
+    { key: 'searchForm', desc: 'searchForm(已读取的查询表单)' },
+    { key: 'pageConfig', desc: 'pageConfig(已读取的页面配置)' },
+    { key: 'headerConfig', desc: 'headerConfig(已读取的页眉配置)' },
+    { key: 'footerConfig', desc: 'footerConfig(已读取的页脚配置)' }
+  ]
+  for (const { key, desc } of dataFields) {
+    const val = (state as Record<string, any>)[key]
+    if (val !== null && val !== undefined) {
+      // 对于 cellsData 等可能较大的对象，做大小限制避免撑爆 context
+      const serialized = JSON.stringify(val)
+      const MAX = 12000
+      if (serialized.length > MAX) {
+        parts.push(`${desc}（数据过大已截断，原长度 ${serialized.length}，保留前 ${MAX} 字符）\n${serialized.substring(0, MAX)}...`)
+      } else {
+        parts.push(`${desc}\n${serialized}`)
+      }
+    }
+  }
   // 注入当前任务的参数（dispatcher 传入的 taskParams，子图 LLM 可据此了解任务意图）
   if (state.taskParams && typeof state.taskParams === 'object' && Object.keys(state.taskParams).length > 0) {
     parts.push(`taskParams(当前任务参数): ${JSON.stringify(state.taskParams)}`)

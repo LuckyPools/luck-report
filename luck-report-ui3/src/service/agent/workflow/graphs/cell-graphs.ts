@@ -115,10 +115,16 @@ export function modifyCellGraph(): CompiledReportGraph {
       }
 
       let desc =
-        'cellsData 已在 context 中。taskParams.cellAddresses 列出待写入的 cell，合并为一个 cells 对象、一次 write_cells 完成。\n' +
+        'cellsData 已在 context 中（[工作流状态] 块中已注入完整的 cellsData，包含目标单元格的 value/cellStyle/expand/父格 等所有属性）。\n' +
+        'taskParams.cellAddresses 列出待写入的 cell，合并为一个 cells 对象、一次 write_cells 完成。\n' +
         '索引：get_cell_template 用 0-based，write_cells 的 key "row,col" 用 1-based（C4→"4,3"）。\n' +
         '失败重试同一次 write_cells，不要拆成多次。\n' +
-        '当 userMessage 涉及"制作/创建报表"时，参考 [Agent知识库] 中已加载的报表制作规范，严格按规范配置：标题行跨列合并（colSpan）+居中加粗+大字号、表头行深底浅字+加粗+边框、数据行绑定 dataset 类型并设 expand:Down、所有单元格加边框。不要使用简陋无样式的裸单元格。\n'
+        '\n【关键原则 — 必须基于已读取的 cellsData 全量输出，禁止只输出改动的字段】\n' +
+        '1) 用户每次只要求改一两个字段（如"改字体大小为22"），但你必须在 write_cells 的入参里输出该单元格的**完整定义**（行号、列号、value、cellStyle 全字段、expand、父格等），不能只输出 {"fontSize":22} 这样的局部对象；\n' +
+        '2) 完整定义 = [工作流状态] 注入的 cellsData 中对应 key 的完整对象，把要改的字段值替换为新值，**其他字段原样保留**（例：原 cellStyle.align=center，fontSize=14，用户要求改 fontSize→22，则必须输出 cellStyle.align=center 且 cellStyle.fontSize=22，不能只输出 cellStyle.fontSize=22）；\n' +
+        '3) 如果不输出完整定义，工具会按模板默认值补齐，导致用户未要求的属性（align/valign/fontFamily/bold/border 等）被重置为默认值，破坏已有样式；\n' +
+        '4) 若 cellsData 中找不到目标 key（说明该单元格是空白/未读取），按 get_cell_template 输出的模板填写。\n' +
+        '\n当 userMessage 涉及"制作/创建报表"时，参考 [Agent知识库] 中已加载的报表制作规范，严格按规范配置：标题行跨列合并（colSpan）+居中加粗+大字号、表头行深底浅字+加粗+边框、数据行绑定 dataset 类型并设 expand:Down、所有单元格加边框。不要使用简陋无样式的裸单元格。\n'
       if (cellAddressList.length > 0) {
         desc += `本次写入的目标单元格: ${cellAddressList.join(', ')}\n`
       }

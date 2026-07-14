@@ -89,7 +89,7 @@
 ## 七、数据约束
 
 数据约束由 data-schemas.ts 自动校验。主要约束：
-- 函数名大小写不敏感
+- 函数名统一小写
 - sum/avg/max/min/median/mode/vara/stdevp/abs/ceil/floor/round/sqrt/pow/exp/log/log10/cos/sin/tan/chn/rmb 要求参数值为数字类型
 - 分页函数只在分页预览时生效
 - pages 函数仅能在页眉页脚中使用

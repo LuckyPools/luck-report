@@ -383,8 +383,8 @@ export const planCellBatchesTool: ToolDefinition<{
                   property: { type: 'string', description: '字段名(dataset类型)' },
                   aggregate: { type: 'string', description: '聚合方式(dataset类型)', enum: ['group', 'select', 'sum', 'count', 'max', 'min', 'avg'] },
                   expression: { type: 'string', description: '表达式(expression类型)' },
-                  cellName: { type: 'string', description: '单元格名(分组列必须设)' },
-                  leftParent: { type: 'string', description: '左父单元格名(引用分组列的cellName)' }
+                  cellName: { type: 'string', description: '单元格名(分组列必须设)，格式如A1/B2/C3' },
+                  leftParent: { type: 'string', description: '左父格名称，引用分组列的cellName，格式如A1/B2，禁止用"3,3"坐标格式' }
                 },
                 required: ['col', 'valueType']
               }

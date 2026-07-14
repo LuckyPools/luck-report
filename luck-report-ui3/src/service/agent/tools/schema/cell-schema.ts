@@ -709,6 +709,21 @@ export function validateCell(cell: any): string | undefined {
     errors.push(`expand 必须是 None/Down/Right 之一，当前为 ${cell.expand}`)
   }
 
+  // leftParentCellName / topParentCellName 校验：允许 null/root/单元格名称格式(A1,B2,C3)
+  const parentCellNamePattern = /^[A-Z]+[0-9]+$/
+  if (cell.leftParentCellName != null) {
+    const v = String(cell.leftParentCellName)
+    if (v !== 'root' && !parentCellNamePattern.test(v)) {
+      errors.push(`leftParentCellName 必须为 null/"root"/单元格名称(如 A1,C3)，当前为 "${v}"`)
+    }
+  }
+  if (cell.topParentCellName != null) {
+    const v = String(cell.topParentCellName)
+    if (v !== 'root' && !parentCellNamePattern.test(v)) {
+      errors.push(`topParentCellName 必须为 null/"root"/单元格名称(如 A1,C3)，当前为 "${v}"`)
+    }
+  }
+
   // cellStyle 校验
   if (cell.cellStyle) {
     const style = cell.cellStyle
@@ -742,8 +757,20 @@ export function validateCell(cell: any): string | undefined {
         errors.push('dataset 类型单元格必须包含 property')
       }
       const validAggregates = ['group', 'select', 'sum', 'count', 'max', 'min', 'avg', 'customgroup']
-      if (cell.value.aggregate && !validAggregates.includes(cell.value.aggregate)) {
+      if (!validAggregates.includes(cell.value.aggregate)) {
         errors.push(`value.aggregate 必须是 ${validAggregates.join('/')} 之一，当前为 ${cell.value.aggregate}`)
+      }
+      const validOrders = ['none', 'asc', 'desc']
+      if (!validOrders.includes(cell.value.order)) {
+        errors.push(`value.order 必须是 ${validOrders.join('/')} 之一，当前为 ${cell.value.order}`)
+      }
+    }
+
+    // expression 类型值校验：禁止 = 前缀（Excel 风格），Luck-Report 表达式不使用 = 前缀
+    if (cell.value.type === 'expression') {
+      const expr = cell.value.value
+      if (typeof expr === 'string' && expr.startsWith('=')) {
+        errors.push(`expression 值不能以 "=" 开头（非 Excel 语法），正确写法如 count(A3[]) 或 sum(B3[])，当前为 ${expr}`)
       }
     }
 
@@ -818,6 +845,21 @@ export function validateCells(cells: any): string | undefined {
 }
 
 /**
+ * 浅合并 b 到 a（同 Object.assign 语义，但支持 null 跳过）
+ * - 用于在 LLM 输出的部分字段上做深合并
+ * - 仅做一层，不递归（避免误改模板的嵌套对象如 conditionPropertyItems）
+ */
+function shallowMergeBase<T extends Record<string, any>>(a: T, b: Record<string, any> | null | undefined): T {
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return a
+  for (const key of Object.keys(b)) {
+    // 跳过显式 null/undefined 让 LLM 可以"清空"某个字段（如 leftParentCellName: null）
+    if (b[key] === undefined) continue
+    a[key] = b[key]
+  }
+  return a
+}
+
+/**
  * 规范化单个单元格，按 cell.value.type 选对应模板补齐缺失字段
  * @param cell - LLM 传入的单元格对象
  * @param rowIndex - 行索引，从0开始
@@ -834,10 +876,20 @@ export function normalizeCell(cell: any, rowIndex: number, colIndex: number): Re
   if (!cell || typeof cell !== 'object' || Array.isArray(cell)) {
     return base
   }
-  // 分离 value，整体替换避免内部结构畸形合并
-  const { value: cellValue, ...rest } = cell
-  // 浅合并其余字段（LLM 传入覆盖模板默认值）
-  Object.assign(base, rest)
+  // 分离 value 和 cellStyle：value 整体替换（避免内部结构畸形合并），cellStyle 深合并（保留模板默认字段）
+  const { value: cellValue, cellStyle: cellCellStyle, ...rest } = cell
+  // 浅合并其余顶层字段（LLM 传入覆盖模板默认值）
+  shallowMergeBase(base, rest)
+  // cellStyle 字段：深合并到模板默认的 cellStyle 上（关键修复）
+  // 之前 Object.assign 会把模板默认的 {align, valign, fontSize, fontFamily, ...} 整体替换为 LLM 输出的 {fontSize: 22}，
+  // 导致用户未改的属性（align/valign/bold/border 等）被重置为默认值（例：A1 字体 14→22，align 从 center 变回默认）
+  // 深合并后：LLM 只传 fontSize:22 时，align/valign/fontFamily/bold/border 等其他字段保留模板/已有值
+  if (cellCellStyle && typeof cellCellStyle === 'object' && !Array.isArray(cellCellStyle)) {
+    if (!base.cellStyle || typeof base.cellStyle !== 'object' || Array.isArray(base.cellStyle)) {
+      base.cellStyle = {}
+    }
+    shallowMergeBase(base.cellStyle, cellCellStyle)
+  }
   // value 字段：LLM 传了则整体替换，未传则保留模板默认（按类型的空值）
   if (cellValue && typeof cellValue === 'object' && !Array.isArray(cellValue)) {
     base.value = cellValue
@@ -907,8 +959,8 @@ export const CellSchema = {
     fillBlankRows: { type: 'boolean', description: '是否填充空白行' },
     multiple: { type: 'integer', description: '填充行数倍数，0不限制', minimum: 0 },
     expand: { type: 'string', enum: ['None', 'Down', 'Right'], description: '展开方向' },
-    leftParentCellName: { type: 'string', description: '左父格名称，如A1，null表示无，root表示根' },
-    topParentCellName: { type: 'string', description: '上父格名称，如A1，null表示无，root表示根' },
+    leftParentCellName: { type: 'string', description: '左父格名称：null(默认)/"root"(无父格)/单元格名如"A1"、"C3"。禁止用坐标"3,3"格式。' },
+    topParentCellName: { type: 'string', description: '上父格名称：null(默认)/"root"(无父格)/单元格名如"A1"、"C3"。禁止用坐标"3,3"格式。' },
     conditionPropertyItems: {
       type: 'array',
       items: ConditionPropertyItemSchema,

@@ -64,6 +64,10 @@ const ACTION_PRODUCED_FIELDS: Record<string, readonly string[]> = {
   create_col: ['colData'],
   modify_col: ['colData'],
   delete_col: ['colData'],
+  // 写：表格
+  // 关键决策点：create_table 同时依赖 cellsData（写入结果）和 datasets（数据集字段）
+  // 让上游 read_datasets 任务的 datasets 字段自动注入到子图 state，避免子图内 fetch_datasets 重复调 get_datasets
+  create_table: ['cellsData', 'datasets'],
   // 写：表单 / 页面
   modify_form: ['searchForm'],
   modify_page: ['pageConfig', 'headerConfig', 'footerConfig']

@@ -169,6 +169,16 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => b ?? a,
     default: () => 0
   }),
+  /** 当前写入 band 索引（create_table 子图使用，按 band 分组推进） */
+  tableBandIndex: Annotation<number>({
+    reducer: (a, b) => b ?? a,
+    default: () => 0
+  }),
+  /** clear_and_rebuild 已重建次数（create_table 子图使用，上限 2 防止死循环） */
+  tableRebuildCount: Annotation<number>({
+    reducer: (a, b) => b ?? a,
+    default: () => 0
+  }),
   rowData: Annotation<Record<string, any>[] | null>({
     reducer: (a, b) => b ?? a,
     default: () => null

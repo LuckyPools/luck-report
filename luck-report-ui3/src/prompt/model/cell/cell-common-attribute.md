@@ -24,3 +24,4 @@
 - 颜色格式必须是 RGB 格式 "R,G,B"，如 "255,0,0"
 - dataset 类型单元格必须包含 datasetName、aggregate、property
 - 只有数据集类型单元格和表达式类型单元格才有条件属性`conditionPropertyItems`，其它类型单元格一律不允许有条件属性
+- leftParentCellName/topParentCellName（左/上父格）必须为 null/"root"/单元格名称格式(如 A1,C3)，禁止使用坐标格式(如 "3,3")

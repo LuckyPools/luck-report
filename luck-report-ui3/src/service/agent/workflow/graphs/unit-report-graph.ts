@@ -39,6 +39,7 @@ import {
   readDatasetsGraph
 } from './dataset-create-graphs.ts'
 import { modifyCellGraph, mergeCellsGraph, readCellsGraph } from './cell-graphs.ts'
+import { createTableGraph } from './table-graphs.ts'
 import { createRowGraph, modifyRowGraph, createColGraph, modifyColGraph, deleteRowGraph, deleteColGraph, readRowsGraph, readColsGraph } from './row-col-graphs.ts'
 import { modifyFormGraph, readFormGraph } from './form-graphs.ts'
 import { buildLoadDocsNode } from './load-docs.ts'
@@ -288,6 +289,15 @@ function buildActionRegistry(): ActionRegistry {
     })),
     delete_col: wrapWriteAction('delete_col_subgraph', deleteColGraph, (sub) => ({
       colData: sub.colData,
+      datasetWriteResult: sub.datasetWriteResult
+    })),
+
+    // ============== 写任务：表格 ==============
+    // 关键决策点：create_table 批量按 band 创建完整报表（替代 modify_cell 的批量场景）
+    // 输出 cellsData（写入结果）+ datasets（供下游报表读取数据集）
+    create_table: wrapWriteAction('create_table_subgraph', createTableGraph, (sub) => ({
+      cellsData: sub.cellsData,
+      datasets: sub.datasets,
       datasetWriteResult: sub.datasetWriteResult
     })),
 

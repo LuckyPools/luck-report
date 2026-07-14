@@ -107,6 +107,8 @@ export const EXECUTABLE_ACTIONS = [
   'create_col',
   'modify_col',
   'delete_col',
+  // 写：表格
+  'create_table',
   // 写：表单 / 页面
   'modify_form',
   'modify_page'
@@ -157,6 +159,8 @@ export const ACTION_LABELS: Record<string, string> = {
   create_col: '创建列',
   modify_col: '修改列',
   delete_col: '删除列',
+  // 写：表格
+  create_table: '创建报表',
   // 写：表单 / 页面
   modify_form: '修改查询表单',
   modify_page: '修改页面配置',
@@ -378,6 +382,8 @@ export const ACTION_DEPENDENCY_TOPOLOGY: Record<string, string[]> = {
   // 行/列（依赖数据集坐标）
   create_row: ['create_dataset'],
   create_col: ['create_dataset'],
+  // 表格（依赖数据源 + 数据集，与 understand-plan.md 依赖关系段落保持一致）
+  create_table: ['create_datasource', 'create_dataset'],
   // 表单：依赖数据集字段 + 数据源
   modify_form: ['create_dataset', 'create_datasource']
 }
@@ -439,10 +445,11 @@ export const ACTION_COVERAGE_RULES: Array<{
     check: (actions) => actions.has('modify_cell') || actions.has('create_row')
   },
   {
-    // 制作/创建/生成报表 → 必须有 modify_cell（报表必须配置单元格才能展示数据）
+    // 制作/创建/生成报表 → 必须有 create_table 或 modify_cell
+    // 关键决策点：create_table 优先（批量按 band 写入），modify_cell 兜底（个别单元格）
     pattern: /(制作|创建|生成|做|建|设计).*(报表|报告)|报表.*(?:制作|创建|生成|做|建|设计)/,
-    description: '用户要求制作/创建报表,但 plan 未包含 modify_cell（报表必须配置单元格才能展示数据）',
-    check: (actions) => actions.has('modify_cell')
+    description: '用户要求制作/创建报表,但 plan 未包含 create_table 或 modify_cell（报表必须配置单元格才能展示数据）',
+    check: (actions) => actions.has('create_table') || actions.has('modify_cell')
   },
   {
     // 涉及查询筛选条件 → 必须有 modify_form

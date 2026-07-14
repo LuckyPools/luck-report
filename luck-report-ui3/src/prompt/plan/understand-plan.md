@@ -26,11 +26,17 @@
   示例：{"datasourceName":"myDs","name":"用户信息数据集"}
 
 - modify_cell
-  触发：用户要求修改/设置/更改/赋值/展示/显示/列出/导出/看到/呈现数据，或语义隐含数据呈现，
-       或要求制作/创建/生成报表时，modify_cell 是必需任务——报表必须配置单元格才能展示数据
+  触发：修改/设置/赋值少量单元格（如"把A1改成3"），或对已成形报表做局部调整
   必填参数：cells（单元格数组，每项含 cellAddress、value、type）
   批量：一次传入多个 cell，合并为 1 个任务
   示例：{"cells":[{"cellAddress":"A1","value":"张三","type":"simple"}]}
+
+- create_table
+  触发："制作/创建/生成/做一张/建一张 + 报表/报告"，或一次性设计多行多列的完整表格
+  必填参数：无
+  说明：子图自动 plan_cell_batches + 按 band 写入 + 校验；**仅用于"创建报表"，不用于局部调整**
+  示例：{}
+  职责分工：制作报表用 create_table，改某格/某行用 modify_cell，不要混用
 
 - merge_cell
   触发：用户要求合并或拆分/解除合并单元格区域
@@ -98,14 +104,15 @@
 - create_dataset ← modify_cell、modify_form、create_row、create_col
 - create_row / create_col ← modify_cell
 - modify_cell ← merge_cell
+- create_table ← create_datasource、create_dataset
 
 ⚠️ 重要说明："自动补全"仅指 dependsOn 字段的依赖关系补全，不代表会自动执行后续任务。
 如果用户需要创建数据集或表单，必须显式规划对应的任务（create_dataset、modify_form）。
 
 read-before-write（如 modify_cell 前先 read_cells）由你自主判断是否需要。
 
-【modify图内置检查机制】
-modify相关的子图（modify_cell/modify_row/modify_col/modify_form/modify_page/modify_dataset）已内置数据检查功能：
+【写子图内置检查机制】
+写相关的子图（modify_cell/modify_row/modify_col/modify_form/modify_page/modify_dataset/create_table）已内置数据检查功能：
 - read完成后会自动分析当前数据是否已符合用户需求
 - 如果已符合需求，子图会自动跳过modify操作，直接结束
 - 无需在任务规划阶段判断是否需要modify，系统会自动处理
@@ -140,9 +147,9 @@ modify相关的子图（modify_cell/modify_row/modify_col/modify_form/modify_pag
 
 示例：
 {"tasks":[
-  {"id":"t1","action":"create_row","params":{"rowNumber":4,"count":2}},
-  {"id":"t2","action":"modify_cell","params":{"cells":[{"cellAddress":"A5","value":"8848","type":"simple"}]},"dependsOn":["t1"]}
-]}
+    {"id":"t1","action":"create_row","params":{"rowNumber":4,"count":2}},
+    {"id":"t2","action":"create_table","params":{},"dependsOn":["t1"]}
+  ]}
 
 【动作语义说明】
 - create_datasource：仅创建数据源容器，不创建数据集
@@ -169,4 +176,4 @@ modify相关的子图（modify_cell/modify_row/modify_col/modify_form/modify_pag
 - "制作一个用户报表" →
   t1: create_datasource(purpose:"查询用户信息")
   t2: create_dataset(name:"用户信息数据集") dependsOn:[t1]
-  t3: modify_cell(cells:[...]) dependsOn:[t2]
+  t3: create_table() dependsOn:[t2]
