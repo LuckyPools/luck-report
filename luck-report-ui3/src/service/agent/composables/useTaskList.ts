@@ -1,6 +1,5 @@
 import {computed, ref} from 'vue'
 import type {Task} from '../tools/types'
-import type {WorkflowStepRecord} from '../workflow/state.ts'
 import type {TaskNode, TaskStatus} from '../workflow/task-plan.ts'
 import {getActionLabel} from '../workflow/task-plan.ts'
 
@@ -50,31 +49,6 @@ export function useTaskList() {
   }
 
   /**
-   * 从工作流步骤记录同步任务列表
-   * 工作流模式下替代 LLM 调用 todos 工具，
-   * 代码直接将步骤执行状态映射为 Task 对象
-   *
-   * @param stepRecords - 工作流步骤执行记录数组
-   * @param activeStepId - 当前正在执行的步骤ID，可选
-   */
-  const syncFromWorkflow = (stepRecords: WorkflowStepRecord[], activeStepId?: string) => {
-    tasks.value = stepRecords.map(record => ({
-      id: record.stepId,
-      content: record.stepName,
-      status: mapWorkflowStatusToTaskStatus(record.status),
-      workflowNode: record.status === 'in_progress' ? record.stepName : undefined,
-      timestamp: Date.now(),
-      parentStepId: record.parentStepId // 传递父步骤ID，用于前端展示层级关系
-    }))
-
-    // 更新当前工作流节点
-    const activeStep = stepRecords.find(r => r.stepId === activeStepId || r.status === 'in_progress')
-    if (activeStep) {
-      currentWorkflowNode.value = activeStep.stepName
-    }
-  }
-
-  /**
    * 获取任务进度统计
    * 计算已完成、进行中、待执行的任务数量和完成百分比
    *
@@ -109,7 +83,6 @@ export function useTaskList() {
     currentWorkflowNode,
     updateTasks,
     updateFromTaskPlan,
-    syncFromWorkflow,
     getTaskProgress,
     clearTasks
   }
@@ -156,24 +129,3 @@ function mapTaskNodeStatus(
   }
 }
 
-/**
- * 工作流步骤状态映射到任务状态
- * @param status - 工作流步骤状态
- * @returns 任务状态
- */
-function mapWorkflowStatusToTaskStatus(
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'error' | 'skipped'
-): Task['status'] {
-  switch (status) {
-    case 'in_progress':
-      return 'in_progress'
-    case 'completed':
-      return 'completed'
-    case 'cancelled':
-    case 'error':
-    case 'skipped':
-      return 'cancelled'
-    default:
-      return 'pending'
-  }
-}

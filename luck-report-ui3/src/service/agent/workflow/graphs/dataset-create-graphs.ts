@@ -29,31 +29,91 @@ import {
   buildValidateDatasetNode,
   buildConfirmDatasetNode
 } from './dataset-shared-builders.ts'
+import { logger } from '../logger.ts'
+
+const log = logger('dataset-create-graphs')
 
 /** 数据集操作模式：create 新建，update 修改 */
 export type DatasetOpMode = 'create' | 'update'
 
 /**
  * 加载现有数据集（update 模式前置节点）
- * 读取所有 datasets，匹配 intent.targetDatasetName / datasetName，注入 dataset / targetDatasourceName
- * @returns LangGraph 节点函数
+ * 读取所有 datasets，匹配目标数据集名称，注入 dataset / targetDatasourceName
+ *
+ * 目标数据集名称来源优先级：
+ * 1. state.taskParams.name / datasetName（planner 通过 plan_tasks 传入）
+ * 2. state.intent?.targetDatasetName / datasetName（意图分析阶段传入）
+ * 3. state.datasets 中的唯一匹配（仅一个数据集时自动选取）
+ *
+ * 同时会从上游 read_datasets 任务注入的 state.datasets 中尝试匹配，
+ * 避免因 taskParams 中 datasourceName/datasetName 混淆导致匹配失败
  */
 function buildLoadExistingDatasetNode() {
   return withInput(async (state: ReportState, _config, runtime) => {
     const stepId = 'load_existing_dataset'
     const allDatasets: any = await runToolWithEvent(runtime, stepId, 'get_datasets', {})
-    const targetName = state.intent?.targetDatasetName || state.intent?.datasetName
+
+    // 从多个来源获取目标数据集名称
+    const tp = state.taskParams ?? {}
+    const targetName = tp.name || tp.datasetName
+      || state.intent?.targetDatasetName || state.intent?.datasetName
+
     const dsList: any[] = Array.isArray(allDatasets)
       ? allDatasets
       : (Array.isArray(allDatasets?.datasets) ? allDatasets.datasets : [])
-    if (!targetName) {
-      return { errors: ['load_existing_dataset: intent 中缺少目标数据集名称（targetDatasetName 或 datasetName）'] } as ReportStateUpdate
+
+    if (!targetName && dsList.length !== 1) {
+      return { errors: [`load_existing_dataset: 无法确定目标数据集名称（taskParams=${JSON.stringify(tp)}, intent无目标名称），且当前有 ${dsList.length} 个数据集无法自动选取`] } as ReportStateUpdate
     }
-    const found = dsList.find((d: any) => d?.name === targetName)
+
+    // 优先按名称精确匹配
+    let found: any = null
+    if (targetName) {
+      found = dsList.find((d: any) => d?.name === targetName || d?.dataset?.name === targetName)
+    }
+
+    // 精确匹配失败时，尝试从上游注入的 state.datasets 中查找正确的 datasourceName+datasetName 组合
+    if (!found && targetName && Array.isArray(state.datasets)) {
+      found = state.datasets.find((d: any) => {
+        const dName = d?.name || d?.dataset?.name
+        return dName === targetName
+      })
+      if (found) {
+        log.info(`[load_existing_dataset] 通过 state.datasets 找到数据集: ${JSON.stringify({ name: found.name, datasourceName: found.datasourceName })}`)
+      }
+    }
+
+    // 仍未找到且有目标名称：尝试宽松匹配
+    // 两种场景：targetName 可能被误传为 datasourceName，或数据集名称含有前缀/后缀差异
+    if (!found && targetName) {
+      found = dsList.find((d: any) => {
+        const dName = d?.name || d?.dataset?.name
+        const dsName = d?.datasourceName || d?.datasource?.name
+        // 1. targetName 实际是 datasourceName，反向匹配该数据源下的数据集
+        if (dsName === targetName) return true
+        // 2. 下划线/驼峰变体匹配（如 userInfo ↔ user_info）
+        const snake = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()
+        if (dName && snake(dName) === snake(targetName)) return true
+        return false
+      })
+      if (found) {
+        log.info(`[load_existing_dataset] 通过宽松匹配找到数据集: targetName=${targetName}, matched=${JSON.stringify({ name: found.name, datasourceName: found.datasourceName })}`)
+      }
+    }
+
+    // 无目标名称但只有一个数据集，自动选取
+    if (!found && !targetName && dsList.length === 1) {
+      found = dsList[0]
+      log.info(`[load_existing_dataset] 只有一个数据集，自动选取: ${found?.name}`)
+    }
+
     if (!found) {
-      return { errors: [`load_existing_dataset: 未找到目标数据集 "${targetName}"，当前共有 ${dsList.length} 个数据集`] } as ReportStateUpdate
+      const availableNames = dsList.map((d: any) => `${d?.datasourceName || '?'}.${d?.name || '?'}`).join(', ')
+      return { errors: [`load_existing_dataset: 未找到目标数据集 "${targetName || ''}"，当前共有 ${dsList.length} 个数据集: ${availableNames}`] } as ReportStateUpdate
     }
-    const dsName = found.datasourceName || found.datasource
+
+    const dsName = found.datasourceName || found.datasource?.name || found.datasource
+    log.info(`[load_existing_dataset] 找到数据集: name=${found.name}, datasourceName=${dsName}`)
     return {
       dataset: found,
       targetDatasourceName: dsName,
@@ -143,7 +203,7 @@ export function createOrUpdateDatasetGraph(mode: DatasetOpMode): CompiledReportG
     // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
     builder.addConditionalEdges('check_if_dataset_match', (state) => {
       if (state.skipDatasetModify === true) {
-        console.log('[modifyDatasetGraph] 数据集配置已符合需求，跳过修改操作')
+        log.info('[modifyDatasetGraph] 数据集配置已符合需求，跳过修改操作')
         return 'END'
       }
       return 'prepare_schema'

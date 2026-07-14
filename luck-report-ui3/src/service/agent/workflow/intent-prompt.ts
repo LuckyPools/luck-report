@@ -41,9 +41,7 @@ export function buildIntentAnalysisTools(): ToolApiFormat[] {
  *
  * @returns tool_choice 参数值，string
  */
-export function buildIntentToolChoice(): string {
-  return 'auto'
-}
+export const INTENT_TOOL_CHOICE = 'auto'
 
 /**
  * 意图分析的输出 JSON Schema
@@ -101,40 +99,4 @@ export const INTENT_ANALYSIS_SCHEMA = {
   ]
 }
 
-/**
- * 获取步骤参数生成的提示词模板
- * 用于工作流中需要 LLM 生成工具参数的步骤
- * 角色定义由 system.md 统一提供，本模板只包含步骤上下文信息
- *
- * @param stepName - 步骤名称，string，不可为空
- * @param stepDescription - 步骤描述，string，不可为空
- * @param taskDescription - 任务描述，string，不可为空
- * @param previousResults - 前序步骤结果摘要，string，可为空
- * @returns 步骤参数生成提示词，string
- */
-export function getStepPromptTemplate(
-  stepName: string,
-  stepDescription: string,
-  taskDescription: string,
-  previousResults?: string
-): string {
-  let prompt = `# 当前工作流步骤：${stepName}
-步骤说明：${stepDescription}
-用户需求：${taskDescription}`
 
-  if (previousResults) {
-    prompt += `\n前序步骤执行结果：\n${previousResults}`
-  }
-
-  prompt += `\n\n请根据以上信息，决定下一步操作。你可以调用一个或多个工具来完成当前步骤的任务。
-
-【重要规则】：
-1. 你只需要完成当前步骤"${stepName}"的任务，不要做其他步骤的事情
-2. **思考工具调用策略**：
-   - 检查当前步骤是否已经调用过某些工具，如果有，优先使用已获取的结果，避免重复调用
-   - 如果需要对同一对象进行多次修改（如单元格的多个属性），尽量合并到一次工具调用中完成
-   - 只有在确实需要新数据或需要重新执行操作时才调用工具
-3. 完成任务后直接输出文本回复，不要再调用任何工具`
-
-  return prompt
-}

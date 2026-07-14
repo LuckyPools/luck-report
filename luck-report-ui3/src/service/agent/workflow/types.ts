@@ -33,16 +33,24 @@ export interface IntentAnalysisResult {
  */
 
 import type { CompiledStateGraph } from '@langchain/langgraph'
+import type { ReportState } from './state'
+import type { WorkflowRuntimeContext } from './context-annotation'
 
-/** 节点定义元数据（用于 UI 展示） */
-export interface NodeMeta {
-  type: 'node' | 'subgraph'
-  description?: string
-  skippable?: boolean
-}
-
-/** 编译后图统一接口 = LangGraph CompiledStateGraph */
-export type CompiledReportGraph = CompiledStateGraph<any, any, any, any, any, any, any, any, any, any>
+/**
+ * 编译后图统一接口 = LangGraph CompiledStateGraph
+ * 绑定到具体的 ReportState / ReportStateUpdate / WorkflowRuntimeContext，
+ * 避免散布的 any 丢失类型安全。
+ *
+ * 类型参数顺序（CompiledStateGraph 泛型定义）：
+ *   StateShape, UpdateType, CallableConfigType, ...（LangGraph 内部用）
+ * 这里取最常用的前 3 个，其余保留默认。
+ */
+export type CompiledReportGraph = CompiledStateGraph<
+  ReportState,          // state 形态
+  Partial<ReportState>,  // update 形态
+  any,                   // config（LangGraph 内部扩展用，保留 any）
+  any, any, any, any, any, any, any
+>
 
 /** 自建图（legacy）和 LangGraph 图（new）的工厂统一签名 */
 export type CompiledGraphFactory = () => CompiledReportGraph

@@ -7,6 +7,9 @@
 import { withInput } from '../node-wrapper.ts'
 import type { WorkflowRuntime } from '../runtime.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
+import { logger } from '../logger.ts'
+
+const log = logger('tool-call')
 
 /**
  * 工具参数形态：静态对象或从 state 派生的函数
@@ -80,7 +83,7 @@ export function createToolCallNode(options: ToolCallNodeOptions) {
         event: { nodeId, output: { type: 'tool_result', toolCallId, toolName, result: null, error: errorMessage }, status: 'failed' },
         timestamp: Date.now()
       })
-      console.error(`[ERROR][tool-call] [${nodeId}] 工具 ${toolName} 执行失败: ${errorMessage}`)
+      log.error(`[${nodeId}] 工具 ${toolName} 执行失败: ${errorMessage}`)
       return { errors: [`工具 ${toolName} 执行失败: ${errorMessage}`] } as ReportStateUpdate
     }
 
@@ -89,7 +92,7 @@ export function createToolCallNode(options: ToolCallNodeOptions) {
       event: { nodeId, output: { type: 'tool_result', toolCallId, toolName, result }, status: 'success' },
       timestamp: Date.now()
     })
-    console.log(`[tool-call] [${nodeId}] ${toolName} 成功`)
+    log.info(`[${nodeId}] ${toolName} 成功`)
 
     return (resultKey
       ? { [resultKey]: result }

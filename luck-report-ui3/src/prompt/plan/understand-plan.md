@@ -100,8 +100,9 @@
 
 【依赖关系】
 以下依赖系统自动补全，你不写 dependsOn 也可以：
-- create_datasource ← create_dataset、modify_form
+- create_datasource ← create_dataset、modify_dataset、modify_form
 - create_dataset ← modify_cell、modify_form、create_row、create_col
+- modify_dataset ← modify_form
 - create_row / create_col ← modify_cell
 - modify_cell ← merge_cell
 - create_table ← create_datasource、create_dataset
@@ -173,6 +174,10 @@ read-before-write（如 modify_cell 前先 read_cells）由你自主判断是否
   t2: create_dataset(name:"用户信息数据集",description:"查用户信息",filterFields:["name"]) dependsOn:[t1]
   t3: modify_cell(cells:[...]) dependsOn:[t2]
   t4: modify_form(filterFields:["name"]) dependsOn:[t2]
+- "添加一个用户名作为查询条件"（已有数据集）→
+  t1: read_datasets（读取已有数据集，确认数据集名称）
+  t2: modify_dataset(name:"已有数据集名",filterFields:["username"]) dependsOn:[t1]
+  t3: modify_form(filterFields:["username"]) dependsOn:[t2]
 - "制作一个用户报表" →
   t1: create_datasource(purpose:"查询用户信息")
   t2: create_dataset(name:"用户信息数据集") dependsOn:[t1]

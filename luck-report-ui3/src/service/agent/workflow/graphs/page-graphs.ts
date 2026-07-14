@@ -8,6 +8,11 @@ import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-n
 import { createToolCallNode } from "@/service/agent/workflow/nodes/tool-call-node.ts"
 import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 
+import { logger } from '../logger.ts'
+
+const log = logger('page-graphs')
+
+
 /**
  * 修改页面配置工作流（LangGraph 版本）
  * 边序：3 个 read 节点并行从 __start__ 启动，全部完成后汇合到 check_if_page_match
@@ -57,7 +62,7 @@ export function modifyPageGraph(): CompiledReportGraph {
     const modifyAndWritePage = createLLMDecideNode({
         nodeId: 'modify_and_write_page',
         allowedTools: ['update_paper', 'update_header', 'update_footer', 'get_paper_config_template', 'get_header_footer_template', 'load_report_doc'],
-        requiredToolResults: ['update_paper', 'update_header', 'update_footer'],
+        requiredToolResultsAny: ['update_paper', 'update_header', 'update_footer'],
         maxIterations: 6,
         description:
             'pageConfig、headerConfig、footerConfig 已在 context 中。按以下流程处理：\n' +
@@ -82,7 +87,7 @@ export function modifyPageGraph(): CompiledReportGraph {
         // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
         .addConditionalEdges('check_if_page_match', (state) => {
             if (state.skipPageModify === true) {
-                console.log('[modifyPageGraph] 页面配置已符合需求，跳过修改操作')
+                log.info('[modifyPageGraph] 页面配置已符合需求，跳过修改操作')
                 return 'END'
             }
             return 'modify_and_write_page'

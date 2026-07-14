@@ -22,6 +22,11 @@ import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-n
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
 import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 
+import { logger } from '../logger.ts'
+
+const log = logger('row-col-graphs')
+
+
 // ==================== 创建行子工作流 ====================
 
 /**
@@ -110,7 +115,7 @@ export function modifyRowGraph(): CompiledReportGraph {
     // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
     .addConditionalEdges('check_if_rows_match', (state) => {
       if (state.skipRowModify === true) {
-        console.log('[modifyRowGraph] 行数据已符合需求，跳过修改操作')
+        log.info('[modifyRowGraph] 行数据已符合需求，跳过修改操作')
         return 'END'
       }
       return 'modify_and_write_row'
@@ -211,7 +216,7 @@ export function modifyColGraph(): CompiledReportGraph {
     // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
     .addConditionalEdges('check_if_cols_match', (state) => {
       if (state.skipColModify === true) {
-        console.log('[modifyColGraph] 列数据已符合需求，跳过修改操作')
+        log.info('[modifyColGraph] 列数据已符合需求，跳过修改操作')
         return 'END'
       }
       return 'modify_and_write_col'

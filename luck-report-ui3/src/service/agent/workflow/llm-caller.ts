@@ -65,6 +65,8 @@ export function createLLMCaller(
 
 
     // 调用 chatStream
+    // 首参为历史对话前缀文本，当前实现传空字符串（所有对话内容已通过 apiMessages 传入）
+    // chatStream 内部将首参与 apiMessages 合并为最终消息列表，空串不影响最终内容
     chatStream(
       '',
       {

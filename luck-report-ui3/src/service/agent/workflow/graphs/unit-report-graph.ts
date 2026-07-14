@@ -47,9 +47,58 @@ import { buildDispatcherNode, buildSummaryNode } from '../dispatcher.ts'
 import type { ActionRegistry } from '../task-plan.ts'
 import { modifyPageGraph, readPageGraph } from "@/service/agent/workflow/graphs/page-graphs.ts";
 import { runToolWithEvent } from '../utils.ts'
+import { createToolCallNode } from '../nodes/tool-call-node.ts'
+import { logger } from '../logger.ts'
+
+const log = logger('unit-report-graph')
 
 /** Dispatcher 自环轮次字段名 */
 const DISPATCH_ROUND_FIELD = 'dispatchRound'
+
+/**
+ * #11 改动：read_report 的全量读取子图
+ * 旧实现复用 readCellsGraph（只读 cells），但 pickOutput 输出 9 个字段，导致 8 个字段为 undefined。
+ * 新实现并行读取所有报表数据：cells / datasources / datasets / rows / cols / form / page(header+footer)
+ *
+ * 用 9 个 ToolCallNode 从 START 并行启动，全部完成后汇合到 END。
+ */
+function readReportGraph(): CompiledReportGraph {
+  const readCells = createToolCallNode({ nodeId: 'read_cells', toolName: 'read_cells', args: {}, resultKey: 'cellsData' })
+  const readDatasources = createToolCallNode({ nodeId: 'read_datasources', toolName: 'get_datasources', args: {}, resultKey: 'datasources' })
+  const readDatasets = createToolCallNode({ nodeId: 'read_datasets', toolName: 'get_datasets', args: {}, resultKey: 'datasets' })
+  const readRows = createToolCallNode({ nodeId: 'read_rows', toolName: 'get_rows', args: {}, resultKey: 'rowData' })
+  const readCols = createToolCallNode({ nodeId: 'read_cols', toolName: 'get_columns', args: {}, resultKey: 'colData' })
+  const readForm = createToolCallNode({ nodeId: 'read_form', toolName: 'get_search_form', args: {}, resultKey: 'searchForm' })
+  const readPaper = createToolCallNode({ nodeId: 'read_paper_config', toolName: 'get_paper_config', args: {}, resultKey: 'pageConfig' })
+  const readHeader = createToolCallNode({ nodeId: 'read_header_config', toolName: 'get_header', args: {}, resultKey: 'headerConfig' })
+  const readFooter = createToolCallNode({ nodeId: 'read_footer_config', toolName: 'get_footer', args: {}, resultKey: 'footerConfig' })
+
+  const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
+    .addNode('read_cells', readCells)
+    .addNode('read_datasources', readDatasources)
+    .addNode('read_datasets', readDatasets)
+    .addNode('read_rows', readRows)
+    .addNode('read_cols', readCols)
+    .addNode('read_form', readForm)
+    .addNode('read_paper_config', readPaper)
+    .addNode('read_header_config', readHeader)
+    .addNode('read_footer_config', readFooter)
+    .addEdge(START, 'read_cells')
+    .addEdge(START, 'read_datasources')
+    .addEdge(START, 'read_datasets')
+    .addEdge(START, 'read_rows')
+    .addEdge(START, 'read_cols')
+    .addEdge(START, 'read_form')
+    .addEdge(START, 'read_paper_config')
+    .addEdge(START, 'read_header_config')
+    .addEdge(START, 'read_footer_config')
+    .addEdge([
+      'read_cells', 'read_datasources', 'read_datasets', 'read_rows', 'read_cols',
+      'read_form', 'read_paper_config', 'read_header_config', 'read_footer_config'
+    ], END)
+
+  return g.compile()
+}
 
 /**
  * 构建统一报表主工作流
@@ -123,10 +172,10 @@ export function buildUnifiedReportGraph(): CompiledReportGraph {
     .addConditionalEdges('validate_plan', (state: ReportState) => {
       if (state.plannerError) {
         if ((state.replanRound ?? 0) < 2) {
-          console.log(`[unit-report-graph] validate_plan 失败 (replanRound=${state.replanRound})，回灌 understand_and_plan 重规划`)
+          log.info(`validate_plan 失败 (replanRound=${state.replanRound})，回灌 understand_and_plan 重规划`)
           return 'understand_and_plan'
         }
-        console.log(`[unit-report-graph] validate_plan 失败且重规划超限 (replanRound=${state.replanRound})，进 summary`)
+        log.info(`validate_plan 失败且重规划超限 (replanRound=${state.replanRound})，进 summary`)
         return 'summary'
       }
       if (Array.isArray(state.taskPlan) && state.taskPlan.length > 0) return 'dispatch_task'
@@ -159,6 +208,8 @@ export function buildUnifiedReportGraph(): CompiledReportGraph {
  *
  * read 类子图模式一致（单 ToolCallNode），批量生成
  * write 类子图各自独立，走 wrapWriteAction 统一封装
+ *
+ * #10 改动：每个 entry 就近声明 producedFields，消除 dispatcher 的独立 ACTION_PRODUCED_FIELDS 表
  */
 function buildActionRegistry(): ActionRegistry {
   return {
@@ -167,37 +218,43 @@ function buildActionRegistry(): ActionRegistry {
       nodeId: 'read_datasources',
       kind: 'read',
       factory: () => readDatasourcesGraph(),
-      pickOutput: (sub) => ({ datasources: sub.datasources })
+      pickOutput: (sub) => ({ datasources: sub.datasources }),
+      producedFields: ['datasources']
     },
     read_datasets: {
       nodeId: 'read_datasets',
       kind: 'read',
       factory: () => readDatasetsGraph(),
-      pickOutput: (sub) => ({ datasets: sub.datasets })
+      pickOutput: (sub) => ({ datasets: sub.datasets }),
+      producedFields: ['datasets']
     },
     read_cells: {
       nodeId: 'read_cells',
       kind: 'read',
       factory: () => readCellsGraph(),
-      pickOutput: (sub) => ({ cellsData: sub.cellsData })
+      pickOutput: (sub) => ({ cellsData: sub.cellsData }),
+      producedFields: ['cellsData']
     },
     read_rows: {
       nodeId: 'read_rows',
       kind: 'read',
       factory: () => readRowsGraph(),
-      pickOutput: (sub) => ({ rowData: sub.rowData })
+      pickOutput: (sub) => ({ rowData: sub.rowData }),
+      producedFields: ['rowData']
     },
     read_cols: {
       nodeId: 'read_cols',
       kind: 'read',
       factory: () => readColsGraph(),
-      pickOutput: (sub) => ({ colData: sub.colData })
+      pickOutput: (sub) => ({ colData: sub.colData }),
+      producedFields: ['colData']
     },
     read_form: {
       nodeId: 'read_form',
       kind: 'read',
       factory: () => readFormGraph(),
-      pickOutput: (sub) => ({ searchForm: sub.searchForm })
+      pickOutput: (sub) => ({ searchForm: sub.searchForm }),
+      producedFields: ['searchForm']
     },
     read_page: {
       nodeId: 'read_page',
@@ -207,13 +264,14 @@ function buildActionRegistry(): ActionRegistry {
         pageConfig: sub.pageConfig,
         headerConfig: sub.headerConfig,
         footerConfig: sub.footerConfig
-      })
+      }),
+      producedFields: ['pageConfig', 'headerConfig', 'footerConfig']
     },
     // read_report：读取完整报表结构（组合多字段）
     read_report: {
       nodeId: 'read_report',
       kind: 'read',
-      factory: () => readCellsGraph(),
+      factory: () => readReportGraph(),
       pickOutput: (sub) => ({
         cellsData: sub.cellsData,
         datasources: sub.datasources,
@@ -224,7 +282,8 @@ function buildActionRegistry(): ActionRegistry {
         pageConfig: sub.pageConfig,
         headerConfig: sub.headerConfig,
         footerConfig: sub.footerConfig
-      })
+      }),
+      producedFields: ['cellsData', 'datasources', 'datasets', 'rowData', 'colData', 'searchForm', 'pageConfig', 'headerConfig', 'footerConfig']
     },
 
     // ============== 写任务：数据源 ==============
@@ -232,97 +291,100 @@ function buildActionRegistry(): ActionRegistry {
       datasources: sub.datasources,
       targetDatasourceName: sub.targetDatasourceName,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['datasources']),
     modify_datasource: wrapWriteAction('modify_datasource_subgraph', modifyDatasourceGraph, (sub) => ({
       datasources: sub.datasources,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['datasources']),
     delete_datasource: wrapWriteAction('delete_datasource_subgraph', deleteDatasourceGraph, (sub) => ({
       datasources: sub.datasources,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['datasources']),
 
     // ============== 写任务：数据集 ==============
     create_dataset: wrapWriteAction('create_dataset_subgraph', createDatasetGraph, (sub) => ({
       datasets: sub.datasets,
       dataset: sub.dataset,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['datasets', 'dataset']),
     modify_dataset: wrapWriteAction('modify_dataset_subgraph', modifyDatasetGraph, (sub) => ({
       datasets: sub.datasets,
       dataset: sub.dataset,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['datasets', 'dataset']),
     delete_dataset: wrapWriteAction('delete_dataset_subgraph', deleteDatasetGraph, (sub) => ({
       datasets: sub.datasets,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['datasets']),
 
     // ============== 写任务：单元格 / 行 / 列 ==============
     modify_cell: wrapWriteAction('modify_cell_subgraph', modifyCellGraph, (sub) => ({
       cellsData: sub.cellsData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['cellsData']),
     merge_cell: wrapWriteAction('merge_cell_subgraph', mergeCellsGraph, (sub) => ({
       cellsData: sub.cellsData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['cellsData']),
     create_row: wrapWriteAction('create_row_subgraph', createRowGraph, (sub) => ({
       rowData: sub.rowData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['rowData']),
     modify_row: wrapWriteAction('modify_row_subgraph', modifyRowGraph, (sub) => ({
       rowData: sub.rowData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['rowData']),
     delete_row: wrapWriteAction('delete_row_subgraph', deleteRowGraph, (sub) => ({
       rowData: sub.rowData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['rowData']),
     create_col: wrapWriteAction('create_col_subgraph', createColGraph, (sub) => ({
       colData: sub.colData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['colData']),
     modify_col: wrapWriteAction('modify_col_subgraph', modifyColGraph, (sub) => ({
       colData: sub.colData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['colData']),
     delete_col: wrapWriteAction('delete_col_subgraph', deleteColGraph, (sub) => ({
       colData: sub.colData,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['colData']),
 
     // ============== 写任务：表格 ==============
-    // 关键决策点：create_table 批量按 band 创建完整报表（替代 modify_cell 的批量场景）
-    // 输出 cellsData（写入结果）+ datasets（供下游报表读取数据集）
+    // 关键决策点：create_table 同时依赖 cellsData（写入结果）和 datasets（数据集字段）
+    // 让上游 read_datasets 任务的 datasets 字段自动注入到子图 state，避免子图内 fetch_datasets 重复调 get_datasets
     create_table: wrapWriteAction('create_table_subgraph', createTableGraph, (sub) => ({
       cellsData: sub.cellsData,
       datasets: sub.datasets,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['cellsData', 'datasets']),
 
     // ============== 写任务：表单 / 页面 ==============
     modify_form: wrapWriteAction('modify_form_subgraph', modifyFormGraph, (sub) => ({
       searchForm: sub.searchForm,
       datasetWriteResult: sub.datasetWriteResult
-    })),
+    }), ['searchForm']),
     modify_page: wrapWriteAction('modify_page_subgraph', modifyPageGraph, (sub) => ({
       pageConfig: sub.pageConfig,
       headerConfig: sub.headerConfig,
       footerConfig: sub.footerConfig,
       datasetWriteResult: sub.datasetWriteResult
-    }))
+    }), ['pageConfig', 'headerConfig', 'footerConfig'])
   }
 }
 
 /**
  * 把"写子图"封装成 ActionRegistryEntry
  * 闭包持有 task，子图 invoke 时把 task.params.description 注入到 userMessage + taskParams
+ *
+ * #10 改动：增加 producedFields 参数，与 pickOutput 就近声明，消除 dispatcher 的独立 ACTION_PRODUCED_FIELDS 表
  */
 function wrapWriteAction(
   nodeId: string,
   factoryFn: () => CompiledReportGraph,
-  pickOutput: (subResult: any) => Record<string, any>
+  pickOutput: (subResult: any) => Record<string, any>,
+  producedFields: readonly string[]
 ): ActionRegistry['create_datasource'] {
   return {
     nodeId,
@@ -333,19 +395,20 @@ function wrapWriteAction(
         invoke: async (state: any, options?: any) => {
           const desc = task?.params?.description ?? state.userMessage
           const childState = { ...state, userMessage: desc, taskParams: task?.params ?? {} }
-          console.log(`[wrapWriteAction] ${nodeId} 开始执行子图, task=${task?.id}:${task?.action}, userMessage=${desc?.substring(0, 80)}`)
+          log.debug(`${nodeId} 开始执行子图, task=${task?.id}:${task?.action}, userMessage=${desc?.substring(0, 80)}`)
           try {
             const result = await sub.invoke(childState, options)
-            console.log(`[wrapWriteAction] ${nodeId} 子图执行完成, result keys:`, Object.keys(result ?? {}))
-            console.log(`[wrapWriteAction] ${nodeId} 子图结果: dataset=${!!result?.dataset}, datasetWriteResult=${JSON.stringify(result?.datasetWriteResult)}, errors=${JSON.stringify(result?.errors)}`)
+            log.debug(`${nodeId} 子图执行完成, result keys:`, Object.keys(result ?? {}))
+            log.debug(`${nodeId} 子图结果: dataset=${!!result?.dataset}, datasetWriteResult=${JSON.stringify(result?.datasetWriteResult)}, errors=${JSON.stringify(result?.errors)}`)
             return result
           } catch (e: any) {
-            console.error(`[wrapWriteAction] ${nodeId} 子图执行异常:`, e?.message ?? String(e))
+            log.error(`${nodeId} 子图执行异常:`, e?.message ?? String(e))
             throw e
           }
         }
       } as CompiledReportGraph
     },
-    pickOutput
+    pickOutput,
+    producedFields
   }
 }

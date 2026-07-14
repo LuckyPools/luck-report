@@ -28,8 +28,13 @@ import {
 import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-node.ts'
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
-import { runToolWithEvent } from '../utils.ts'
+import { runToolWithEvent, ensureRowCol } from '../utils.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
+
+import { logger } from '../logger.ts'
+
+const log = logger('table-graphs')
+
 
 /** 固定 band 写入顺序（data 匹配 plan_cell_batches 中 band=null 或 band='data' 的数据行） */
 const BAND_ORDER: readonly string[] = ['title', 'headerrepeat', 'data', 'summary']
@@ -183,32 +188,16 @@ export function createTableGraph(): CompiledReportGraph {
   })
 
   // 节点3：补齐行列（代码节点）
-  const ensureRowCol = withInput(async (state: ReportState, _config, runtime) => {
+  // #14 改动：复用 utils.ts 的 ensureRowCol 共享函数
+  const ensureRowColNode = withInput(async (state: ReportState, _config, runtime) => {
     const nodeId = 'ensure_row_col'
     const plan = state.cellBatchPlan as any
     if (!plan || !runtime) return {} as ReportStateUpdate
 
     const targetRow = plan.totalRows ?? 0
     const targetCol = plan.totalCols ?? 0
-    if (targetRow === 0 && targetCol === 0) return {} as ReportStateUpdate
 
-    const rowsResult = await runtime.toolRegistry.executeTool('get_rows', {})
-    const colsResult = await runtime.toolRegistry.executeTool('get_columns', {})
-    const currentRows = rowsResult && typeof rowsResult === 'object' ? Object.keys(rowsResult).length : 0
-    const currentCols = colsResult && typeof colsResult === 'object' ? Object.keys(colsResult).length : 0
-
-    if (currentRows < targetRow) {
-      await runToolWithEvent(runtime, nodeId, 'insert_row', {
-        position: currentRows,
-        number: targetRow - currentRows
-      })
-    }
-    if (currentCols < targetCol) {
-      await runToolWithEvent(runtime, nodeId, 'insert_col', {
-        position: currentCols,
-        number: targetCol - currentCols
-      })
-    }
+    await ensureRowCol(runtime, nodeId, targetRow, targetCol)
 
     return {} as ReportStateUpdate
   }, { nodeName: 'ensure_row_col' })
@@ -226,7 +215,7 @@ export function createTableGraph(): CompiledReportGraph {
       const band = BAND_ORDER[bandIdx]
       if (!band) return '所有 band 已写入完成，请进入校验阶段。'
       const batches = getBatchesForBand(plan, band)
-      console.log(`[createTableGraph] write_band bandIdx=${bandIdx} band=${band} batches=${batches.length} plan.bands=[${plan.batches?.map((b: any) => b.band ?? 'null').join(',')}]`)
+      log.info(`[createTableGraph] write_band bandIdx=${bandIdx} band=${band} batches=${batches.length} plan.bands=[${plan.batches?.map((b: any) => b.band ?? 'null').join(',')}]`)
       if (batches.length === 0) {
         return `当前 band=${band} 无 batch，直接进入下一 band 即可。`
       }
@@ -289,7 +278,7 @@ export function createTableGraph(): CompiledReportGraph {
     const hasReadResult = cellsData && typeof cellsData === 'object' && Object.keys(cellsData).length > 0
     if (!hasReadResult) {
       const msg = 'validate_and_fix 校验失败：未读取任何单元格数据，无法完成布局校验'
-      console.warn(`[createTableGraph] ${msg}`)
+      log.warn(`[createTableGraph] ${msg}`)
       return {
         errors: [msg],
         tableRebuildCount: (state.tableRebuildCount ?? 0) + 1
@@ -336,7 +325,7 @@ export function createTableGraph(): CompiledReportGraph {
       })
     }
 
-    console.log(`[createTableGraph] 重建完成, rebuildCount=${(state.tableRebuildCount ?? 0) + 1}/${MAX_REBUILD_COUNT}`)
+    log.info(`[createTableGraph] 重建完成, rebuildCount=${(state.tableRebuildCount ?? 0) + 1}/${MAX_REBUILD_COUNT}`)
     return { tableBandIndex: 0 } as ReportStateUpdate
   }, { nodeName: 'clear_and_rebuild' })
 
@@ -344,7 +333,7 @@ export function createTableGraph(): CompiledReportGraph {
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
     .addNode('fetch_datasets', fetchDatasets)
     .addNode('plan_table_structure', planTableStructure)
-    .addNode('ensure_row_col', ensureRowCol)
+    .addNode('ensure_row_col', ensureRowColNode)
     .addNode('write_band', writeBand)
     .addNode('advance_band', advanceBand)
     .addNode('validate_and_fix', validateAndFix)
@@ -355,7 +344,7 @@ export function createTableGraph(): CompiledReportGraph {
   g.addConditionalEdges(START, (state: ReportState) => {
     const datasets = state.datasets
     if (Array.isArray(datasets) && datasets.length > 0) {
-      console.log('[createTableGraph] state.datasets 已有数据，跳过 fetch_datasets')
+      log.info('[createTableGraph] state.datasets 已有数据，跳过 fetch_datasets')
       return 'plan_table_structure'
     }
     return 'fetch_datasets'
@@ -374,7 +363,7 @@ export function createTableGraph(): CompiledReportGraph {
     if (bandIdx + 1 < BAND_ORDER.length) {
       return 'advance_band'
     }
-    console.log('[createTableGraph] 所有 band 写入完成，进入校验')
+    log.info('[createTableGraph] 所有 band 写入完成，进入校验')
     return 'validate_and_fix'
   }, {
     advance_band: 'advance_band',
@@ -390,11 +379,11 @@ export function createTableGraph(): CompiledReportGraph {
     const rebuildCount = state.tableRebuildCount ?? 0
     const hasError = Array.isArray(errs) && errs.length > 0
     if (hasError && rebuildCount < MAX_REBUILD_COUNT) {
-      console.log(`[createTableGraph] 校验失败，启动重建 (rebuildCount=${rebuildCount}/${MAX_REBUILD_COUNT})`)
+      log.info(`[createTableGraph] 校验失败，启动重建 (rebuildCount=${rebuildCount}/${MAX_REBUILD_COUNT})`)
       return 'clear_and_rebuild'
     }
     if (hasError) {
-      console.warn(`[createTableGraph] 校验失败且已达重建上限 (rebuildCount=${rebuildCount})，结束`)
+      log.warn(`[createTableGraph] 校验失败且已达重建上限 (rebuildCount=${rebuildCount})，结束`)
     }
     return 'END'
   }, {

@@ -7,6 +7,9 @@ import { withInput } from '../node-wrapper.ts'
 import type { WorkflowRuntime } from '../runtime.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 import { loadPromptDocByEnumSync } from '@/prompt/index.ts'
+import { logger } from '../logger.ts'
+
+const log = logger('check-node')
 
 /**
  * 检查节点配置选项
@@ -100,11 +103,11 @@ export function buildCheckIfNeedModifyNode(options: CheckIfNeedModifyNodeOptions
         }
       }
     } catch (err: any) {
-      console.error(`[${nodeId}] LLM调用失败:`, err.message)
+      log.error(`[${nodeId}] LLM调用失败:`, err.message)
       return { [skipKey]: false } as ReportStateUpdate
     }
 
-    console.log(`[${nodeId}] LLM原始响应:`, responseText)
+    log.info(`[${nodeId}] LLM原始响应:`, responseText)
 
     // 解析JSON响应
     try {
@@ -116,18 +119,18 @@ export function buildCheckIfNeedModifyNode(options: CheckIfNeedModifyNodeOptions
       }
 
       const parsed = JSON.parse(jsonStr)
-      console.log(`[${nodeId}] 解析后的JSON:`, parsed)
+      log.info(`[${nodeId}] 解析后的JSON:`, parsed)
 
       // 验证返回的字段名是否正确
       if (parsed && typeof parsed[skipKey] === 'boolean') {
-        console.log(`[${nodeId}] 检查结果: ${skipKey}=${parsed[skipKey]}, reason=${parsed.reason || '无'}`)
+        log.info(`[${nodeId}] 检查结果: ${skipKey}=${parsed[skipKey]}, reason=${parsed.reason || '无'}`)
         return { [skipKey]: parsed[skipKey] } as ReportStateUpdate
       } else {
-        console.error(`[${nodeId}] JSON格式不正确，缺少${skipKey}字段或类型错误:`, parsed)
+        log.error(`[${nodeId}] JSON格式不正确，缺少${skipKey}字段或类型错误:`, parsed)
         return { [skipKey]: false } as ReportStateUpdate
       }
     } catch (err: any) {
-      console.error(`[${nodeId}] JSON解析失败:`, err.message, '原始文本:', responseText)
+      log.error(`[${nodeId}] JSON解析失败:`, err.message, '原始文本:', responseText)
       return { [skipKey]: false } as ReportStateUpdate
     }
   }, { nodeName: nodeId })

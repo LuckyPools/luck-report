@@ -225,6 +225,12 @@ const loadCellData = (): void => {
     wrapCompute.value = 'custom'
   }
 
+  if (cellDef && cellDef.conditionPropertyItems) {
+    conditionGroups.value = deepCopy(cellDef.conditionPropertyItems)
+  } else {
+    conditionGroups.value = []
+  }
+
   nextTick(() => {
     loadingCellData.value = false
   })

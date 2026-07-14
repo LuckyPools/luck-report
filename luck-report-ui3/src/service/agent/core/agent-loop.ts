@@ -8,11 +8,10 @@ import type { MemoryManager } from '../memory/memory-manager'
 import type { ContextManager } from './context-manager'
 import type { ReportSnapshot } from '../memory/types'
 import type { TokenUsage } from '@/api/chat'
-import type { WorkflowStepRecord } from '../workflow/state.ts'
 import type { IntentAnalysisResult } from '../workflow/types'
 import type { TaskNode } from '../workflow/task-plan.ts'
 import { chatStream, type ContextMessage, type SseToolCall } from '@/api/chat'
-import { getIntentAnalysisPrompt, INTENT_ANALYSIS_SCHEMA, buildIntentAnalysisTools, buildIntentToolChoice, INTENT_TOOL_NAME } from '../workflow/intent-prompt'
+import { getIntentAnalysisPrompt, INTENT_ANALYSIS_SCHEMA, buildIntentAnalysisTools, INTENT_TOOL_CHOICE, INTENT_TOOL_NAME } from '../workflow/intent-prompt'
 import { WorkflowRuntime } from '../workflow/runtime.ts'
 import { createLLMCaller } from '../workflow/llm-caller.ts'
 import { getGraphByIntent } from '../workflow/workflow-graphs.ts'
@@ -62,14 +61,8 @@ export interface AgentLoopConfig {
   /** 是否启用深度思考，启用后模型会先生成推理过程再生成回复 */
   deepThink?: boolean
   /**
-   * @deprecated 自 v2 起 UI 只展示 LLM 规划任务，使用 onTaskPlanChange 替代
-   * 保留字段以防外部消费者依赖
-   */
-  onStepRecordsChange?: (stepRecords: WorkflowStepRecord[], activeStepId?: string) => void
-  /**
    * 任务计划变更回调（仅 LLM 规划的具体子任务）
    * 当 validate_plan 完成或 dispatch_task 每次自环时触发，回调拿到最新的 TaskPlan
-   * 取代旧 onStepRecordsChange，避免把 LangGraph 主图节点（load_docs / dispatch_task / summary…）渲染到 UI
    */
   onTaskPlanChange?: (plan: TaskNode[], activeNodeId?: string) => void
 }
@@ -351,7 +344,7 @@ async function analyzeIntent(
   ]
 
   const tools = buildIntentAnalysisTools()
-  const toolChoice = buildIntentToolChoice()
+  const toolChoice = INTENT_TOOL_CHOICE
 
   let toolUseResult: Record<string, any> | null = null
   let responseText = ''

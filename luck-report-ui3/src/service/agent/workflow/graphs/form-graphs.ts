@@ -23,6 +23,11 @@ import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-n
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
 import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
 
+import { logger } from '../logger.ts'
+
+const log = logger('form-graphs')
+
+
 /**
  * 修改查询表单工作流（LangGraph 版本）
  * 边序：__start__ → read_form → check_if_form_match → [条件边] → modify_and_write_form → __end__
@@ -67,7 +72,7 @@ export function modifyFormGraph(): CompiledReportGraph {
     // 检查节点后的条件边：如果已符合需求则跳过修改，否则继续执行
     .addConditionalEdges('check_if_form_match', (state) => {
       if (state.skipFormModify === true) {
-        console.log('[modifyFormGraph] 表单配置已符合需求，跳过修改操作')
+        log.info('[modifyFormGraph] 表单配置已符合需求，跳过修改操作')
         return 'END'
       }
       return 'modify_and_write_form'

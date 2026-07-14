@@ -62,19 +62,6 @@ export interface FilterCondition {
 /** 意图分析结果（复用父目录 api.ts 里的真实结构） */
 export type { IntentAnalysisResult }
 
-/** 步骤执行记录 */
-export interface WorkflowStepRecord {
-  stepId: string
-  stepName: string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'error' | 'skipped'
-  result?: any
-  error?: string
-  retryCount: number
-  parentStepId?: string
-  duration?: number
-  timestamp?: number
-}
-
 // ==================== State Annotation ====================
 
 /**
@@ -128,14 +115,6 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => b ?? a,
     default: () => null
   }),
-  sqlValidationResult: Annotation<{ success: boolean; data?: any; error?: string } | null>({
-    reducer: (a, b) => b ?? a,
-    default: () => null
-  }),
-  fieldsResult: Annotation<{ success: boolean; fields?: FieldInfo[]; error?: string } | null>({
-    reducer: (a, b) => b ?? a,
-    default: () => null
-  }),
   datasetWriteResult: Annotation<{ success: boolean; message?: string; error?: string; datasetId?: string } | null>({
     reducer: (a, b) => b ?? a,
     default: () => null
@@ -164,10 +143,10 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => b ?? a,
     default: () => null
   }),
-  /** 当前写入批次索引 */
-  cellBatchIndex: Annotation<number>({
+  /** 合并/拆分单元格结果（merge_cells 工具返回 { success, message }） */
+  mergeResult: Annotation<{ success: boolean; message?: string; error?: string } | null>({
     reducer: (a, b) => b ?? a,
-    default: () => 0
+    default: () => null
   }),
   /** 当前写入 band 索引（create_table 子图使用，按 band 分组推进） */
   tableBandIndex: Annotation<number>({
@@ -205,10 +184,6 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => a.concat(b ?? []),
     default: () => []
   }),
-  stepRecords: Annotation<WorkflowStepRecord[]>({
-    reducer: (a, b) => a.concat(b ?? []),
-    default: () => []
-  }),
 
   // ==================== binop 字段 ====================
   /** 多源合并：load_docs / search_business / search_agent / search_schema 并行写，最终给 plan_tasks 用 */
@@ -219,12 +194,6 @@ export const ReportStateAnnotation = Annotation.Root({
   retryCount: Annotation<number>({
     reducer: (a, b) => a + (b ?? 0),
     default: () => 0
-  }),
-
-  /** select_datasource_op 节点的工具调用结果，供 apply_datasource_type 读取 operationType */
-  select_datasource_operation: Annotation<Record<string, any> | null>({
-    reducer: (a, b) => b ?? a,
-    default: () => null
   }),
 
   // ==================== 任务计划（TaskPlan / Dispatcher）==================
@@ -256,11 +225,6 @@ export const ReportStateAnnotation = Annotation.Root({
     reducer: (a, b) => Math.max(a ?? 0, b ?? 0),
     default: () => 0
   }),
-  /** 任务计划最大调度轮次（防止死循环），由主图常量传入 */
-  planMaxRounds: Annotation<number | null>({
-    reducer: (a, b) => b ?? a,
-    default: () => null
-  }),
   /** Dispatcher 自环计数器：每轮自增 1，主图条件边据此判断是否进 summary */
   dispatchRound: Annotation<number>({
     reducer: (a, b) => b ?? 0,
@@ -273,6 +237,9 @@ export const ReportStateAnnotation = Annotation.Root({
   }),
 
   // ==================== modify图跳过标记（细粒度，避免状态污染） ====================
+  // #20 说明：当前用 6 个独立布尔字段，已通过 check-node.ts 的 skipKey 参数化。
+  // 未来若 modify 类型增多，可考虑合并为 skipModify: Record<string, boolean>，
+  // 但需定制 LangGraph reducer（深层 merge），当前 6 个字段足够，保持简单。
   /**
    * modify_cell图跳过标记
    * read_cells后检查当前单元格数据是否已符合需求，true表示跳过修改操作
@@ -349,7 +316,9 @@ export const ReportAgentInputAnnotation = Annotation.Root({
   reportState: Annotation<any>()
 })
 
-/** report_agent 出口需要的 output 字段（包含 read + write 两类所需字段） */
+/** report_agent 出口需要的 output 字段（从 ReportStateAnnotation 派生，避免维护两份列表）
+ * LangGraph compile({ output }) 只起过滤作用，仅列出需要传递给下游/前端的字段
+ */
 export const ReportAgentOutputAnnotation = Annotation.Root({
   searchResults: Annotation<Record<string, any>>(),
   cellsData: Annotation<Record<string, any> | null>(),
@@ -362,4 +331,8 @@ export const ReportAgentOutputAnnotation = Annotation.Root({
   footerConfig: Annotation<Record<string, any> | null>(),
   searchForm: Annotation<SearchFormConfig | null>(),
   errors: Annotation<string[]>()
-})
+} as Pick<typeof ReportStateAnnotation.State,
+  'searchResults' | 'cellsData' | 'datasources' | 'datasets' |
+  'rowData' | 'colData' | 'pageConfig' | 'headerConfig' | 'footerConfig' |
+  'searchForm' | 'errors'
+>)

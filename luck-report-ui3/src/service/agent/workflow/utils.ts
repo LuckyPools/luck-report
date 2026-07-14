@@ -5,6 +5,11 @@
 
 import type { SchemaDTO } from '@/api/datasource'
 
+import { logger } from './logger'
+
+const log = logger('utils')
+
+
 // 兼容旧版 load_report_doc 返回字符串的兜底分隔
 export const DOC_SEPARATOR = /\n*---- 分界线 ----\n*/
 
@@ -83,103 +88,11 @@ export function pickDatasourceName(searchCandidates: string[], legalNames: strin
   return null
 }
 
-const SQL_TYPE_WORDS = new Set([
-  'varchar', 'int', 'integer', 'float', 'double', 'decimal', 'datetime', 'date', 'time',
-  'boolean', 'text', 'blob', 'bigint', 'smallint', 'tinyint', 'char', 'numeric', 'timestamp'
-])
-
-const SCHEMA_NOISE_WORDS = new Set([
-  'table', 'primary', 'key', 'foreign', 'keys', 'examples', 'example', 'filter', 'sort',
-  'from', 'where', 'select', 'and', 'the', 'null', 'not', 'index', 'unique', 'constraint'
-])
-
-/** 表名与用户需求的相关性评分 */
-export function scoreTableRelevance(tableName: string, userMessage: string): number {
-  const tn = tableName.toLowerCase()
-  const msg = userMessage.toLowerCase()
-  let score = 0
-  if (/用户|user/i.test(msg) && tn.includes('user')) score += 20
-  if (/订单|order/i.test(msg) && tn.includes('order')) score += 20
-  if (/信息|info/i.test(msg) && (tn.includes('info') || tn.includes('user'))) score += 5
-  if (tn.startsWith('sys_')) score += 3
-  if (tn.includes('_')) score += 1
-  return score
-}
-
-/** 判断字符串是否像物理表名（排除字段名、SQL 类型、示例值等噪音） */
-export function isPlausibleTableName(name: string): boolean {
-  if (!name || typeof name !== 'string') return false
-  const trimmed = name.trim()
-  if (trimmed.length < 4 || trimmed.length > 64) return false
-  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(trimmed)) return false
-  const lower = trimmed.toLowerCase()
-  if (SQL_TYPE_WORDS.has(lower)) return false
-  if (SCHEMA_NOISE_WORDS.has(lower)) return false
-  if (/^d_[a-z0-9_]+$/i.test(trimmed)) return false
-  if (/^[A-Z0-9_]+$/.test(trimmed) && trimmed.length <= 6) return false
-  if (!trimmed.includes('_') && !lower.startsWith('sys')) return false
-  const likelyColumns = new Set([
-    'username', 'password', 'name', 'code', 'remarks', 'salt', 'grade',
-    'admin', 'zhangsan', 'guoshuang', 'hunan', 'changsha', 'parent_id', 'dict_id', 'office_id',
-    'create_by', 'update_by', 'create_date', 'update_date', 'del_flag', 'parent_ids', 'all_names',
-    'dict_code', 'dict_id', 'dict_type'
-  ])
-  if (likelyColumns.has(lower)) return false
-  return true
-}
-
-/** 过滤并排序候选表名，默认只保留最相关的 1 个 */
-export function pickTargetTableNames(rawNames: string[], userMessage: string, limit = 1): string[] {
-  const unique = [...new Set(rawNames.map(n => n.trim()).filter(Boolean))]
-  const plausible = unique.filter(isPlausibleTableName)
-  return plausible
-    .sort((a, b) => scoreTableRelevance(b, userMessage) - scoreTableRelevance(a, userMessage))
-    .slice(0, limit)
-}
-
 /**
- * 从 search_schema 结果中解析指定数据源下的候选表名
- * 优先使用结构化 schema.table 列表（每项含 name=物理表名）
+ * 从用户消息 / 意图提取传给 get_table_relation 的 query 参数
+ * 仅做文本清洗（去除 enriched 前缀等），不做语义推断
+ * 表的选取由后端向量检索决定，前端不再做单表预选
  */
-export function extractTargetTableNames(
-  searchSchema: any,
-  pickedName: string,
-  userMessage = '',
-  limit = 1
-): string[] {
-  const arr: any[] = searchSchema?.datasources || searchSchema?.results
-    || (Array.isArray(searchSchema) ? searchSchema : [])
-  const pickedItem = arr.find((it: any) => {
-    const name = it?.datasourceName || it?.datasource_name || it?.name || it?.datasource
-    return name === pickedName
-  })
-  const tableNames: string[] = []
-  if (!pickedItem) return tableNames
-
-  // 1. 结构化 schema.table 列表（首选）
-  const tables = pickedItem?.schema?.table
-  if (Array.isArray(tables)) {
-    for (const t of tables) {
-      if (typeof t === 'string' && t.length > 0) tableNames.push(t)
-      else if (t?.name) tableNames.push(String(t.name))
-    }
-  }
-
-  // 2. 兼容旧字段：顶层 tables / tableName
-  if (Array.isArray(pickedItem.tables)) {
-    for (const t of pickedItem.tables) {
-      if (typeof t === 'string' && t.length > 0) tableNames.push(t)
-      else if (t?.name) tableNames.push(String(t.name))
-    }
-  }
-  if (typeof pickedItem.tableName === 'string' && pickedItem.tableName.length > 0) {
-    tableNames.push(pickedItem.tableName)
-  }
-
-  return pickTargetTableNames(tableNames, userMessage, limit)
-}
-
-/** 从用户消息 / 意图推断 get_table_relation 的 query 参数 */
 export function inferTableQuery(userMessage: string, intent?: { taskDescription?: string }): string {
   let text = (userMessage || '').trim()
   // 清洗 enriched 前缀：提取【本轮用户回答】中的原始内容
@@ -193,95 +106,25 @@ export function inferTableQuery(userMessage: string, intent?: { taskDescription?
     text = taskDesc
   }
   if (!text) return '用户'
-  return text.replace(/^在.*?中/, '').replace(/创建|添加|新增|一个|的|数据集/g, '').trim() || text
+  return text
 }
 
-/** 结构化表结构中间态（resolve_table 产出，下游只读此对象） */
+/** 结构化表结构中间态（resolve_table 产出，下游只读此对象）
+ * 
+ * 设计变更：不再预选单表，而是将后端向量搜索返回的完整 SchemaDTO 直接传递给 LLM。
+ * SchemaDTO 包含：
+ * - 多张表的结构（每张表的 name/description/column[]）
+ * - 表间外键关系（foreignKeys[]，描述 sourceTable.sourceColumn → targetTable.targetColumn）
+ * LLM 根据用户需求和完整的表结构+外键信息自行决定使用哪些表、如何 JOIN
+ */
 export interface ResolvedSchema {
   datasourceName: string
-  tableName: string
+  /** 所有相关表名（来自 SchemaDTO.table[].name），LLM 从中选取需要的表 */
+  tableNames: string[]
+  /** 传给 get_table_relation 的 query 参数（用于日志追溯） */
   tableQuery: string
-  columns: string[]
-  /** 完整结构化 SchemaDTO，供 LLM 消费或后续解析 */
+  /** 完整结构化 SchemaDTO，供 LLM 消费：含多表结构 + 外键关系 */
   schema?: SchemaDTO
-}
-
-/** 从 tableStructures 读取 ResolvedSchema（兼容旧结构） */
-export function readResolvedSchema(tableStructures: any): ResolvedSchema | null {
-  if (!tableStructures || typeof tableStructures !== 'object') return null
-  if (tableStructures.tableName && tableStructures.datasourceName) {
-    return tableStructures as ResolvedSchema
-  }
-  const dsName = tableStructures.datasourceName ?? ''
-  const entry = Array.isArray(tableStructures.tables) ? tableStructures.tables[0] : null
-  if (!entry) return null
-  const resolved = resolveFromStructure(entry?.structure, entry?.tableName)
-  if (!resolved) return null
-  return {
-    datasourceName: dsName,
-    tableName: resolved.tableName,
-    tableQuery: entry.tableName ?? resolved.tableName,
-    columns: resolved.columns,
-    schema: resolved.schema
-  }
-}
-
-/** 从 tableStructures 推断 SQL（优先 ResolvedSchema） */
-export function inferSqlFromTableStructures(tableStructures: any, userMessage = ''): string | null {
-  const resolved = readResolvedSchema(tableStructures)
-  if (resolved) return inferSqlFromResolvedSchema(resolved)
-
-  const tables = tableStructures?.tables
-  if (!Array.isArray(tables) || tables.length === 0) return null
-  const ranked = [...tables]
-    .filter((t: any) => t?.structure && !t?.error)
-    .sort((a: any, b: any) =>
-      scoreTableRelevance(String(b?.tableName ?? ''), userMessage)
-      - scoreTableRelevance(String(a?.tableName ?? ''), userMessage)
-    )
-  const entry = ranked[0] ?? tables[0]
-  const resolvedEntry = resolveFromStructure(entry?.structure, entry?.tableName)
-  if (!resolvedEntry) return null
-  return inferSqlFromResolvedSchema({
-    datasourceName: tableStructures.datasourceName ?? '',
-    tableName: resolvedEntry.tableName,
-    tableQuery: entry?.tableName ?? resolvedEntry.tableName,
-    columns: resolvedEntry.columns,
-    schema: resolvedEntry.schema
-  })
-}
-
-/** 从 ResolvedSchema 生成 SQL（优先使用已解析字段） */
-export function inferSqlFromResolvedSchema(resolved: ResolvedSchema | null | undefined): string | null {
-  if (!resolved?.tableName || !isPlausibleTableName(resolved.tableName)) return null
-  if (Array.isArray(resolved.columns) && resolved.columns.length > 0) {
-    return `SELECT ${resolved.columns.join(', ')} FROM ${resolved.tableName}`
-  }
-  return `SELECT * FROM ${resolved.tableName}`
-}
-
-/**
- * 从 getTableRelations 返回的 SchemaDTO 解析物理表名与字段
- * 优先取 tables[0].name 与 tables[0].column[].name
- */
-function resolveFromStructure(
-  structure: any,
-  fallbackTableName = ''
-): { tableName: string; columns: string[]; schema?: SchemaDTO } | null {
-  if (!structure || typeof structure !== 'object') return null
-  const schema = structure as SchemaDTO
-  const firstTable = Array.isArray(schema.table) ? schema.table[0] : null
-  const tableName = firstTable?.name || fallbackTableName
-  if (!tableName || !isPlausibleTableName(tableName)) return null
-  const columns: string[] = []
-  if (Array.isArray(firstTable?.column)) {
-    for (const c of firstTable.column) {
-      if (c?.name && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(String(c.name))) {
-        columns.push(String(c.name))
-      }
-    }
-  }
-  return { tableName, columns, schema }
 }
 
 /**
@@ -306,7 +149,7 @@ export async function resolveBuildinDatasource(
   if (specifiedName) {
     const found = dsList.find((d: any) => d?.name === specifiedName)
     if (found) {
-      console.log(`[resolveBuildinDatasource] 使用已指定的数据源: ${specifiedName}`)
+      log.info(`[resolveBuildinDatasource] 使用已指定的数据源: ${specifiedName}`)
       return { targetDatasourceName: specifiedName, datasources: dsList }
     }
     // 指定了名称但报表中不存在，尝试从 buildin 模板创建
@@ -325,8 +168,31 @@ export async function resolveBuildinDatasource(
         return { targetDatasourceName: specifiedName, datasources: merged }
       }
     }
-    // 非 buildin 类型或模板获取失败，但仍返回指定名称（可能是 jdbc/spring 类型，已由其他方式添加）
-    console.log(`[resolveBuildinDatasource] 指定的数据源 ${specifiedName} 不在报表中且非 buildin，仍使用该名称`)
+    // 非 buildin 类型或模板获取失败
+    // 通用修复：LLM 可能将 datasetName 误填入 datasourceName 参数（语义混淆）
+    // 尝试从已有数据集中反查：如果 specifiedName 是某个 dataset 的 name，则用该 dataset 的 datasourceName
+    if (Array.isArray(state.datasets)) {
+      const matchedDataset = state.datasets.find((d: any) => {
+        const dName = d?.name || d?.dataset?.name
+        return dName === specifiedName
+      })
+      if (matchedDataset) {
+        const realDsName = matchedDataset.datasourceName || matchedDataset.datasource?.name
+        if (realDsName && dsList.some((d: any) => d?.name === realDsName)) {
+          log.info(`[resolveBuildinDatasource] specifiedName "${specifiedName}" 实际是数据集名，自动修正为数据源: ${realDsName}`)
+          return { targetDatasourceName: realDsName, datasources: dsList }
+        }
+      }
+    }
+    // 同样从当前报表的 datasources[].datasets 中反查
+    for (const ds of dsList) {
+      const inner = Array.isArray(ds?.datasets) ? ds.datasets : []
+      if (inner.some((d: any) => d?.name === specifiedName)) {
+        log.info(`[resolveBuildinDatasource] specifiedName "${specifiedName}" 在数据源 "${ds.name}" 中匹配为数据集名，自动修正 datasourceName=${ds.name}`)
+        return { targetDatasourceName: ds.name, datasources: dsList }
+      }
+    }
+    log.info(`[resolveBuildinDatasource] 指定的数据源 ${specifiedName} 不在报表中且非 buildin，仍使用该名称`)
     return { targetDatasourceName: specifiedName, datasources: dsList }
   }
 
@@ -432,34 +298,20 @@ export function buildWorkflowStateContext(state: Record<string, any>): string {
     parts.push(`taskParams(当前任务参数): ${JSON.stringify(state.taskParams)}`)
   }
   // 关键决策点：注入 understand_and_plan 阶段确认的任务计划
-  if (Array.isArray(state.taskPlan) && state.taskPlan.length > 0) {
+  // 当 plannerError 非空时，taskPlan 中的任务未被 Dispatcher 执行（状态仍为 pending），
+  // 必须同时注入 plannerError 让下游节点（如 summary）知道这是失败的规划，避免幻觉"成功"
+  if (state.plannerError) {
+    parts.push(`plannerError(规划失败原因): ${state.plannerError}`)
+    parts.push(`taskPlan(任务计划 — 注意:未通过校验,任务未被执行): ${JSON.stringify(state.taskPlan?.map((t: any) => ({ id: t.id, action: t.action, status: t.status })) ?? [])}`)
+  } else if (Array.isArray(state.taskPlan) && state.taskPlan.length > 0) {
     parts.push(`taskPlan(任务计划): ${JSON.stringify(state.taskPlan.map(t => ({ id: t.id, action: t.action, status: t.status })))}`)
   }
-  // 关键决策点：注入已问过的 ask_user 问题（避免 planner 重复规划同问题）
-  // 注意：ask_user 中断时 state 整体丢失，所以这个字段仅在**单次 workflow run 内**有效
-  // 跨 run 的防重靠 useChat 的 enrichedContent + PLANNER_DESCRIPTION【回复识别】规则
-  if (Array.isArray(state.askedQuestions) && state.askedQuestions.length > 0) {
-    const list = state.askedQuestions.map(a => `  - ${a.taskId}: ${a.question}`).join('\n')
-    parts.push(`已问过的问题（不要再问这些）：\n${list}`)
-  }
+  // ask_user 跨 run 防重靠 useChat 的 enrichedContent + PLANNER_DESCRIPTION【回复识别】规则
+  // 原 askedQuestions state 字段已移除（无任何节点写入，session 级 Map 由 gather-state.ts 管理）
   // 注入行级分批计划（write_cells_batch 循环时，LLM 需要知道当前批次和全局结构）
   if (state.cellBatchPlan && typeof state.cellBatchPlan === 'object') {
     const plan = state.cellBatchPlan as { totalRows: number; totalCols: number; batches: any[] }
-    const idx = typeof state.cellBatchIndex === 'number' ? state.cellBatchIndex : 0
-    const currentBatch = plan.batches[idx]
-    parts.push(`cellBatchPlan(行级分批计划): 共${plan.totalRows}行${plan.totalCols}列，${plan.batches.length}个批次，当前第${idx + 1}批`)
-    if (currentBatch) {
-      parts.push(`当前批次: 第${currentBatch.row}行(band=${currentBatch.band ?? 'null'})，${currentBatch.cells.length}个单元格`)
-      parts.push(`样式提示: ${currentBatch.styleHint}`)
-      if (currentBatch.contextNote) parts.push(`上下文备注: ${currentBatch.contextNote}`)
-      // 列出已完成的批次信息，让 LLM 能引用已创建的 cellName
-      if (idx > 0) {
-        const completedBatches = plan.batches.slice(0, idx)
-          .map((b: any) => `第${b.row}行: ${b.cells.filter((c: any) => c.cellName).map((c: any) => `${c.cellName}(列${c.col})`).join(', ') || '无cellName'}`)
-          .join('; ')
-        parts.push(`已完成批次的cellName: ${completedBatches}`)
-      }
-    }
+    parts.push(`cellBatchPlan(行级分批计划): 共${plan.totalRows}行${plan.totalCols}列，${plan.batches.length}个批次`)
   }
   // 关键决策点：注入"可用数据集清单"，避免 LLM 在 modify_cell/plan_cell_structure 阶段编造 datasetName/property
   // 来源：
@@ -467,7 +319,7 @@ export function buildWorkflowStateContext(state: Record<string, any>): string {
   //  2) state.datasources[*].datasets — 同一会话通过 create_datasource 注入的 dataset 定义
   //  3) state.reportState.dataBindings — 当前报表已有的数据集（仅含 datasourceName/datasetName/type，无 fields）
   const availableDatasets = collectAvailableDatasets(state)
-  console.log(`[buildWorkflowStateContext] collectAvailableDatasets 结果: ${JSON.stringify(availableDatasets.map(d => ({ id: `${d.datasourceName}.${d.datasetName}`, fields: d.fields, source: d.source })))}, state.datasets格式=${JSON.stringify(Array.isArray(state.datasets) ? state.datasets.map((d: any) => Object.keys(d)) : typeof state.datasets)}`)
+  log.info(`[buildWorkflowStateContext] collectAvailableDatasets 结果: ${JSON.stringify(availableDatasets.map(d => ({ id: `${d.datasourceName}.${d.datasetName}`, fields: d.fields, source: d.source })))}, state.datasets格式=${JSON.stringify(Array.isArray(state.datasets) ? state.datasets.map((d: any) => Object.keys(d)) : typeof state.datasets)}`)
   if (availableDatasets.length > 0) {
     const lines = availableDatasets.map(d => {
       const id = `${d.datasourceName}.${d.datasetName}`
@@ -506,8 +358,9 @@ interface AvailableDataset {
  * @returns 可用数据集列表，按 source 优先级（created > datasource > report）去重
  */
 function collectAvailableDatasets(state: Record<string, any>): AvailableDataset[] {
+  // #16 改动：keyOf 改为接收 datasourceName + datasetName 两个参数，去掉临时对象和 as any
   const map = new Map<string, AvailableDataset>()
-  const keyOf = (d: AvailableDataset) => `${d.datasourceName}::${d.datasetName}`
+  const keyOf = (datasourceName: string, datasetName: string) => `${datasourceName}::${datasetName}`
 
   // 1) 本会话通过 create_dataset 写入的 DatasetInfo 数组（带 fields）
   //    兼容两种格式：
@@ -520,10 +373,10 @@ function collectAvailableDatasets(state: Record<string, any>): AvailableDataset[
       const name = (ds as any).name ?? (ds as any).datasetName ?? (ds as any).dataset?.name
       if (!dsName || !name) continue
       const fields = extractFieldNames((ds as any).fields ?? (ds as any).dataset?.fields)
-      const cur = map.get(keyOf({ datasourceName: dsName, datasetName: name, source: 'created' } as any))
+      const cur = map.get(keyOf(dsName, name))
       // created 优先级最高，fields 已存在则不覆盖
       if (!cur || cur.source !== 'created') {
-        map.set(keyOf({ datasourceName: dsName, datasetName: name, source: 'created' } as any), {
+        map.set(keyOf(dsName, name), {
           datasourceName: dsName,
           datasetName: name,
           fields,
@@ -540,7 +393,7 @@ function collectAvailableDatasets(state: Record<string, any>): AvailableDataset[
     const name = ds.name ?? ds.datasetName
     if (dsName && name) {
       const fields = extractFieldNames(ds.fields)
-      map.set(keyOf({ datasourceName: dsName, datasetName: name, source: 'created' } as any), {
+      map.set(keyOf(dsName, name), {
         datasourceName: dsName,
         datasetName: name,
         fields,
@@ -560,7 +413,7 @@ function collectAvailableDatasets(state: Record<string, any>): AvailableDataset[
         const name = (sub as any).name ?? (sub as any).datasetName
         if (!dsName || !name) continue
         const fields = extractFieldNames((sub as any).fields)
-        const k = keyOf({ datasourceName: dsName, datasetName: name, source: 'datasource' } as any)
+        const k = keyOf(dsName, name)
         const cur = map.get(k)
         if (!cur) {
           map.set(k, { datasourceName: dsName, datasetName: name, fields, source: 'datasource' })
@@ -576,7 +429,7 @@ function collectAvailableDatasets(state: Record<string, any>): AvailableDataset[
       const dsName = (b as any).datasourceName
       const name = (b as any).datasetName
       if (!dsName || !name) continue
-      const k = keyOf({ datasourceName: dsName, datasetName: name, source: 'report' } as any)
+      const k = keyOf(dsName, name)
       if (!map.has(k)) {
         map.set(k, { datasourceName: dsName, datasetName: name, fields: undefined, source: 'report' })
       }
@@ -604,6 +457,39 @@ function extractFieldNames(fields: any): string[] | undefined {
 export function filterActiveErrors(errors: unknown): string[] {
   if (!Array.isArray(errors)) return []
   return errors.filter((e): e is string => typeof e === 'string' && e.length > 0)
+}
+
+/**
+ * #14 改动：补齐报表行列数的共享函数
+ * cell-graphs.ts 的 check_and_apply_row_col 和 table-graphs.ts 的 ensure_row_col 逻辑重复，
+ * 统一抽取为 utils 函数。
+ *
+ * 读取当前行列数，若不足目标值则调 insert_row/insert_col 补齐
+ *
+ * @param runtime - 工作流运行时
+ * @param nodeId - 节点ID（事件关联用）
+ * @param targetRow - 目标行数（不足时补齐，=0 或 < currentRows 时不操作）
+ * @param targetCol - 目标列数（不足时补齐，=0 或 < currentCols 时不操作）
+ */
+export async function ensureRowCol(
+  runtime: any,
+  nodeId: string,
+  targetRow: number,
+  targetCol: number
+): Promise<void> {
+  if (targetRow === 0 && targetCol === 0) return
+
+  const rowsResult = await runtime.toolRegistry.executeTool('get_rows', {})
+  const colsResult = await runtime.toolRegistry.executeTool('get_columns', {})
+  const currentRows = rowsResult && typeof rowsResult === 'object' ? Object.keys(rowsResult).length : 0
+  const currentCols = colsResult && typeof colsResult === 'object' ? Object.keys(colsResult).length : 0
+
+  if (currentRows < targetRow) {
+    await runToolWithEvent(runtime, nodeId, 'insert_row', { position: currentRows, number: targetRow - currentRows })
+  }
+  if (currentCols < targetCol) {
+    await runToolWithEvent(runtime, nodeId, 'insert_col', { position: currentCols, number: targetCol - currentCols })
+  }
 }
 
 /**

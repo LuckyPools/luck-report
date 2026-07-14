@@ -14,8 +14,7 @@
 // 类型与接口
 export type {
     CompiledReportGraph,
-    CompiledGraphFactory,
-    NodeMeta
+    CompiledGraphFactory
 } from './types'
 
 // State Annotation
@@ -33,8 +32,7 @@ export type {
     FormFieldConfig,
     FieldInfo,
     FilterCondition,
-    IntentAnalysisResult,
-    WorkflowStepRecord
+    IntentAnalysisResult
 } from './state'
 
 // Context Annotation + 守卫
@@ -45,27 +43,14 @@ export {
 } from './context-annotation'
 export type { WorkflowRuntimeContext } from '../context-annotation.ts'
 
-// Runtime 桥接
-export {
-    buildRunnableConfig,
-    getRuntime,
-    rebuildRuntime,
-    invokeSubgraph,
-    isLangGraphEngineEnabled
-} from './runtime-bridge'
+// Runtime 桥接（#7 改动后仅保留 getRuntime；buildRunnableConfig/rebuildRuntime/invokeSubgraph/isLangGraphEngineEnabled 已删除）
+export { getRuntime } from './runtime-bridge'
 
-// 节点包装
+// 节点包装（#4 改动：删除未被调用的 subgraphNode）
 export {
-    withInput,
-    subgraphNode
+    withInput
 } from './node-wrapper'
 export type { NodeFunction, NodeWrapperOptions } from '../node-wrapper.ts'
-
-// 节点元数据查询
-export {
-    getCompiledNodeNames,
-    getCompiledNode
-} from './wrapper'
 
 // 任务计划抽象（TaskNode / Dispatcher / Summary）
 export {
@@ -100,11 +85,10 @@ export {
 } from './dispatcher'
 
 // 理解+规划节点（合并原 gather + planner）
-// buildValidatePlanNode 是新名（原 buildCollectPlanNode），#4 改动后推荐使用
+// buildValidatePlanNode 是新名（原 buildCollectPlanNode 已移除）
 export {
     buildUnderstandPlanNode,
-    buildValidatePlanNode,
-    buildCollectPlanNode
+    buildValidatePlanNode
 } from './nodes/understand-plan-node'
 
 // 中断信号
@@ -112,3 +96,7 @@ export { AskUserInterrupt } from './ask-user-interrupt'
 
 // 常用 LangGraph 重新导出
 export { StateGraph, Annotation, START, END, Command, Send, interrupt } from '@langchain/langgraph'
+
+// 日志工具（#19 改动：替代散布的 console.log）
+export { logger, setLogLevel, getLogLevel } from './logger'
+export type { LogLevel, Logger } from './logger'

@@ -72,6 +72,17 @@ export interface ActionRegistryEntry {
   nodeId: string
   /** 写任务还是读任务（read 任务失败不回滚） */
   kind: 'read' | 'write'
+  /**
+   * #10 改动：该 action 产出的 state 业务字段列表（单一来源，消除 dispatcher 的 ACTION_PRODUCED_FIELDS 双源真相）
+   *
+   * 用于 mergeReadFrom 按 dependsOn 把上游 task 产出的业务数据注入到下游 task 启动时的 state。
+   * 必须与 pickOutput 实际输出的字段保持一致。
+   *
+   * 维护规则：
+   * - 只列"数据字段"，不列 datasetWriteResult 等执行结果字段
+   * read_report 一次性产生所有字段（用于一次性拉全量）
+   */
+  producedFields: readonly string[]
 }
 
 /** Dispatcher 内部用：action → registry 映射 */
@@ -385,7 +396,8 @@ export const ACTION_DEPENDENCY_TOPOLOGY: Record<string, string[]> = {
   // 表格（依赖数据源 + 数据集，与 understand-plan.md 依赖关系段落保持一致）
   create_table: ['create_datasource', 'create_dataset'],
   // 表单：依赖数据集字段 + 数据源
-  modify_form: ['create_dataset', 'create_datasource']
+  // create_dataset 和 modify_dataset 都是合法的前置（新建数据集 或 给已有数据集加参数）
+  modify_form: ['create_dataset', 'create_datasource', 'modify_dataset']
 }
 
 /**
@@ -464,10 +476,12 @@ export const ACTION_COVERAGE_RULES: Array<{
     check: (actions) => actions.has('create_dataset')
   },
   {
-    // 涉及 modify_form → 必须先有 create_dataset（依赖检查）
+    // 涉及 modify_form → 必须先有 create_dataset 或 modify_dataset（依赖检查）
+    // 表单字段需要绑定数据集参数，因此 plan 中必须包含创建或修改数据集的动作
+    // （仅 read_datasets 不够，因为读取不会添加新参数）
     pattern: /(筛选|查询|条件|参数)/,
-    description: '用户要求添加查询表单,但 plan 未包含 create_dataset（表单依赖数据集）',
-    check: (actions) => !actions.has('modify_form') || actions.has('create_dataset')
+    description: '用户要求添加查询表单,但 plan 未包含 create_dataset 或 modify_dataset（表单字段需要绑定数据集参数，需先创建或修改数据集以添加参数）',
+    check: (actions) => !actions.has('modify_form') || actions.has('create_dataset') || actions.has('modify_dataset')
   }
 ]
 

@@ -41,27 +41,28 @@ import type { ReportState, ReportStateUpdate } from '../state.ts'
 import type { WorkflowRuntime } from '../runtime.ts'
 import { resetGatherRounds } from '../gather-state.ts'
 import { loadPromptDocByEnumSync } from '@/prompt'
+import { logger } from '../logger.ts'
+
+const log = logger('understand-plan-node')
 
 /**
  * 同步加载 understand_and_plan 的 prompt 文本
  * 从 plan/understand-plan.md 加载，替换动态占位符（{{READ_ACTIONS}}、{{WRITE_ACTIONS}}）
- * 结果缓存到模块级变量，避免重复加载和替换
+ *
+ * #13 改动：改为 const + IIFE 立即执行初始化，避免 mutable module state
+ * （原 _cachedDescription 是 let 模块级变量，SSR/测试场景可能串数据）
+ * EXECUTABLE_ACTIONS 列表在运行时不变，IIFE 一次初始化后即为常量
  */
-let _cachedDescription: string | null = null
-
-function getUnderstandPlanDescription(): string {
-  if (_cachedDescription !== null) return _cachedDescription
-
+const UNDERSTAND_PLAN_DESCRIPTION: string = (() => {
   const readActions = EXECUTABLE_ACTIONS.filter(a => a.startsWith('read_')).join(' / ')
   const writeActions = EXECUTABLE_ACTIONS.filter(a => a.startsWith('modify_') || a.startsWith('create_') || a.startsWith('delete_')).join(' / ')
 
   const raw = loadPromptDocByEnumSync('UNDERSTAND_PLAN')
-  _cachedDescription = raw
+  return raw
     .replace('{{READ_ACTIONS}}', readActions)
     .replace('{{WRITE_ACTIONS}}', writeActions)
+})()
 
-  return _cachedDescription
-}
 
 /**
  * understand_and_plan 节点工厂
@@ -74,7 +75,7 @@ function getUnderstandPlanDescription(): string {
  *         让重规划时 LLM 看到具体的失败原因（plannerError），而不是空白重试。
  */
 export function buildUnderstandPlanNode(options?: { maxIterations?: number }) {
-  const baseDescription = getUnderstandPlanDescription()
+  const baseDescription = UNDERSTAND_PLAN_DESCRIPTION
   return createLLMDecideNode({
     nodeId: 'understand_and_plan',
     allowedTools: [PLANNER_TOOL_NAME, 'ask_user', 'load_report_doc'],
@@ -126,14 +127,14 @@ export function buildValidatePlanNode() {
       const msg = submitErr
         ? `规划阶段未提交任务计划: ${submitErr}`
         : '规划阶段未提交任务计划（LLM 未调用 plan_tasks）'
-      console.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+      log.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
       return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
     }
 
     // plan_tasks 返回了 error
     if ((planResult as any).error) {
       const msg = `plan_tasks 失败: ${(planResult as any).error}`
-      console.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+      log.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
       return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
     }
 
@@ -141,7 +142,7 @@ export function buildValidatePlanNode() {
     let tasks = planResult.tasks
     if (!Array.isArray(tasks) || tasks.length === 0) {
       const msg = 'plan_tasks 返回空任务列表'
-      console.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+      log.warn(`[validate_plan] ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
       return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
     }
 
@@ -160,7 +161,7 @@ export function buildValidatePlanNode() {
     // 结构校验
     const validationErrors = validateTaskPlan(plan)
     if (validationErrors.length > 0) {
-      console.warn(`[validate_plan] TaskPlan 校验失败: ${validationErrors.join('; ')}`)
+      log.warn(`[validate_plan] TaskPlan 校验失败: ${validationErrors.join('; ')}`)
       // 尝试修复：过滤掉引用不存在依赖的 dependsOn
       const validIds = new Set(plan.map(t => t.id))
       const fixedPlan: TaskPlan = plan.map(t => ({
@@ -170,14 +171,14 @@ export function buildValidatePlanNode() {
       const recheck = validateTaskPlan(fixedPlan)
       if (recheck.length > 0) {
         const msg = `TaskPlan 校验失败: ${recheck.join('; ')}`
-        console.warn(`[validate_plan] 修复后仍校验失败: ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+        log.warn(`[validate_plan] 修复后仍校验失败: ${msg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
         return { plannerError: msg, replanRound: currentReplan + 1 } as ReportStateUpdate
       }
       // 修复成功 → 继续走后续校验（拓扑补全 + 覆盖度）
       return finalizePlan(state, fixedPlan)
     }
 
-    console.log(`[validate_plan] 任务计划已确认: ${plan.length} 个任务`, plan.map(t => `${t.id}:${t.action}`).join(', '))
+    log.info(`[validate_plan] 任务计划已确认: ${plan.length} 个任务`, plan.map(t => `${t.id}:${t.action}`).join(', '))
     return finalizePlan(state, plan)
   }, { nodeName: 'validate_plan' })
 }
@@ -195,21 +196,19 @@ function finalizePlan(
   // 1) 依赖拓扑自动补全
   inferMissingDependsOn(plan)
 
+  // 日志：输出补全后的完整任务计划（含 dependsOn），便于排查依赖链问题
+  log.info(`[validate_plan] 拓扑补全后任务计划: ${plan.map(t => `${t.id}:${t.action}(dependsOn=[${t.dependsOn?.join(',') ?? ''}])`).join(', ')}`)
+
   // 2) 覆盖度校验
   const coverageErrors = checkPlanCoverage(state.userMessage ?? '', plan)
   if (coverageErrors.length > 0) {
     const errMsg = `规划未覆盖用户需求: ${coverageErrors.join('; ')}`
     const currentReplan = state.replanRound ?? 0
-    console.warn(`[validate_plan] ${errMsg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
+    log.warn(`[validate_plan] ${errMsg}（replanRound: ${currentReplan} → ${currentReplan + 1}）`)
     return { taskPlan: plan, plannerError: errMsg, replanRound: currentReplan + 1 } as ReportStateUpdate
   }
 
   return { taskPlan: plan, plannerError: null, replanRound: state.replanRound ?? 0 } as ReportStateUpdate
 }
 
-/**
- * 向后兼容：原 buildCollectPlanNode 别名
- * 内部委托给 buildValidatePlanNode，便于 #A 改完主图后逐步清理
- * @deprecated 请改用 buildValidatePlanNode
- */
-export const buildCollectPlanNode = buildValidatePlanNode
+

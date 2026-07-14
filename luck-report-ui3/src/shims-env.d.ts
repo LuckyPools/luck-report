@@ -11,8 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string
   /** 当前构建模式（development/production/test） */
   readonly MODE?: 'development' | 'production' | 'test'
-  /** 是否启用 LangGraph 引擎 */
-  readonly VITE_USE_LANGGRAPH_ENGINE?: string
+  /** 日志级别（debug/info/warn/error/silent），对应 logger.ts 的级别开关 */
+  readonly VITE_LOG_LEVEL?: string
 }
 
 interface ImportMeta {

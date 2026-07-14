@@ -14,8 +14,13 @@ import type { CompiledReportGraph } from '../index.ts'
 import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-node.ts'
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
 import { buildCheckIfNeedModifyNode } from '@/service/agent/workflow/nodes/check-node.ts'
-import { runToolWithEvent } from '../utils.ts'
+import { runToolWithEvent, ensureRowCol } from '../utils.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
+
+import { logger } from '../logger.ts'
+
+const log = logger('cell-graphs')
+
 
 /**
  * 修改单元格工作流（LangGraph 版本）
@@ -52,6 +57,7 @@ export function modifyCellGraph(): CompiledReportGraph {
   })
 
   // 节点3：补齐行列（解析 cellsData 目标坐标，差值时调 insert_row/insert_col）
+  // #14 改动：复用 utils.ts 的 ensureRowCol 共享函数
   const checkAndApplyRowCol = withInput(async (state: ReportState, _config, runtime) => {
     const nodeId = 'check_and_apply_row_col'
     const cellsData = state.cellsData
@@ -64,19 +70,8 @@ export function modifyCellGraph(): CompiledReportGraph {
       if (Number.isFinite(r) && r > targetRow) targetRow = r
       if (Number.isFinite(c) && c > targetCol) targetCol = c
     }
-    if (targetRow === 0 && targetCol === 0) return {} as ReportStateUpdate
 
-    const rowsResult = await runtime.toolRegistry.executeTool('get_rows', {})
-    const colsResult = await runtime.toolRegistry.executeTool('get_columns', {})
-    const currentRows = rowsResult && typeof rowsResult === 'object' ? Object.keys(rowsResult).length : 0
-    const currentCols = colsResult && typeof colsResult === 'object' ? Object.keys(colsResult).length : 0
-
-    if (currentRows < targetRow) {
-      await runToolWithEvent(runtime, nodeId, 'insert_row', { position: currentRows, number: targetRow - currentRows })
-    }
-    if (currentCols < targetCol) {
-      await runToolWithEvent(runtime, nodeId, 'insert_col', { position: currentCols, number: targetCol - currentCols })
-    }
+    await ensureRowCol(runtime, nodeId, targetRow, targetCol)
 
     return { cellsData } as ReportStateUpdate
   }, { nodeName: 'check_and_apply_row_col' })
@@ -163,7 +158,7 @@ export function modifyCellGraph(): CompiledReportGraph {
   // check_if_cells_match → END 或 check_and_apply_row_col
   g.addConditionalEdges('check_if_cells_match', (state: ReportState) => {
     if (state.skipCellModify === true) {
-      console.log('[modifyCellGraph] 单元格数据已符合需求，跳过修改操作')
+      log.info('[modifyCellGraph] 单元格数据已符合需求，跳过修改操作')
       return 'END'
     }
     return 'check_and_apply_row_col'
@@ -176,22 +171,6 @@ export function modifyCellGraph(): CompiledReportGraph {
   g.addEdge('write_cells', END)
 
   return g.compile()
-}
-
-/**
- * 单元格地址 → 行列坐标
- * 支持 A1 / B2 / AA10 等 1-based 坐标，非法地址返回 null
- */
-export function cellAddressToPosition(addr: string): { row: number; col: number } | null {
-  if (!addr) return null
-  const m = /^([A-Z]+)(\d+)$/i.exec(addr.trim())
-  if (!m) return null
-  const colLetters = m[1].toUpperCase()
-  let col = 0
-  for (let i = 0; i < colLetters.length; i++) {
-    col = col * 26 + (colLetters.charCodeAt(i) - 64)
-  }
-  return { row: Number(m[2]), col }
 }
 
 // ==================== 读单元格子工作流 ====================

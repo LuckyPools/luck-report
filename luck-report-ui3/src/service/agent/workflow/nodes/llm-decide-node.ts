@@ -11,6 +11,9 @@ import type { WorkflowRuntime } from '../runtime.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
 import { buildWorkflowStateContext } from '../utils.ts'
 import { AskUserInterrupt } from '../ask-user-interrupt.ts'
+import { logger } from '../logger.ts'
+
+const log = logger('llm-decide')
 
 /**
  * LLM 决策节点构造选项
@@ -44,6 +47,12 @@ export interface LLMDecideNodeOptions {
   resultKeyAsObject?: boolean
   /** 节点ID（用于事件透传） */
   nodeId: string
+  /**
+   * 首轮是否强制必选工具（仅配合 requiredToolResultsAny 使用）
+   * true：首轮强制 LLM 调用第一个 OR 列表中的工具，后续轮次放开 toolChoice
+   * false/undefined：不强制，LLM 自行决定
+   */
+  forceToolChoiceFirst?: boolean
 }
 
 /**
@@ -71,19 +80,15 @@ export interface LLMDecideNodeOptions {
  * ```
  */
 export function createLLMDecideNode(options: LLMDecideNodeOptions) {
-  // 实例级状态：每次 invoke 复位（langgraph 会为每次执行创建新的闭包）
-  let toolCallCounter = 0
-  let currentRunId = ''
-  const toolCallIdMap = new Map<string, string>()
-
   return withInput(async (state: ReportState, _config: LangGraphRunnableConfig, runtime: WorkflowRuntime) => {
     const nodeId = options.nodeId
     const maxIterations = options.maxIterations ?? 5
 
-    // 复位本次执行的 toolCall 状态
-    toolCallCounter = 0
-    toolCallIdMap.clear()
-    currentRunId = runtime.runId
+    // #15 改动：toolCall 状态移入函数内部局部变量，每次执行创建新实例
+    // 原实现放在模块级闭包中，并行执行同一节点会产生竞态（toolCallIdMap 被其他执行清空）
+    let toolCallCounter = 0
+    const toolCallIdMap = new Map<string, string>()
+    const currentRunId = runtime.runId
 
     // disableTools=true 时不给 LLM 任何工具，强制纯文本输出（用于 summary 等节点）
     const tools = options.disableTools ? [] : filterAllowedTools(options, runtime.toolRegistry)
@@ -104,7 +109,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
       ? (options.requiredToolResults!.length === 1
         ? { type: 'function', function: { name: options.requiredToolResults![0] } }
         : 'required')
-      : (hasRequiredAny && (options as any).forceToolChoiceFirst
+      : (hasRequiredAny && options.forceToolChoiceFirst
           ? { type: 'function', function: { name: options.requiredToolResultsAny![0] } }
           : undefined)
     let toolChoice: any = baseToolChoice
@@ -176,19 +181,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 const errMsg = 'ask_user 工具缺少 question 参数'
                 toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
                 hasToolError = true
-                messages.push({
-                  role: 'assistant',
-                  tool_calls: [{
-                    id: mappedToolCallId,
-                    type: 'function',
-                    function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
-                  }]
-                })
-                messages.push({
-                  role: 'tool',
-                  tool_call_id: mappedToolCallId,
-                  content: JSON.stringify({ error: errMsg, success: false })
-                })
+                pushToolCallMessages(messages, mappedToolCallId, event.toolName, event.input, JSON.stringify({ error: errMsg, success: false }))
                 runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: errMsg }, status: 'failed' }, timestamp: Date.now() })
                 break
               }
@@ -203,19 +196,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 const errMsg = `已达到最大询问轮次 ${maxRounds}，禁止继续 ask_user。请直接调用 plan_tasks 提交任务计划（必填字段缺失时用合理默认值填充，并在 description 中注明）。`
                 toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
                 hasToolError = true
-                messages.push({
-                  role: 'assistant',
-                  tool_calls: [{
-                    id: mappedToolCallId,
-                    type: 'function',
-                    function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
-                  }]
-                })
-                messages.push({
-                  role: 'tool',
-                  tool_call_id: mappedToolCallId,
-                  content: JSON.stringify({ error: errMsg, success: false })
-                })
+                pushToolCallMessages(messages, mappedToolCallId, event.toolName, event.input, JSON.stringify({ error: errMsg, success: false }))
                 runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: errMsg }, status: 'failed' }, timestamp: Date.now() })
                 break
               }
@@ -242,21 +223,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
               const errMsg = `工具 ${event.toolName} 不在当前步骤的允许列表 [${options.allowedTools.join(', ')}] 中，禁止调用。请只使用允许的工具。`
               toolResults[event.toolName] = { error: errMsg, success: false, message: errMsg }
               hasToolError = true
-              messages.push({
-                role: 'assistant',
-                tool_calls: [{
-                  id: mappedToolCallId,
-                  type: 'function',
-                  // 后端解析失败时 input 是 {_rawArguments, _parseError} 兜底信号
-                  // 用 _rawArguments 作为 arguments 让 LLM 看到自己上轮真正输出的内容
-                  function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
-                }]
-              })
-              messages.push({
-                role: 'tool',
-                tool_call_id: mappedToolCallId,
-                content: JSON.stringify({ error: errMsg, success: false, message: errMsg })
-              })
+              pushToolCallMessages(messages, mappedToolCallId, event.toolName, event.input, JSON.stringify({ error: errMsg, success: false, message: errMsg }))
               runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: errMsg }, status: 'failed' }, timestamp: Date.now() })
               break
             }
@@ -299,25 +266,13 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 requiredToolsSatisfied = true
               }
 
-              messages.push({
-                role: 'assistant',
-                tool_calls: [{
-                  id: mappedToolCallId,
-                  type: 'function',
-                  // 后端解析失败时 input 是 {_rawArguments, _parseError} 兜底信号
-                  // 用 _rawArguments 作为 arguments 让 LLM 看到自己上轮真正输出的内容
-                  function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
-                }]
-              })
-              messages.push({
-                role: 'tool',
-                tool_call_id: mappedToolCallId,
-                content: JSON.stringify(
+              pushToolCallMessages(messages, mappedToolCallId, event.toolName, event.input,
+                JSON.stringify(
                   (normalizedResult && typeof normalizedResult === 'object' && normalizedResult.success === false)
                     ? { error: normalizedResult.error, success: false, message: normalizedResult.message }
                     : normalizedResult
                 )
-              })
+              )
             } catch (err: any) {
               runtime.emitEvent({ mode: 'updates', event: { nodeId, output: { type: 'tool_result', toolCallId: mappedToolCallId, toolName: event.toolName, result: null, error: err.message }, status: 'running' }, timestamp: Date.now() })
               toolResults[event.toolName] = { error: err.message }
@@ -333,19 +288,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
                 }
               }
               hasToolError = true
-              messages.push({
-                role: 'assistant',
-                tool_calls: [{
-                  id: mappedToolCallId,
-                  type: 'function',
-                  function: { name: event.toolName, arguments: (event.input as any)?._rawArguments ?? JSON.stringify(event.input) }
-                }]
-              })
-              messages.push({
-                role: 'tool',
-                tool_call_id: mappedToolCallId,
-                content: JSON.stringify({ error: err.message })
-              })
+              pushToolCallMessages(messages, mappedToolCallId, event.toolName, event.input, JSON.stringify({ error: err.message }))
             }
             break
           }
@@ -391,7 +334,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
             // 而是返回错误给LLM让其重试（利用maxIterations循环），最多尝试配置的次数
             hasToolError = true
             const errMsg = `LLM API错误: ${event.message}`
-            console.warn(`[llm-decide] node=${nodeId} LLM调用错误: ${errMsg} (iteration=${iteration}/${maxIterations})`)
+            log.warn(`node=${nodeId} LLM调用错误: ${errMsg} (iteration=${iteration}/${maxIterations})`)
 
             // 如果还有剩余迭代次数，让LLM重试；否则抛异常退出
             if (iteration < maxIterations) {
@@ -413,7 +356,7 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
     const missingTools = checkRequiredTools(options, toolResults)
     const missingAny = checkRequiredToolsAny(options, toolResults)
     if (missingTools.length > 0 || missingAny.length > 0) {
-      console.warn(`[llm-decide] node=${nodeId} 必需工具未执行: toolResults=${Object.keys(toolResults).join(',')} lastCall=${JSON.stringify(lastAssistantToolCalls)}`)
+      log.warn(`node=${nodeId} 必需工具未执行: toolResults=${Object.keys(toolResults).join(',')} lastCall=${JSON.stringify(lastAssistantToolCalls)}`)
       const reasons = [
         ...missingTools.map(t => `缺少: ${t}`),
         ...missingAny.map(t => `缺少任一: ${t}`)
@@ -430,6 +373,38 @@ export function createLLMDecideNode(options: LLMDecideNodeOptions) {
 }
 
 // ==================== 内部辅助函数 ====================
+
+/**
+ * 向消息列表追加 assistant + tool 消息对（多轮对话回放格式）
+ * 消除各处重复的 messages.push 两行模式
+ *
+ * @param messages - 消息列表
+ * @param toolCallId - 映射后的工具调用 ID
+ * @param toolName - 工具名
+ * @param input - 工具入参（含可能的 _rawArguments 兜底）
+ * @param toolContent - tool 消息的 content（JSON.stringify 后的字符串）
+ */
+function pushToolCallMessages(
+  messages: any[],
+  toolCallId: string,
+  toolName: string,
+  input: any,
+  toolContent: string
+): void {
+  messages.push({
+    role: 'assistant',
+    tool_calls: [{
+      id: toolCallId,
+      type: 'function',
+      function: { name: toolName, arguments: (input as any)?._rawArguments ?? JSON.stringify(input) }
+    }]
+  })
+  messages.push({
+    role: 'tool',
+    tool_call_id: toolCallId,
+    content: toolContent
+  })
+}
 
 /**
  * 过滤允许的工具定义

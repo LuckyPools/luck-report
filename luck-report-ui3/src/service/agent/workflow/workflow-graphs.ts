@@ -1,7 +1,5 @@
 /**
- * LangGraph 工作流图注册表（VITE_USE_LANGGRAPH_ENGINE=true 时使用）
- * 与 graph/workflow-graphs.ts 保持同名同签名的工厂函数，agent-loop.ts 无感知切换
- *
+ * LangGraph 工作流图注册表
  * 顶层唯一入口：[report_agent]（Planner 自主规划 read_* + write_* + summary 任务，Dispatcher 自环执行）
  */
 
@@ -50,31 +48,4 @@ export function getGraphByIntent(intentType: string): CompiledReportGraph | unde
   return graphRegistry.get(intentType)?.()
 }
 
-/**
- * 根据子工作流类型获取子图
- * @param subworkflowType - 子工作流类型
- * @returns 对应子图；未找到时返回 undefined
- */
-export function getSubGraphByType(subworkflowType: string): CompiledReportGraph | undefined {
-  const migratedSubGraphFactories: Record<string, () => CompiledReportGraph> = {
-    // 数据源
-    create_datasource: createDatasourceGraph,
-    modify_datasource: modifyDatasourceGraph,
-    delete_datasource: deleteDatasourceGraph,
-    // 数据集
-    create_dataset: createDatasetGraph,
-    modify_dataset: modifyDatasetGraph,
-    delete_dataset: deleteDatasetGraph,
-    // 单元格
-    modify_cell: modifyCellGraph,
-    // 行/列
-    modify_row: modifyRowGraph,
-    modify_col: modifyColGraph,
-    delete_row: deleteRowGraph,
-    delete_col: deleteColGraph,
-    // 表单/页面
-    modify_form: modifyFormGraph,
-    modify_page: modifyPageGraph
-  }
-  return migratedSubGraphFactories[subworkflowType]?.()
-}
+

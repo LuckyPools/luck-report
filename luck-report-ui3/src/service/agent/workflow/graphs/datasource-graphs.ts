@@ -23,12 +23,16 @@ import { createLLMDecideNode } from '@/service/agent/workflow/nodes/llm-decide-n
 import { createToolCallNode } from '@/service/agent/workflow/nodes/tool-call-node.ts'
 import {
   extractSearchCandidates,
-  extractTargetTableNames,
   filterActiveErrors,
   pickDatasourceName,
   runToolWithEvent
 } from '../utils.ts'
 import type { ReportState, ReportStateUpdate } from '../state.ts'
+
+import { logger } from '../logger.ts'
+
+const log = logger('datasource-graphs')
+
 
 /**
  * 检查 searchResults 是否包含必需的搜索/筛选数据
@@ -100,22 +104,17 @@ export function createDatasourceGraph(): CompiledReportGraph {
       return { errors: ['未找到与用户需求匹配的内置数据源，jdbc/spring 类型数据源需在报表设计器中手动添加'] } as ReportStateUpdate
     }
 
-    const targetTableNames = extractTargetTableNames(
-      sr.search_schema,
-      pickedName,
-      String(state.userMessage ?? ''),
-      1
-    )
-    console.log(`[datasource-graph] ${stepId} 选名: ${pickedName}`)
+    // 表的选取由后续 resolve_table 节点通过 get_table_relation 向量搜索完成
+    // 不再在此阶段预选单表（移除 extractTargetTableNames 调用）
+    log.info(`[datasource-graph] ${stepId} 选名: ${pickedName}`)
 
     const existing: any = await runToolWithEvent(runtime, stepId, 'get_datasources', {})
     const dsList: any[] = Array.isArray(existing) ? existing : (Array.isArray(existing?.datasources) ? existing.datasources : [])
     const exists = dsList.some((d: any) => d?.name === pickedName)
     if (exists) {
-      console.log(`[datasource-graph] ${stepId} 跳过创建: ${pickedName} 已存在`)
+      log.info(`[datasource-graph] ${stepId} 跳过创建: ${pickedName} 已存在`)
       return {
         targetDatasourceName: pickedName,
-        targetTableNames: targetTableNames.length > 0 ? targetTableNames : undefined,
         datasources: dsList
       } as ReportStateUpdate
     }
@@ -141,9 +140,7 @@ export function createDatasourceGraph(): CompiledReportGraph {
       : [...previous, newDatasource]
     return {
       targetDatasourceName: pickedName,
-      targetTableNames: targetTableNames.length > 0 ? targetTableNames : undefined,
-      datasources: merged,
-      __executed_pick_and_add_datasource: true
+      datasources: merged
     } as ReportStateUpdate
   }, { nodeName: 'pick_and_add_datasource' })
 
@@ -163,7 +160,6 @@ export function createDatasourceGraph(): CompiledReportGraph {
     }
     return {
       targetDatasourceName: dsName,
-      targetTableNames: state.targetTableNames,
       datasources
     } as ReportStateUpdate
   }, { nodeName: 'confirm_datasource' })
@@ -181,24 +177,32 @@ export function createDatasourceGraph(): CompiledReportGraph {
   return g.compile()
 }
 
-// ==================== 修改数据源子工作流 ====================
+// ==================== 不支持的数据源操作子工作流 ====================
 
 /**
- * 修改数据源工作流（不支持）
- * 数据源的修改不允许通过 Agent 操作，需用户在报表设计器中手动处理
- * @returns 编译后的可执行图
+ * 不支持的数据源操作工厂（修改/删除共用结构）
+ * 数据源的修改和删除不允许通过 Agent 操作，需用户在报表设计器中手动处理
+ *
+ * @param action - 操作类型：'modify' 或 'delete'
+ * @returns 编译后的可执行图（单节点返回不支持错误）
  */
-export function modifyDatasourceGraph(): CompiledReportGraph {
+function notSupportedDatasourceGraph(action: 'modify' | 'delete'): CompiledReportGraph {
+  const label = action === 'delete' ? '删除' : '修改'
   const notSupported = withInput(async () => {
-    return { errors: ['数据源的修改暂不支持通过 Agent 操作，请在报表设计器中手动修改'] } as ReportStateUpdate
-  }, { nodeName: 'not_supported_modify' })
+    return { errors: [`数据源的${label}暂不支持通过 Agent 操作，请在报表设计器中手动${label}`] } as ReportStateUpdate
+  }, { nodeName: `not_supported_datasource_${action}` })
 
   const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
-    .addNode('not_supported_modify', notSupported)
-    .addEdge(START, 'not_supported_modify')
-    .addEdge('not_supported_modify', END)
+    .addNode(`not_supported_datasource_${action}`, notSupported)
+    .addEdge(START, `not_supported_datasource_${action}`)
+    .addEdge(`not_supported_datasource_${action}`, END)
 
   return g.compile()
+}
+
+/** 修改数据源工作流（不支持） */
+export function modifyDatasourceGraph(): CompiledReportGraph {
+  return notSupportedDatasourceGraph('modify')
 }
 
 // ==================== 读数据源子工作流 ====================
@@ -227,22 +231,7 @@ export function readDatasourcesGraph(): CompiledReportGraph {
   return g.compile()
 }
 
-// ==================== 删除数据源子工作流 ====================
-
-/**
- * 删除数据源工作流（不支持）
- * 数据源的删除不允许通过 Agent 操作，需用户在报表设计器中手动处理
- * @returns 编译后的可执行图
- */
+/** 删除数据源工作流（不支持） */
 export function deleteDatasourceGraph(): CompiledReportGraph {
-  const notSupported = withInput(async () => {
-    return { errors: ['数据源的删除暂不支持通过 Agent 操作，请在报表设计器中手动删除'] } as ReportStateUpdate
-  }, { nodeName: 'not_supported_delete' })
-
-  const g = new StateGraph(ReportStateAnnotation, WorkflowRuntimeAnnotation)
-    .addNode('not_supported_delete', notSupported)
-    .addEdge(START, 'not_supported_delete')
-    .addEdge('not_supported_delete', END)
-
-  return g.compile()
+  return notSupportedDatasourceGraph('delete')
 }
