@@ -35,7 +35,6 @@ import java.util.logging.Logger;
 public abstract class BaseCondition implements Condition {
     private static final long serialVersionUID = 1L;
     protected Op op;
-    protected Logger log = Logger.getAnonymousLogger();
     private String operation;
     private Join join;
     private Condition nextCondition;
