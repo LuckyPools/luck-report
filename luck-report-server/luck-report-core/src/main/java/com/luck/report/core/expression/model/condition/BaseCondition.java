@@ -21,12 +21,10 @@ import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Condition;
 import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.model.data.*;
-import com.luck.report.core.expression.model.data.*;
 import com.luck.report.core.model.Cell;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * @author Jacky.gao
@@ -35,7 +33,6 @@ import java.util.logging.Logger;
 public abstract class BaseCondition implements Condition {
     private static final long serialVersionUID = 1L;
     protected Op op;
-    protected Logger log = Logger.getAnonymousLogger();
     private String operation;
     private Join join;
     private Condition nextCondition;
