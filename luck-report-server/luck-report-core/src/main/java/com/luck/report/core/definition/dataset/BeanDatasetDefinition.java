@@ -27,11 +27,16 @@ import java.util.Map;
  * @since 2016年12月27日
  */
 public class BeanDatasetDefinition implements DatasetDefinition {
-    private static final long serialVersionUID = -1332306988025304185L;
+    private static final long serialVersionUID = 1L;
     private String name;
     private String method;
     private String clazz;
     private List<Field> fields;
+
+    /**
+     * 默认无参构造器
+     */
+    public BeanDatasetDefinition() {}
 
     @SuppressWarnings("unchecked")
     public Dataset buildDataset(String datasourceName, Object obj, Map<String, Object> parameters) {

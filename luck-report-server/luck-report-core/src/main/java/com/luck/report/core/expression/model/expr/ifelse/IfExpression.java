@@ -22,6 +22,7 @@ import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.expression.model.expr.ExpressionBlock;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,11 +30,13 @@ import java.util.List;
  * @since 2017年1月16日
  */
 public class IfExpression extends BaseExpression {
-    private static final long serialVersionUID = -514395376408127087L;
+    private static final long serialVersionUID = 1L;
     private ExpressionConditionList conditionList;
     private ExpressionBlock expression;
     private List<ElseIfExpression> elseIfExpressions;
     private ElseExpression elseExpression;
+
+    public IfExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
@@ -86,5 +89,25 @@ public class IfExpression extends BaseExpression {
 
     public void setElseIfExpressions(List<ElseIfExpression> elseIfExpressions) {
         this.elseIfExpressions = elseIfExpressions;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (conditionList != null) {
+            list.addAll(conditionList.fetchCellName());
+        }
+        if (expression != null) {
+            list.addAll(expression.fetchCellName());
+        }
+        if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
+            for (ElseIfExpression elseIfExpr : elseIfExpressions) {
+                list.addAll(elseIfExpr.fetchCellName());
+            }
+        }
+        if (elseExpression != null) {
+            list.addAll(elseExpression.fetchCellName());
+        }
+        return list;
     }
 }

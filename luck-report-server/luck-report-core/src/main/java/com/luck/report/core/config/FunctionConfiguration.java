@@ -291,4 +291,9 @@ public class FunctionConfiguration {
     public ColumnFunction columnFunction() {
         return new ColumnFunction();
     }
+
+    @Bean
+    public DataRowFunction dataRowFunction() {
+        return new DataRowFunction();
+    }
 }

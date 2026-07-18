@@ -15,11 +15,16 @@
  ******************************************************************************/
 package com.luck.report.core.chart.option;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class Padding {
+public class Padding implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public Padding() {}
     private int left;
     private int right;
     private int top;

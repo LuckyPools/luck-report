@@ -6,14 +6,14 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <div class="form-group">
+      <div class="import-tip-box">
         <div class="import-description">{{ $t('dialog.import.desc') }}</div>
       </div>
       <div class="form-group">
         <label>{{ $t('dialog.import.file') }}：</label>
         <input
           type="file"
-          class="form-control"
+          class="import-file-input"
           :key="fileInputKey"
           accept=".xlsx,.xls"
           @change="handleFileChange"
@@ -73,21 +73,12 @@ export default {
 
       try {
         const response = await importExcelFile(this.selectedFile);
-        this.handleImportResponse(response);
-      } catch (error) {
-        console.error('上传文件失败:', error);
-        showAlert(this.$t('dialog.import.fail'));
-      }
-    },
-    handleImportResponse(response) {
-      const result = response.result;
-      if (result) {
         this.$emit('import-success');
         this.$emit('update:visible', false);
-      } else {
-        const errorInfo = response.errorInfo;
-        if (errorInfo) {
-          showAlert(`${this.$t('dialog.import.fail')}: ${errorInfo}`);
+      } catch (error) {
+        console.error('上传文件失败:', error);
+        if (error.msg) {
+          showAlert(this.$t('dialog.import.fail') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('dialog.import.fail'));
         }
@@ -102,14 +93,20 @@ export default {
 </script>
 
 <style scoped>
+.import-tip-box {
+  padding: 8px 16px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border-left: 5px solid #007868;
+  margin: 20px 0;
+}
 
 .import-description {
-  margin-bottom: 10px;
   line-height: 2;
   color: #929191;
 }
 
-.form-control {
+.import-file-input {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;

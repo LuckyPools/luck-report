@@ -2,7 +2,9 @@ package com.luck.report.core.definition.searchform.component;
 
 import com.luck.report.core.definition.searchform.RenderContext;
 
+
 public class InputComponent extends BaseInputComponent {
+    private static final long serialVersionUID = 1L;
     private String placeholder;
     private boolean clearable;
     private boolean disabled;
@@ -14,6 +16,11 @@ public class InputComponent extends BaseInputComponent {
     private String prefixIcon;
     private String suffixIcon;
     private String defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public InputComponent() {}
 
     @Override
     public String initJs(RenderContext context) {

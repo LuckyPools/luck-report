@@ -37,7 +37,7 @@
         v-for="(datasource, index) in jdbcDatasources"
         :key="'jdbc_' + '_' + index"
         :datasources="datasources"
-        :ds="datasource"
+        :datasource="datasource"
         ref="databaseTree"
         @remove="removeDatasource"
         @update-datasource="updateDatasource"
@@ -139,13 +139,13 @@ export default {
     },
     // 分离不同类型的数据源以便渲染
     jdbcDatasources() {
-      return this.datasources.filter(ds => ds.type === 'jdbc');
+      return this.datasources.filter(item => item.type === 'jdbc');
     },
     springDatasources() {
-      return this.datasources.filter(ds => ds.type === 'spring');
+      return this.datasources.filter(item => item.type === 'spring');
     },
     buildinDatasources() {
-      return this.datasources.filter(ds => ds.type === 'buildin');
+      return this.datasources.filter(item => item.type === 'buildin');
     },
 
   },
@@ -158,10 +158,6 @@ export default {
       },
       immediate: true
     }
-  },
-  mounted() {
-    // 初始化数据源
-    this.initializeDatasources();
   },
   methods: {
     /**
@@ -282,7 +278,7 @@ export default {
      */
     updateDatasource(data) {
       // 查找并更新匹配的数据源
-      const index = this.datasources.findIndex(ds => ds.name === data.oldName);
+      const index = this.datasources.findIndex(item => item.name === data.oldName);
       if (index !== -1) {
         this.$set(this.datasources, index, { ...this.datasources[index], ...data });
       }

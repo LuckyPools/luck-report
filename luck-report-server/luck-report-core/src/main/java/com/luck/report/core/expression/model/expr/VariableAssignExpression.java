@@ -24,6 +24,7 @@ import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,9 +32,11 @@ import java.util.List;
  * @since 2018年7月13日
  */
 public class VariableAssignExpression extends BaseExpression {
-    private static final long serialVersionUID = 435511939569866187L;
+    private static final long serialVersionUID = 1L;
     private String variable;
     private Expression expression;
+
+    public VariableAssignExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
@@ -82,5 +85,14 @@ public class VariableAssignExpression extends BaseExpression {
 
     public void setExpression(Expression expression) {
         this.expression = expression;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expression != null) {
+            list.addAll(expression.fetchCellName());
+        }
+        return list;
     }
 }

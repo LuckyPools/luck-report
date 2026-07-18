@@ -6,6 +6,14 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 luck-report:
+  # 请求前缀
   servletPrefix: report
+  # 报表存储路径
   fileStoreDir: E:/luckStudio/IO/report
+  # 调试日志
   debug: true
+  # 自动扫描组件
+  autoConfig: true
+  # 打印启动标语
+  banner:
+    enable: true

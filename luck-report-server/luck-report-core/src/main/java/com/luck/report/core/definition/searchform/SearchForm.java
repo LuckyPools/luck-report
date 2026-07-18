@@ -17,9 +17,11 @@ package com.luck.report.core.definition.searchform;
 
 import com.luck.report.core.definition.searchform.component.Component;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class SearchForm {
+public class SearchForm implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String formRef;
     private String tag;
     private String formModel;
@@ -32,6 +34,11 @@ public class SearchForm {
     private Integer span;
     private boolean formBtns;
     private List<Component> fields;
+
+    /**
+     * 默认无参构造器
+     */
+    public SearchForm() {}
 
     public String getFormRef() {
         return formRef;

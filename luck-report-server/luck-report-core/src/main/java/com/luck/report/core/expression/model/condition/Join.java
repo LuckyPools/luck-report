@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.luck.report.core.expression.model.condition;
 
+import com.luck.report.core.exception.ReportParseException;
+
 /**
  * @author Jacky.gao
  * @since 2016年12月1日
@@ -29,6 +31,6 @@ public enum Join {
         if (join.equals("or") || join.equals("||")) {
             return or;
         }
-        throw new IllegalArgumentException("Unknow join : " + join);
+        throw new ReportParseException("Unknow join : " + join);
     }
 }

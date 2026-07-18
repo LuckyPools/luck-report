@@ -20,7 +20,7 @@ package com.luck.report.core.exception;
  * @since 2016年11月19日
  */
 public class CellNotExistException extends ReportException {
-    private static final long serialVersionUID = -2436297948073253411L;
+    private static final long serialVersionUID = 1L;
 
     public CellNotExistException(String cellName) {
         super("Cell [" + cellName + "] not exist.");

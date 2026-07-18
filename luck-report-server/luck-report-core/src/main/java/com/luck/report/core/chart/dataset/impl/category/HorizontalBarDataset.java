@@ -23,6 +23,9 @@ import com.luck.report.core.model.Cell;
  * @since 2017年6月8日
  */
 public class HorizontalBarDataset extends BarDataset {
+    private static final long serialVersionUID = 1L;
+
+    public HorizontalBarDataset() {}
     @Override
     public String buildDataJson(Context context, Cell cell) {
         String datasetJson = buildDatasetJson(context, cell, null);

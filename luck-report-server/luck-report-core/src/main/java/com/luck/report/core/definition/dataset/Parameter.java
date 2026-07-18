@@ -17,14 +17,22 @@ package com.luck.report.core.definition.dataset;
 
 import com.luck.report.core.definition.datasource.DataType;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2016年12月27日
  */
-public class Parameter {
+public class Parameter implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
     private DataType type;
     private String defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public Parameter() {}
 
     public String getName() {
         return name;

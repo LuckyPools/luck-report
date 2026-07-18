@@ -1,9 +1,13 @@
 <template>
   <div class="expression-value-editor" ref="container" >
-    <!-- 换行计算选项 -->
-    <div class="form-group" style="margin-bottom: 10px">
-      <label>{{ $t('property.base.newLineCompute') }}：</label>
-      <div class="u-inline">
+    <u-form :label-width="100" labelPosition="left">
+
+      <div class="property-quote">
+        {{ $t('property.expr.config') }}
+      </div>
+
+      <!-- 换行计算选项 -->
+      <u-form-item class="property-label" :label="$t('property.base.newLineCompute')">
         <u-radio-group
             v-model="wrapCompute"
             @change="handleWrapComputeChange"
@@ -19,14 +23,10 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 展开选项 -->
-    <div class="form-group" style="margin-bottom: 10px">
-
-      <label>{{ $t('property.expr.expand') }}：</label>
-      <div class="u-inline">
+      <!-- 展开选项 -->
+      <u-form-item class="property-label" :label="$t('property.expr.expand')">
         <u-radio-group
             v-model="expand"
             @change="handleExpandChange"
@@ -39,49 +39,45 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 格式化输入框 -->
-    <div class="form-group" style="margin-bottom:10px;">
-      <label>{{ $t('property.base.format') }}：</label>
-      <vue-simple-suggest
-          v-model="format"
-          :list="suggestionList"
-          :filter-by-query="true"
-          :placeholder="$t('property.base.formatTip')"
-          class="simple-suggest"
-          style="display: inline-block"
-          @input="handleFormatChange"
-      ></vue-simple-suggest>
-    </div>
+      <!-- 格式化输入框 -->
+      <u-form-item class="property-label" :label="$t('property.base.format')">
+        <vue-simple-suggest
+            v-model="format"
+            :list="suggestionList"
+            :filter-by-query="true"
+            :placeholder="$t('property.base.formatTip')"
+            class="simple-suggest"
+            @blur="handleFormatChange"
+        ></vue-simple-suggest>
+      </u-form-item>
 
-    <!-- 条件属性配置 -->
-    <div class="form-group" style="margin-bottom: 10px">
-      <label>{{ $t('property.base.conditionProp') }}：</label>
-      <u-button
-          type="info"
-          icon="icon-filter"
-          @click="handleConditionPropertyConfig"
-      >
-        {{ $t('property.base.configCondition') }}
-      </u-button>
-    </div>
+      <!-- 条件属性配置 -->
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
 
-    <!-- 表达式编辑器 -->
-    <div>
-      <label>{{ $t('property.expr.expr') }}：</label>
-      <div style="border: solid 1px #eeeeee;">
+      <!-- 表达式编辑器 -->
+      <u-form-item class="property-label" :label="$t('property.expr.expr')">
+      </u-form-item>
+      <div>
         <textarea ref="codeEditor"></textarea>
       </div>
-    </div>
+    </u-form>
 
     <!-- 条件属性对话框 -->
     <PropertyConditionDialog
         ref="propertyConditionDialog"
         :visible.sync="propertyConditionDialogVisible"
-        :dataset-name="propertyConditionDialogDatasetName"
-        :condition-property-items="propertyConditionDialogItems"
+        :fields="[]"
+        :conditionGroups="conditionGroups"
         @saveAfter="handlePropertyConditionSave"
     />
   </div>
@@ -92,8 +88,10 @@ import CodeMirror from 'codemirror';
 import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/lint/lint.js';
 import { setDirty } from '@/utils/table.js';
-import { scriptValidation, parseDatasetName } from '@/api/designer/index.js';
+import { scriptValidation } from '@/api/designer/index.js';
 import PropertyConditionDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UButton from '@/components/button/index.vue';
@@ -101,13 +99,15 @@ import { showAlert } from '@/utils/comnon.js';
 import VueSimpleSuggest from 'vue-simple-suggest'
 import 'vue-simple-suggest/dist/styles.css'
 import { deepCopy } from '@/components/utils/index.js';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ExpressionValueEditor',
   components: {
+    UForm,
+    UFormItem,
     PropertyConditionDialog,
     URadioGroup,
     URadio,
@@ -133,9 +133,12 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     expandOptions() {
       return [
@@ -143,6 +146,9 @@ export default {
         { value: 'Right', label: this.$t('property.dataset.right') },
         { value: 'None', label: this.$t('property.dataset.noneExpand') }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   data() {
@@ -175,21 +181,22 @@ export default {
       ],
       loadingCellData: false,
       propertyConditionDialogVisible: false,
-      propertyConditionDialogDatasetName: '',
-      propertyConditionDialogItems: []
+      conditionGroups: []
     };
   },
   watch: {
-    rowIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadCellData();
       }
     },
-    colIndex: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
       }
     }
   },
@@ -200,6 +207,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
 
     /**
      * 初始化代码编辑器
@@ -234,7 +242,11 @@ export default {
 
       // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
+        if (this.loadingCellData) return;
         const expr = cm.getValue();
+        if (expr === 'undefined' || expr === undefined || expr === null) {
+          return;
+        }
         const cellDef = getCell(this.rowIndex, this.colIndex);
         if (cellDef && cellDef.value) {
           const newCellDef = deepCopy(cellDef);
@@ -256,17 +268,17 @@ export default {
      * 加载单元格数据
      */
     loadCellData() {
-      if (this.loadingCellData) return;
+      this.loadingCellData = true;
 
       const cellDef = getCell(this.rowIndex, this.colIndex);
 
       // 如果编辑器已经初始化，立即设置值
       if (this.codeMirror && cellDef && cellDef.value) {
-        this.loadingCellData = true;
-        this.codeMirror.setValue(cellDef.value.value || '');
-        this.$nextTick(() => {
-          this.loadingCellData = false;
-        });
+        let valueToSet = cellDef.value.value || '';
+        if (valueToSet === 'undefined') {
+          valueToSet = '';
+        }
+        this.codeMirror.setValue(valueToSet);
       }
 
       // 设置展开选项
@@ -295,6 +307,7 @@ export default {
         } else {
           this.codeMirror.refresh();
         }
+        this.loadingCellData = false;
       });
     },
 
@@ -378,10 +391,10 @@ export default {
     /**
      * 处理格式变化
      */
-    handleFormatChange(format) {
+    handleFormatChange() {
+      if (this.loadingCellData) return;
       const hot = TableManager.get();
       if (!hot) return;
-      this.format = format;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -391,7 +404,7 @@ export default {
           if (!newCellDef.cellStyle) {
             newCellDef.cellStyle = {};
           }
-          newCellDef.cellStyle.format = format;
+          newCellDef.cellStyle.format = this.format;
           setCell( i, j, newCellDef );
         }
       }
@@ -405,43 +418,30 @@ export default {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (!cellDef) return;
 
-      const conditionPropertyItems = cellDef.conditionPropertyItems
+      const conditionGroups = cellDef.conditionPropertyItems
           ? deepCopy(cellDef.conditionPropertyItems)
           : [];
 
-      let datasetName = '';
-      const expr = this.codeMirror ? this.codeMirror.getValue() : '';
-
-      if (expr && expr !== '') {
-        try {
-          const result = await parseDatasetName(expr);
-          datasetName = result.datasetName;
-        } catch (error) {
-          console.error('Parse dataset name error:', error);
-        }
-      }
-
-      this.showPropertyConditionDialog(datasetName, conditionPropertyItems);
+      this.showPropertyConditionDialog(conditionGroups);
     },
 
     /**
      * 显示条件属性对话框
      */
-    showPropertyConditionDialog(datasetName, conditionPropertyItems) {
-      this.propertyConditionDialogDatasetName = datasetName;
-      this.propertyConditionDialogItems = conditionPropertyItems;
+    showPropertyConditionDialog(conditionGroups) {
+      this.conditionGroups = conditionGroups;
       this.propertyConditionDialogVisible = true;
     },
 
     /**
      * 处理属性条件保存后的回调
      */
-    handlePropertyConditionSave(propertyConditions) {
+    handlePropertyConditionSave(conditionGroups) {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (!cellDef) return;
 
       const newCellDef = deepCopy(cellDef);
-      newCellDef.conditionPropertyItems = deepCopy(propertyConditions);
+      newCellDef.conditionPropertyItems = deepCopy(conditionGroups);
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -457,7 +457,7 @@ export default {
 <style scoped>
 .simple-suggest /deep/ .default-input{
   display: inline-block !important;
-  width: 268px !important;
+  width: 250px !important;
   height: 35px;
 }
 </style>

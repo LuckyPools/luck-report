@@ -1,14 +1,10 @@
 <template>
-  <fieldset class="chart-fieldset">
-    <legend>{{ $t('chart.propBindConfig') }}</legend>
+  <div class="chart-dataset-bob">
 
-    <!-- 数据集选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.dataset') }}：</label>
-      <div class="u-inline">
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
-          v-model="localDataset"
-          :clearable="true"
+          v-model="localDatasetName"
           @change="handleDatasetChange"
         >
           <u-option
@@ -18,13 +14,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 类别属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.categoryProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.categoryProperty')">
         <u-select
           v-model="localCategoryProperty"
           :clearable="true"
@@ -37,16 +29,11 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- X轴属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.xProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.xProperty')">
         <u-select
           v-model="localXProperty"
-          :clearable="true"
           @change="handleXPropertyChange"
         >
           <u-option
@@ -56,16 +43,11 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- Y轴属性选择 -->
-    <div class="form-group">
-      <label>{{ $t('chart.yProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('chart.yProperty')">
         <u-select
           v-model="localYProperty"
-          :clearable="true"
           @change="handleYPropertyChange"
         >
           <u-option
@@ -75,16 +57,11 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- R轴属性选择 -->
-    <div class="form-group" v-if="showRProperty">
-      <label>{{ $t('chart.rProperty') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" v-if="showRProperty" :label="$t('chart.rProperty')">
         <u-select
           v-model="localRProperty"
-          :clearable="true"
           @change="handleRPropertyChange"
         >
           <u-option
@@ -94,54 +71,63 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
-  </fieldset>
+      </u-form-item>
+    </u-form>
+  </div>
 </template>
 
 <script>
 import {setDirty} from '@/utils/table.js';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
-import { mapGetters } from 'vuex';
+import UFormItem from "@/components/form-item/index.vue";
+import UForm from "@/components/form/index.vue";
 
 export default {
   name: 'ChartDataConfig',
   components: {
+    UForm,
+    UFormItem,
     USelect,
     UOption
   },
   props: {
-    selectedDataset: {
+    datasetName: {
       type: String,
       default: ''
     },
-    selectedCategoryProperty: {
+    categoryProperty: {
       type: String,
       default: ''
     },
-    selectedXProperty: {
+    xProperty: {
       type: String,
       default: ''
     },
-    selectedYProperty: {
+    yProperty: {
       type: String,
       default: ''
     },
-    selectedRProperty: {
+    rProperty: {
       type: String,
       default: ''
     },
     showRProperty: {
       type: Boolean,
       default: true
+    },
+    datasets: {
+      type: Array,
+      default: () => []
+    },
+    fields: {
+      type: Array,
+      default: () => []
     }
   },
   data() {
     return {
-      availableFields: [],
-      // 本地数据，从props复制而来
-      localDataset: '',
+      localDatasetName: '',
       localCategoryProperty: '',
       localXProperty: '',
       localYProperty: '',
@@ -149,107 +135,52 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
-    context() {
-      return this.getContext;
-    },
-    datasources() {
-      return this.context?.reportDef?.datasources || [];
-    },
-    availableDatasets() {
-      if (!this.datasources) return [];
-
-      const datasets = [];
-      for (const ds of this.datasources) {
-        const dsDatasets = ds.datasets || [];
-        for (const dataset of dsDatasets) {
-          datasets.push(dataset);
-        }
-      }
-      return datasets;
-    },
-    // 为USelect组件准备的数据集选项
     datasetOptions() {
-      return this.availableDatasets.map(dataset => ({
+      return this.datasets.map(dataset => ({
         value: dataset.name,
         label: dataset.name
       }));
     },
-    // 为USelect组件准备的字段选项
     fieldOptions() {
-      return this.availableFields.map(field => ({
+      return this.fields.map(field => ({
         value: field.name,
         label: field.name
       }));
     }
   },
   watch: {
-    selectedDataset(newVal) {
-      this.localDataset = newVal;
+    datasetName: {
+      handler(newVal) {
+        this.localDatasetName = newVal || '';
+      },
+      immediate: true
     },
-    selectedCategoryProperty(newVal) {
-      this.localCategoryProperty = newVal;
+    categoryProperty: {
+      handler(newVal) {
+        this.localCategoryProperty = newVal || '';
+      },
+      immediate: true
     },
-    selectedXProperty(newVal) {
-      this.localXProperty = newVal;
+    xProperty: {
+      handler(newVal) {
+        this.localXProperty = newVal || '';
+      },
+      immediate: true
     },
-    selectedYProperty(newVal) {
-      this.localYProperty = newVal;
+    yProperty: {
+      handler(newVal) {
+        this.localYProperty = newVal || '';
+      },
+      immediate: true
     },
-    selectedRProperty(newVal) {
-      this.localRProperty = newVal;
-    },
-    localDataset() {
-      this.updateAvailableFields();
-    },
-    datasources: {
-      handler() {
-        this.updateAvailableFields();
+    rProperty: {
+      handler(newVal) {
+        this.localRProperty = newVal || '';
       },
       immediate: true
     }
   },
-  mounted() {
-    // 确保组件挂载后更新可用字段
-    this.updateAvailableFields();
-    // 初始化本地数据
-    this.initLocalData();
-  },
   methods: {
-    // 初始化本地数据
-    initLocalData() {
-      this.localDataset = this.selectedDataset || '';
-      this.localCategoryProperty = this.selectedCategoryProperty || '';
-      this.localXProperty = this.selectedXProperty || '';
-      this.localYProperty = this.selectedYProperty || '';
-      this.localRProperty = this.selectedRProperty || '';
-    },
-
-    // 更新可用字段
-    updateAvailableFields() {
-      if (!this.localDataset || !this.datasources) {
-        this.availableFields = [];
-        return;
-      }
-
-      let fields = [];
-      for (const ds of this.datasources) {
-        const datasets = ds.datasets || [];
-        for (const dataset of datasets) {
-          if (dataset.name === this.localDataset) {
-            fields = dataset.fields || [];
-            break;
-          }
-        }
-        if (fields.length > 0) break;
-      }
-
-      // 使用$nextTick确保DOM更新
-      this.$nextTick(() => {
-        this.availableFields = fields;
-      });
-    },
-
     // 处理数据集变化
     handleDatasetChange() {
 
@@ -261,7 +192,7 @@ export default {
 
       // 通知父组件更新配置
       this.$emit('update-dataset', {
-        datasetName: this.localDataset,
+        datasetName: this.localDatasetName,
         categoryProperty: '',
         xProperty: '',
         yProperty: '',
@@ -299,20 +230,7 @@ export default {
 </script>
 
 <style scoped>
-.chart-fieldset {
-  padding: 10px;
-  border: solid 1px #dddddd;
-  border-radius: 8px;
-  margin-bottom: 10px;
+.chart-dataset-bob{
   margin-top: 10px;
 }
-
-.chart-fieldset legend {
-  width: auto;
-  margin-bottom: 1px;
-  border-bottom: none;
-  font-size: inherit;
-  color: #4b4b4b;
-}
-
 </style>

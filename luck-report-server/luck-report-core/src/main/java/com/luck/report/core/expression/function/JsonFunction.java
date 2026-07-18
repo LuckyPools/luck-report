@@ -24,7 +24,7 @@ import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.List;

@@ -6,23 +6,18 @@
     @close="handleClose"
   >
     <div class="save-dialog-content">
-      <div class="form-group">
-        <label>{{ $t('dialog.save.fileName') }}：</label>
-        <div class="u-inline">
+      <u-form :label-width="90" label-position="left">
+        <u-form-item :label="$t('dialog.save.fileName')" class="property-label">
           <u-input
             v-model="fileName"
             ref="fileNameInput"
-            style="width: 480px"
+            style="width: 340px"
           />
-        </div>
-      </div>
+        </u-form-item>
 
-      <div class="form-group">
-        <label>{{ $t('dialog.save.source') }}：</label>
-        <div class="u-inline">
+        <u-form-item :label="$t('dialog.save.source')" class="property-label">
           <u-select
             v-model="selectedProvider"
-            style="width:450px;"
             @change="handleProviderChange"
           >
             <u-option
@@ -32,32 +27,39 @@
               :label="option.label"
             />
           </u-select>
-        </div>
-      </div>
+        </u-form-item>
 
-      <div class="path-bar" v-if="currentPath || canGoBack">
-        <div class="path-display">
-          <span class="path-label">{{ $t('dialog.save.currentPath') }}</span>
-          <span class="path-text">{{ currentPath || '/' }}</span>
-        </div>
-        <u-button
-          v-if="canGoBack"
-          @click="goBack"
-          type="primary"
-          size="small"
-        >
-          <i class="iconfont icon-back"></i>
-          {{ $t('dialog.save.backToParent') }}
-        </u-button>
-      </div>
+        <u-form-item :label="$t('dialog.save.currentPath')" class="property-label">
+          <div class="path-content">
+            <div class="path-breadcrumb">
+              <span class="path-segment" @click="navigateToPath(-1)">/</span>
+              <template v-for="(segment, index) in pathSegments">
+                <span class="path-segment" :key="'seg-' + index" @click="navigateToPath(index)">
+                  {{ segment }}
+                </span>
+                <span class="path-separator" :key="'sep-' + index">/</span>
+              </template>
+            </div>
+            <u-button
+                v-if="canGoBack"
+                @click="goBack"
+                type="info"
+                size="small"
+                icon="icon-undo"
+            >
+              {{ $t('dialog.save.backToParent') }}
+            </u-button>
+          </div>
+        </u-form-item>
+      </u-form>
 
-      <div class="file-list-container">
-        <table class="data-table">
-          <thead>
-            <tr class="data-table-header">
-              <td><span>{{ $t('dialog.save.fileName') }}</span></td>
-              <td style="width:200px;"><span>{{ $t('dialog.save.modDate') }}</span></td>
-              <td style="width:50px;"><span>{{ $t('dialog.save.del') }}</span></td>
+      <div class="file-list-container table-wrapper" v-loading="loading">
+        <table class="table-container">
+          <thead class="table-container-header">
+            <tr>
+              <th><span>{{ $t('dialog.save.fileName') }}</span></th>
+              <th style="width:200px;"><span>{{ $t('dialog.save.modDate') }}</span></th>
+              <th style="width:50px;"><span>{{ $t('dialog.save.operator') }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -73,12 +75,16 @@
                 </span>
               </td>
               <td><span>{{ formatDate(file.updateDate) }}</span></td>
-              <td class="data-table-btn" v-if="!file.directory">
-                <a @click.prevent="deleteFile(file, index)">
-                  <i class="iconfont icon-delete del-button"></i>
-                </a>
+              <td class="table-container-btn" >
+                <u-button
+                    v-if="!file.directory"
+                    type="info"
+                    icon="icon-delete"
+                    :title="$t('dialog.open.del')"
+                    @click="deleteFile(file, index)"
+                    style="border: none;color: red">
+                </u-button>
               </td>
-              <td v-else></td>
             </tr>
           </tbody>
         </table>
@@ -101,7 +107,10 @@ import { saveReportFile, deleteReportFile, loadReportProviders, loadReportProvid
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import UButton from "@/components/button/index.vue";
 import UInput from "@/components/input/index.vue";
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import { mapGetters } from 'vuex';
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'SaveDialog',
@@ -110,7 +119,12 @@ export default {
     UDialog,
     USelect,
     UOption,
-    UInput
+    UInput,
+    UForm,
+    UFormItem
+  },
+  directives: {
+    loading: LoadingDirective
   },
   props: {
     visible: {
@@ -127,7 +141,8 @@ export default {
       currentReportFiles: [],
       currentProviderPrefix: '',
       currentPath: '',
-      pathHistory: []
+      pathHistory: [],
+      loading: false
     };
   },
   computed: {
@@ -144,6 +159,10 @@ export default {
     },
     canGoBack() {
       return this.pathHistory.length > 0;
+    },
+    pathSegments() {
+      if (!this.currentPath) return [];
+      return this.currentPath.split('/').filter(Boolean);
     }
   },
   watch: {
@@ -163,6 +182,7 @@ export default {
   },
   methods: {
     loadReports() {
+      this.loading = true;
       loadReportProviders()
         .then(response => {
 
@@ -197,15 +217,19 @@ export default {
         })
         .catch(error => {
           if (error.msg) {
-            showAlert(this.$t('dialog.save.serverError') + error.msg);
+            showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
           } else {
             showAlert(this.$t('dialog.save.loadFail'));
           }
+        })
+        .finally(() => {
+          this.loading = false;
         });
     },
 
     loadProvidersByPath(path) {
       const _this = this;
+      this.loading = true;
 
       loadReportProvidersByPath(path)
         .then(result => {
@@ -218,10 +242,13 @@ export default {
         .catch(error => {
           console.error('Error loading providers by path:', error);
           if (error.msg) {
-            showAlert(this.$t('dialog.save.serverError') + error.msg);
+            showAlert(_this.$t('dialog.save.serverError') + _this.$t('colon') + error.msg,  { useHTMLString: true });
           } else {
-            showAlert(this.$t('dialog.save.loadFail'));
+            showAlert(_this.$t('dialog.save.loadFail'));
           }
+        })
+        .finally(() => {
+          _this.loading = false;
         });
     },
 
@@ -263,6 +290,22 @@ export default {
       }
     },
 
+    navigateToPath(index) {
+      if (index === -1) {
+        this.currentPath = '';
+        this.pathHistory = [];
+        this.onProviderChange();
+        return;
+      }
+      const segments = this.pathSegments.slice(0, index + 1);
+      const newPath = segments.join('/');
+      if (newPath !== this.currentPath) {
+        this.currentPath = newPath;
+        this.pathHistory = [];
+        this.loadProvidersByPath(this.currentPath);
+      }
+    },
+
     deleteFile(file, index) {
       showConfirm(this.$t('dialog.save.delConfirm') + file.name).then(() => {
         const fullFile = this.currentProviderPrefix + (file.path || file.name);
@@ -281,7 +324,7 @@ export default {
             .catch(error => {
               console.error('删除文件失败:', error);
               if (error.msg) {
-                showAlert(this.$t('dialog.save.serverError') + error.msg);
+                showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
               } else {
                 showAlert(this.$t('dialog.save.delFail'));
               }
@@ -318,7 +361,7 @@ export default {
         let that = this;
         saveReportFile(fullFileName, content)
           .then(() => {
-            that.$store.dispatch('report/setSaveStatus', true);
+            that.$store.dispatch('report/setIsSaved', true);
             that.$store.dispatch('report/setFileName', fullFileName);
             resetDirty();
             showAlert(this.$t('dialog.save.success')).then(() => {
@@ -329,7 +372,7 @@ export default {
           .catch(error => {
             console.error('保存文件失败:', error);
             if (error.msg) {
-              showAlert(this.$t('dialog.save.serverError') + error.msg);
+              showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg,  { useHTMLString: true });
             } else {
               showAlert(this.$t('dialog.save.fail'));
             }
@@ -369,51 +412,10 @@ export default {
 .save-dialog-content {
   padding: 15px;
 }
-.form-group {
-  margin-bottom: 15px;
-}
-.path-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  margin-bottom: 10px;
-  border-radius: 4px;
-}
-.path-display {
-  display: flex;
-  align-items: center;
-}
-.path-label {
-  font-weight: bold;
-  margin-right: 8px;
-  color: #333;
-}
-.path-text {
-  color: #666;
-  font-family: monospace;
-}
+
 .file-list-container {
   height: 300px;
   overflow-y: auto;
-  border: 1px solid #ddd;
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.data-table td {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-.data-table-header {
-  background: #f4f4f4;
-  height: 30px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 .folder-name {
   color: #008ed3;
@@ -426,10 +428,5 @@ export default {
 .icon-folder {
   margin-right: 5px;
   color: #ffc107;
-}
-.del-button{
-  color: red;
-  font-size: 14pt;
-  cursor: pointer
 }
 </style>

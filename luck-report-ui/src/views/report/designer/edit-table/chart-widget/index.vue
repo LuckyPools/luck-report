@@ -5,10 +5,14 @@
 </template>
 
 <script>
-import Chart from 'chart.js';
+import { Chart, registerables } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+
+Chart.register(...registerables, ChartDataLabels);
 import { showAlert } from '@/utils/comnon.js';
 import {getCell} from "@/utils/contextActions";
 import TableManager from '../manager.js';
+import {$t} from "@/locales";
 
 export default {
   name: 'ChartWidget',
@@ -55,6 +59,14 @@ export default {
       }
   },
   methods: {
+    colorWithAlpha(rgbString, alpha) {
+      const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+      if (match) {
+        const [, r, g, b] = match
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`
+      }
+      return rgbString
+    },
     getCell() {
       return getCell(this.rowIndex, this.colIndex);
     },
@@ -112,16 +124,13 @@ export default {
         if (!options.scales) {
           options.scales = {};
         }
-        if (!options.scales.xAxes) {
-          options.scales.xAxes = [];
-        }
         if (xaxes.rotation) {
           if (!xaxes.ticks) {
             xaxes.ticks = {};
           }
           xaxes.ticks.minRotation = xaxes.rotation;
         }
-        options.scales.xAxes.push(xaxes);
+        options.scales.x = xaxes;
       }
 
       // 处理y轴配置
@@ -130,21 +139,15 @@ export default {
         if (!options.scales) {
           options.scales = {};
         }
-        if (!options.scales.yAxes) {
-          options.scales.yAxes = [];
-        }
         if (yaxes.rotation) {
           if (!yaxes.ticks) {
             yaxes.ticks = {};
           }
           yaxes.ticks.minRotation = yaxes.rotation;
         }
-        options.scales.yAxes.push(yaxes);
+        options.scales.y = yaxes;
       }
 
-      const color = Chart.helpers.color;
-
-      // 根据图表类型设置数据
       switch (type) {
         case 'bar':
           chartType = 'bar';
@@ -152,13 +155,13 @@ export default {
             labels: ["类型1", "类型2", "类型3", "类型4", "类型5", "类型6"],
             datasets: [{
               label: '系列1',
-              backgroundColor: color(this.chartColors.red).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.5),
               borderColor: this.chartColors.red,
               borderWidth: 1,
               data: [21, 25, 8, 12, 31, 19]
             }, {
               label: '系列2',
-              backgroundColor: color(this.chartColors.blue).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.5),
               borderColor: this.chartColors.blue,
               borderWidth: 1,
               data: [11, 13, 18, 9, 23, 29]
@@ -166,18 +169,19 @@ export default {
           };
           break;
         case 'horizontalBar':
-          chartType = 'horizontalBar';
+          chartType = 'bar';
+          options.indexAxis = 'y';
           data = {
             labels: ["类型1", "类型2", "类型3", "类型4", "类型5", "类型6"],
             datasets: [{
               label: '系列1',
-              backgroundColor: color(this.chartColors.red).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.5),
               borderColor: this.chartColors.red,
               borderWidth: 1,
               data: [21, 25, 8, 12, 31, 19]
             }, {
               label: '系列2',
-              backgroundColor: color(this.chartColors.blue).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.5),
               borderColor: this.chartColors.blue,
               borderWidth: 1,
               data: [11, 13, 18, 9, 23, 29]
@@ -190,14 +194,14 @@ export default {
             labels: ["类型1", "类型2", "类型3", "类型4", "类型5", "类型6"],
             datasets: [{
               label: '系列1',
-              backgroundColor: color(this.chartColors.red).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.5),
               borderColor: this.chartColors.red,
               borderWidth: 1,
               fill: false,
               data: [21, 25, 8, 12, 31, 19]
             }, {
               label: '系列2',
-              backgroundColor: color(this.chartColors.blue).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.5),
               borderColor: this.chartColors.blue,
               borderWidth: 1,
               fill: false,
@@ -211,22 +215,21 @@ export default {
             labels: ["类型1", "类型2", "类型3", "类型4", "类型5", "类型6"],
             datasets: [{
               label: '系列1',
-              backgroundColor: color(this.chartColors.red).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.5),
               borderColor: this.chartColors.red,
               borderWidth: 1,
               data: [21, 25, 8, 12, 31, 19]
             }, {
               label: '系列2',
-              backgroundColor: color(this.chartColors.blue).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.5),
               borderColor: this.chartColors.blue,
               borderWidth: 1,
               data: [11, 13, 18, 9, 23, 29]
             }]
           };
-          options.scales = {
-            yAxes: [{
-              stacked: true
-            }]
+          options.scales = options.scales || {};
+          options.scales.y = {
+            stacked: true
           };
           break;
         case 'pie':
@@ -267,13 +270,13 @@ export default {
             labels: ["类型1", "类型2", "类型3", "类型4", "类型5"],
             datasets: [{
               label: '系列1',
-              backgroundColor: color(this.chartColors.red).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.5),
               borderColor: this.chartColors.red,
               borderWidth: 1,
               data: [21, 25, 8, 12, 31]
             }, {
               label: '系列2',
-              backgroundColor: color(this.chartColors.blue).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.5),
               borderColor: this.chartColors.blue,
               borderWidth: 1,
               data: [11, 13, 18, 9, 23, 9]
@@ -303,7 +306,7 @@ export default {
               {
                 label: '系列1',
                 borderColor: this.chartColors.red,
-                backgroundColor: color(this.chartColors.red).alpha(0.2).rgbString(),
+                backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.2),
                 data: [
                   {x: 10, y: 10},
                   {x: 5, y: 15},
@@ -314,7 +317,7 @@ export default {
               {
                 label: '系列2',
                 borderColor: this.chartColors.blue,
-                backgroundColor: color(this.chartColors.blue).alpha(0.2).rgbString(),
+                backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.2),
                 data: [
                   {x: 13, y: 6},
                   {x: 25, y: 10},
@@ -332,7 +335,7 @@ export default {
               {
                 label: '系列1',
                 borderColor: this.chartColors.red,
-                backgroundColor: color(this.chartColors.red).alpha(0.2).rgbString(),
+                backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.2),
                 data: [
                   {x: 10, y: 10, r: 4},
                   {x: 5, y: 15, r: 6},
@@ -343,7 +346,7 @@ export default {
               {
                 label: '系列2',
                 borderColor: this.chartColors.blue,
-                backgroundColor: color(this.chartColors.blue).alpha(0.2).rgbString(),
+                backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.2),
                 data: [
                   {x: 13, y: 6, r: 3},
                   {x: 25, y: 10, r: 9},
@@ -361,13 +364,13 @@ export default {
             datasets: [{
               type: 'line',
               label: '系列1',
-              backgroundColor: color(this.chartColors.red).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.red, 0.5),
               borderColor: this.chartColors.red,
               data: [21, 25, 8, 12, 31, 19]
             }, {
               type: 'bar',
               label: '系列2',
-              backgroundColor: color(this.chartColors.blue).alpha(0.5).rgbString(),
+              backgroundColor: this.colorWithAlpha(this.chartColors.blue, 0.5),
               borderColor: this.chartColors.blue,
               borderWidth: 1,
               data: [11, 13, 18, 9, 23, 29]
@@ -375,7 +378,7 @@ export default {
           };
           break;
         default:
-          showAlert('不能识别的图表类型：' + type);
+          showAlert($t('tools.chart.unknownChartType') + $t('colon') + type);
       }
 
       // 处理额外的选项配置
@@ -384,7 +387,8 @@ export default {
         switch (op.type) {
           case "title":
             if (op.display) {
-              options.title = {
+              options.plugins = options.plugins || {};
+              options.plugins.title = {
                 display: true,
                 position: op.position,
                 text: op.text
@@ -392,7 +396,8 @@ export default {
             }
             break;
           case "legend":
-            options.legend = {
+            options.plugins = options.plugins || {};
+            options.plugins.legend = {
               display: op.display || false,
               position: op.position,
               labels: op.labels || {}

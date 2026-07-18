@@ -2,7 +2,10 @@ package com.luck.report.core.definition.searchform.component;
 
 import com.luck.report.core.definition.searchform.RenderContext;
 
+import java.io.Serializable;
+
 public class ColComponent extends ContainerComponent {
+    private static final long serialVersionUID = 1L;
     private Integer span;
     private String offset;
     private String push;
@@ -13,6 +16,11 @@ public class ColComponent extends ContainerComponent {
     private String formId;
     private String renderKey;
     private String componentName;
+
+    /**
+     * 默认无参构造器
+     */
+    public ColComponent() {}
 
     @Override
     public String toHtml(RenderContext context) {

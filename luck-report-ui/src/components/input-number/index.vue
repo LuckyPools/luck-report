@@ -106,6 +106,11 @@ export default {
       if (this.disabled || this.increaseForbid) return
 
       this.currentValue = this.currentValue + this.step
+      // 增加后检查是否超过最大值
+      if (this.max !== undefined && this.currentValue >= this.max) {
+        this.currentValue = this.max
+        this.increaseForbid = true
+      }
       this.$emit('input', this.currentValue)
       this.$emit('change', this.currentValue)
     },
@@ -114,8 +119,12 @@ export default {
      */
     handleDecrease() {
       if (this.disabled || this.decreaseForbid) return
-      this.currentValue = this.currentValue - this.step;
-
+      this.currentValue = this.currentValue - this.step
+      // 减少后检查是否低于最小值
+      if (this.min !== undefined && this.currentValue <= this.min) {
+        this.currentValue = this.min
+        this.decreaseForbid = true
+      }
       this.$emit('input', this.currentValue)
       this.$emit('change', this.currentValue)
     },
@@ -123,7 +132,7 @@ export default {
      * @description 失去焦点时，做下值类型校验
      */
     handleBlur(emitEvent = true) {
-      if(!this.currentValue) return;
+      if(!this.currentValue && this.currentValue !== 0) return;
       if (typeof this.currentValue !== 'number') {
         this.currentValue = Number(this.currentValue.replace(/[^\d.-]/g, ''))
       }
@@ -144,14 +153,14 @@ export default {
         )
       }
 
-      // 数值范围判断
-      if (this.min && this.currentValue <= this.min) {
+      // 数值范围判断 - 修复 min=0 时条件失效的问题
+      if (this.min !== undefined && this.currentValue <= this.min) {
         this.decreaseForbid = true
         this.currentValue = this.min
       } else {
         this.decreaseForbid = false
       }
-      if (this.max && this.currentValue >= this.max) {
+      if (this.max !== undefined && this.currentValue >= this.max) {
         this.increaseForbid = true
         this.currentValue = this.max
       } else {
@@ -170,7 +179,30 @@ export default {
     handleInput(_e) {
       const value = _e.target.value
       this.currentValue = value
+      // 实时校验并更新按钮禁用状态
+      this.updateButtonStatus()
       this.dispatch('UFormItem', 'form-change', value)
+    },
+    /**
+     * @description 更新增减按钮的禁用状态
+     */
+    updateButtonStatus() {
+      const numValue = Number(this.currentValue)
+      if (isNaN(numValue)) return
+      
+      // 检查是否达到最小值
+      if (this.min !== undefined && numValue <= this.min) {
+        this.decreaseForbid = true
+      } else {
+        this.decreaseForbid = false
+      }
+      
+      // 检查是否达到最大值
+      if (this.max !== undefined && numValue >= this.max) {
+        this.increaseForbid = true
+      } else {
+        this.increaseForbid = false
+      }
     },
     /**
      * @description 将数值按照四舍五入的方式进行约算，比如5对3约算后是6

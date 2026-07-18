@@ -24,12 +24,14 @@ import com.luck.report.core.definition.mapping.MappingType;
 import com.luck.report.core.definition.value.AggregateType;
 import com.luck.report.core.definition.value.GroupItem;
 import com.luck.report.core.expression.model.Condition;
+import com.luck.report.core.expression.model.condition.BaseCondition;
 import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,7 @@ import java.util.Map;
  * @since 2016年11月18日
  */
 public class DatasetExpression extends BaseExpression {
-    private static final long serialVersionUID = -8794866509447790340L;
+    private static final long serialVersionUID = 1L;
     private String datasetName;
     private AggregateType aggregate;
     private String property;
@@ -56,17 +58,20 @@ public class DatasetExpression extends BaseExpression {
 
     private List<MappingItem> mappingItems;
 
-    @JsonIgnore
-    private Condition condition;
-
-    @JsonIgnore
-    private Map<String, String> mapping = null;
-
     /**
      * 此属性给设计器使用，引擎不使用该属性
      */
     private List<Condition> conditions;
+
     private Order order;
+
+    @JsonIgnore // 内部重构 mappingItems
+    private Map<String, String> mapping = null;
+
+    @JsonIgnore // 内部重构 conditions
+    private Condition condition;
+
+    public DatasetExpression() {}
 
     @Override
     public ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
@@ -120,6 +125,21 @@ public class DatasetExpression extends BaseExpression {
 
     public void setConditions(List<Condition> conditions) {
         this.conditions = conditions;
+        if (conditions != null && !conditions.isEmpty()) {
+            Condition topCondition = conditions.get(0);
+            Condition prevCondition = topCondition;
+            for (int i = 1; i < conditions.size(); i++) {
+                Condition current = conditions.get(i);
+                if (prevCondition instanceof BaseCondition && current instanceof BaseCondition) {
+                    BaseCondition prevBase = (BaseCondition) prevCondition;
+                    BaseCondition currentBase = (BaseCondition) current;
+                    prevBase.setNextCondition(current);
+                    prevBase.setJoin(currentBase.getJoin());
+                }
+                prevCondition = current;
+            }
+            this.condition = topCondition;
+        }
     }
 
     public Order getOrder() {
@@ -179,4 +199,23 @@ public class DatasetExpression extends BaseExpression {
     public Map<String, String> getMapping() {
         return mapping;
     }
+
+    /**
+     * @param mapping 映射
+     */
+    public void setMapping(Map<String, String> mapping) {
+        this.mapping = mapping;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (conditions != null && conditions.size() > 0) {
+            for (Condition cond : conditions) {
+                list.addAll(cond.fetchCellName());
+            }
+        }
+        return list;
+    }
+
 }

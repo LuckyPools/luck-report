@@ -7,23 +7,21 @@
       :z-index="20000"
       @close="closeDialog"
     >
-        <div class="preview-body-container">
-          <div v-if="loading" style="padding: 20px; text-align: center;">
-            {{ $t('dialog.preview.load') }}
-          </div>
-          <div v-else-if="errorInfo" v-html="errorInfo"></div>
+        <div class="preview-body-container" v-loading="loading">
+          <div v-if="errorInfo" v-html="errorInfo"></div>
           <div v-else-if="resultData">
             <div style="height: 30px; background: #fdfdfd;">
               <span style="margin: 4px;">{{ $t('dialog.preview.total') }}{{ resultData.total }}{{ $t('dialog.preview.totalMid') }}{{ resultData.currentTotal }}{{ $t('dialog.preview.item') }}</span>
             </div>
-            <div class="table-container">
-              <table class="table table-bordered" style="margin-top: 2px; table-layout: fixed;">
+            <div v-if="resultData.fields && resultData.fields.length > 0"
+                 class="preview-body-content table-wrapper">
+              <table class="table-container" style="table-layout: fixed;">
                 <thead>
-                <tr style="background: #f3f3f3;">
-                  <td v-for="field in resultData.fields" :key="field" style="word-wrap: break-word; width: 120px;">
-                    {{ field }}
-                  </td>
-                </tr>
+                  <tr>
+                    <th v-for="field in resultData.fields" :key="field" style="word-wrap: break-word; width: 120px;">
+                      {{ field }}
+                    </th>
+                  </tr>
                 </thead>
                 <tbody>
                 <tr v-for="(item, index) in resultData.data" :key="index">
@@ -46,31 +44,65 @@
 <script>
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
+import { LoadingDirective } from '@/components/loading/instance.js';
+import { previewData } from '@/api/designer/index.js';
+
 export default {
   name: 'PreviewDataDialog',
   components: {
     UDialog,
     UButton
   },
+  directives: {
+    loading: LoadingDirective
+  },
   props: {
     visible: {
       type: Boolean,
       default: false
     },
-    loading: {
-      type: Boolean,
-      default: true
-    },
-    errorInfo: {
-      type: String,
-      default: null
-    },
-    resultData: {
+    parameters: {
       type: Object,
       default: null
     }
   },
+  data() {
+    return {
+      loading: false,
+      errorInfo: null,
+      resultData: null
+    };
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.loadPreviewData();
+      }
+    }
+  },
   methods: {
+    async loadPreviewData() {
+      if (!this.parameters) {
+        return;
+      }
+
+      this.loading = true;
+      this.errorInfo = null;
+      this.resultData = null;
+
+      try {
+        const data = await previewData(this.parameters);
+        this.loading = false;
+        this.resultData = data;
+      } catch (error) {
+        let msg = this.$t('dialog.sql.previewFail');
+        if (error.msg) {
+          msg = msg + this.$t('colon') + error.msg;
+        }
+        this.loading = false;
+        this.errorInfo = `<div style='color: #d30e00;'>${msg}</div>`;
+      }
+    },
     closeDialog() {
       this.$emit('close');
     }
@@ -84,32 +116,24 @@ export default {
 }
 
 .preview-body-container{
+  min-height: 300px;
   max-height: var(--dialog-height);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  color: black;
 }
 
-.table-container {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: auto;
+.preview-body-content {
   min-height: 0;
   max-height: var(--dialog-height);
+  overflow-x: scroll;
+  margin-top: 2px
 }
 
-.preview-body-container table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 0;
+.table-container td{
+  padding: 0 5px;
+  color: black;
 }
 
-.preview-body-container table td, .data-table th {
-  border: 1px solid #ddd;
-}
-
-.preview-body-container table thead th {
-  vertical-align: bottom;
-  border-bottom: 2px solid #ddd;
-}
 </style>

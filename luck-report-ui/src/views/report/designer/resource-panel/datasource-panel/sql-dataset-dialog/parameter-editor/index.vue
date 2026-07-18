@@ -1,43 +1,108 @@
 <template>
   <div class="parameter-editor">
-    <div class="row" style="margin:10px;">
-      <ParameterTable
-        :data="parameters"
-        @add-parameter="handleAddParameter"
-        @edit-parameter="handleEditParameter"
-        @remove-parameter="handleRemoveParameter"
-        @update="handleUpdate"
-      />
+    <div class="header-row">
+      <div class="text-section">
+        {{ $t('dialog.sql.searchParam') }}
+        <span class="text-info">{{ $t('dialog.sql.paramDesc') }}</span>
+      </div>
+      <u-button
+          icon="icon-plus-circle"
+          @click="addParameter"
+      >
+        {{ $t('dialog.paramTable.addParam') }}
+      </u-button>
     </div>
+    <div class="table-wrapper" style="margin-top: 5px">
+      <table class="table-container">
+        <thead>
+        <tr>
+          <th><span>{{ $t('dialog.paramTable.paramName') }}</span></th>
+          <th><span>{{ $t('dialog.paramTable.paramDatatype') }}</span></th>
+          <th><span>{{ $t('dialog.paramTable.defaultValue') }}</span></th>
+          <th style="width: 80px;"><span>{{ $t('dialog.paramTable.operator') }}</span></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr
+            v-for="(param, index) in parameters"
+            :key="index"
+            style="height: 35px;"
+        >
+          <td><span>{{ param.name }}</span></td>
+          <td><span>{{ param.type }}</span></td>
+          <td><span>{{ param.defaultValue }}</span></td>
+          <td>
+            <u-button
+                type="info"
+                icon="icon-edit"
+                :title="$t('dialog.paramTable.editParam')"
+                @click.prevent="editParameter(param, index)"
+                style="border: none">
+            </u-button>
+            <u-button
+                type="info"
+                icon="icon-delete"
+                :title="$t('dialog.paramTable.delParam')"
+                @click.prevent="removeParameter(param, index)"
+                style="border: none;color: red">
+            </u-button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <ParameterDialog
+      :visible="parameterDialogVisible"
+      :edit-data="currentEditData"
+      :parameters="parameters"
+      :edit-index="currentIndex"
+      @update:visible="parameterDialogVisible = $event"
+      @save="handleDialogSave"
+    />
   </div>
 </template>
 
 <script>
-import ParameterTable from '@/views/report/designer/resource-panel/datasource-panel/parameter-table/index.vue';
+import ParameterDialog from '../parameter-dialog/index.vue';
+import UButton from "@/components/button/index.vue";
 
 export default {
   name: 'ParameterEditor',
+  components: {UButton, ParameterDialog},
   props: {
     parameters: {
       type: Array,
       default: () => []
     }
   },
-  components: {
-    ParameterTable
+  data() {
+    return {
+      currentEditData: null,
+      currentIndex: -1,
+      parameterDialogVisible: false
+    };
   },
-  // 移除直接修改子组件props的watch监听器，子组件的data prop会通过Vue的响应式系统自动更新
   methods: {
-    handleAddParameter(newParam) {
-      this.$emit('add-parameter', newParam);
+    handleDialogSave(name, type, defaultValue) {
+      if (this.currentIndex === -1) {
+        this.$emit('add-parameter', { name, type, defaultValue });
+      } else {
+        this.$emit('edit-parameter', this.currentIndex, { name, type, defaultValue });
+      }
+      this.$emit('update');
     },
-    handleEditParameter(index, updatedParam) {
-      this.$emit('edit-parameter', index, updatedParam);
+    addParameter() {
+      this.currentIndex = -1;
+      this.currentEditData = null;
+      this.parameterDialogVisible = true;
     },
-    handleRemoveParameter(index) {
+    editParameter(param, index) {
+      this.currentIndex = index;
+      this.currentEditData = param;
+      this.parameterDialogVisible = true;
+    },
+    removeParameter(param, index) {
       this.$emit('remove-parameter', index);
-    },
-    handleUpdate() {
       this.$emit('update');
     }
   }
@@ -47,5 +112,19 @@ export default {
 <style scoped>
 .parameter-editor {
   width: 100%;
+}
+
+.header-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.text-section{
+  flex: 1;
+}
+
+.table-wrapper{
+  height: 116px;
 }
 </style>

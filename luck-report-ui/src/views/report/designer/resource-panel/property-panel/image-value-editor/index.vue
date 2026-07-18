@@ -1,36 +1,33 @@
 <template>
   <div class="image-value-editor" ref="container">
-    <!-- 宽度设置 -->
-    <div class="form-group">
-      <label>{{ $t('property.image.width') }}(px)：</label>
-      <div class="u-inline">
+
+    <div class="property-quote">
+      {{ $t('property.image.config') }}
+    </div>
+
+    <u-form :label-width="100" labelPosition="left">
+      <u-form-item class="property-label" :label="$t('property.image.width') + '(px)'">
         <u-input-number
           :placeholder="$t('property.image.widthPlaceholder')"
           v-model="width"
+          :min="1"
           @change="handleWidthChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 高度设置 -->
-    <div class="form-group">
-      <label>{{ $t('property.image.height') }}(px)：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.height') + '(px)'">
         <u-input-number
           :placeholder="$t('property.image.heightPlaceholder')"
           v-model="height"
+          :min="1"
           @change="handleHeightChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 图片来源选择 -->
-    <div class="form-group">
-      <label>{{ $t('property.image.source') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.source')">
         <u-select
           v-model="source"
-          :clearable="true"
+          style="width: 250px"
           @change="handleSourceChange"
         >
           <u-option
@@ -40,13 +37,9 @@
             :label="option.label"
           />
         </u-select>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 展开选项 -->
-    <div class="form-group" style="margin-bottom: 10px" v-show="source === 'expression'">
-      <label>{{ $t('property.image.expand') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.expand')" v-show="source === 'expression'">
         <u-radio-group
           v-model="expand"
           @change="handleExpandChange"
@@ -63,31 +56,27 @@
             {{ option.label }}
           </u-radio>
         </u-radio-group>
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 图片路径编辑器 -->
-    <div v-show="source === 'text'">
-      <label>{{ $t('property.image.p') }}：</label>
-      <div class="u-inline">
+      <u-form-item class="property-label" :label="$t('property.image.p')" v-show="source === 'text'">
         <u-input
           :title="$t('property.image.tip')"
           :placeholder="$t('property.image.tip')"
-          style="width: 280px;"
+          :clearable="true"
+          style="width: 250px;"
           v-model="path"
-          @change="handlePathChange"
+          @blur="handlePathChange"
         />
-      </div>
-    </div>
+      </u-form-item>
 
-    <!-- 表达式编辑器 -->
-    <div v-show="source === 'expression'">
-      <label>{{ $t('property.image.expr') }}：</label>
-      <div style="border: solid 1px #eeeeee;">
-        <textarea ref="codeEditor"></textarea>
+      <div v-show="source === 'expression'">
+        <u-form-item class="property-label" :label="$t('property.image.expr')">
+        </u-form-item>
+        <div style="border: solid 1px #eeeeee;">
+          <textarea ref="codeEditor"></textarea>
+        </div>
       </div>
-    </div>
-
+    </u-form>
   </div>
 </template>
 
@@ -97,6 +86,8 @@ import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/lint/lint.js';
 import { setDirty } from '@/utils/table.js';
 import { scriptValidation } from '@/api/designer/index.js';
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import URadioGroup from '@/components/radio-group/index.vue';
@@ -105,13 +96,15 @@ import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ImageValueEditor',
   components: {
+    UForm,
+    UFormItem,
     USelect,
     UOption,
     URadioGroup,
@@ -138,21 +131,27 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
     },
     sourceOptions() {
       return [
         { value: 'text', label: this.$t('property.image.path') },
         { value: 'expression', label: this.$t('property.image.expr') }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   data() {
     return {
       codeMirror: null,
-      initialized: false,
+      loadingCellData: false,
       width: '',
       height: '',
       source: 'text',
@@ -161,21 +160,20 @@ export default {
     };
   },
   watch: {
-    rowIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadCellData();
       }
     },
-    colIndex: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
       }
     }
-  },
-  mounted() {
-    this.loadCellData();
   },
   beforeDestroy() {
     if (this.codeMirror) {
@@ -184,6 +182,7 @@ export default {
     }
   },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     /**
      * 初始化代码编辑器
      */
@@ -201,7 +200,6 @@ export default {
         }
       });
 
-      // 确保编辑器正确渲染
       this.$nextTick(() => {
         if (this.codeMirror) {
           this.codeMirror.refresh();
@@ -209,12 +207,12 @@ export default {
       });
       this.codeMirror.setSize('auto', '120px');
 
-      // 监听内容变化
       this.codeMirror.on('change', (cm, changes) => {
-        if (this.initialized) {
+        if (this.loadingCellData) return;
+        const expr = cm.getValue();
+        if (expr === 'undefined' || expr === undefined || expr === null) {
           return;
         }
-        const expr = cm.getValue();
         const cellDef = getCell(this.rowIndex, this.colIndex);
         if (cellDef && cellDef.value) {
           const newCellDef = deepCopy(cellDef);
@@ -224,7 +222,6 @@ export default {
         setDirty();
       });
 
-      // 加载初始数据
       this.loadCellData();
     },
 
@@ -232,8 +229,6 @@ export default {
      * 加载单元格数据
      */
     loadCellData() {
-      this.initialized = true;
-
       const currentCellDef = getCell(this.rowIndex, this.colIndex);
       if (!currentCellDef || !currentCellDef.value) return;
 
@@ -246,7 +241,13 @@ export default {
         this.path = currentCellDef.value.value || '';
       } else {
         if (this.codeMirror) {
-          this.codeMirror.setValue(currentCellDef.value.value || '');
+          let valueToSet = currentCellDef.value.value || '';
+          if (valueToSet === 'undefined') {
+            valueToSet = '';
+          }
+          this.loadingCellData = true;
+          this.codeMirror.setValue(valueToSet);
+          this.loadingCellData = false;
         }
       }
 
@@ -256,9 +257,14 @@ export default {
         if (this.source === 'expression' && !this.codeMirror) {
           this.initCodeEditor();
         } else if (this.source === 'expression' && this.codeMirror) {
-          this.codeMirror.setValue(currentCellDef.value.value || '');
+          let valueToSet = currentCellDef.value.value || '';
+          if (valueToSet === 'undefined') {
+            valueToSet = '';
+          }
+          this.loadingCellData = true;
+          this.codeMirror.setValue(valueToSet);
+          this.loadingCellData = false;
         }
-        this.initialized = false;
       });
     },
 
@@ -344,6 +350,9 @@ export default {
      * 处理路径变化
      */
     handlePathChange() {
+      if (this.path){
+        this.path = this.path.trim()
+      }
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (cellDef && cellDef.value) {
         const newCellDef = deepCopy(cellDef);

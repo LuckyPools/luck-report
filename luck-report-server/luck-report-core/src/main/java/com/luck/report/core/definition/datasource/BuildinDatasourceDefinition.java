@@ -20,6 +20,7 @@ import com.luck.report.core.definition.dataset.DatasetDefinition;
 import com.luck.report.core.definition.dataset.SqlDatasetDefinition;
 import com.luck.report.core.exception.ReportComputeException;
 
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,9 +31,15 @@ import java.util.Map;
  * @author Jacky.gao
  * @since 2017年2月9日
  */
-public class BuildinDatasourceDefinition implements DatasourceDefinition {
+public class BuildinDatasourceDefinition implements DatasourceDefinition, Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
     private List<DatasetDefinition> datasets;
+
+    /**
+     * 默认无参构造器
+     */
+    public BuildinDatasourceDefinition() {}
 
     public List<Dataset> buildDatasets(Connection conn, Map<String, Object> parameters) {
         if (datasets == null || datasets.size() == 0) {
@@ -76,5 +83,13 @@ public class BuildinDatasourceDefinition implements DatasourceDefinition {
     @Override
     public DatasourceType getType() {
         return DatasourceType.buildin;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化
+     * @param type 数据源类型
+     */
+    public void setType(DatasourceType type) {
+        // 空实现，忽略type字段
     }
 }

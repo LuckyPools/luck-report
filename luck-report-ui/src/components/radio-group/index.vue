@@ -7,6 +7,7 @@
 <script>
 
 import Emitter from "@/components/mixins/emitter";
+import { oneOf } from '../utils'
 
 export default {
   name: 'URadioGroup',
@@ -30,6 +31,14 @@ export default {
       type: Boolean,
       default: false,
     },
+    // 尺寸
+    size: {
+      validator(value) {
+        return oneOf(value, ['large', 'medium', 'small', 'mini'])
+      },
+      type: String,
+      default: 'medium',
+    },
   },
   watch: {
     value: {
@@ -52,6 +61,13 @@ export default {
       },
       immediate: true,
     },
+    // 尺寸
+    size: {
+      handler(newVal) {
+        this.syncOptionsSize(newVal)
+      },
+      immediate: true,
+    },
   },
   created() {
     // 监听on-radio-add事件，将radio实例存到options上
@@ -60,6 +76,7 @@ export default {
       this.syncValue(this.value)
       this.syncOptionsDisable(this.disabled)
       this.syncOptionsButtonStyle(this.button)
+      this.syncOptionsSize(this.size)
     })
     // 监听on-radio-remove事件，将radio实例从options中移除
     this.$on('on-radio-remove', (radio) => {
@@ -87,12 +104,12 @@ export default {
       this.dispatch('UFormItem', 'form-change', focusVal)
     },
     /**
-     * @description 设置子选项的myDisabled属性
+     * @description 设置子选项的localDisabled属性
      * @param {Boolean} disabled 是否禁用
      */
     syncOptionsDisable(disabled) {
       this.options.forEach((d) => {
-        d.myDisabled = disabled
+        d.localDisabled = disabled
       })
     },
     /**
@@ -102,6 +119,15 @@ export default {
     syncOptionsButtonStyle(value) {
       this.options.forEach((d) => {
         d.button = value
+      })
+    },
+    /**
+     * @description 设置子选项的localSize属性，用以控制尺寸
+     * @param {String} value 尺寸，合法值：large/medium/small/mini
+     */
+    syncOptionsSize(value) {
+      this.options.forEach((d) => {
+        d.localSize = value
       })
     },
   },

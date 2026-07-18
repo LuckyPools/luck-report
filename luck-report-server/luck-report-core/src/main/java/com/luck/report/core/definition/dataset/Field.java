@@ -15,12 +15,20 @@
  ******************************************************************************/
 package com.luck.report.core.definition.dataset;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2016年12月30日
  */
-public class Field {
+public class Field implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
+
+    /**
+     * 默认无参构造器
+     */
+    public Field() {}
 
     public Field(String name) {
         this.name = name;

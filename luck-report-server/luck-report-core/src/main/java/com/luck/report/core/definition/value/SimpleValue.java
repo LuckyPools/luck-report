@@ -15,14 +15,24 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
+
+
+import java.io.Serializable;
+
 /**
  * 普通字符串，或者是表达式
  *
  * @author Jacky.gao
  * @since 2016年11月1日
  */
-public class SimpleValue implements Value {
+public class SimpleValue implements Value, Serializable {
+    private static final long serialVersionUID = 1L;
     private String value;
+
+    /**
+     * 默认无参构造器
+     */
+    public SimpleValue() {}
 
     public SimpleValue(String value) {
         this.value = value;
@@ -33,8 +43,20 @@ public class SimpleValue implements Value {
         return ValueType.simple;
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
+    }
+
     @Override
     public String getValue() {
         return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
     }
 }

@@ -18,10 +18,12 @@ package com.luck.report.core.expression.model.condition;
 import com.luck.report.core.Utils;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.exception.ReportComputeException;
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,6 +34,8 @@ public class CellExpressionCondition extends BaseCondition {
     private ConditionType type = ConditionType.cell;
     private String cellName;
     private Expression rightExpression;
+
+    public CellExpressionCondition() {}
 
     @Override
     Object computeLeft(Cell cell, Cell currentCell, Object obj, Context context) {
@@ -75,11 +79,52 @@ public class CellExpressionCondition extends BaseCondition {
         return type;
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type
+     */
+    public void setType(ConditionType type) {
+        // 空实现，忽略type字段
+    }
+
+    public String getCellName() {
+        return cellName;
+    }
+
     public void setCellName(String cellName) {
         this.cellName = cellName;
     }
 
+    /**
+     * 重写父类方法，设置右侧表达式字符串并自动派生右侧Expression对象
+     * @param right 右侧表达式字符串
+     */
+    @Override
+    public void setRight(String right) {
+        super.setRight(right);
+        if (right != null && !right.isEmpty()) {
+            this.rightExpression = ExpressionUtils.parseExpression(right);
+        }
+    }
+
+    public Expression getRightExpression() {
+        return rightExpression;
+    }
+
     public void setRightExpression(Expression rightExpression) {
         this.rightExpression = rightExpression;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
+        }
+        if (rightExpression != null) {
+            list.addAll(rightExpression.fetchCellName());
+        }
+        list.addAll(super.fetchCellName());
+        return list;
     }
 }

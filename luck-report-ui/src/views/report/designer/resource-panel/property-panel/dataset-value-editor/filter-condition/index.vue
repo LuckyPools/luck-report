@@ -1,12 +1,16 @@
 <template>
   <div class="form-group" style="padding-top: 10px">
     <!-- 当没有选择数据集时显示提示 -->
-    <div v-if="!selectedDataset" class="alert alert-info" style="margin-bottom: 10px;">
-      {{ $t('property.dataset.bindDatasetTip') }}
+    <div v-if="!dataset" class="empty-tip-container">
+      <i class="iconfont icon-warning empty-tip-icon"></i>
+      <div class="empty-tip-content">
+        <div class="empty-tip-title">{{ $t('property.dataset.noDatasetSelected') }}</div>
+        <div class="empty-tip-desc">{{ $t('property.dataset.bindDatasetTip') }}</div>
+      </div>
     </div>
 
     <!-- 条件列表和操作按钮 -->
-    <div v-show="selectedDataset" class="form-group" style="margin-bottom: 10px;">
+    <div v-show="dataset" class="form-group" style="margin-bottom: 10px;">
       <div class="top-button">
         <u-button
             type="info"
@@ -39,7 +43,7 @@
         >
           <option
               v-for="(condition, index) in conditions"
-              :key="condition.id"
+              :key="index"
               :value="index"
           >
             {{ formatConditionText(condition) }}
@@ -51,8 +55,9 @@
     <!-- 条件对话框组件 -->
     <ConditionDialog
       :visible.sync="conditionDialogVisible"
-      :fields="conditionDialogFields"
-      :condition="conditionDialogCondition"
+      :fields="fields"
+      :condition="condition"
+      :conditions="conditions"
       @saveAfter="handleConditionSave"
     />
   </div>
@@ -61,7 +66,6 @@
 <script>
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { setDirty } from '@/utils/table.js';
-import uuid from 'node-uuid';
 import ConditionDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 
@@ -72,7 +76,7 @@ export default {
     ConditionDialog
   },
   props: {
-    selectedDataset: {
+    dataset: {
       type: String,
       default: ''
     },
@@ -80,7 +84,7 @@ export default {
       type: Array,
       default: () => []
     },
-    currentFields: {
+    fields: {
       type: Array,
       default: () => []
     }
@@ -88,10 +92,8 @@ export default {
   data() {
     return {
       selectedConditionIndex: -1,
-      currentConditionIndex: -1,
       conditionDialogVisible: false,
-      conditionDialogFields: [],
-      conditionDialogCondition: null
+      condition: null
     };
   },
   methods: {
@@ -99,14 +101,12 @@ export default {
      * 处理添加过滤条件
      */
     handleAddCondition() {
-      if (!this.selectedDataset) {
+      if (!this.dataset) {
         showAlert(this.$t('property.dataset.bindDatasetTip'));
         return;
       }
 
-      this.currentConditionIndex = -1;
-      this.conditionDialogFields = this.currentFields;
-      this.conditionDialogCondition = null;
+      this.condition = null;
       this.conditionDialogVisible = true;
     },
 
@@ -116,10 +116,7 @@ export default {
         return;
       }
 
-      this.currentConditionIndex = this.selectedConditionIndex;
-      const condition = this.conditions[this.selectedConditionIndex];
-      this.conditionDialogFields = this.currentFields;
-      this.conditionDialogCondition = condition;
+      this.condition = this.conditions[this.selectedConditionIndex];
       this.conditionDialogVisible = true;
     },
 
@@ -127,27 +124,26 @@ export default {
      * 处理条件保存事件
      */
     handleConditionSave(conditionData) {
-      const conditions = [...this.conditions];
-
-      if (conditionData.isEdit && this.currentConditionIndex >= 0) {
-        // 编辑现有条件
-        const targetCondition = conditions[this.currentConditionIndex];
-        if (targetCondition) {
-          targetCondition.left = conditionData.left;
-          targetCondition.operation = conditionData.operation;
-          targetCondition.right = conditionData.right;
-          targetCondition.join = conditionData.join;
+      const conditions = this.conditions.map((item, index) => {
+        if (conditionData.isEdit && index === this.selectedConditionIndex) {
+          return {
+            ...item,
+            left: conditionData.left,
+            operation: conditionData.operation,
+            right: conditionData.right,
+            join: conditionData.join
+          };
         }
-      } else {
-        // 添加新条件
-        const condition = {
+        return item;
+      });
+
+      if (!conditionData.isEdit) {
+        conditions.push({
           left: conditionData.left,
           operation: conditionData.operation,
           right: conditionData.right,
-          join: conditionData.join,
-          id: uuid.v1()
-        };
-        conditions.push(condition);
+          join: conditionData.join
+        });
       }
 
       this.$emit('update:conditions', conditions);
@@ -164,18 +160,13 @@ export default {
         return;
       }
 
-      const condition = this.conditions[this.selectedConditionIndex];
       showConfirm(this.$t('property.dataset.delConfirm')).then(() => {
         const conditions = [...this.conditions];
-        const index = conditions.findIndex(c => c.id === condition.id);
-
-        if (index !== -1) {
-          conditions.splice(index, 1);
-          this.$emit('update:conditions', conditions);
-          this.$emit('update-filter-conditions', conditions);
-          this.selectedConditionIndex = -1;
-          setDirty();
-        }
+        conditions.splice(this.selectedConditionIndex, 1);
+        this.$emit('update:conditions', conditions);
+        this.$emit('update-filter-conditions', conditions);
+        this.selectedConditionIndex = -1;
+        setDirty();
       });
     },
 
@@ -205,5 +196,47 @@ export default {
 .condition-select{
   height: 100px;
   outline: none;
+}
+
+.empty-tip-container {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.empty-tip-container:hover {
+  border-color: #217346;
+  box-shadow: 0 2px 12px rgba(33, 115, 70, 0.15);
+}
+
+.empty-tip-icon {
+  flex-shrink: 0;
+  font-size: 32px;
+  color: #217346;
+  margin-right: 16px;
+}
+
+.empty-tip-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.empty-tip-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.empty-tip-desc {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.6;
 }
 </style>

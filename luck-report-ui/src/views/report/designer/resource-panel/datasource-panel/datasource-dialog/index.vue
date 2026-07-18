@@ -6,31 +6,31 @@
         @close="closeDialog"
     >
         <div class="dialog-content">
-            <u-form ref="form" :label-width="120">
-                <u-form-item :label="$t('dialog.datasource.name')">
-                    <u-input v-model="dsName" style="width: 600px" />
+            <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
+                <u-form-item :label="$t('dialog.datasource.name')" prop="dsName">
+                    <u-input v-model="formData.dsName" style="width: 600px" />
                 </u-form-item>
 
-                <u-form-item :label="$t('dialog.datasource.username')">
-                    <u-input v-model="username" style="width: 600px" />
+                <u-form-item :label="$t('dialog.datasource.username')" prop="username">
+                    <u-input v-model="formData.username" style="width: 600px" />
                 </u-form-item>
 
-                <u-form-item :label="$t('dialog.datasource.password')">
-                    <u-input type="password" v-model="password" style="width: 600px" />
+                <u-form-item :label="$t('dialog.datasource.password')" prop="password">
+                    <u-input type="password" v-model="formData.password" style="width: 600px" />
                 </u-form-item>
 
-                <u-form-item :label="$t('dialog.datasource.driver')">
-                    <u-input v-model="driver" style="width: 600px" />
+                <u-form-item :label="$t('dialog.datasource.driver')" prop="driver">
+                    <u-input v-model="formData.driver" style="width: 600px" />
                 </u-form-item>
 
-                <u-form-item :label="$t('dialog.datasource.url')">
-                    <u-input v-model="url" style="width: 600px" />
+                <u-form-item :label="$t('dialog.datasource.url')" prop="url">
+                    <u-input v-model="formData.url" style="width: 600px" />
                 </u-form-item>
             </u-form>
         </div>
 
         <div slot="footer" style="text-align: right">
-            <u-button @click="handleTestConnection" type="info" style="margin-right: 10px;">{{ $t('dialog.datasource.test') }}</u-button>
+            <u-button @click="testConnection(true)" type="info" style="margin-right: 10px;">{{ $t('dialog.datasource.test') }}</u-button>
             <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
         </div>
     </UDialog>
@@ -73,45 +73,75 @@ export default {
     }
   },
   data() {
+    const validateDsName = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error(this.$t('dialog.datasource.nameTip')));
+      } else if (this.checkDuplicateName(value)) {
+        callback();
+      } else {
+        callback(new Error(`${this.$t('dialog.datasource.datasource')}[${value}]${this.$t('dialog.datasource.existTip')}`));
+      }
+    };
     return {
-      dsName: '',
-      username: '',
-      password: '',
-      driver: '',
-      url: '',
+      formData: {
+        dsName: '',
+        username: '',
+        password: '',
+        driver: '',
+        url: ''
+      },
       oldName: null,
-      backdrop: null
+      backdrop: null,
+      rules: {
+        dsName: [{
+          required: true,
+          validator: validateDsName,
+          trigger: 'blur'
+        }],
+        username: [{
+          required: true,
+          message: this.$t('dialog.datasource.usernameTip'),
+          trigger: 'blur'
+        }],
+        password: [{
+          required: true,
+          message: this.$t('dialog.datasource.passwordTip'),
+          trigger: 'blur'
+        }],
+        driver: [{
+          required: true,
+          message: this.$t('dialog.datasource.driverTip'),
+          trigger: 'blur'
+        }],
+        url: [{
+          required: true,
+          message: this.$t('dialog.datasource.urlTip'),
+          trigger: 'blur'
+        }]
+      }
     };
   },
   watch: {
     visible(newVal) {
       if (newVal) {
         this.resetForm();
-        if (this.datasource) {
-          this.fillForm(this.datasource);
-        }
+        this.initData();
       }
     }
   },
   methods: {
     resetForm() {
-      this.dsName = '';
-      this.username = '';
-      this.password = '';
-      this.driver = '';
-      this.url = '';
+      this.$refs.form && this.$refs.form.resetFields();
       this.oldName = null;
     },
 
-    fillForm(ds) {
-      if (ds) {
-        this.oldName = ds.name;
-        this.dsName = ds.name;
-        this.username = ds.username || '';
-        this.password = ds.password || '';
-        this.driver = ds.driver || '';
-        this.url = ds.url || '';
-      }
+    initData() {
+      this.oldName = this.datasource?.name;
+      this.formData.dsName = this.datasource?.name;
+      this.formData.username = this.datasource?.username || '';
+      this.formData.password = this.datasource?.password || '';
+      this.formData.driver = this.datasource?.driver || '';
+      this.formData.url = this.datasource?.url || '';
     },
 
     closeDialog() {
@@ -126,43 +156,23 @@ export default {
       this.save();
     },
 
-    async handleTestConnection() {
-      const result = await this.testConnection();
-      if (result.success) {
-        showAlert(this.$t('dialog.datasource.testSuccess'));
-      }
-    },
-
     validateForm() {
-      if (this.dsName === '') {
-        showAlert(this.$t('dialog.datasource.nameTip'));
-        return false;
-      }
-      if (this.username === '') {
-        showAlert(this.$t('dialog.datasource.usernameTip'));
-        return false;
-      }
-      if (this.driver === '') {
-        showAlert(this.$t('dialog.datasource.driverTip'));
-        return false;
-      }
-      if (this.url === '') {
-        showAlert(this.$t('dialog.datasource.urlTip'));
-        return false;
-      }
-      return true;
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
     },
 
-    checkDuplicateName() {
-      let check = false;
-      if (!this.oldName || this.dsName !== this.oldName) {
-        check = true;
-      }
-
-      if (check) {
+    /**
+     * 检查是否有重名的数据源
+     * @param name
+     * @returns {boolean}
+     */
+    checkDuplicateName(name) {
+      if (!this.oldName || name !== this.oldName) {
         for (let source of this.datasources) {
-          if (source.name === this.dsName) {
-            showAlert(`${this.$t('dialog.datasource.datasource')}[${this.dsName}]${this.$t('dialog.datasource.existTip')}`);
+          if (source.name === name) {
             return false;
           }
         }
@@ -170,69 +180,54 @@ export default {
       return true;
     },
 
-    buildFormData() {
+    async testConnection(showSuccessTips) {
+      const valid = await this.validateForm();
+      if (!valid) {
+        return false;
+      }
+
       let formData = new FormData();
-      formData.append('username', this.username);
-      formData.append('password', this.password);
-      formData.append('driver', this.driver);
-      formData.append('url', this.url);
-      return formData;
-    },
+      formData.append('username', this.formData.username);
+      formData.append('password', this.formData.password);
+      formData.append('driver', this.formData.driver);
+      formData.append('url', this.formData.url);
 
-    async testConnection() {
-      if (!this.validateForm()) {
-        return {success: false};
-      }
-      if (!this.checkDuplicateName()) {
-        return {success: false};
-      }
-
-      const formData = this.buildFormData();
       try {
         const data = await testConnection(formData);
-        if (data.result) {
+        if (data.result && showSuccessTips) {
           showAlert(this.$t('dialog.datasource.testSuccess'));
-          return {success: true, data: data};
-        } else {
-          showAlert(`${this.$t('dialog.datasource.testFail')}${data.error || ''}`);
-          return {success: false, error: data.error};
         }
+        return true;
       } catch (error) {
         console.error('Error testing connection:', error);
-        showAlert(`${this.$t('dialog.datasource.failTip')}${error.message || ''}`);
-        return {success: false, error: error.message};
+        if (error.msg) {
+          showAlert(this.$t('dialog.datasource.failTip') + this.$t('colon') + error.msg, { useHTMLString: true });
+        } else {
+          showAlert(this.$t('dialog.datasource.failTip'));
+        }
       }
+      return false;
     },
 
     async save() {
-      if (!this.validateForm()) {
-        return;
-      }
-      if (!this.checkDuplicateName()) {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
-      const formData = this.buildFormData();
-      try {
-        const data = await testConnection(formData);
-        if (data.result) {
-          this.$emit('save', {
-            name: this.dsName,
-            username: this.username,
-            password: this.password,
-            driver: this.driver,
-            url: this.url,
-            oldName: this.oldName,
-            type: 'jdbc'
-          });
-          setDirty();
-          this.closeDialog();
-        } else {
-          showAlert(`${this.$t('dialog.datasource.testFail')}${data.error || ''}`);
-        }
-      } catch (error) {
-        console.error('Error testing connection:', error);
-        showAlert(`${this.$t('dialog.datasource.failTip')}${error.message || ''}`);
+      const success = await this.testConnection(false);
+      if (success) {
+        this.$emit('save', {
+          name: this.formData.dsName,
+          username: this.formData.username,
+          password: this.formData.password,
+          driver: this.formData.driver,
+          url: this.formData.url,
+          oldName: this.oldName,
+          type: 'jdbc'
+        });
+        setDirty();
+        this.closeDialog();
       }
     }
   }
@@ -240,5 +235,5 @@ export default {
 </script>
 
 <style scoped>
-/* 样式可以根据需要自定义 */
+
 </style>

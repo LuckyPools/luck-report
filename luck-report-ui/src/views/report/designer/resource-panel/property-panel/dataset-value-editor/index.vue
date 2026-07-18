@@ -1,16 +1,17 @@
 <template>
   <div class="dataset-value-editor" ref="container">
+
     <u-tabs v-model="activeTab" type="button">
       <u-tab-pane :label="$t('property.dataset.datasetConfig')" index="dataset">
         <dataset-config
             :datasets="datasets"
-            :current-fields="currentFields"
+            :fields="currentFields"
             :group-items="groupItems"
-            :selected-dataset.sync="selectedDataset"
-            :selected-property.sync="selectedProperty"
-            :selected-aggregate.sync="selectedAggregate"
-            :selected-sort.sync="selectedSort"
-            :selected-expand.sync="selectedExpand"
+            :dataset.sync="dataset"
+            :property.sync="property"
+            :aggregate.sync="aggregate"
+            :sort.sync="sort"
+            :expand.sync="expand"
             :line-height.sync="lineHeight"
             :wrap-compute.sync="wrapCompute"
             :format.sync="format"
@@ -18,7 +19,7 @@
             :multiple.sync="multiple"
             :show-sort-options.sync="showSortOptions"
             :show-expand-options.sync="showExpandOptions"
-            :condition-property-items.sync="conditionPropertyItems"
+            :condition-groups.sync="conditionGroups"
             @dataset-change="handleDatasetChange"
             @property-change="handlePropertyChange"
             @aggregate-change="handleAggregateChange"
@@ -29,16 +30,16 @@
             @format-change="handleFormatChange"
             @fill-blank-rows-change="handleFillBlankRowsChange"
             @multiple-change="handleMultipleChange"
-            @condition-property-items-change="handleConditionPropertyItemsChange"
+            @condition-groups-change="handleConditionGroupsChange"
             @update-custom-group="handleUpdateCustomGroup"
         />
       </u-tab-pane>
 
       <u-tab-pane :label="$t('property.dataset.filterCondition')" index="condition">
         <filter-condition
-          :selected-dataset="selectedDataset"
+          :dataset="dataset"
           :conditions.sync="conditions"
-          :current-fields="currentFields"
+          :fields="currentFields"
           @update-filter-conditions="handleUpdateFilterConditions"
         />
       </u-tab-pane>
@@ -52,11 +53,11 @@
           :mapping-dataset="mappingDataset"
           :mapping-key-property="mappingKeyProperty"
           :mapping-value-property="mappingValueProperty"
-          @mapping-type-change="_setMappingType"
-          @mapping-items-change="_setMappingItems"
-          @mapping-dataset-change="_setMappingDataset"
-          @mapping-key-property-change="_setMappingKeyProperty"
-          @mapping-value-property-change="_setMappingValueProperty"
+          @mapping-type-change="setMappingType"
+          @mapping-items-change="setMappingItems"
+          @mapping-dataset-change="setMappingDataset"
+          @mapping-key-property-change="setMappingKeyProperty"
+          @mapping-value-property-change="setMappingValueProperty"
         />
       </u-tab-pane>
     </u-tabs>
@@ -71,7 +72,7 @@ import DataMapping from '@/views/report/designer/resource-panel/property-panel/d
 import DatasetConfig from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
@@ -103,9 +104,15 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('report', ['getContext']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
     context() {
       return this.getContext;
+    },
+    isCellUpdate() {
+      return this.getIsCellUpdate;
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   data() {
@@ -116,11 +123,11 @@ export default {
       initialized: false,
 
       // 数据集配置
-      selectedDataset: '',
-      selectedProperty: '',
-      selectedAggregate: 'select',
-      selectedSort: 'none',
-      selectedExpand: 'None',
+      dataset: '',
+      property: '',
+      aggregate: 'select',
+      sort: 'none',
+      expand: 'None',
       lineHeight: '',
       wrapCompute: 'custom',
       format: '',
@@ -143,30 +150,30 @@ export default {
       mappingValueProperty: '',
 
       // 条件属性项
-      conditionPropertyItems: [],
+      conditionGroups: [],
 
       // 自定义分组项
       groupItems: [],
     };
   },
   watch: {
-    rowIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadCellData();
       }
     },
-    colIndex: {
-      immediate: true,
-      handler() {
-        this.loadCellData();
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadCellData();
+          this.setCellUpdate(false);
+        }
       }
     }
   },
-  mounted() {
-    this.loadCellData();
-  },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     /**
      * 加载单元格数据
      */
@@ -190,8 +197,8 @@ export default {
     loadDatasets() {
       this.datasets = [];
       const datasources = this.context.reportDef.datasources || [];
-      for (let ds of datasources) {
-        let datasets = ds.datasets || [];
+      for (let datasource of datasources) {
+        let datasets = datasource.datasets || [];
         for (let dataset of datasets) {
           this.datasets.push(dataset);
         }
@@ -233,18 +240,18 @@ export default {
 
       // 设置展开方向
       if (cellDef.expand) {
-        this.selectedExpand = cellDef.expand;
+        this.expand = cellDef.expand;
       } else {
-        this.selectedExpand = 'None';
+        this.expand = 'None';
       }
 
       // 设置数据集值
       const value = cellDef.value;
       if (value) {
-        this.selectedDataset = value.datasetName || '';
-        this.selectedProperty = value.property || '';
-        this.selectedAggregate = value.aggregate || 'select';
-        this.selectedSort = value.order || 'none';
+        this.dataset = value.datasetName || '';
+        this.property = value.property || '';
+        this.aggregate = value.aggregate || 'select';
+        this.sort = value.order || 'none';
 
         // 设置过滤条件
         this.conditions = value.conditions || [];
@@ -259,12 +266,9 @@ export default {
 
       // 初始化条件属性项
       if (cellDef.conditionPropertyItems) {
-        this.conditionPropertyItems = [...cellDef.conditionPropertyItems];
+        this.conditionGroups = [...cellDef.conditionPropertyItems];
       } else {
-        this.conditionPropertyItems = [];
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.conditionPropertyItems = this.conditionPropertyItems;
-        setCell(this.rowIndex, this.colIndex, newCellDef);
+        this.conditionGroups = [];
       }
 
       // 初始化自定义分组项
@@ -272,9 +276,6 @@ export default {
         this.groupItems = [...cellDef.value.groupItems];
       } else {
         this.groupItems = [];
-        const newCellDef = deepCopy(cellDef);
-        newCellDef.value.groupItems = this.groupItems;
-        setCell(this.rowIndex, this.colIndex, newCellDef);
       }
 
       // 触发数据集变化事件，加载字段
@@ -287,16 +288,14 @@ export default {
      * 处理数据集变化
      */
     handleDatasetChange() {
-      // 清空当前字段
       this.currentFields = [];
 
-      // 加载选中数据集的字段
-      if (this.selectedDataset) {
+      if (this.dataset) {
         const datasources = this.context.reportDef.datasources || [];
-        for (let ds of datasources) {
-          let datasets = ds.datasets || [];
+        for (let datasource of datasources) {
+          let datasets = datasource.datasets || [];
           for (let dataset of datasets) {
-            if (dataset.name === this.selectedDataset) {
+            if (dataset.name === this.dataset) {
               this.currentFields = dataset.fields || [];
               break;
             }
@@ -307,8 +306,9 @@ export default {
         }
       }
 
-      // 更新数据集名称，无论是否初始化状态都保存
-      this._setDatasetName(this.selectedDataset);
+      if (this.initialized) {
+        this.setDatasetName(this.dataset);
+      }
     },
 
     /**
@@ -316,22 +316,20 @@ export default {
      */
     handlePropertyChange() {
       // 更新属性，无论是否初始化状态都保存
-      this._setProperty(this.selectedProperty);
+      this.setProperty(this.property);
     },
 
     /**
      * 处理聚合类型变化
      */
     handleAggregateChange(params) {
-      // 如果是从子组件传递过来的参数，则更新相关状态
       if (params && typeof params === 'object') {
         this.showSortOptions = params.showSortOptions;
         this.showExpandOptions = params.showExpandOptions;
       } else {
-        // 兼容直接调用的方式
-        if (this.selectedAggregate === 'sum' || this.selectedAggregate === 'count' ||
-            this.selectedAggregate === 'max' || this.selectedAggregate === 'min' ||
-            this.selectedAggregate === 'avg') {
+        if (this.aggregate === 'sum' || this.aggregate === 'count' ||
+            this.aggregate === 'max' || this.aggregate === 'min' ||
+            this.aggregate === 'avg') {
           this.showSortOptions = false;
           this.showExpandOptions = false;
         } else {
@@ -340,15 +338,15 @@ export default {
         }
       }
 
-      // 根据聚合类型更新映射选项显示
-      if (this.selectedAggregate === 'group' || this.selectedAggregate === 'select') {
+      if (this.aggregate === 'group' || this.aggregate === 'select') {
         this.showMappingOptions = true;
       } else {
         this.showMappingOptions = false;
       }
 
-      // 更新聚合类型，无论是否初始化状态都保存
-      this._setAggregate(this.selectedAggregate);
+      if (this.initialized) {
+        this.setAggregate(this.aggregate);
+      }
     },
 
     /**
@@ -356,7 +354,7 @@ export default {
      */
     handleSortChange() {
       // 更新排序，无论是否初始化状态都保存
-      this._setOrder(this.selectedSort);
+      this.setOrder(this.sort);
     },
 
     /**
@@ -364,7 +362,7 @@ export default {
      */
     handleExpandChange() {
       // 更新展开方向，无论是否初始化状态都保存
-      this._setExpand(this.selectedExpand);
+      this.setExpand(this.expand);
     },
 
     /**
@@ -409,7 +407,6 @@ export default {
      */
     handleWrapComputeChange() {
       const wrapComputeValue = this.wrapCompute === 'default';
-      const hot = TableManager.get();
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -455,7 +452,7 @@ export default {
       const fillBlankRowsValue = this.fillBlankRows === 'default';
 
       // 更新填充空白行，无论是否初始化状态都保存
-      this._setFillBlankRows(fillBlankRowsValue);
+      this.setFillBlankRows(fillBlankRowsValue);
     },
 
     /**
@@ -478,15 +475,15 @@ export default {
     /**
      * 处理条件属性项变化
      */
-    handleConditionPropertyItemsChange(conditionPropertyItems) {
-      this.conditionPropertyItems = conditionPropertyItems;
+    handleConditionGroupsChange(conditionGroups) {
+      this.conditionGroups = conditionGroups;
 
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const originalCellDef = getCell(i, j);
           if (originalCellDef) {
             const updatedCellDef = deepCopy(originalCellDef);
-            updatedCellDef.conditionPropertyItems = conditionPropertyItems;
+            updatedCellDef.conditionPropertyItems = conditionGroups;
             setCell(i, j, updatedCellDef );
           }
         }
@@ -527,12 +524,13 @@ export default {
           }
         }
       }
+      this.groupItems = [...groupItems];
     },
 
     /**
      * 更新表格数据
      */
-    _updateTableData() {
+    updateTableData() {
       const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -560,7 +558,7 @@ export default {
     /**
      * 设置数据集名称
      */
-    _setDatasetName(datasetName) {
+    setDatasetName(datasetName) {
       const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -576,14 +574,14 @@ export default {
           }
         }
       }
-      this._updateTableData();
+      this.updateTableData();
       setDirty();
     },
 
     /**
      * 设置属性
      */
-    _setProperty(property) {
+    setProperty(property) {
       const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -599,14 +597,14 @@ export default {
           }
         }
       }
-      this._updateTableData();
+      this.updateTableData();
       setDirty();
     },
 
     /**
      * 设置聚合类型
      */
-    _setAggregate(aggregate) {
+    setAggregate(aggregate) {
       const hot = TableManager.get();
       let none = false;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
@@ -630,10 +628,10 @@ export default {
         }
       }
       if (none) {
-        this.selectedSort = 'none';
-        this.selectedExpand = 'None';
+        this.sort = 'none';
+        this.expand = 'None';
       }
-      this._updateTableData();
+      this.updateTableData();
       if (hot) {
         hot.render();
       }
@@ -643,7 +641,7 @@ export default {
     /**
      * 设置排序
      */
-    _setOrder(order) {
+    setOrder(order) {
       const hot = TableManager.get();
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -665,7 +663,7 @@ export default {
     /**
      * 设置展开方向
      */
-    _setExpand(expand) {
+    setExpand(expand) {
       const originalCellDef = getCell(this.rowIndex, this.colIndex);
       if (originalCellDef) {
         const updatedCellDef = deepCopy(originalCellDef);
@@ -683,7 +681,7 @@ export default {
     /**
      * 设置填充空白行
      */
-    _setFillBlankRows(value) {
+    setFillBlankRows(value) {
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
           const cellDef = getCell(i, j);
@@ -704,7 +702,7 @@ export default {
     /**
      * 设置映射类型
      */
-    _setMappingType(mappingType) {
+    setMappingType(mappingType) {
       this.mappingType = mappingType;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -725,7 +723,7 @@ export default {
     /**
      * 设置映射项
      */
-    _setMappingItems(mappingItems) {
+    setMappingItems(mappingItems) {
       this.mappingItems = mappingItems;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -746,7 +744,7 @@ export default {
     /**
      * 设置映射数据集
      */
-    _setMappingDataset(mappingDataset) {
+    setMappingDataset(mappingDataset) {
       this.mappingDataset = mappingDataset;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -767,7 +765,7 @@ export default {
     /**
      * 设置映射键属性
      */
-    _setMappingKeyProperty(mappingKeyProperty) {
+    setMappingKeyProperty(mappingKeyProperty) {
       this.mappingKeyProperty = mappingKeyProperty;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {
@@ -788,7 +786,7 @@ export default {
     /**
      * 设置映射值属性
      */
-    _setMappingValueProperty(mappingValueProperty) {
+    setMappingValueProperty(mappingValueProperty) {
       this.mappingValueProperty = mappingValueProperty;
       for (let i = this.rowIndex; i <= this.row2Index; i++) {
         for (let j = this.colIndex; j <= this.col2Index; j++) {

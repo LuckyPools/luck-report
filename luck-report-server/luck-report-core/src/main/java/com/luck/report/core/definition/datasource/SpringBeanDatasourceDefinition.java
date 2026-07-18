@@ -20,6 +20,7 @@ import com.luck.report.core.definition.dataset.BeanDatasetDefinition;
 import com.luck.report.core.definition.dataset.DatasetDefinition;
 import org.springframework.context.ApplicationContext;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +29,16 @@ import java.util.Map;
  * @author Jacky.gao
  * @since 2016年12月27日
  */
-public class SpringBeanDatasourceDefinition implements DatasourceDefinition {
+public class SpringBeanDatasourceDefinition implements DatasourceDefinition, Serializable {
+    private static final long serialVersionUID = 1L;
     private String beanId;
     private String name;
     private List<DatasetDefinition> datasets;
+
+    /**
+     * 默认无参构造器
+     */
+    public SpringBeanDatasourceDefinition() {}
 
     public List<Dataset> getDatasets(ApplicationContext applicationContext, Map<String, Object> parameters) {
         Object targetBean = applicationContext.getBean(beanId);
@@ -47,6 +54,14 @@ public class SpringBeanDatasourceDefinition implements DatasourceDefinition {
     @Override
     public DatasourceType getType() {
         return DatasourceType.spring;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化
+     * @param type 数据源类型
+     */
+    public void setType(DatasourceType type) {
+        // 空实现，忽略type字段
     }
 
     @Override

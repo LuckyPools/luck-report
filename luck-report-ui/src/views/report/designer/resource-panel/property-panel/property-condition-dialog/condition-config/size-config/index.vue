@@ -1,44 +1,56 @@
 <template>
   <div>
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row class="condition-config-row" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="rowHeightChecked" @change="onRowHeightChange">
           {{ $t('dialog.propCondition.rowHeight') }}
         </u-checkbox>
-      </div>
-      <span v-show="rowHeightChecked" style="margin-left: 10px;">
-        <div class="u-inline">
-          <u-input-number v-model="localRowHeight" @change="onRowHeightValueChange">
-          </u-input-number>
-        </div>
-      </span>
-    </div>
+      </u-col>
+      <u-col :span="8">
+        <u-input-number
+            v-show="rowHeightChecked"
+            v-model="localRowHeight"
+            :min="0"
+            @change="onRowHeightValueChange">
+        </u-input-number>
+      </u-col>
+      <u-col :span="8">
+      </u-col>
+    </u-row>
 
-    <div class="form-group" style="margin-bottom: 5px;">
-      <div class="u-inline">
+    <u-row class="condition-config-row" type="flex" align="middle">
+      <u-col :span="8">
         <u-checkbox v-model="colWidthChecked" @change="onColWidthChange">
           {{ $t('dialog.propCondition.colWidth') }}
         </u-checkbox>
-      </div>
-      <span v-show="colWidthChecked" style="margin-left: 10px;">
-        <div class="u-inline">
-          <u-input-number v-model="localColWidth" @change="onColWidthValueChange">
-          </u-input-number>
-        </div>
-      </span>
-    </div>
+      </u-col>
+      <u-col :span="8">
+        <u-input-number
+            v-show="colWidthChecked"
+            v-model="localColWidth"
+            :min="0"
+            @change="onColWidthValueChange">
+        </u-input-number>
+      </u-col>
+      <u-col :span="8">
+      </u-col>
+    </u-row>
   </div>
 </template>
 
 <script>
 import UInputNumber from '@/components/input-number/index.vue';
 import UCheckbox from '@/components/checkbox/index.vue';
+import URow from '@/components/row/index.vue';
+import UCol from '@/components/col/index.vue';
 
 export default {
   name: 'SizeConfig',
   components: {
     UInputNumber,
-    UCheckbox
+    UCheckbox,
+    URow,
+    UCol
   },
   props: {
     rowHeight: {

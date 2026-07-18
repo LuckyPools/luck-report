@@ -91,17 +91,17 @@
     <!-- GroupItemDialog 组件 -->
     <GroupItemDialog
       :visible.sync="groupItemDialogVisible"
-      :group-item="groupItemDialogItem"
-      :operation="groupItemDialogOperation"
+      :group-item="groupItem"
+      :operation="operation"
       @saveAfter="handleGroupItemSave"
     />
 
     <!-- ConditionDialog 组件 -->
     <ConditionDialog
       :visible.sync="conditionDialogVisible"
-      :fields="conditionDialogFields"
-      :condition="conditionDialogCondition"
-      :conditions="conditionDialogConditions"
+      :fields="fields"
+      :condition="editingCondition"
+      :conditions="currentConditions"
       @saveAfter="handleConditionSave"
     />
 
@@ -114,10 +114,12 @@
 </template>
 
 <script>
-import { showAlert, showConfirm } from '@/utils/comnon.js';
-import { deepCopy } from '@/components/utils/index.js';
-import GroupItemDialogVue from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-item-dialog/index.vue';
-import ConditionDialogVue from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
+import {showAlert, showConfirm} from '@/utils/comnon.js';
+import {deepCopy} from '@/components/utils/index.js';
+import GroupItemDialogVue
+  from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-item-dialog/index.vue';
+import ConditionDialogVue
+  from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/condition-dialog/index.vue';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 
@@ -148,15 +150,11 @@ export default {
       localGroupItems: [],
       selectedItemIndex: null,
       selectedConditionIndex: null,
-      currentConditionIndex: null,
-      currentItemIndex: null,
       conditionDialogVisible: false,
-      conditionDialogFields: [],
-      conditionDialogCondition: null,
-      conditionDialogConditions: [],
+      editingCondition: null,
       groupItemDialogVisible: false,
-      groupItemDialogItem: null,
-      groupItemDialogOperation: 'add'
+      groupItem: null,
+      operation: 'add'
     };
   },
   computed: {
@@ -164,24 +162,13 @@ export default {
       if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
         return [];
       }
-      return this.localGroupItems[this.selectedItemIndex].conditions || [];
+      return this.localGroupItems[this.selectedItemIndex]?.conditions || [];
     }
   },
   watch: {
-    groupItems: {
-      handler(newVal) {
-        this.localGroupItems = deepCopy(newVal);
-      },
-      immediate: true,
-      deep: true
-    },
-    visible: {
-      handler(newVal) {
-        if (newVal) {
-          this.localGroupItems = deepCopy(this.groupItems);
-          this.selectedItemIndex = null;
-          this.selectedConditionIndex = null;
-        }
+    visible(newVal) {
+      if (newVal) {
+        this.initData();
       }
     }
   },
@@ -194,7 +181,25 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   methods: {
+    /**
+     * 初始化本地数据
+     */
+    initData() {
+      const source = Array.isArray(this.groupItems) ? this.groupItems : [];
+      this.localGroupItems = deepCopy(source);
+      if (this.localGroupItems.length > 0) {
+        this.selectedItemIndex = 0;
+      }
+      this.selectedConditionIndex = null;
+    },
+
+    /**
+     * 确认保存操作
+     */
     handleOk() {
+      if (!Array.isArray(this.localGroupItems)) {
+        this.localGroupItems = [];
+      }
       this.$emit('save', this.localGroupItems);
       this.handleClose();
     },
@@ -206,9 +211,8 @@ export default {
 
     // 分组项管理方法
     addItem() {
-      const newItem = { name: '', conditions: [] };
-      this.groupItemDialogItem = newItem;
-      this.groupItemDialogOperation = 'add';
+      this.groupItem = {name: '', conditions: []};
+      this.operation = 'add';
       this.groupItemDialogVisible = true;
     },
 
@@ -233,8 +237,8 @@ export default {
       }
 
       const item = this.localGroupItems[this.selectedItemIndex];
-      this.groupItemDialogItem = item;
-      this.groupItemDialogOperation = 'edit';
+      this.groupItem = { ...item };
+      this.operation = 'edit';
       this.groupItemDialogVisible = true;
     },
 
@@ -250,13 +254,7 @@ export default {
       }
 
       const currentItem = this.localGroupItems[this.selectedItemIndex];
-      const conditions = currentItem.conditions || [];
-
-      this.conditionDialogConditions = conditions;
-      this.currentConditionIndex = -1;
-      this.currentItemIndex = this.selectedItemIndex;
-      this.conditionDialogFields = this.fields;
-      this.conditionDialogCondition = null;
+      this.editingCondition = null;
       this.conditionDialogVisible = true;
     },
 
@@ -273,53 +271,66 @@ export default {
 
       const currentItem = this.localGroupItems[this.selectedItemIndex];
       const conditions = currentItem.conditions || [];
-      const condition = conditions[this.selectedConditionIndex];
-
-      this.conditionDialogConditions = conditions;
-      this.currentConditionIndex = this.selectedConditionIndex;
-      this.currentItemIndex = this.selectedItemIndex;
-      this.conditionDialogFields = this.fields;
-      this.conditionDialogCondition = condition;
+      this.editingCondition = conditions[this.selectedConditionIndex];
       this.conditionDialogVisible = true;
     },
 
+    /**
+     * 处理分组项保存事件
+     */
     handleGroupItemSave(data) {
+      if (!Array.isArray(this.localGroupItems)) {
+        this.localGroupItems = [];
+      }
+
       if (data.operation === 'add') {
         this.localGroupItems.push(data.groupItem);
+      } else if (data.operation === 'edit' && this.selectedItemIndex >= 0) {
+        this.$set(this.localGroupItems, this.selectedItemIndex, data.groupItem);
       }
     },
 
     /**
      * 处理条件保存事件
+     * @param {Object} conditionData - 条件数据
      */
     handleConditionSave(conditionData) {
-      if (this.currentItemIndex === null || this.currentItemIndex === -1) {
+      if (this.selectedItemIndex === null || this.selectedItemIndex === -1) {
         return;
       }
 
-      const currentItem = this.localGroupItems[this.currentItemIndex];
+      const currentItem = this.localGroupItems[this.selectedItemIndex];
       const conditions = currentItem.conditions || [];
+      const newCondition = this.buildCondition(conditionData);
 
-      if (conditionData.isEdit && this.currentConditionIndex >= 0) {
-        const condition = conditions[this.currentConditionIndex];
-        if (condition) {
-          condition.left = conditionData.left;
-          condition.operation = conditionData.operation;
-          condition.op = conditionData.operation;
-          condition.right = conditionData.right;
-          condition.join = conditionData.join;
-        }
+      if (conditionData.isEdit && this.selectedConditionIndex >= 0) {
+        Object.assign(conditions[this.selectedConditionIndex], newCondition);
       } else {
-        const condition = {
-          left: conditionData.left,
-          operation: conditionData.operation,
-          op: conditionData.operation,
-          right: conditionData.right,
-          join: conditionData.join,
-          id: this.generateId()
-        };
-        conditions.push(condition);
+        conditions.push(newCondition);
       }
+    },
+
+    /**
+     * 重置所有选择状态
+     */
+    resetSelection() {
+      this.selectedItemIndex = null;
+      this.selectedConditionIndex = null;
+    },
+
+    /**
+     * 构建条件对象
+     * @param {Object} data - 原始条件数据
+     * @returns {Object} 格式化后的条件对象
+     */
+    buildCondition(data) {
+      return {
+        left: data.left,
+        operation: data.operation,
+        op: data.operation,
+        right: data.right,
+        join: data.join
+      };
     },
 
     deleteCondition() {
@@ -351,14 +362,6 @@ export default {
       return text;
     },
 
-    generateId() {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    },
-
     // 键盘事件处理
     handleKeydown(e) {
       if (this.visible) {
@@ -384,7 +387,7 @@ export default {
 }
 
 .group-items-section {
-  width: 250px;
+  width: 200px;
   margin-right: 20px;
 }
 
@@ -394,21 +397,21 @@ export default {
 
 .group-select{
   width: 200px;
-  height: 285px;
+  height: 280px;
   display: inline-block;
   outline: none
 }
 
 .condition-select{
-  height: 250px;
+  height: 280px;
   outline: none;
+  margin-top: 5px;
 }
 
 .condition-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 .condition-header label {

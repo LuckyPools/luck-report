@@ -22,12 +22,11 @@ import java.io.Serializable;
  * @since 2017年2月24日
  */
 public class Range implements Serializable {
-    private static final long serialVersionUID = -4547468301777433024L;
+    private static final long serialVersionUID = 1L;
     private int start = -1;
     private int end;
 
-    public Range() {
-    }
+    public Range() {}
 
     public Range(int start, int end) {
         this.start = start;

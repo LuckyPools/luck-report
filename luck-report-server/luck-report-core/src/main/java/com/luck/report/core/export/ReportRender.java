@@ -16,10 +16,11 @@
 package com.luck.report.core.export;
 
 import com.luck.report.core.build.ReportBuilder;
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.core.cache.ReportDefinitionWrapperCache;
 import com.luck.report.core.definition.CellDefinition;
 import com.luck.report.core.definition.Expand;
 import com.luck.report.core.definition.ReportDefinition;
+import com.luck.report.core.definition.ReportDefinitionWrapper;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.exception.ReportParseException;
 import com.luck.report.core.export.builder.down.DownCellbuilder;
@@ -27,6 +28,7 @@ import com.luck.report.core.export.builder.right.RightCellbuilder;
 import com.luck.report.core.model.Report;
 import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportProvider;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -34,6 +36,7 @@ import org.springframework.context.ApplicationContextAware;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,17 +61,29 @@ public class ReportRender implements ApplicationContextAware {
     }
 
     public ReportDefinition getReportDefinition(String file) {
-        ReportDefinition reportDefinition = CacheUtils.getReportDefinition(file);
-        if (reportDefinition == null) {
+        ReportDefinitionWrapper wrapper = ReportDefinitionWrapperCache.getObject(file);
+        ReportDefinition reportDefinition;
+        if (wrapper == null) {
             reportDefinition = parseReport(file);
+            wrapper = new ReportDefinitionWrapper(reportDefinition);
+            ReportDefinitionWrapperCache.putObject(file, wrapper);
+        }
+        reportDefinition = wrapper.getReportDefinition();
+        if (wrapper.notBuilt()) {
             rebuildReportDefinition(reportDefinition);
-            CacheUtils.cacheReportDefinition(file, reportDefinition);
+            wrapper.markBuilt();
         }
         return reportDefinition;
     }
 
+    /**
+     * 重建报表定义的父子引用关系。
+     *
+     * @param reportDefinition 报表定义
+     */
     public void rebuildReportDefinition(ReportDefinition reportDefinition) {
         List<CellDefinition> cells = reportDefinition.getCells();
+        rebuildParentCell(cells);
         for (CellDefinition cell : cells) {
             addRowChildCell(cell, cell);
             addColumnChildCell(cell, cell);
@@ -79,6 +94,64 @@ public class ReportRender implements ApplicationContextAware {
                 downCellParentbuilder.buildParentCell(cell, cells);
             } else if (expand.equals(Expand.Right)) {
                 rightCellParentbuilder.buildParentCell(cell, cells);
+            }
+        }
+    }
+
+    /**
+     * 重建 CellDefinition 的 leftParentCell 和 topParentCell 引用，
+     * 解决从缓存反序列化后 @JsonIgnore 字段丢失的问题。
+     *
+     * @param cells 所有单元格定义列表，不能为空
+     */
+    private void rebuildParentCell(List<CellDefinition> cells) {
+        Map<String, CellDefinition> cellsMap = new HashMap<String, CellDefinition>();
+        Map<String, CellDefinition> cellsRowColMap = new HashMap<String, CellDefinition>();
+        for (CellDefinition cell : cells) {
+            cellsMap.put(cell.getName(), cell);
+            int rowNum = cell.getRowNumber(), colNum = cell.getColumnNumber(), rowSpan = cell.getRowSpan(), colSpan = cell.getColSpan();
+            rowSpan = rowSpan > 0 ? rowSpan-- : 1;
+            colSpan = colSpan > 0 ? colSpan-- : 1;
+            int rowStart = rowNum, rowEnd = rowNum + rowSpan, colStart = colNum, colEnd = colNum + colSpan;
+            for (int i = rowStart; i < rowEnd; i++) {
+                cellsRowColMap.put(i + "," + colNum, cell);
+            }
+            for (int i = colStart; i < colEnd; i++) {
+                cellsRowColMap.put(rowNum + "," + i, cell);
+            }
+        }
+        for (CellDefinition cell : cells) {
+            int rowNumber = cell.getRowNumber();
+            int colNumber = cell.getColumnNumber();
+            String leftParentCellName = cell.getLeftParentCellName();
+            if (StringUtils.isNotBlank(leftParentCellName)) {
+                if (!leftParentCellName.equals("root")) {
+                    CellDefinition targetCell = cellsMap.get(leftParentCellName);
+                    if (targetCell == null) {
+                        throw new ReportException("Cell [" + cell.getName() + "] 's left parent cell [" + leftParentCellName + "] not exist.");
+                    }
+                    cell.setLeftParentCell(targetCell);
+                }
+            } else {
+                if (colNumber > 1) {
+                    CellDefinition targetCell = cellsRowColMap.get(rowNumber + "," + (colNumber - 1));
+                    cell.setLeftParentCell(targetCell);
+                }
+            }
+            String topParentCellName = cell.getTopParentCellName();
+            if (StringUtils.isNotBlank(topParentCellName)) {
+                if (!topParentCellName.equals("root")) {
+                    CellDefinition targetCell = cellsMap.get(topParentCellName);
+                    if (targetCell == null) {
+                        throw new ReportException("Cell [" + cell.getName() + "] 's top parent cell [" + topParentCellName + "] not exist.");
+                    }
+                    cell.setTopParentCell(targetCell);
+                }
+            } else {
+                if (rowNumber > 1) {
+                    CellDefinition targetCell = cellsRowColMap.get((rowNumber - 1) + "," + colNumber);
+                    cell.setTopParentCell(targetCell);
+                }
             }
         }
     }

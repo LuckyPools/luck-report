@@ -3,15 +3,22 @@ package com.luck.report.core.definition.searchform.component;
 import com.luck.report.core.definition.searchform.Option;
 import com.luck.report.core.definition.searchform.RenderContext;
 
+import java.io.Serializable;
 import java.util.List;
 
 public class CheckboxGroupComponent extends BaseInputComponent {
+    private static final long serialVersionUID = 1L;
     private List<Option> options;
     private boolean disabled;
     private String optionType;
     private boolean border;
     private String size;
     private List<String> defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public CheckboxGroupComponent() {}
 
     @Override
     public String initJs(RenderContext context) {

@@ -16,7 +16,7 @@
 package com.luck.report.core.export;
 
 import com.luck.report.core.build.paging.Page;
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.core.cache.ChartScopeCache;
 import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.export.excel.high.ExcelProducer;
@@ -26,6 +26,7 @@ import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.export.word.high.WordProducer;
 import com.luck.report.core.model.Report;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class ExportManagerImpl implements ExportManager {
         Report report = reportRender.render(reportDefinition, parameters);
         Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
         if (chartMap.size() > 0) {
-            CacheUtils.storeChartDataMap(chartMap);
+            ChartScopeCache.storeChartDataMap(chartMap);
         }
         HtmlReport htmlReport = new HtmlReport();
         String content = htmlProducer.produce(report);
@@ -69,8 +70,8 @@ public class ExportManagerImpl implements ExportManager {
         ReportDefinition reportDefinition = reportRender.getReportDefinition(file);
         Report report = reportRender.render(reportDefinition, parameters);
         Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
-        if (chartMap.size() > 0) {
-            CacheUtils.storeChartDataMap(chartMap);
+        if (!CollectionUtils.isEmpty(chartMap)) {
+            ChartScopeCache.storeChartDataMap(chartMap);
         }
         SinglePageData pageData = PageBuilder.buildSinglePageData(pageIndex, report);
         List<Page> pages = pageData.getPages();

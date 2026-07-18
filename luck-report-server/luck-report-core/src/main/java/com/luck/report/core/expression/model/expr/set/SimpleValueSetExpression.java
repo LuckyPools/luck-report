@@ -26,8 +26,10 @@ import com.luck.report.core.model.Cell;
  * @since 2017年1月1日
  */
 public class SimpleValueSetExpression extends BaseExpression {
-    private static final long serialVersionUID = -5433811018086391838L;
+    private static final long serialVersionUID = 1L;
     private Object simpleValue;
+
+    public SimpleValueSetExpression() {}
 
     public SimpleValueSetExpression(Object simpleValue) {
         this.simpleValue = simpleValue;
@@ -36,5 +38,21 @@ public class SimpleValueSetExpression extends BaseExpression {
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
         return new ObjectExpressionData(simpleValue);
+    }
+
+    /**
+     * 获取简单值
+     * @return 简单值
+     */
+    public Object getSimpleValue() {
+        return simpleValue;
+    }
+
+    /**
+     * 设置简单值
+     * @param simpleValue 简单值
+     */
+    public void setSimpleValue(Object simpleValue) {
+        this.simpleValue = simpleValue;
     }
 }

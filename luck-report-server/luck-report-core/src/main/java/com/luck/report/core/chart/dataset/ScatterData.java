@@ -15,13 +15,19 @@
  ******************************************************************************/
 package com.luck.report.core.chart.dataset;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class ScatterData {
+public class ScatterData implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private double x;
     private double y;
+
+    public ScatterData() {}
 
     public ScatterData(double x, double y) {
         this.x = x;

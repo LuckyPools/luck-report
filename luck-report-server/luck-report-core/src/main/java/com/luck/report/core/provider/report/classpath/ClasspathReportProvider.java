@@ -63,12 +63,10 @@ public class ClasspathReportProvider implements ReportProvider, ApplicationConte
     }
 
     @Override
-    public void deleteReport(String file) {
-    }
+    public void deleteReport(String file) {}
 
     @Override
-    public void saveReport(String file, String content) {
-    }
+    public void saveReport(String file, String content) {}
 
     @Override
     public List<ReportFile> getReportFiles() {

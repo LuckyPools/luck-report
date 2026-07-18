@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.luck.report.core.chart.option.impl;
 
+import java.io.Serializable;
+
 import com.luck.report.core.chart.FontStyle;
 import com.luck.report.core.chart.option.Option;
 import com.luck.report.core.chart.option.Position;
@@ -23,7 +25,8 @@ import com.luck.report.core.chart.option.Position;
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class TitleOption implements Option {
+public class TitleOption implements Option, Serializable {
+    private static final long serialVersionUID = 1L;
     private boolean display;
     private Position position = Position.top;
     private int fontSize = 14;
@@ -32,24 +35,35 @@ public class TitleOption implements Option {
     private int padding = 10;
     private String text;
 
+    public TitleOption() {}
+
     @Override
-    public String buildOptionJson() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\"title\":{");
-        sb.append("\"display\":" + display + ",");
-        sb.append("\"text\":\"" + text + "\",");
-        sb.append("\"position\":\"" + position + "\",");
-        sb.append("\"fontSize\":" + fontSize + ",");
-        sb.append("\"fontColor\":\"" + fontColor + "\",");
-        sb.append("\"fontStyle\":\"" + fontStyle + "\",");
-        sb.append("\"padding\":\"" + padding + "\"");
-        sb.append("}");
-        return sb.toString();
-    }
+	public String buildOptionJson() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\"title\":{");
+		boolean hasText = text != null && !text.isEmpty();
+		sb.append("\"display\":" + (hasText ? display : false) + ",");
+		sb.append("\"text\":\"" + text + "\",");
+		sb.append("\"position\":\"" + position + "\",");
+		sb.append("\"fontSize\":" + fontSize + ",");
+		sb.append("\"fontColor\":\"" + fontColor + "\",");
+		sb.append("\"fontStyle\":\"" + fontStyle + "\",");
+		sb.append("\"padding\":\"" + padding + "\"");
+		sb.append("}");
+		return sb.toString();
+	}
 
     @Override
     public String getType() {
         return "title";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public boolean isDisplay() {

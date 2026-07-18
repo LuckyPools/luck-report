@@ -1,25 +1,23 @@
 <template>
-  <u-button
-      type="info"
+  <div
+      class="bold-tool"
+      :class="{ 'is-active': isActive }"
       :title="$t('tools.bold.bold')"
-      class="info-button"
       @click="handleClick"
   >
-    <i class="iconfont iconfont icon-font-bold" :style="{ color: isActive ? 'black' : '#666' }"></i>
-  </u-button>
+    <i class="iconfont icon-font-bold" :style="{ color: isActive ? 'black' : '#666' }"></i>
+  </div>
 </template>
 
 <script>
 import { undoManager, setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
-import UButton from "@/components/button/index.vue";
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'BoldTool',
-  components: {UButton},
   props: {
     selectedCells: {
       type: Object,
@@ -68,7 +66,7 @@ export default {
 
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
@@ -173,4 +171,28 @@ export default {
 </script>
 
 <style scoped>
+.bold-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.bold-tool:hover {
+  border-color: #d9d9d9;
+}
+
+.bold-tool.is-active {
+  background-color: rgb(236, 237, 237);
+}
+
+.bold-tool .iconfont {
+  font-size: 16px;
+}
 </style>

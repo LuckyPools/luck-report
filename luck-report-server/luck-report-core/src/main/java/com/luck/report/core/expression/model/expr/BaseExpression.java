@@ -74,4 +74,13 @@ public abstract class BaseExpression implements Expression {
     public void setExpr(String expr) {
         this.expr = expr;
     }
+
+    /**
+     * 默认空实现，不引用任何单元格名称。
+     * 子类如需提取单元格名称应覆盖此方法。
+     */
+    @Override
+    public List<String> fetchCellName() {
+        return new ArrayList<String>();
+    }
 }

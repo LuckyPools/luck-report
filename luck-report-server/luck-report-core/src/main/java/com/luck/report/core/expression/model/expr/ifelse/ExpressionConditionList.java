@@ -19,15 +19,20 @@ import com.luck.report.core.build.Context;
 import com.luck.report.core.expression.model.condition.Join;
 import com.luck.report.core.model.Cell;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年1月16日
  */
-public class ExpressionConditionList {
+public class ExpressionConditionList implements Serializable {
+    private static final long serialVersionUID = 1L;
     private List<ExpressionCondition> conditions;
     private List<Join> joins;
+
+    public ExpressionConditionList() {}
 
     public ExpressionConditionList(List<ExpressionCondition> conditions, List<Join> joins) {
         this.conditions = conditions;
@@ -61,5 +66,40 @@ public class ExpressionConditionList {
 
     public List<ExpressionCondition> getConditions() {
         return conditions;
+    }
+
+    /**
+     * 设置条件列表
+     * @param conditions 条件列表
+     */
+    public void setConditions(List<ExpressionCondition> conditions) {
+        this.conditions = conditions;
+    }
+
+    /**
+     * 获取连接符列表
+     * @return 连接符列表
+     */
+    public List<Join> getJoins() {
+        return joins;
+    }
+
+    /**
+     * 设置连接符列表
+     * @param joins 连接符列表
+     */
+    public void setJoins(List<Join> joins) {
+        this.joins = joins;
+    }
+
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (conditions == null || conditions.size() == 0) {
+            return list;
+        }
+        for (ExpressionCondition condition : conditions) {
+            list.addAll(condition.fetchCellName());
+        }
+        return list;
     }
 }

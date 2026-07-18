@@ -17,11 +17,16 @@ package com.luck.report.core.chart.axes;
 
 import com.luck.report.core.chart.FontStyle;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月14日
  */
-public class ScaleLabel {
+public class ScaleLabel implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public ScaleLabel() {}
     private boolean display = false;
     private String labelString = "";
     private String fontColor = "#666";

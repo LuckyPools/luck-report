@@ -12,6 +12,7 @@
       <ImportTool ref="importTool" />
       <UndoTool ref="undoTool" />
       <RedoTool ref="redoTool" />
+      <PrintLineTool ref="printLineTool" />
       <SearchFormSwitchTool ref="searchFormSwitchTool" />
       <SettingsTool ref="settingsTool" />
     </div>
@@ -26,8 +27,8 @@
         <BoldTool ref="boldTool" :selectedCells="selectedCells" />
         <ItalicTool ref="italicTool" :selectedCells="selectedCells" />
         <UnderlineTool ref="underlineTool" :selectedCells="selectedCells" />
-        <ForecolorTool ref="forecolorTool" :selectedCells="selectedCells" />
-        <BgcolorTool ref="bgcolorTool" :selectedCells="selectedCells" />
+        <FontColorTool ref="fontColorTool" :selectedCells="selectedCells" />
+        <BgColorTool ref="bgColorTool" :selectedCells="selectedCells" />
         <CrosstabTool ref="crosstabTool" :selectedCells="selectedCells" />
         <ImageTool ref="imageTool" :selectedCells="selectedCells" />
         <ChartTool ref="chartTool" :selectedCells="selectedCells" />
@@ -46,6 +47,7 @@ import PreviewPageTool from '@/views/report/designer/tool-bar/preview-page-tool/
 import OpenTool from '@/views/report/designer/tool-bar/open-tool/index.vue';
 import UndoTool from '@/views/report/designer/tool-bar/undo-tool/index.vue';
 import RedoTool from '@/views/report/designer/tool-bar/redo-tool/index.vue';
+import PrintLineTool from '@/views/report/designer/tool-bar/print-line-tool/index.vue';
 import AlignLeftTool from '@/views/report/designer/tool-bar/align-left-tool/index.vue';
 import AlignTopTool from '@/views/report/designer/tool-bar/align-tool/index.vue';
 import MergeTool from '@/views/report/designer/tool-bar/merge-tool/index.vue';
@@ -54,8 +56,8 @@ import FontSizeTool from '@/views/report/designer/tool-bar/font-size-tool/index.
 import BoldTool from '@/views/report/designer/tool-bar/bold-tool/index.vue';
 import ItalicTool from '@/views/report/designer/tool-bar/italic-tool/index.vue';
 import UnderlineTool from '@/views/report/designer/tool-bar/underline-tool/index.vue';
-import BgcolorTool from '@/views/report/designer/tool-bar/bgcolor-tool/index.vue';
-import ForecolorTool from '@/views/report/designer/tool-bar/forecolor-tool/index.vue';
+import BgColorTool from '@/views/report/designer/tool-bar/bg-color-tool/index.vue';
+import FontColorTool from '@/views/report/designer/tool-bar/font-color-tool/index.vue';
 import CrosstabTool from '@/views/report/designer/tool-bar/crosstab-tool/index.vue';
 import ImageTool from '@/views/report/designer/tool-bar/image-tool/index.vue';
 import ChartTool from '@/views/report/designer/tool-bar/chart-tool/index.vue';
@@ -76,6 +78,7 @@ export default {
     OpenTool,
     UndoTool,
     RedoTool,
+    PrintLineTool,
     AlignLeftTool,
     AlignTopTool,
     MergeTool,
@@ -84,8 +87,8 @@ export default {
     BoldTool,
     ItalicTool,
     UnderlineTool,
-    ForecolorTool,
-    BgcolorTool,
+    FontColorTool,
+    BgColorTool,
     CrosstabTool,
     ImageTool,
     ChartTool,
@@ -124,6 +127,14 @@ export default {
       }
     }
   },
+  watch: {
+    fileName: {
+      handler(val) {
+        document.title = val;
+      },
+      immediate: true
+    }
+  },
   data() {
     return {
       toolbarStyle: {
@@ -139,10 +150,7 @@ export default {
 <style scoped>
 .ud-toolbar{
   width: 100%;
-}
-
-.tool-btn-group{
-  display: inline-block;
+  z-index: 10000;
 }
 
 .ud-toolbar-title{

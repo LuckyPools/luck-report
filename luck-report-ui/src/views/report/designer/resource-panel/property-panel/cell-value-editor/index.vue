@@ -1,10 +1,11 @@
 <template>
   <div class="cell-value-editor">
-    <!-- 父单元格配置 -->
-    <div v-show="showParentGroup" ref="parentGroup">
-      <div class="form-group" style="margin-bottom:6px">
-        <label>{{ $t('property.prop.leftParent') }}：</label>
-        <div class="u-inline">
+
+    <u-form :label-width="100" labelPosition="left">
+
+      <!-- 父单元格配置 -->
+      <div v-show="showParentGroup" ref="parentGroup">
+        <u-form-item class="property-label parent-cell" :label="$t('property.prop.leftParent')" >
           <u-radio-group
               v-model="leftParentType"
               @change="handleLeftParentTypeChange"
@@ -17,46 +18,31 @@
               {{ option.label }}
             </u-radio>
           </u-radio-group>
-        </div>
-        <div>
-          <div class="u-inline">
-            <u-select
-                v-model="leftParentCellName"
-                :clearable="true"
-                :disabled="leftParentType !== 'custom'"
-                @change="handleLeftParentCellNameChange"
-                style="margin-left:10px;width: 100px"
-            >
-              <u-option
-                  v-for="option in leftParentCellNameOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-              />
-            </u-select>
-          </div>
-          <div class="u-inline">
-            <u-select
-                v-model="leftParentRowNumber"
-                :clearable="true"
-                :disabled="leftParentType !== 'custom' || leftParentCellName === 'root'"
-                @change="handleLeftParentRowNumberChange"
-                style="margin-left:10px;width: 100px"
-            >
-              <u-option
-                  v-for="option in leftParentRowNumberOptionsFormatted"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-              />
-            </u-select>
-          </div>
-        </div>
-      </div>
+        </u-form-item>
+        <u-form-item class="property-label" >
+          <u-select
+              v-model="leftParentCellName"
+              :disabled="leftParentType !== 'custom'"
+              @change="handleLeftParentCellNameChange"
+              style="width: 100px"
+              virtual
+              filterable
+              :virtual-options="leftParentCellNameOptions"
+          >
+          </u-select>
+          <u-select
+              v-model="leftParentRowNumber"
+              :disabled="leftParentType !== 'custom' || leftParentCellName === 'root'"
+              @change="handleLeftParentRowNumberChange"
+              style="margin-left:10px;width: 100px"
+              virtual
+              filterable
+              :virtual-options="leftParentRowNumberOptions"
+          >
+          </u-select>
+        </u-form-item>
 
-      <div class="form-group" style="margin-bottom:6px">
-        <label>{{ $t('property.prop.topParent') }}：</label>
-        <div class="u-inline">
+        <u-form-item class="property-label parent-cell" :label="$t('property.prop.topParent')" >
           <u-radio-group
               v-model="topParentType"
               @change="handleTopParentTypeChange"
@@ -69,125 +55,108 @@
               {{ option.label }}
             </u-radio>
           </u-radio-group>
-        </div>
-        <div>
-          <div class="u-inline">
-            <u-select
-                v-model="topParentCellName"
-                :disabled="topParentType !== 'custom'"
-                :clearable="true"
-                @change="handleTopParentCellNameChange"
-                style="margin-left:10px;width: 100px"
-            >
-              <u-option
-                  v-for="option in topParentCellNameOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-              />
-            </u-select>
-          </div>
-          <div class="u-inline">
-            <u-select
-                v-model="topParentRowNumber"
-                :clearable="true"
-                :disabled="topParentType !== 'custom' || topParentCellName === 'root'"
-                @change="handleTopParentRowNumberChange"
-                style="margin-left:10px;width: 100px"
-            >
-              <u-option
-                  v-for="option in topParentRowNumberOptionsFormatted"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-              />
-            </u-select>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 渲染器配置 -->
-    <div v-show="showRendererGroup" ref="rendererGroup" class="form-group" style="margin-bottom:6px">
-      <label>{{ $t('property.prop.renderBean') }}：</label>
-      <div class="input-group" style="width: 290px;display: inline-block;height: 22px;">
-        <div class="u-inline">
-          <u-input
-            v-model="rendererBean"
-            style="width: 204px"
-            @change="handleRendererChange"
-          />
-        </div>
-        <span class="input-group-btn">
-          <u-button @click="handleSelectRenderer">
-            {{ $t('property.prop.selectBean') }}
-          </u-button>
-        </span>
-      </div>
-    </div>
-
-    <!-- 链接配置 -->
-    <fieldset v-show="showLinkGroup" ref="linkGroup" class="link-fieldset">
-      <legend class="link-legend">
-        {{ $t('property.prop.linkConfig') }}
-      </legend>
-      <div class="form-group" style="margin-bottom:8px">
-        <label>URL(<span style="font-size: 12px;color: #747474">{{ $t('property.prop.urlExpressionSupport') }}</span>)：</label>
-        <div class="u-inline">
-          <u-input
-            v-model="linkUrl"
-            :placeholder="$t('property.prop.urlExpressionExample')"
-            style="width: 360px;"
-            @change="handleLinkUrlChange"
-          />
-        </div>
-      </div>
-      <div class="form-group" style="margin-bottom:0px">
-        <label>{{ $t('property.prop.target') }}：</label>
-        <div class="u-inline">
+        </u-form-item>
+        <u-form-item class="property-label" >
           <u-select
-            v-model="linkTarget"
-            :clearable="true"
-            @change="handleLinkTargetChange"
-            style="width: 120px"
+              v-model="topParentCellName"
+              :disabled="topParentType !== 'custom'"
+              @change="handleTopParentCellNameChange"
+              style="width: 100px"
+              virtual
+              filterable
+              :virtual-options="topParentCellNameOptions"
+          >
+          </u-select>
+          <u-select
+              v-model="topParentRowNumber"
+              :disabled="topParentType !== 'custom' || topParentCellName === 'root'"
+              @change="handleTopParentRowNumberChange"
+              style="margin-left:10px;width: 100px"
+              virtual
+              filterable
+              :virtual-options="topParentRowNumberOptions"
+          >
+          </u-select>
+        </u-form-item>
+      </div>
+
+      <!-- 渲染器配置 -->
+      <div v-show="showRendererGroup" ref="rendererGroup" class="form-group" style="margin-bottom:6px">
+        <label>{{ $t('property.prop.renderBean') }}：</label>
+        <div class="input-group" style="width: 290px;display: inline-block;height: 22px;">
+          <div class="u-inline">
+            <u-input
+              v-model="rendererBean"
+              style="width: 250px"
+              @change="handleRendererChange"
+            />
+          </div>
+          <span class="input-group-btn">
+            <u-button @click="handleSelectRenderer">
+              {{ $t('property.prop.selectBean') }}
+            </u-button>
+          </span>
+        </div>
+      </div>
+
+      <!-- 链接配置 -->
+      <div v-show="showLinkGroup">
+
+        <div class="property-quote">
+          {{ $t('property.prop.linkConfig') }}
+        </div>
+
+        <u-form-item class="property-label" :label="$t('property.prop.linkUrl')">
+          <u-input
+              v-model="linkUrl"
+              clearable
+              :placeholder="$t('property.prop.urlExpressionSupport') + $t('property.prop.urlExpressionExample')"
+              style="width: 250px;"
+              @change="handleLinkUrlChange"
+          />
+        </u-form-item>
+
+        <u-form-item class="property-label" :label="$t('property.prop.target')">
+          <u-select
+              v-model="linkTarget"
+              @change="handleLinkTargetChange"
+              style="width: 120px"
           >
             <u-option
-              v-for="option in linkTargetOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
+                v-for="option in linkTargetOptions"
+                :key="option.value"
+                :value="option.value"
+                :label="option.label"
             />
           </u-select>
-        </div>
-        <u-button
-          type="primary"
-          style="margin-left: 10px;"
-          @click="handleUrlParameterConfig"
-        >
-          {{ $t('property.prop.urlParameterConfig') }}
-        </u-button>
-      </div>
-    </fieldset>
 
-    <!-- 单元格类型 -->
-    <div v-show="showTypeGroup" ref="typeGroup" class="form-group" style="margin-bottom:10px;margin-top: 10px;">
-      <label>{{ $t('property.prop.cellType') }}：</label>
-      <div class="u-inline">
-          <u-select
-            v-model="cellType"
-            :clearable="true"
-            @change="handleCellTypeChange"
+          <u-button
+              type="info"
+              style="margin-left: 10px;"
+              @click="handleUrlParameterConfig"
           >
-            <u-option
+            {{ $t('property.prop.urlParameterConfig') }}
+          </u-button>
+        </u-form-item>
+      </div>
+
+      <!-- 单元格类型 -->
+      <u-form-item class="property-label" v-show="showTypeGroup" :label="$t('property.prop.cellType')">
+        <u-select
+            v-model="cellType"
+            @change="handleCellTypeChange"
+            style="width: 250px"
+        >
+          <u-option
               v-for="option in cellTypeOptions"
               :key="option.value"
               :value="option.value"
               :label="option.label"
-            />
-          </u-select>
-        </div>
-    </div>
+          />
+        </u-select>
+      </u-form-item>
 
+    </u-form>
     <!-- URL参数对话框 -->
     <URLParameterDialog
       v-show="urlParameterDialogVisible"
@@ -212,10 +181,14 @@ import URadio from '@/components/radio/index.vue';
 import UInput from '@/components/input/index.vue';
 import UButton from '@/components/button/index.vue';
 import TableManager from '@/views/report/designer/edit-table/manager.js';
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
 
 export default {
   name: 'CellValueEditor',
   components: {
+    UFormItem,
+    UForm,
     URLParameterDialog,
     USelect,
     UOption,
@@ -277,18 +250,6 @@ export default {
         { label: this.$t('property.prop.custom'), value: 'custom' }
       ];
     },
-    leftParentRowNumberOptionsFormatted() {
-      return this.leftParentRowNumberOptions.map(num => ({
-        label: num,
-        value: num.toString()
-      }));
-    },
-    topParentRowNumberOptionsFormatted() {
-      return this.topParentRowNumberOptions.map(num => ({
-        label: num,
-        value: num.toString()
-      }));
-    },
     linkTargetOptions() {
       return [
         { label: this.$t('property.prop.newWindow'), value: '_blank' },
@@ -308,24 +269,17 @@ export default {
         { label: this.$t('property.prop.barcode'), value: 'barcode' },
         { label: this.$t('property.prop.chart'), value: 'chart' }
       ];
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
     }
   },
   watch: {
-    rowIndex() {
-      this.buildParentCellNameOptions();
-      this.buildParentRowNumberOptions();
-      this.updateLinkParameters();
-    },
-    colIndex() {
+    cellPosition() {
       this.buildParentCellNameOptions();
       this.buildParentRowNumberOptions();
       this.updateLinkParameters();
     }
-  },
-  mounted() {
-    this.buildParentCellNameOptions();
-    this.buildParentRowNumberOptions();
-    this.updateLinkParameters();
   },
   methods: {
     updateLinkParameters() {
@@ -460,21 +414,49 @@ export default {
 
       this.leftParentRowNumberOptions = [];
       this.topParentRowNumberOptions = [];
-
       for (let j = 0; j < countRows; j++) {
-        this.leftParentRowNumberOptions.push(j + 1);
-        this.topParentRowNumberOptions.push(j + 1);
+        this.leftParentRowNumberOptions.push({ label: j + 1, value: String(j + 1) });
+        this.topParentRowNumberOptions.push({ label: j + 1, value: String(j + 1) });
       }
     },
 
     handleLeftParentTypeChange(value) {
       if (value === 'default') {
         this.setParentCell(null, true);
+        this.updateLeftParentToDefault();
+      }
+    },
+
+    updateLeftParentToDefault() {
+      if (this.colIndex === 0) {
+        this.leftParentCellName = 'root';
+        this.leftParentRowNumber = '';
+      } else {
+        let row = this.rowIndex, col = this.colIndex - 1;
+        const hot = TableManager.get();
+        const td = hot.getCell(row, col);
+        if (this.isCellHidden(td)) {
+          const mergeCells = hot.getSettings().mergeCells;
+          for (const item of mergeCells) {
+            const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
+            const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
+            if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+              row = rowStart;
+              col = colStart;
+              break;
+            }
+          }
+        }
+        const cellName = getCellName(row, col);
+        const data = this.parseCellName(cellName);
+        this.leftParentCellName = data.name;
+        this.leftParentRowNumber = data.num;
       }
     },
 
     handleLeftParentCellNameChange(value) {
       if (value === 'root') {
+        this.leftParentRowNumber = '';
         this.setParentCell('root', true);
       } else {
         const num = this.leftParentRowNumber;
@@ -489,7 +471,7 @@ export default {
       if (name === 'root') {
         this.setParentCell('root', true);
       } else {
-        if (name !== '' && value !== '') {
+        if (name !== '' && value !== '' && value !== null) {
           this.setParentCell(name + value.toString(), true);
         }
       }
@@ -498,11 +480,40 @@ export default {
     handleTopParentTypeChange(value) {
       if (value === 'default') {
         this.setParentCell(null, false);
+        this.updateTopParentToDefault();
+      }
+    },
+
+    updateTopParentToDefault() {
+      if (this.rowIndex === 0) {
+        this.topParentCellName = 'root';
+        this.topParentRowNumber = '';
+      } else {
+        let row = this.rowIndex - 1, col = this.colIndex;
+        const hot = TableManager.get();
+        const td = hot.getCell(row, col);
+        if (this.isCellHidden(td)) {
+          const mergeCells = hot.getSettings().mergeCells;
+          for (const item of mergeCells) {
+            const rowStart = item.row, rowspan = item.rowspan, colStart = item.col, colspan = item.colspan;
+            const rowEnd = rowStart + rowspan - 1, colEnd = colStart + colspan - 1;
+            if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd) {
+              row = rowStart;
+              col = colStart;
+              break;
+            }
+          }
+        }
+        const cellName = getCellName(row, col);
+        const data = this.parseCellName(cellName);
+        this.topParentCellName = data.name;
+        this.topParentRowNumber = data.num;
       }
     },
 
     handleTopParentCellNameChange(value) {
       if (value === 'root') {
+        this.topParentRowNumber = '';
         this.setParentCell('root', false);
       } else {
         const num = this.topParentRowNumber;
@@ -517,7 +528,7 @@ export default {
       if (name === 'root') {
         this.setParentCell('root', false);
       } else {
-        if (name !== '' && value !== '') {
+        if (name !== '' && value !== '' && value !== null) {
           this.setParentCell(name + value.toString(), false);
         }
       }
@@ -633,16 +644,7 @@ export default {
   width: 100%;
 }
 
-.link-fieldset {
-  border: 1px solid #d9d9d9;
-  border-radius: 2px;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.link-legend {
-  padding: 0 5px;
-  font-size: 12px;
-  font-weight: bold;
+.parent-cell{
+  margin-bottom: 0 !important;
 }
 </style>

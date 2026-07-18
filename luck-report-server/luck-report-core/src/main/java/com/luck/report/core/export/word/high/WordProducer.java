@@ -27,7 +27,7 @@ import com.luck.report.core.utils.ImageUtils;
 import com.luck.report.core.utils.UnitUtils;
 import com.luck.report.core.definition.*;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
@@ -43,12 +43,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Word报表导出生产器
  * @author Jacky.gao
  * @since 2015年5月20日
  */
 public class WordProducer implements Producer {
-    public static final String BEAN_ID = "luck-reportwordExporter";
+    private HeaderFooterBuilder headerFooterBuilder = new HeaderFooterBuilder();
 
+    /**
+     * 生成Word报表
+     * @param report 报表对象
+     * @param outputStream 输出流
+     */
     @Override
     public void produce(Report report, OutputStream outputStream) {
         XWPFDocument document = new XWPFDocument();
@@ -129,6 +135,7 @@ public class WordProducer implements Producer {
                 }
                 pageIndex++;
             }
+            headerFooterBuilder.build(document, sectpr, report);
             document.write(outputStream);
         } catch (Exception ex) {
             throw new ReportComputeException(ex);

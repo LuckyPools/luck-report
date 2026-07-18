@@ -24,10 +24,15 @@ import java.io.Serializable;
  * @since 2017年3月31日
  */
 public class LinkParameter implements Serializable {
-    private static final long serialVersionUID = -5156733452111427492L;
+    private static final long serialVersionUID = 1L;
     private String name;
     private String value;
     private Expression valueExpression;
+
+    /**
+     * 默认无参构造器
+     */
+    public LinkParameter() {}
 
     public String getName() {
         return name;

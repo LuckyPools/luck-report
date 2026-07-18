@@ -20,7 +20,7 @@ package com.luck.report.core.exception;
  * @since 2016年12月5日
  */
 public class CellComputeException extends ReportException {
-    private static final long serialVersionUID = -1363254031247074841L;
+    private static final long serialVersionUID = 1L;
 
     public CellComputeException(Exception ex) {
         super(ex);

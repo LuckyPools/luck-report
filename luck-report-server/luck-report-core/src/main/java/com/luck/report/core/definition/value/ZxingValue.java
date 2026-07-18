@@ -15,13 +15,17 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
+
 import com.luck.report.core.expression.model.Expression;
+
+import java.io.Serializable;
 
 /**
  * @author Jacky.gao
  * @since 2017年3月26日
  */
-public class ZxingValue implements Value {
+public class ZxingValue implements Value, Serializable {
+    private static final long serialVersionUID = 1L;
     private int width;
     private int height;
     private Source source;
@@ -32,6 +36,11 @@ public class ZxingValue implements Value {
     private ZxingCategory category;
     private boolean codeDisplay;
 
+    /**
+     * 默认无参构造器
+     */
+    public ZxingValue() {}
+
     @Override
     public String getValue() {
         // 2019年1月23日 修复表达式时无法获取value数据
@@ -41,6 +50,22 @@ public class ZxingValue implements Value {
     @Override
     public ValueType getType() {
         return ValueType.zxing;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的value字段
+     * @param value 值（忽略）
+     */
+    public void setValue(String value) {
+        // 空实现，忽略value字段
     }
 
     public int getWidth() {

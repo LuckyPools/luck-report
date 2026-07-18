@@ -62,7 +62,9 @@ public class Report {
 
     public void insertRows(int firstRowIndex, List<Row> insertRows) {
         int pos = firstRowIndex - 1;
-        rows.addAll(pos, insertRows);
+        if (pos <= rows.size()) {
+            rows.addAll(pos, insertRows);
+        }
     }
 
     public void insertColumn(Column column, int columnNumber) {

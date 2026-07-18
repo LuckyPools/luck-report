@@ -6,12 +6,12 @@
       :z-index="20000"
       @close="closeDialog"
     >
-        <u-form>
-            <u-form-item :label="$t('dialog.springDS.name')" :label-width="120">
-                <u-input v-model="dsName" />
+        <u-form ref="form" :model="formData" :rules="rules">
+            <u-form-item :label="$t('dialog.springDS.name')" :label-width="120" prop="name">
+                <u-input v-model="formData.name" />
             </u-form-item>
-            <u-form-item :label="$t('dialog.springDS.bean')" :label-width="120">
-                <u-input v-model="beanId" />
+            <u-form-item :label="$t('dialog.springDS.bean')" :label-width="120" prop="beanId">
+                <u-input v-model="formData.beanId" />
             </u-form-item>
         </u-form>
         <div slot="footer" style="text-align: right">
@@ -40,17 +40,14 @@ export default {
     UFormItem
   },
   props: {
-    // 用于比对数据源名称
     datasources: {
       type: Array,
       default: () => []
     },
-    // 控制弹窗显示
     visible: {
       type: Boolean,
       default: false
     },
-    // 数据源数据
     datasource: {
       type: Object,
       default: null
@@ -58,64 +55,90 @@ export default {
   },
   data() {
     return {
-      dsName: '',
-      beanId: '',
-      oldName: null
+      formData: {
+        name: '',
+        beanId: ''
+      },
+      oldName: null,
+      rules: {
+        name: [{
+          required: true,
+          message: this.$t('dialog.springDS.nameTip'),
+          trigger: 'blur'
+        }],
+        beanId: [{
+          required: true,
+          message: this.$t('dialog.springDS.beanTip'),
+          trigger: 'blur'
+        }]
+      }
     };
   },
   watch: {
     visible(newVal) {
       if (newVal) {
         this.resetForm();
-        if (this.datasource) {
-          this.fillForm(this.datasource);
-        }
+        this.initData();
       }
     }
   },
   methods: {
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验结果
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    /**
+     * 重置表单数据
+     */
     resetForm() {
-      this.dsName = '';
-      this.beanId = '';
+      this.formData.name = '';
+      this.formData.beanId = '';
       this.oldName = null;
     },
 
-    fillForm(ds) {
-      if (ds) {
-        this.oldName = ds.name;
-        this.dsName = ds.name;
-        this.beanId = ds.beanId;
-      }
+    /**
+     * 填充表单数据
+     */
+    initData() {
+      this.oldName = this.datasource?.name ?? null;
+      this.formData.name = this.datasource?.name ?? '';
+      this.formData.beanId = this.datasource?.beanId ?? '';
     },
 
-    saveData() {
-      if (this.dsName === '') {
-        showAlert(this.$t('dialog.springDS.nameTip'));
-        return;
-      }
-
-      if (this.beanId === '') {
-        showAlert(this.$t('dialog.springDS.beanTip'));
+    /**
+     * 保存数据
+     */
+    async saveData() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
       let check = false;
-      if (!this.oldName || this.dsName !== this.oldName) {
+      if (!this.oldName || this.formData.name !== this.oldName) {
         check = true;
       }
 
       if (check) {
         for (let source of this.datasources) {
-          if (source.name === this.dsName) {
-            showAlert(`${this.$t('dialog.springDS.ds')}[${this.dsName}]${this.$t('dialog.springDS.exist')}`);
+          if (source.name === this.formData.name) {
+            showAlert(`${this.$t('dialog.springDS.ds')}[${this.formData.name}]${this.$t('dialog.springDS.exist')}`);
             return;
           }
         }
       }
 
       this.$emit('save', {
-        name: this.dsName,
-        beanId: this.beanId,
+        name: this.formData.name,
+        beanId: this.formData.beanId,
         type: 'spring',
         datasets: [],
         oldName: this.oldName
@@ -123,6 +146,10 @@ export default {
       this.closeDialog();
       setDirty();
     },
+
+    /**
+     * 关闭弹窗
+     */
     closeDialog() {
       this.$emit('close');
     }
@@ -131,5 +158,4 @@ export default {
 </script>
 
 <style scoped>
-/* 样式可以根据需要自定义 */
 </style>

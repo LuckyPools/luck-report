@@ -15,14 +15,18 @@
  ******************************************************************************/
 package com.luck.report.core.expression.model.expr.set;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2017年4月2日
  */
-public class CellCoordinateSet {
+public class CellCoordinateSet implements Serializable {
+    private static final long serialVersionUID = 1L;
     private List<CellCoordinate> cellCoordinates;
+
+    public CellCoordinateSet() {}
 
     public CellCoordinateSet(List<CellCoordinate> cellCoordinates) {
         this.cellCoordinates = cellCoordinates;
@@ -30,5 +34,13 @@ public class CellCoordinateSet {
 
     public List<CellCoordinate> getCellCoordinates() {
         return cellCoordinates;
+    }
+
+    /**
+     * 设置单元格坐标列表
+     * @param cellCoordinates 单元格坐标列表
+     */
+    public void setCellCoordinates(List<CellCoordinate> cellCoordinates) {
+        this.cellCoordinates = cellCoordinates;
     }
 }

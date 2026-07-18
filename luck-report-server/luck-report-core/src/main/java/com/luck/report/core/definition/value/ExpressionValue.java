@@ -18,13 +18,21 @@ package com.luck.report.core.definition.value;
 import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2016年12月24日
  */
-public class ExpressionValue implements Value {
+public class ExpressionValue implements Value, Serializable {
+    private static final long serialVersionUID = 1L;
     private String text;
     private Expression expression;
+
+    /**
+     * 默认无参构造器
+     */
+    public ExpressionValue() {}
 
     public ExpressionValue(String text) {
         this.text = text;
@@ -36,12 +44,40 @@ public class ExpressionValue implements Value {
         return ValueType.expression;
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
+    }
+
     @Override
     public String getValue() {
         return text;
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的value字段
+     * @param value 值（忽略）
+     */
+    public void setValue(String value) {
+        // 空实现，忽略value字段
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
+
     public Expression getExpression() {
         return expression;
+    }
+
+    public void setExpression(Expression expression) {
+        this.expression = expression;
     }
 }

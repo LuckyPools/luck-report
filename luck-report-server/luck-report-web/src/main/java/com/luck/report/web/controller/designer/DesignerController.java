@@ -1,263 +1,115 @@
 package com.luck.report.web.controller.designer;
 
-import com.luck.report.core.cache.CacheUtils;
-import com.luck.report.core.definition.ReportDefinition;
-import com.luck.report.core.dsl.ReportParserLexer;
-import com.luck.report.core.dsl.ReportParserParser;
-import com.luck.report.core.export.ReportRender;
 import com.luck.report.core.expression.ErrorInfo;
-import com.luck.report.core.expression.ScriptErrorListener;
-import com.luck.report.core.parser.ReportParser;
-import com.luck.report.core.provider.report.ReportProvider;
-import com.luck.report.web.cache.TempObjectCache;
-import com.luck.report.web.controller.base.BaseController;
-import com.luck.report.web.exception.ReportDesignException;
-import com.luck.report.web.filter.RequestHolderFilter;
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.provider.ResponseInfoProvider;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
+import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
+import com.luck.report.web.service.DesignerService;
+import com.luck.report.web.utils.ResponseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLDecoder;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
- * 报表设计器控制器
+ * 报表设计器控制器，仅负责HTTP请求/响应转换，业务逻辑委托给DesignerService
  *
  * @author Jacky.gao
  * @since 2017年1月25日
  */
-@RestController("bean.designerController")
-@RequestMapping("${luck-report.servletPrefix}/designer")
-public class DesignerController implements ApplicationContextAware {
-
-    private static final Logger logger = LoggerFactory.getLogger(DesignerController.class);
-    private final List<ReportProvider> reportProviders = new ArrayList<>();
+@Controller("bean.designerController")
+@RequestMapping("${luck-report.servletPrefix:}/designer")
+public class DesignerController {
 
     @Autowired
-    private ReportRender reportRender;
-    @Autowired
-    private ReportParser reportParser;
-
-    @Autowired
-    protected RequestInfoProvider req;
-    @Autowired
-    protected ResponseInfoProvider resp;
-
-
+    @Qualifier("bean.designerService")
+    private DesignerService designerService;
 
     /**
      * 脚本验证
      */
     @RequestMapping("/scriptValidation")
-    public void scriptValidation() throws IOException {
-        String content = req.getParameter("content");
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(content);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        ReportParserParser parser = new ReportParserParser(tokenStream);
-        ScriptErrorListener errorListener = new ScriptErrorListener();
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-        parser.expression();
-        List<ErrorInfo> infos = errorListener.getInfos();
-        resp.writeObjectToJson(infos);
+    @ResponseBody
+    public void scriptValidation(@RequestParam("content") String content, HttpServletResponse resp) throws IOException {
+        List<ErrorInfo> infos = designerService.scriptValidation(content);
+        ResponseUtils.writeObjectToJson(resp, infos);
     }
 
     /**
      * 条件脚本验证
      */
     @RequestMapping("/conditionScriptValidation")
-    public void conditionScriptValidation() throws IOException {
-        String content = req.getParameter("content");
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(content);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        ReportParserParser parser = new ReportParserParser(tokenStream);
-        ScriptErrorListener errorListener = new ScriptErrorListener();
-        parser.removeErrorListeners();
-        parser.addErrorListener(errorListener);
-        parser.expr();
-        List<ErrorInfo> infos = errorListener.getInfos();
-        resp.writeObjectToJson(infos);
+    @ResponseBody
+    public void conditionScriptValidation(@RequestParam("content") String content, HttpServletResponse resp) throws IOException {
+        List<ErrorInfo> infos = designerService.conditionScriptValidation(content);
+        ResponseUtils.writeObjectToJson(resp, infos);
     }
 
     /**
      * 解析数据集名称
      */
     @RequestMapping("/parseDatasetName")
-    public void parseDatasetName() throws IOException {
-        String expr = req.getParameter("expr");
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(expr);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
-        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
-        ReportParserParser parser = new ReportParserParser(tokenStream);
-        parser.removeErrorListeners();
-        ReportParserParser.DatasetContext ctx = parser.dataset();
-        String datasetName = ctx.Identifier().getText();
-        Map<String, String> result = new HashMap<String, String>();
+    @ResponseBody
+    public void parseDatasetName(@RequestParam("expr") String expr, HttpServletResponse resp) throws IOException {
+        String datasetName = designerService.parseDatasetName(expr);
+        Map<String, String> result = new java.util.HashMap<>(2);
         result.put("datasetName", datasetName);
-        resp.writeObjectToJson(result);
+        ResponseUtils.writeObjectToJson(resp, result);
     }
-
 
     /**
      * 保存预览文件
      */
     @RequestMapping("/savePreviewFile")
-    public void savePreviewFile() throws IOException {
-        String content = req.getParameter("content");
-        String fileName = req.getParameter("fileName");
-        content = decode(content);
-        fileName = decode(fileName);
-        InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
-        ReportDefinition reportDef = reportParser.parse(inputStream, fileName);
-        reportRender.rebuildReportDefinition(reportDef);
-        IOUtils.closeQuietly(inputStream);
-        TempObjectCache.putObject(fileName, reportDef);
+    @ResponseBody
+    public void savePreviewFile(@RequestParam("fileName") String fileName,
+                                @RequestParam("content") String content,
+                                HttpServletResponse resp) {
+        designerService.savePreviewFile(fileName, content);
     }
 
     /**
      * 加载报表
      */
     @RequestMapping(value = "/loadReport")
-    public void loadReport() throws IOException {
-        String filePath = req.getParameter("filePath");
-        if (filePath == null) {
-            throw new ReportDesignException("Report file can not be null.");
-        }
-        String fileName = ReportUtils.decodeFileName(filePath);
-        Object obj = TempObjectCache.getObject(fileName);
-        if (obj instanceof ReportDefinition) {
-            ReportDefinition reportDef = (ReportDefinition) obj;
-            TempObjectCache.removeObject(fileName);
-            resp.writeObjectToJson(new ReportDefinitionWrapper(reportDef));
-        } else {
-            ReportDefinition reportDef = reportRender.parseReport(fileName);
-            resp.writeObjectToJson(new ReportDefinitionWrapper(reportDef));
-        }
+    @ResponseBody
+    public void loadReport(@RequestParam("filePath") String filePath, HttpServletResponse resp) throws IOException {
+        ReportDefinitionVo vo = designerService.loadReport(filePath);
+        ResponseUtils.writeObjectToJson(resp, vo);
     }
 
     /**
      * 删除报表文件
      */
     @RequestMapping("/deleteReportFile")
-    public void deleteReportFile() {
-        String file = req.getParameter("file");
-        if (file == null) {
-            throw new ReportDesignException("Report file can not be null.");
-        }
-        ReportProvider targetReportProvider = null;
-        for (ReportProvider provider : reportProviders) {
-            if (file.startsWith(provider.getPrefix())) {
-                targetReportProvider = provider;
-                break;
-            }
-        }
-        if (targetReportProvider == null) {
-            throw new ReportDesignException("File [" + file + "] not found available report provider.");
-        }
-        targetReportProvider.deleteReport(file);
+    @ResponseBody
+    public void deleteReportFile(@RequestParam("file") String file) {
+        designerService.deleteReportFile(file);
     }
 
     /**
      * 保存报表文件
      */
     @RequestMapping("/saveReportFile")
-    public void saveReportFile() throws IOException {
-        String file = req.getParameter("file");
-        file = ReportUtils.decodeFileName(file);
-        String content = req.getParameter("content");
-        content = decode(content);
-        ReportProvider targetReportProvider = null;
-        for (ReportProvider provider : reportProviders) {
-            if (file.startsWith(provider.getPrefix())) {
-                targetReportProvider = provider;
-                break;
-            }
-        }
-        if (targetReportProvider == null) {
-            throw new ReportDesignException("File [" + file + "] not found available report provider.");
-        }
-        ReportDefinition reportDef;
-        try {
-            InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
-            reportDef = reportParser.parse(inputStream, file);
-            IOUtils.closeQuietly(inputStream);
-        } catch (Exception e) {
-            logger.error("保存报表异常", e);
-            throw e;
-        }
-        reportRender.rebuildReportDefinition(reportDef);
-        CacheUtils.cacheReportDefinition(file, reportDef);
-        targetReportProvider.saveReport(file, content);
+    @ResponseBody
+    public void saveReportFile(@RequestParam("file") String file,
+                               @RequestParam("content") String content) {
+        designerService.saveReportFile(file, content);
     }
 
     /**
      * 加载报表提供者
      */
     @RequestMapping("/loadReportProviders")
-    public void loadReportProviders() throws IOException {
-        String path = req.getParameter("path");
-        if (path == null || path.isEmpty()) {
-            resp.writeObjectToJson(reportProviders);
-        } else {
-            Map<String, Object> result = new HashMap<>();
-            for (ReportProvider provider : reportProviders) {
-                if (provider.disabled() || provider.getName() == null) {
-                    continue;
-                }
-                Map<String, Object> providerData = new HashMap<>();
-                providerData.put("name", provider.getName());
-                providerData.put("prefix", provider.getPrefix());
-                providerData.put("disabled", provider.disabled());
-                providerData.put("reportFiles", provider.getReportFiles(path));
-                result.put(provider.getPrefix(), providerData);
-            }
-            resp.writeObjectToJson(result);
-        }
+    @ResponseBody
+    public void loadReportProviders(@RequestParam(value = "path", required = false) String path,
+                                    HttpServletResponse resp) throws IOException {
+        Object result = designerService.loadReportProviders(path);
+        ResponseUtils.writeObjectToJson(resp, result);
     }
-
-    /**
-     * 解码内容
-     */
-    protected String decode(String content) {
-        if (content == null) {
-            return content;
-        }
-        try {
-            content = URLDecoder.decode(content, "utf-8");
-            return content;
-        } catch (Exception ex) {
-            return content;
-        }
-    }
-
-    /**
-     * 设置应用上下文
-     */
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        Collection<ReportProvider> providers = applicationContext.getBeansOfType(ReportProvider.class).values();
-        for (ReportProvider provider : providers) {
-            if (provider.disabled() || provider.getName() == null) {
-                continue;
-            }
-            reportProviders.add(provider);
-        }
-    }
-
 }

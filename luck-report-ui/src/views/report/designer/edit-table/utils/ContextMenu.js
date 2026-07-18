@@ -45,7 +45,18 @@ export default function buildMenuConfigure(){
                 doDeleteCol.call(this);
             }else if(key==='clean_content'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                if(!selected || selected.length === 0){
+                    return;
+                }
+                const selection = selected[0];
+                if(!selection){
+                    return;
+                }
+                const [row1, col1, row2, col2] = selection;
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'content');
                 undoManager.add({
                     redo:function(){
@@ -57,7 +68,18 @@ export default function buildMenuConfigure(){
                 })
             }else if(key==='clean_style'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                if(!selected || selected.length === 0){
+                    return;
+                }
+                const selection = selected[0];
+                if(!selection){
+                    return;
+                }
+                const [row1, col1, row2, col2] = selection;
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'style');
                 undoManager.add({
                     redo:function(){
@@ -69,7 +91,18 @@ export default function buildMenuConfigure(){
                 })
             }else if(key==='clean'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                if(!selected || selected.length === 0){
+                    return;
+                }
+                const selection = selected[0];
+                if(!selection){
+                    return;
+                }
+                const [row1, col1, row2, col2] = selection;
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let removeCellsMap = cleanCells(startRow, endRow, startCol, endCol, 'all');
                 undoManager.add({
                     redo:function(){
@@ -81,7 +114,9 @@ export default function buildMenuConfigure(){
                 });
             }else if(key==='repeat_row_header'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'headerrepeat');
                 }
@@ -89,7 +124,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='title_row'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'title');
                 }
@@ -97,7 +134,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='repeat_row_footer'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'footerrepeat');
                 }
@@ -105,7 +144,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='summary_row'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     addRowHeader(rowNumber,'summary');
                 }
@@ -113,7 +154,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='repeat_cancel'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 for(let rowNumber=startRow;rowNumber<=endRow;rowNumber++){
                     adjustDelRowHeaders(rowNumber);
                 }
@@ -121,8 +164,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='row_height'){
                 const selected=this.getSelected();
-                const startRow = selected[0];
-                const endRow = selected[2];
+                const [row1,,row2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
                 const rowHeight=this.getRowHeight(startRow);
                 const dialog=new Class();
                 dialog.show(function(newHeight){
@@ -138,8 +182,9 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='col_width'){
                 const selected=this.getSelected();
-                const startCol=selected[1];
-                const endCol = selected[3];
+                const [,col1,,col2] = selected[0];
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 const colWidth=this.getColWidth(startCol);
                 const dialog=new Class();
                 dialog.show(function(newColWidth){
@@ -155,20 +200,26 @@ export default function buildMenuConfigure(){
                 setDirty();
             }else if(key==='copy_style'){
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [row1, col1, row2, col2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const startCol = Math.min(col1, col2);
                 let cell= getCell(startRow,startCol);
                 if(!cell){
-                    showAlert("请先选中目标单元格！");
+                    showAlert($t('selectTargetCellFirst'));
                     return;
                 }
                 window.__copy_cell_style__=cell.cellStyle;
             }else if(key==='paste_style'){
                 if(!window.__copy_cell_style__){
-                showAlert('请先复制目标单元格样式');
+                showAlert($t('copyStyleFirst'));
                 return;
             }
                 const selected=this.getSelected();
-                const startRow=selected[0],endRow=selected[2],startCol=selected[1],endCol=selected[3];
+                const [row1, col1, row2, col2] = selected[0];
+                const startRow = Math.min(row1, row2);
+                const endRow = Math.max(row1, row2);
+                const startCol = Math.min(col1, col2);
+                const endCol = Math.max(col1, col2);
                 let oldCellsStyleMap=pasteStyle(startRow,endRow,startCol,endCol);
                 undoManager.add({
                     redo:function(){
@@ -378,7 +429,7 @@ export default function buildMenuConfigure(){
                     hot.setDataAtCell(i,j,'');
                 }else if(type==='style'){
                     removeCellsMap.set(key,cell.cellStyle);
-                    cell.cellStyle={fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'};
+                    cell.cellStyle={fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'};
                 }else if(type==='all'){
                     removeCell(cell);
                     removeCellsMap.set(key,cell);
@@ -390,7 +441,7 @@ export default function buildMenuConfigure(){
                             type:'simple',
                             value:''
                         },
-                        cellStyle:{fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}
+                        cellStyle:{fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}
                     };
                     addCell(newCell);
                     hot.setDataAtCell(i,j,'');
@@ -403,62 +454,79 @@ export default function buildMenuConfigure(){
     };
 
     function checkCopyOperationDisabled(){
-        const selected=this.getSelected();
-        if(!selected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
+            return true;
+        }
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
         return false;
-    };
+    }
+
     function checkPasteOperationDisabled(){
-        const selected=this.getSelected();
-        if(!selected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
+            return true;
+        }
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
         if(window.__copy_cell_style__){
             return false;
         }
         return true;
-    };
+    }
+
     function checkRowDeleteOperationDisabled(){
-        if(!this || !this.getSelected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
             return true;
         }
-        const selected=this.getSelected();
-        if(!selected){
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
-        const startRow=selected[0], endRow=selected[2];
-        let dif=Math.abs(startRow-endRow)+1;
-        const countRows=this.countRows ? this.countRows() : 0;
-        if(dif>=countRows){
+        const selection = selected[0];
+        if(!selection){
             return true;
-        }else{
-            return false;
         }
-    };
+        const [startRow, , endRow] = selection;
+        const dif = Math.abs(startRow - endRow) + 1;
+        const countRows = typeof hot.countRows === 'function' ? hot.countRows() : 0;
+        return dif >= countRows;
+    }
 
     function checkColDeleteOperationDisabled(){
-        if(!this || !this.getSelected){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
             return true;
         }
-        const selected=this.getSelected();
-        if(!selected){
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
-        const startCol=selected[1], endCol=selected[3];
-        let dif=Math.abs(startCol-endCol)+1;
-        const countCols=this.countCols ? this.countCols() : 0;
-        if(dif>=countCols){
+        const selection = selected[0];
+        if(!selection){
             return true;
-        }else{
-            return false;
         }
-    };
+        const [, startCol, , endCol] = selection;
+        const dif = Math.abs(startCol - endCol) + 1;
+        const countCols = typeof hot.countCols === 'function' ? hot.countCols() : 0;
+        return dif >= countCols;
+    }
+
     function checkCleanOperationDisabled(){
-        const selected=this.getSelected();
-        if(!selected || selected.length===0){
+        const hot = TableManager.get();
+        if(!hot || typeof hot.getSelected !== 'function'){
+            return true;
+        }
+        const selected = hot.getSelected();
+        if(!selected || selected.length === 0){
             return true;
         }
         return false;
-    };
+    }
 }

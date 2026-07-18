@@ -1,7 +1,7 @@
 <template>
   <UDialog
     :title="$t('dialog.propCondition.title')"
-    width="1200px"
+    width="1020px"
     top="50px"
     :visible="visible"
     @close="handleClose"
@@ -9,23 +9,22 @@
     <div class="condition-body-container">
       <fieldset class="fieldset-small">
         <legend class="legend-style">{{ $t('dialog.propCondition.config') }}</legend>
-        <condition-item
-            :property-conditions="localPropertyConditions"
-            :selected-item-index="selectedItemIndex"
-            @item-added="onItemAdded"
-            @item-updated="onItemUpdated"
-            @item-deleted="onItemDeleted"
-            @item-selected="onItemSelected"
-            @item-index-changed="onItemIndexChanged"
+        <condition-group
+            :condition-groups="localConditionGroups"
+            :selected-group-index="selectedGroupIndex"
+            @group-added="onGroupAdded"
+            @group-updated="onGroupUpdated"
+            @group-deleted="onGroupDeleted"
+            @group-selected="onGroupSelected"
+            @group-index-changed="onGroupIndexChanged"
         />
       </fieldset>
 
       <fieldset class="fieldset-medium">
         <legend class="legend-style">{{ $t('dialog.propCondition.conditionConfig') }}</legend>
-        <condition-content
-          :property-conditions="localPropertyConditions"
-          :selected-item="selectedItem"
-          :dataset-name="localDatasetName"
+        <condition-item
+          :selected-group="selectedGroup"
+          :fields="fields"
           :conditions="currentConditions"
           :reset-selection="resetConditionSelection"
           @condition-added="onConditionAdded"
@@ -34,14 +33,10 @@
         />
       </fieldset>
 
-      <fieldset
-        ref="propGroup"
-        class="fieldset-large"
-        v-show="showPropertyGroup"
-      >
+      <fieldset class="fieldset-large" v-show="showPropertyGroup">
         <legend class="legend-style">{{ $t('dialog.propCondition.propConfig') }}</legend>
         <condition-config
-          :item="selectedItem"
+          :selected-group="selectedGroup"
           @property-changed="onPropertyChanged"
         />
       </fieldset>
@@ -55,19 +50,20 @@
 
 <script>
 import { setDirty } from '@/utils/table.js';
+import ConditionGroup from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-group/index.vue';
 import ConditionItem from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-item/index.vue';
-import ConditionContent from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-content/index.vue';
 import ConditionConfig from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/condition-config/index.vue';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from "@/components/button/index.vue";
 import { mapGetters } from 'vuex';
+import {deepClone} from "@/views/report/designer/search-form/utils";
 
 export default {
   name: 'ConditionBody',
   components: {
     UButton,
+    ConditionGroup,
     ConditionItem,
-    ConditionContent,
     ConditionConfig,
     UDialog
   },
@@ -76,15 +72,11 @@ export default {
       type: Boolean,
       default: false
     },
-    datasetName: {
-      type: String,
-      default: ''
-    },
-    conditionPropertyItems: {
+    fields: {
       type: Array,
       default: () => []
     },
-    propertyConditions: {
+    conditionGroups: {
       type: Array,
       default: () => []
     }
@@ -97,33 +89,21 @@ export default {
   },
   data() {
     return {
-      selectedItem: null,
-      selectedItemIndex: -1,
+      selectedGroup: null,
+      selectedGroupIndex: -1,
       showPropertyGroup: false,
-      localPropertyConditions: [],
-      localDatasetName: '',
+      localConditionGroups: [],
       currentConditions: [],
       resetConditionSelection: true
     };
   },
   watch: {
-    propertyConditions: {
-      handler(newVal) {
-        this.localPropertyConditions = [...newVal];
-      },
-      deep: true,
-      immediate: true
-    },
     visible(newVal) {
       if (newVal) {
-        this.localDatasetName = this.datasetName;
-        this.localPropertyConditions.splice(0, this.localPropertyConditions.length);
-        this.conditionPropertyItems.forEach(item => {
-          this.localPropertyConditions.push(item);
-        });
-
-        if (this.localPropertyConditions.length > 0) {
-          this.selectFirstItem();
+        const conditionGroups = this.conditionGroups;
+        this.localConditionGroups = Array.isArray(conditionGroups) ? deepClone(conditionGroups) : [];
+        if (this.localConditionGroups.length > 0) {
+          this.selectFirstGroup();
         } else {
           this.clearSelection();
         }
@@ -132,41 +112,30 @@ export default {
   },
   methods: {
 
-    onItemAdded(newItem) {
-      // 将新项添加到本地数据副本中
-      this.localPropertyConditions.push(newItem);
-      // 向上传递事件
-      this.$emit('item-added', newItem);
+    onGroupAdded(newGroup) {
+      this.localConditionGroups.push(newGroup);
       setDirty();
     },
 
-    onItemUpdated(item) {
-      // 找到对应的项目并更新
-      const index = this.localPropertyConditions.findIndex(existingItem => existingItem.id === item.id);
-      if (index !== -1) {
-        // 使用Vue.set或直接替换整个对象以确保响应性
-        this.$set(this.localPropertyConditions, index, item);
+    onGroupUpdated(index, group) {
+      if (index >= 0 && index < this.localConditionGroups.length) {
+        this.$set(this.localConditionGroups, index, group);
       }
-      // 向上传递事件
-      this.$emit('item-updated', item);
       setDirty();
     },
 
-    onItemDeleted(index) {
-      if (index >= 0 && index < this.localPropertyConditions.length) {
-        const deletedItem = this.localPropertyConditions[index];
-        this.localPropertyConditions.splice(index, 1);
+    onGroupDeleted(index) {
+      if (index >= 0 && index < this.localConditionGroups.length) {
+        this.localConditionGroups.splice(index, 1);
 
-        this.$emit('item-deleted', index);
-
-        if (this.selectedItem && this.selectedItem.id === deletedItem.id) {
-          if (this.localPropertyConditions.length > 0) {
+        if (this.selectedGroupIndex === index) {
+          if (this.localConditionGroups.length > 0) {
             this.$nextTick(() => {
-              this.selectedItemIndex = 0;
+              this.selectedGroupIndex = 0;
             });
           } else {
-            this.selectedItem = null;
-            this.selectedItemIndex = -1;
+            this.selectedGroup = null;
+            this.selectedGroupIndex = -1;
             this.showPropertyGroup = false;
             this.currentConditions = [];
             this.resetConditionSelection = true;
@@ -177,10 +146,10 @@ export default {
       }
     },
 
-    onItemSelected(item) {
-      this.selectedItem = item;
+    onGroupSelected(group) {
+      this.selectedGroup = group;
 
-      if (!item) {
+      if (!group) {
         this.showPropertyGroup = false;
         this.currentConditions = [];
         this.resetConditionSelection = true;
@@ -188,76 +157,69 @@ export default {
       }
       this.showPropertyGroup = true;
 
-      if (!item.conditions) {
-        item.conditions = [];
+      if (!group.conditions) {
+        group.conditions = [];
       }
-      this.currentConditions = [...item.conditions];
+      this.currentConditions = [...group.conditions];
       this.resetConditionSelection = false;
       setDirty();
     },
 
-    onPropertyChanged(updatedItem) {
-      if (updatedItem) {
-        const index = this.localPropertyConditions.findIndex(item => item.name === updatedItem.name);
-        if (index !== -1) {
-          const currentConditions = this.selectedItem ? this.selectedItem.conditions : [];
-
-          this.$set(this.localPropertyConditions, index, updatedItem);
-
-          if (currentConditions && currentConditions.length > 0) {
-            this.localPropertyConditions[index].conditions = currentConditions;
+    onPropertyChanged(updatedGroup) {
+      if (updatedGroup && this.selectedGroup) {
+        Object.keys(updatedGroup).forEach(key => {
+          if (key !== 'conditions' && key !== 'id') {
+            this.$set(this.selectedGroup, key, updatedGroup[key]);
           }
-        }
+        });
       }
       setDirty();
     },
 
     onConditionAdded(newCondition) {
-      if (this.selectedItem) {
-        if (!this.selectedItem.conditions) {
-          this.selectedItem.conditions = [];
+      if (this.selectedGroup) {
+        if (!this.selectedGroup.conditions) {
+          this.selectedGroup.conditions = [];
         }
-        this.selectedItem.conditions.push(newCondition);
-        this.currentConditions = [...this.selectedItem.conditions];
+        this.selectedGroup.conditions.push(newCondition);
+        this.currentConditions = [...this.selectedGroup.conditions];
       }
       setDirty();
     },
 
-    onConditionUpdated(updatedCondition) {
-      if (this.selectedItem && this.selectedItem.conditions) {
-        const index = this.selectedItem.conditions.findIndex(c => c.id === updatedCondition.id);
-        if (index !== -1) {
-          this.selectedItem.conditions.splice(index, 1, updatedCondition);
-          this.currentConditions = [...this.selectedItem.conditions];
-        }
-      }
-      setDirty();
-    },
-
-    onConditionDeleted(condition) {
-      if (this.selectedItem && this.selectedItem.conditions) {
-        const index = this.selectedItem.conditions.findIndex(c => c.id === condition.id);
-        if (index !== -1) {
-          this.selectedItem.conditions.splice(index, 1);
-          this.currentConditions = [...this.selectedItem.conditions];
+    onConditionUpdated(index, updatedCondition) {
+      if (this.selectedGroup && this.selectedGroup.conditions) {
+        if (index >= 0 && index < this.selectedGroup.conditions.length) {
+          this.selectedGroup.conditions.splice(index, 1, updatedCondition);
+          this.currentConditions = [...this.selectedGroup.conditions];
         }
       }
       setDirty();
     },
 
-    onItemIndexChanged(index) {
-      this.selectedItemIndex = index;
+    onConditionDeleted(index) {
+      if (this.selectedGroup && this.selectedGroup.conditions) {
+        if (index >= 0 && index < this.selectedGroup.conditions.length) {
+          this.selectedGroup.conditions.splice(index, 1);
+          this.currentConditions = [...this.selectedGroup.conditions];
+        }
+      }
+      setDirty();
     },
 
-    selectFirstItem() {
-      if (this.localPropertyConditions.length > 0) {
-        this.selectedItemIndex = 0;
+    onGroupIndexChanged(index) {
+      this.selectedGroupIndex = index;
+    },
+
+    selectFirstGroup() {
+      if (this.localConditionGroups.length > 0) {
+        this.selectedGroupIndex = 0;
       }
     },
 
     clearSelection() {
-      this.selectedItem = null;
-      this.selectedItemIndex = -1;
+      this.selectedGroup = null;
+      this.selectedGroupIndex = -1;
       this.showPropertyGroup = false;
       this.currentConditions = [];
       this.resetConditionSelection = true;
@@ -270,12 +232,8 @@ export default {
 
     handleOk() {
       this.$emit('update:visible', false);
-
-      const conditionsToReturn = this.localPropertyConditions.map(item => {
-        return JSON.parse(JSON.stringify(item));
-      });
-
-      this.$emit('saveAfter', conditionsToReturn);
+      const conditionGroups = deepClone(this.localConditionGroups);
+      this.$emit('saveAfter', conditionGroups);
     }
   }
 };
@@ -284,8 +242,6 @@ export default {
 <style scoped>
 .condition-body-container {
   padding: 10px;
-  height: 560px;
-  overflow: auto;
 }
 
 .fieldset-small {
@@ -300,7 +256,7 @@ export default {
   padding: 10px;
   border: solid 1px #dddddd;
   border-radius: 8px;
-  width: 325px;
+  width: 250px;
   display: inline-block;
   vertical-align: top;
   margin-left: 10px;
@@ -310,7 +266,7 @@ export default {
   padding: 10px;
   border: solid 1px #dddddd;
   border-radius: 8px;
-  width: 550px;
+  width: 450px;
   display: inline-block;
   vertical-align: top;
   margin-left: 10px;

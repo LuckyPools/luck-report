@@ -18,11 +18,14 @@ package com.luck.report.core.expression.model;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.model.Cell;
 
+import java.io.Serializable;
+import java.util.List;
+
 /**
  * @author Jacky.gao
  * @since 2016年11月18日
  */
-public interface Condition {
+public interface Condition extends Serializable {
     /**
      * @param cell        当前Condition所在的单元格
      * @param currentCell 当前Condition正在处理的单元格
@@ -31,4 +34,10 @@ public interface Condition {
      * @return 返回是否符合条件
      */
     boolean filter(Cell cell, Cell currentCell, Object obj, Context context);
+
+    /**
+     * 从条件中提取引用的单元格名称
+     * @return 引用的单元格名称列表
+     */
+    List<String> fetchCellName();
 }

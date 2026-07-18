@@ -16,10 +16,14 @@
 package com.luck.report.core.expression.model.condition;
 
 import com.luck.report.core.build.Context;
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Jacky.gao
@@ -27,10 +31,12 @@ import org.codehaus.jackson.annotate.JsonIgnore;
  */
 public class BothExpressionCondition extends BaseCondition {
     private ConditionType type = ConditionType.expression;
-    @JsonIgnore
+    @JsonIgnore // 内部重构 left
     private Expression leftExpression;
-    @JsonIgnore
+    @JsonIgnore // 内部重构 right
     private Expression rightExpression;
+
+    public BothExpressionCondition() {}
 
     @Override
     Object computeLeft(Cell cell, Cell currentCell, Object obj, Context context) {
@@ -50,11 +56,64 @@ public class BothExpressionCondition extends BaseCondition {
         return type;
     }
 
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type
+     */
+    public void setType(ConditionType type) {
+        // 空实现，忽略type字段
+    }
+
+    public Expression getLeftExpression() {
+        return leftExpression;
+    }
+
     public void setLeftExpression(Expression leftExpression) {
         this.leftExpression = leftExpression;
     }
 
+    public Expression getRightExpression() {
+        return rightExpression;
+    }
+
     public void setRightExpression(Expression rightExpression) {
         this.rightExpression = rightExpression;
+    }
+
+    /**
+     * 重写父类方法，设置左侧表达式字符串并自动派生左侧Expression对象
+     * @param left 左侧表达式字符串
+     */
+    @Override
+    public void setLeft(String left) {
+        super.setLeft(left);
+        if (left != null && !left.isEmpty()) {
+            this.leftExpression = ExpressionUtils.parseExpression(left);
+        }
+    }
+
+    /**
+     * 重写父类方法，设置右侧表达式字符串并自动派生右侧Expression对象
+     * @param right 右侧表达式字符串
+     */
+    @Override
+    public void setRight(String right) {
+        super.setRight(right);
+        if (right != null && !right.isEmpty()) {
+            this.rightExpression = ExpressionUtils.parseExpression(right);
+        }
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (leftExpression != null) {
+            list.addAll(leftExpression.fetchCellName());
+        }
+        if (rightExpression != null) {
+            list.addAll(rightExpression.fetchCellName());
+        }
+        list.addAll(super.fetchCellName());
+        return list;
     }
 }

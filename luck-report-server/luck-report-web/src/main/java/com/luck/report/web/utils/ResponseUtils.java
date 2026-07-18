@@ -1,8 +1,7 @@
 package com.luck.report.web.utils;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -11,15 +10,20 @@ import java.text.SimpleDateFormat;
 
 public class ResponseUtils {
 
+    private static final ObjectMapper objectMapper;
+
+    static {
+        objectMapper = new ObjectMapper();
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+    }
+
     public static void writeObjectToJson(HttpServletResponse resp, Object obj) throws IOException {
         resp.setContentType("text/json");
         resp.setCharacterEncoding("UTF-8");
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationConfig.Feature.WRITE_DATES_AS_TIMESTAMPS, false);
-        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
         OutputStream out = resp.getOutputStream();
         try {
-            mapper.writeValue(out, obj);
+            objectMapper.writeValue(out, obj);
         } finally {
             out.flush();
             out.close();

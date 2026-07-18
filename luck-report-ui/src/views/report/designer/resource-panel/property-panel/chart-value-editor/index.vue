@@ -1,44 +1,43 @@
 <template>
   <div class="bar-chart-value-editor" ref="container">
-    <!-- 选项卡导航 -->
+
     <u-tabs v-model="activeTab" type="button">
-      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset" />
-      <u-tab-pane :label="$t('chart.option')" index="option" />
-      <u-tab-pane v-if="showAxis" :label="$t('chart.axisConfig')" index="axis" />
+      <u-tab-pane :label="$t('chart.datasetBind')" index="dataset" >
+        <!-- 数据集绑定选项卡 -->
+        <ChartDataset
+            :datasetConfig="datasetConfig"
+            :fields="currentFields"
+            :datasets="currentDatasets"
+            @dataset-change="handleDatasetChange"
+            @category-property-change="handleCategoryPropertyChange"
+            @value-property-change="handleValuePropertyChange"
+            @series-type-change="handleSeriesTypeChange"
+            @series-property-change="handleSeriesPropertyChange"
+            @series-text-change="handleSeriesTextChange"
+            @aggregate-change="handleAggregateChange"
+        />
+      </u-tab-pane>
+
+      <u-tab-pane :label="$t('chart.option')" index="option" >
+        <!-- 选项选项卡 -->
+        <ChartOption
+            :chartConfig="chartConfig"
+            @chart-option-change="handleChartOptionChange"
+            @data-labels-change="handleDataLabelsChange"
+        />
+      </u-tab-pane>
+
+      <u-tab-pane v-if="showAxis" :label="$t('chart.axisConfig')" index="axis" >
+        <!-- 轴配置选项卡 -->
+        <ChartAxis
+            v-show="activeTab === 'axis'"
+            :xAxesConfig.sync="xAxesConfig"
+            :yAxesConfig.sync="yAxesConfig"
+            :format.sync="datasetConfig.format"
+            @axis-change="handleAxisChange"
+        />
+      </u-tab-pane>
     </u-tabs>
-
-    <!-- 选项卡内容 -->
-    <div class="tab-content">
-      <!-- 数据集绑定选项卡 -->
-      <ChartDataset
-          v-show="activeTab === 'dataset'"
-          :datasetConfig="datasetConfig"
-          @dataset-change="handleDatasetChange"
-          @category-property-change="handleCategoryPropertyChange"
-          @value-property-change="handleValuePropertyChange"
-          @series-type-change="handleSeriesTypeChange"
-          @series-property-change="handleSeriesPropertyChange"
-          @series-text-change="handleSeriesTextChange"
-          @aggregate-change="handleAggregateChange"
-      />
-
-      <!-- 选项选项卡 -->
-      <ChartOption
-          v-show="activeTab === 'option'"
-          :chartConfig="chartConfig"
-          @chart-option-change="handleChartOptionChange"
-          @data-labels-change="handleDataLabelsChange"
-      />
-
-      <!-- 轴配置选项卡 -->
-      <ChartAxis
-          v-show="activeTab === 'axis'"
-          :xAxesConfig.sync="xAxesConfig"
-          :yAxesConfig.sync="yAxesConfig"
-          :format.sync="datasetConfig.format"
-          @axis-change="handleAxisChange"
-      />
-    </div>
   </div>
 </template>
 
@@ -52,7 +51,7 @@ import ChartAxis from '@/views/report/designer/resource-panel/property-panel/cha
 import ChartOption from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-option/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'ChartValueEditor',
@@ -149,29 +148,67 @@ export default {
     };
   },
   computed: {
-      ...mapGetters('report', ['getContext']),
+      ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
       context() {
           return this.getContext;
+      },
+      isCellUpdate() {
+        return this.getIsCellUpdate;
+      },
+      cellPosition() {
+        return `${this.rowIndex},${this.colIndex}`;
+      },
+      /**
+       * 根据当前 datasetName 获取对应数据集的字段列表
+       * @return {Array} 字段数组，未选择数据集时返回空数组
+       */
+      currentFields() {
+        const datasetName = this.datasetConfig.datasetName;
+        if (!datasetName) return [];
+        for (let datasource of this.context.reportDef.datasources) {
+          let datasets = datasource.datasets || [];
+          for (let dataset of datasets) {
+            if (dataset.name === datasetName) {
+              return dataset.fields || [];
+            }
+          }
+        }
+        return [];
+      },
+      /**
+       * 获取所有可用数据集列表
+       * @return {Array} 数据集数组
+       */
+      currentDatasets() {
+        if (!this.context?.reportDef?.datasources) return [];
+        const result = [];
+        for (let datasource of this.context.reportDef.datasources) {
+          let datasets = datasource.datasets || [];
+          for (let dataset of datasets) {
+            result.push(dataset);
+          }
+        }
+        return result;
       }
   },
   watch: {
-    rowIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadChartConfig();
       }
     },
-    colIndex: {
-      immediate: true,
-      handler() {
-        this.loadChartConfig();
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadChartConfig();
+          this.setCellUpdate(false);
+        }
       }
     }
   },
-  mounted() {
-    this.loadChartConfig();
-  },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     getCell,
     /**
      * 加载图表配置
@@ -457,11 +494,4 @@ export default {
 </script>
 
 <style scoped>
-.tab-pane {
-  min-height: 300px;
-}
-
-fieldset {
-  border-radius: 4px;
-}
 </style>

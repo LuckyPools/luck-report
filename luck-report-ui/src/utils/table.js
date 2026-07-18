@@ -6,6 +6,8 @@ import MessageBox from '@/components/messagebox/instance.js';
 import store from '@/store';
 import {getCell, getCellName} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
+import { getUrlQueryString } from '@/utils/url';
+import { $t } from '@/locales';
 
 export function resetTableData(hot){
     const countCols=hot.countCols(),countRows=hot.countRows(),data=[];
@@ -48,7 +50,7 @@ export function resetTableData(hot){
 };
 
 export function buildNewCellDef(rowNumber,columnNumber){
-    let cellDef = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:9,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
+    let cellDef = {rowNumber,columnNumber,expand: 'None', cellStyle: {fontSize:10,forecolor:'0,0,0',fontFamily:'宋体',align:'center',valign:'middle'}, value: {type: 'simple', value: ''}};
     return cellDef;
 };
 
@@ -140,13 +142,13 @@ export function tableToXml(context){
             if(value.type==='dataset'){
                 let msg=null;
                 if(!value.datasetName){
-                    msg=`${cellName}单元格数据集属性不能为空！`;
+                    msg=$t('validation.cell.datasetNameRequired', { cell: cellName });
                 }
                 if(!msg && !value.property){
-                    msg=`${cellName}单元格属性不能为空！`;
+                    msg=$t('validation.cell.propertyRequired', { cell: cellName });
                 }
                 if(!msg && !value.aggregate){
-                    msg=`${cellName}单元格聚合方式属性不能为空！`;
+                    msg=$t('validation.cell.aggregateRequired', { cell: cellName });
                 }
                 if(msg){
                     MessageBox.alert(msg);
@@ -160,7 +162,7 @@ export function tableToXml(context){
                 cellXml+='>';
                 cellXml+=buildConditions(value.conditions);
                 if(value.aggregate==='customgroup'){
-                    const groupItems=value.groupItems;
+                    const groupItems=Array.isArray(value.groupItems) ? value.groupItems : [];
                     for(let groupItem of groupItems){
                         cellXml+=`<group-item name="${groupItem.name}">`;
                         for(let condition of groupItem.conditions){
@@ -187,7 +189,7 @@ export function tableToXml(context){
                 cellXml+=`</dataset-value>`;
             }else if(value.type==='expression'){
                 if(!value.value || value.value===''){
-                    const msg=`${cellName}单元格表达式不能为空`;
+                    const msg=$t('validation.cell.expressionRequired', { cell: cellName });
                     MessageBox.alert(msg);
                     throw msg;
                 }
@@ -199,6 +201,17 @@ export function tableToXml(context){
                 cellXml+=`<![CDATA[${value.value || ''}]]>`;
                 cellXml+=`</simple-value>`;
             }else if(value.type==='image'){
+                let msg=null;
+                if(value.source==='text' && (!value.value || value.value.trim()==='')){
+                    msg=$t('validation.cell.imagePathRequired', { cell: cellName });
+                }
+                if(value.source==='expression' && (!value.value || value.value.trim()==='')){
+                    msg=$t('validation.cell.imageExpressionRequired', { cell: cellName });
+                }
+                if(msg){
+                    MessageBox.alert(msg);
+                    throw msg;
+                }
                 cellXml+=`<image-value source="${value.source}"`;
                 if(value.width){
                     cellXml+=` width="${value.width}"`
@@ -212,6 +225,17 @@ export function tableToXml(context){
                 cellXml+=`</text>`;
                 cellXml+=`</image-value>`;
             }else if(value.type==='zxing'){
+                let msg=null;
+                if(value.source==='text' && (!value.value || value.value.trim()==='')){
+                    msg=$t('validation.cell.zxingTextRequired', { cell: cellName });
+                }
+                if(value.source==='expression' && (!value.value || value.value.trim()==='')){
+                    msg=$t('validation.cell.zxingExpressionRequired', { cell: cellName });
+                }
+                if(msg){
+                    MessageBox.alert(msg);
+                    throw msg;
+                }
                 cellXml+=`<zxing-value source="${value.source}" category="${value.category}" width="${value.width}" height="${value.height}"`;
                 if(value.format){
                     cellXml+=` format="${value.format}"`;
@@ -232,9 +256,71 @@ export function tableToXml(context){
                 cellXml+=`</base64-data>`;
                 cellXml+=`</slash-value>`;
             }else if(value.type==='chart'){
-                cellXml+=`<chart-value>`;
                 const chart=value.chart;
                 const dataset=chart.dataset;
+                const chartType=dataset.type;
+                let msg=null;
+                
+                // 校验数据集名称
+                if(!dataset.datasetName){
+                    msg=$t('validation.cell.chartDatasetRequired', { cell: cellName });
+                }
+                
+                // 根据图表类型进行不同校验
+                if(!msg){
+                    if(chartType==='scatter'){
+                        // 散点图校验：categoryProperty、xProperty、yProperty 必填
+                        if(!dataset.categoryProperty){
+                            msg=$t('validation.cell.scatterCategoryPropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && !dataset.xProperty){
+                            msg=$t('validation.cell.scatterXPropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && !dataset.yProperty){
+                            msg=$t('validation.cell.scatterYPropertyRequired', { cell: cellName });
+                        }
+                    }else if(chartType==='bubble'){
+                        // 气泡图校验：categoryProperty、xProperty、yProperty、rProperty 必填
+                        if(!dataset.categoryProperty){
+                            msg=$t('validation.cell.bubbleCategoryPropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && !dataset.xProperty){
+                            msg=$t('validation.cell.bubbleXPropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && !dataset.yProperty){
+                            msg=$t('validation.cell.bubbleYPropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && !dataset.rProperty){
+                            msg=$t('validation.cell.bubbleRPropertyRequired', { cell: cellName });
+                        }
+                    }else{
+                        // 普通图表校验：valueProperty、collectType 必填
+                        if(!dataset.valueProperty){
+                            msg=$t('validation.cell.chartValuePropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && !dataset.collectType){
+                            msg=$t('validation.cell.chartCollectTypeRequired', { cell: cellName });
+                        }
+                        // line、bar、horizontalBar、area、radar 需要分类属性
+                        if(!msg && ['line','bar','horizontalBar','area','radar'].includes(chartType) && !dataset.categoryProperty){
+                            msg=$t('validation.cell.chartCategoryPropertyRequired', { cell: cellName });
+                        }
+                        // 系列类型校验
+                        if(!msg && dataset.seriesType==='property' && !dataset.seriesProperty){
+                            msg=$t('validation.cell.chartSeriesPropertyRequired', { cell: cellName });
+                        }
+                        if(!msg && dataset.seriesType==='text' && !dataset.seriesText){
+                            msg=$t('validation.cell.chartSeriesTextRequired', { cell: cellName });
+                        }
+                    }
+                }
+                
+                if(msg){
+                    MessageBox.alert(msg);
+                    throw msg;
+                }
+                
+                cellXml+=`<chart-value>`;
                 cellXml+=`<dataset dataset-name="${dataset.datasetName}" type="${dataset.type}"`;
                 if(dataset.categoryProperty){
                     cellXml+=` category-property="${dataset.categoryProperty}"`;
@@ -504,7 +590,7 @@ export function tableToXml(context){
     }
     xml+=`<paper type="${paper.paperType}" left-margin="${paper.leftMargin}" right-margin="${paper.rightMargin}"
     top-margin="${paper.topMargin}" bottom-margin="${paper.bottomMargin}" paging-mode="${paper.pagingMode}" fixrows="${paper.fixRows}"
-    width="${paper.width}" height="${paper.height}" orientation="${paper.orientation}" html-report-align="${paper.htmlReportAlign}" bg-image="${paper.bgImage || ''}" html-interval-refresh-value="${htmlIntervalRefreshValue}" column-enabled="${paper.columnEnabled}"`;
+    width="${paper.width}" height="${paper.height}" orientation="${paper.orientation}" html-report-align="${paper.htmlReportAlign}" bg-image="${paper.bgImage ? encode(paper.bgImage) : ''}" html-interval-refresh-value="${htmlIntervalRefreshValue}" column-enabled="${paper.columnEnabled}"`;
     if(paper.columnEnabled){
         xml+=` column-count="${paper.columnCount}" column-margin="${paper.columnMargin}"`;
     }
@@ -547,7 +633,7 @@ function buildConditions(conditions){
                 }
                 cellXml+=`<value><![CDATA[${condition.right}]]></value>`;
             }else{
-                cellXml+=`<condition type="${condition.type}" op="${encode(condition.operation)}" id="${condition.id}"`;
+                cellXml+=`<condition type="${condition.type}" op="${encode(condition.operation)}" `;
                 if(condition.join && size>1){
                     cellXml+=` join="${condition.join}">`;
                 }else{
@@ -662,7 +748,7 @@ export function encode(text){
 
 export function getParameter(name) {
     var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
-    var r = window.location.search.substr(1).match(reg);
+    var r = getUrlQueryString().match(reg);
     if (r != null)return r[2];
     return null;
 };
@@ -739,12 +825,12 @@ export const undoManager=new UndoManager();
 
 // 设置脏数据状态，启用保存按钮
 export function setDirty() {
-    store.dispatch('report/setSaveBtnDisable', false).then(r => {});
+    store.dispatch('report/setDisableSaveBtn', false).then(r => {});
 }
 
 // 重置脏数据状态，禁用保存按钮
 export function resetDirty() {
-    store.dispatch('report/setSaveBtnDisable', true).then(r => {{}});
+    store.dispatch('report/setDisableSaveBtn', true).then(r => {{}});
 }
 
 
@@ -778,9 +864,9 @@ export function objToXml(obj, indent = 0, defaultTag = null) {
         const value = obj[key];
         if (Array.isArray(value) || typeof value === 'object') {
             const jsonStr = JSON.stringify(value);
-            attributes += ` ${key}="${jsonStr.replace(/"/g, '&quot;')}"`;
+            attributes += ` ${key}="${jsonStr.replace(/"/g, '&quot;')}" `;
         } else {
-            attributes += ` ${key}="${value}"`;
+            attributes += ` ${key}="${value}" `;
         }
     }
 

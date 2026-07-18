@@ -15,16 +15,29 @@
  ******************************************************************************/
 package com.luck.report.core.chart.plugins;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2018年7月6日
  */
-public class DataLabelsPlugin implements Plugin {
+public class DataLabelsPlugin implements Plugin, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public DataLabelsPlugin() {}
     private boolean display;
 
     @Override
     public String getName() {
         return "data-labels";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param name
+     */
+    public void setName(String name) {
+        // 空实现，忽略name字段
     }
 
     @Override

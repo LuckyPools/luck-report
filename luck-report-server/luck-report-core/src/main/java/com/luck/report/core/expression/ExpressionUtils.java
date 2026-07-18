@@ -16,21 +16,27 @@
 package com.luck.report.core.expression;
 
 import com.luck.report.core.build.assertor.*;
+import com.luck.report.core.definition.CellDefinition;
+import com.luck.report.core.definition.ConditionPropertyItem;
 import com.luck.report.core.dsl.ReportParserLexer;
 import com.luck.report.core.dsl.ReportParserParser;
 import com.luck.report.core.build.assertor.EqualsAssertor;
 import com.luck.report.core.build.assertor.EqualsGreatThenAssertor;
 import com.luck.report.core.build.assertor.GreatThenAssertor;
 import com.luck.report.core.build.assertor.InAssertor;
+import com.luck.report.core.definition.value.DatasetValue;
+import com.luck.report.core.definition.value.ExpressionValue;
+import com.luck.report.core.definition.value.Value;
 import com.luck.report.core.exception.ReportParseException;
 import com.luck.report.core.expression.function.Function;
+import com.luck.report.core.expression.model.Condition;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.parse.ExpressionErrorListener;
 import com.luck.report.core.expression.parse.ExpressionVisitor;
 import com.luck.report.core.expression.parse.builder.*;
-import com.luck.report.core.expression.parse.builder.*;
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -104,13 +110,12 @@ public class ExpressionUtils implements ApplicationContextAware {
 
     public static boolean conditionEval(Op op, Object left, Object right) {
         Assertor assertor = assertorsMap.get(op);
-        boolean result = assertor.eval(left, right);
-        return result;
+        return assertor.eval(left, right);
     }
 
     public static Expression parseExpression(String text) {
-        ANTLRInputStream antlrInputStream = new ANTLRInputStream(text);
-        ReportParserLexer lexer = new ReportParserLexer(antlrInputStream);
+        CharStream input = CharStreams.fromString(text);
+        ReportParserLexer lexer = new ReportParserLexer(input);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReportParserParser parser = new ReportParserParser(tokenStream);
         ExpressionErrorListener errorListener = new ExpressionErrorListener();
@@ -135,4 +140,79 @@ public class ExpressionUtils implements ApplicationContextAware {
             functions.put(fun.name(), fun);
         }
     }
+
+    /**
+     * 收集单元格定义中所有依赖的单元格名称（从条件属性、数据集过滤条件、表达式中提取）
+     * @param cellDef 单元格定义
+     * @param cellDefinitionMap 单元格定义索引（可为 null，为 null 时表达式提取不做名称有效性验证）
+     * @return 依赖的单元格名称集合
+     */
+    public static Set<String> getDependencyCellNames(CellDefinition cellDef, Map<String, CellDefinition> cellDefinitionMap) {
+        Set<String> result = new HashSet<String>();
+        // 从条件属性中提取依赖单元格名
+        List<ConditionPropertyItem> conditionPropertyItems = cellDef.getConditionPropertyItems();
+        if (conditionPropertyItems != null && !conditionPropertyItems.isEmpty()) {
+            for (ConditionPropertyItem item : conditionPropertyItems) {
+                List<Condition> conditions = item.getConditions();
+                if (conditions != null) {
+                    result.addAll(getCellNamesFromConditions(conditions));
+                }
+                result.addAll(getCellNamesFromExpression(item.getExpression(), cellDefinitionMap));
+            }
+        }
+        // 从值定义中提取依赖单元格名
+        Value value = cellDef.getValue();
+        if (value instanceof DatasetValue) {
+            DatasetValue datasetValue = (DatasetValue) value;
+            List<Condition> conditions = datasetValue.getConditions();
+            if (conditions != null) {
+                result.addAll(getCellNamesFromConditions(conditions));
+            }
+        } else if (value instanceof ExpressionValue) {
+            ExpressionValue expressionValue = (ExpressionValue) value;
+            result.addAll(getCellNamesFromExpression(expressionValue.getExpression(), cellDefinitionMap));
+        }
+        return result;
+    }
+
+    /**
+     * 从 Expression 对象中提取引用的单元格名称（基于 AST 遍历）
+     * @param expr 表达式对象
+     * @param cellDefinitionMap 单元格定义索引（可为 null，为 null 时不验证名称有效性）
+     * @return 提取到的单元格名称集合
+     */
+    public static Set<String> getCellNamesFromExpression(Expression expr, Map<String, CellDefinition> cellDefinitionMap) {
+        Set<String> result = new HashSet<String>();
+        if (expr == null) {
+            return result;
+        }
+        List<String> list = expr.fetchCellName();
+        for (String name : list) {
+            if (cellDefinitionMap != null) {
+                if (cellDefinitionMap.containsKey(name)) {
+                    result.add(name);
+                }
+            } else {
+                result.add(name);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 从条件列表中提取引用的单元格名称（基于 AST 遍历）
+     * @param conditions 条件列表
+     * @return 提取到的单元格名称集合
+     */
+    public static Set<String> getCellNamesFromConditions(List<Condition> conditions) {
+        Set<String> result = new HashSet<String>();
+        if (conditions == null || conditions.isEmpty()) {
+            return result;
+        }
+        for (Condition condition : conditions) {
+            result.addAll(condition.fetchCellName());
+        }
+        return result;
+    }
+
 }

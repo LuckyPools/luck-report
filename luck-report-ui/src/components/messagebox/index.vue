@@ -218,7 +218,8 @@ export default {
 }
 
 .u-messagebox-text {
-  font-size: 14px
+  font-size: 14px;
+  word-break: break-all;
 }
 
 .u-messagebox-icon {

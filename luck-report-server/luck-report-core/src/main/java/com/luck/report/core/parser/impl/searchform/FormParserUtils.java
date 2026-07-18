@@ -15,8 +15,8 @@
  ******************************************************************************/
 package com.luck.report.core.parser.impl.searchform;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.luck.report.core.definition.searchform.component.Component;
 import org.dom4j.Element;
 import org.springframework.beans.BeansException;
@@ -32,6 +32,7 @@ import java.util.*;
 public class FormParserUtils implements ApplicationContextAware {
     @SuppressWarnings("rawtypes")
     private static Collection<FormParser> parsers = null;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static List<Component> parse(Element element) {
         List<Component> list = new ArrayList<Component>();
@@ -61,11 +62,7 @@ public class FormParserUtils implements ApplicationContextAware {
             return null;
         }
         try {
-            JSONObject jsonObject = JSON.parseObject(styleStr);
-            Map<String, String> styleMap = new HashMap<String, String>();
-            for (String key : jsonObject.keySet()) {
-                styleMap.put(key, jsonObject.getString(key));
-            }
+            Map<String, String> styleMap = objectMapper.readValue(styleStr, new TypeReference<Map<String, String>>(){});
             return styleMap;
         } catch (Exception e) {
             return null;
@@ -77,7 +74,7 @@ public class FormParserUtils implements ApplicationContextAware {
             return null;
         }
         try {
-            return JSON.parseArray(regListStr, String.class);
+            return objectMapper.readValue(regListStr, new TypeReference<List<String>>(){});
         } catch (Exception e) {
             return null;
         }

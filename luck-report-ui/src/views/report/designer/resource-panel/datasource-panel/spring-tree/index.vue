@@ -1,6 +1,6 @@
 <template>
   <div class="tree" style="margin-left: 10px">
-    <ul style="padding-left: 20px;">
+    <ul class="tree-root">
       <li>
         <!-- 数据源节点 -->
         <span
@@ -14,13 +14,13 @@
             style="margin-right:2px"
           ></i>
           <i class="iconfont icon-leaf"></i>
-          <a href="###" class="ds_name">{{ localName }}</a>
+          <a href="javascript:void(0)" class="ds_name">{{ name }}</a>
         </span>
 
         <!-- 数据集列表 -->
         <ul
           v-show="datasourceExpanded"
-          style="margin-left: -16px;"
+          class="node-list"
         >
           <li
             v-for="(dataset, index) in datasets"
@@ -38,7 +38,7 @@
                 style="margin-right:2px"
               ></i>
               <i class="iconfont icon-sqlds"></i>
-              <a href="###" class="dataset_name">{{ dataset.name }}</a>
+              <a href="javascript:void(0)" class="dataset_name">{{ dataset.name }}</a>
             </span>
 
             <!-- 字段列表 -->
@@ -53,11 +53,13 @@
                 <span
                   :id="'field_' + dataset.name + '_' + field.name + '_' + fieldIndex"
                   :title="$t('tree.doubleClick')"
+                  draggable="true"
                   @dblclick="handleFieldDoubleClick(dataset, field)"
+                  @dragstart="handleFieldDragStart($event, dataset, field)"
                   @contextmenu.prevent.stop="showFieldContextMenu($event, dataset, field, fieldIndex)"
                 >
                   <i class="iconfont icon-property"></i>
-                  <a href="###">{{ field.name }}</a>
+                  <a href="javascript:void(0)">{{ field.name }}</a>
                 </span>
               </li>
             </ul>
@@ -71,7 +73,7 @@
         :visible="beanMethodDialogVisible"
         :dataset="currentDataset"
         :datasources="datasources"
-        :beanId="localBeanId"
+        :beanId="beanId"
         @save="handleBeanMethodSave"
         @close="beanMethodDialogVisible = false"
       />
@@ -101,7 +103,7 @@
 </template>
 
 <script>
-import uuid from 'node-uuid';
+import { v1 as uuidv1 } from 'uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import BeanMethodDialog from '@/views/report/designer/resource-panel/datasource-panel/bean-method-dialog/index.vue';
@@ -141,11 +143,9 @@ export default {
   },
   data() {
     return {
-      id: 'spring_' + uuid.v1(),
+      id: 'spring_' + uuidv1(),
       datasourceExpanded: true,
       datasetExpanded: {},
-      localName: this.name,
-      localBeanId: this.beanId,
       currentDataset: null,
       beanMethodDialogVisible: false,
       springDialogVisible: false,
@@ -160,19 +160,10 @@ export default {
     }
   },
   created() {
-    // 初始化数据集展开状态
     if (this.datasets && this.datasets.length > 0) {
       for (let i = 0; i < this.datasets.length; i++) {
-        this.$set(this.datasetExpanded, i, true);
+        this.$set(this.datasetExpanded, i, false);
       }
-    }
-  },
-  watch: {
-    name(newName) {
-      this.localName = newName;
-    },
-    beanId(newBeanId) {
-      this.localBeanId = newBeanId;
     }
   },
   methods: {
@@ -241,8 +232,8 @@ export default {
      */
     editDatasourceAction() {
       this.currentSpringDatasource = {
-        name: this.localName,
-        beanId: this.localBeanId
+        name: this.name,
+        beanId: this.beanId
       };
       this.springDialogVisible = true;
     },
@@ -293,7 +284,7 @@ export default {
       if (fieldName) {
         const newDatasets = deepCopy(this.datasets);
         const targetDataset = newDatasets.find(d => d.name === dataset.name);
-        
+
         if (!targetDataset.fields) {
           targetDataset.fields = [];
         }
@@ -323,7 +314,7 @@ export default {
      */
     handleBeanMethodSave(name, method, clazz, oldName) {
       const newDatasets = deepCopy(this.datasets);
-      
+
       if (oldName && oldName !== '') {
         const index = newDatasets.findIndex(dataset => dataset.name === oldName);
         if (index !== -1) {
@@ -355,7 +346,7 @@ export default {
       if (clazz && clazz !== '') {
         this.buildFields(dataset, index, false, newDatasets);
       }
-      
+
       this.$emit('update-datasets', newDatasets);
     },
 
@@ -423,7 +414,23 @@ export default {
      * 字段双击事件
      */
     handleFieldDoubleClick(dataset, field) {
-      this._buildClickEvent(dataset, field, this.context);
+      this.buildClickEvent(dataset, field, this.context);
+    },
+
+    /**
+     * 字段拖拽开始事件
+     * @param {DragEvent} event - 拖拽事件对象
+     * @param {Object} dataset - 数据集对象
+     * @param {Object} field - 字段对象
+     */
+    handleFieldDragStart(event, dataset, field) {
+      const dragData = {
+        datasetName: dataset.name,
+        fieldName: field.name,
+        type: 'dataset-field'
+      };
+      event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+      event.dataTransfer.effectAllowed = 'copy';
     },
 
     /**
@@ -448,14 +455,14 @@ export default {
         }
       } catch (error) {
         if (error.msg) {
-          showAlert("服务端错误：" + error.msg);
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });;
         } else {
           showAlert(this.$t('tree.loadFieldFail'));
         }
       }
     },
 
-    _buildClickEvent(dataset, field, context) {
+    buildClickEvent(dataset, field, context) {
       const hot = TableManager.get();
       if (!hot) {
         showAlert(this.$t('tree.cellTip'));
@@ -469,7 +476,7 @@ export default {
         return;
       }
 
-      const rowIndex = selected[0], colIndex = selected[1];
+      const [rowIndex, colIndex, endRow, endCol] = selected[0];
       const cellDef = getCell(rowIndex, colIndex);
 
       let newCellDef = deepCopy(cellDef);
@@ -493,7 +500,7 @@ export default {
       value.property = field.name;
       value.order = 'none';
 
-      const text = value.datasetName + "." + value.aggregate + "(";
+      let text = value.datasetName + "." + value.aggregate + "(";
       const prop = value.property;
       text += prop + ')';
       hot.setDataAtCell(rowIndex, colIndex, text);
@@ -501,7 +508,7 @@ export default {
       hot.render();
 
       if (hot.hooks) {
-        hot.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
+        hot.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
       }
     },
 
@@ -509,11 +516,6 @@ export default {
      * 处理Spring数据源保存事件
      */
     handleSpringDatasourceSave(datasourceData) {
-      // 更新本地数据源名称和beanId
-      this.localName = datasourceData.name;
-      this.localBeanId = datasourceData.beanId;
-
-      // 通过事件通知父组件更新
       this.$emit('update-datasource', datasourceData);
     }
   }

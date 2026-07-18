@@ -20,7 +20,7 @@ package com.luck.report.core.exception;
  * @since 2016年11月1日
  */
 public class ReportException extends RuntimeException {
-    private static final long serialVersionUID = 2970559370876740683L;
+    private static final long serialVersionUID = 1L;
 
     public ReportException(String msg) {
         super(msg);

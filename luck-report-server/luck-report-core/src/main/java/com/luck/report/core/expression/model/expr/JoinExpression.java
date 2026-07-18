@@ -32,9 +32,11 @@ import java.util.List;
  * @since 2017年1月15日
  */
 public class JoinExpression extends BaseExpression {
-    private static final long serialVersionUID = -9045259827109781135L;
+    private static final long serialVersionUID = 1L;
     private List<Operator> operators;
     private List<BaseExpression> expressions;
+
+    public JoinExpression() {}
 
     public JoinExpression(List<Operator> operators, List<BaseExpression> expressions) {
         this.operators = operators;
@@ -105,5 +107,40 @@ public class JoinExpression extends BaseExpression {
 
     public List<BaseExpression> getExpressions() {
         return expressions;
+    }
+
+    /**
+     * 设置表达式列表
+     * @param expressions 表达式列表
+     */
+    public void setExpressions(List<BaseExpression> expressions) {
+        this.expressions = expressions;
+    }
+
+    /**
+	 * 获取操作符列表
+	 * @return 操作符列表
+	 */
+	public List<Operator> getOperators() {
+		return operators;
+	}
+
+	/**
+	 * 设置操作符列表
+	 * @param operators 操作符列表
+	 */
+	public void setOperators(List<Operator> operators) {
+		this.operators = operators;
+	}
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expressions != null) {
+            for (BaseExpression expr : expressions) {
+                list.addAll(expr.fetchCellName());
+            }
+        }
+        return list;
     }
 }

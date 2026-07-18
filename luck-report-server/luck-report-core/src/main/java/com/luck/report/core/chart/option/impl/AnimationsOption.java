@@ -18,11 +18,16 @@ package com.luck.report.core.chart.option.impl;
 import com.luck.report.core.chart.option.Easing;
 import com.luck.report.core.chart.option.Option;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class AnimationsOption implements Option {
+public class AnimationsOption implements Option, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public AnimationsOption() {}
     private int duration = 1000;
     private Easing easing = Easing.easeOutQuart;
 
@@ -39,6 +44,14 @@ public class AnimationsOption implements Option {
     @Override
     public String getType() {
         return "animation";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public int getDuration() {

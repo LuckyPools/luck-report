@@ -1,27 +1,56 @@
 <template>
   <UDialog
     :title="$t('tools.border.customBorderLine')"
-    width="400px"
+    width="600px"
     :visible="visible"
     :z-index="zIndex"
     @close="handleClose"
   >
     <div class="border-config-container">
-      <!-- 选项卡导航 -->
-      <u-tabs v-model="activeTab">
-        <u-tab-pane :label="$t('tools.border.up')" index="top"></u-tab-pane>
-        <u-tab-pane :label="$t('tools.border.down')" index="bottom"></u-tab-pane>
-        <u-tab-pane :label="$t('tools.border.left')" index="left"></u-tab-pane>
-        <u-tab-pane :label="$t('tools.border.right')" index="right"></u-tab-pane>
-      </u-tabs>
+      <div class="preset-section">
+        <label class="preset-label">
+          {{ $t('tools.border.preset') }}：
+        </label>
+        <u-button
+          type="text"
+          :title="$t('tools.border.allLine')"
+          @click="applyAllBorder"
+        >
+          <i class="iconfont icon-full-border"></i>
+        </u-button>
+        <u-button
+          type="text"
+          :title="$t('tools.border.noBorder')"
+          @click="applyNoBorder"
+        >
+          <i class="iconfont icon-no-border"></i>
+        </u-button>
+      </div>
 
-      <!-- 选项卡内容 -->
-      <div class="tab-content" style="padding-top: 20px">
-        <u-form ref="form" :label-width="60">
-          <!-- 上边框配置 -->
-          <div v-show="activeTab === 'top'">
+      <div class="main-content">
+        <div class="preview-section">
+          <div class="preview-container">
+            <div class="outer-box" :class="outerBoxClass" @click="handleOuterBoxClick">
+              <div
+                class="inner-box"
+                :style="innerBoxStyle"
+              >
+                <span class="preview-text">{{ $t('tools.border.text') }}</span>
+                <div
+                  v-for="border in borders"
+                  :key="border.position"
+                  :class="['border-click-area', `border-${border.position}`]"
+                  @click.stop="selectBorder(border.position)"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="property-section">
+          <u-form ref="form" :label-width="80">
             <u-form-item :label="$t('tools.border.lineStyle')">
-              <u-select v-model="localTopBorder.style">
+              <u-select v-model="currentBorderStyle.style">
                 <u-option
                   v-for="option in lineStyleOptions"
                   :key="option.value"
@@ -31,7 +60,7 @@
               </u-select>
             </u-form-item>
             <u-form-item :label="$t('tools.border.size')">
-              <u-select v-model="localTopBorder.width">
+              <u-select v-model="currentBorderStyle.width">
                 <u-option
                   v-for="option in lineWidthOptions"
                   :key="option.value"
@@ -41,91 +70,10 @@
               </u-select>
             </u-form-item>
             <u-form-item :label="$t('tools.border.color')">
-              <UColorPicker v-model="localTopBorder.color" />
+              <UColorPicker v-model="currentBorderStyle.color" />
             </u-form-item>
-          </div>
-
-          <!-- 下边框配置 -->
-          <div v-show="activeTab === 'bottom'">
-            <u-form-item :label="$t('tools.border.lineStyle')">
-              <u-select v-model="localBottomBorder.style">
-                <u-option
-                  v-for="option in lineStyleOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.size')">
-              <u-select v-model="localBottomBorder.width">
-                <u-option
-                  v-for="option in lineWidthOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.color')">
-              <UColorPicker v-model="localBottomBorder.color" :inline="true" />
-            </u-form-item>
-          </div>
-
-          <!-- 左边框配置 -->
-          <div v-show="activeTab === 'left'">
-            <u-form-item :label="$t('tools.border.lineStyle')">
-              <u-select v-model="localLeftBorder.style">
-                <u-option
-                  v-for="option in lineStyleOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.size')">
-              <u-select v-model="localLeftBorder.width">
-                <u-option
-                  v-for="option in lineWidthOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.color')">
-              <UColorPicker v-model="localLeftBorder.color" :inline="true" />
-            </u-form-item>
-          </div>
-
-          <!-- 右边框配置 -->
-          <div v-show="activeTab === 'right'">
-            <u-form-item :label="$t('tools.border.lineStyle')">
-              <u-select v-model="localRightBorder.style">
-                <u-option
-                  v-for="option in lineStyleOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.size')">
-              <u-select v-model="localRightBorder.width">
-                <u-option
-                  v-for="option in lineWidthOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.label"
-                />
-              </u-select>
-            </u-form-item>
-            <u-form-item :label="$t('tools.border.color')">
-              <UColorPicker v-model="localRightBorder.color" :inline="true" />
-            </u-form-item>
-          </div>
-        </u-form>
+          </u-form>
+        </div>
       </div>
     </div>
 
@@ -141,18 +89,15 @@ import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UButton from "@/components/button/index.vue";
-import UTabs from "@/components/tabs/index.vue";
-import UTabPane from "@/components/tabs/pane.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
+import { rgbToHex, hexToRgb } from '@/utils/color';
 
 export default {
   name: 'CustomBorderDialog',
   components: {
     UColorPicker,
-    UTabPane,
-    UTabs,
     UButton,
     UDialog,
     USelect,
@@ -208,30 +153,20 @@ export default {
   },
   data() {
     return {
-      activeTab: 'top',
-      localTopBorder: { style: 'solid', width: 1, color: '#000000' },
-      localBottomBorder: { style: 'solid', width: 1, color: '#000000' },
-      localLeftBorder: { style: 'solid', width: 1, color: '#000000' },
-      localRightBorder: { style: 'solid', width: 1, color: '#000000' }
+      activeBorder: 'left',
+      localTopBorder: { style: 'none', width: 1, color: '#000000' },
+      localBottomBorder: { style: 'none', width: 1, color: '#000000' },
+      localLeftBorder: { style: 'none', width: 1, color: '#000000' },
+      localRightBorder: { style: 'none', width: 1, color: '#000000' },
+      borders: [
+        { position: 'top' },
+        { position: 'right' },
+        { position: 'bottom' },
+        { position: 'left' }
+      ]
     };
   },
-  watch: {
-    visible(newVal) {
-      if (newVal) {
-        this.loadBorderData();
-      }
-    },
-    cellStyle: {
-      handler(newVal) {
-        if (newVal) {
-          this.loadBorderData();
-        }
-      },
-      deep: true
-    }
-  },
   computed: {
-    // 线型选项
     lineStyleOptions() {
       return [
         { value: 'solid', label: this.$t('tools.border.solidLine') },
@@ -239,33 +174,82 @@ export default {
         { value: 'none', label: this.$t('tools.border.none') }
       ];
     },
-    // 线宽选项
     lineWidthOptions() {
       return Array.from({ length: 10 }, (_, i) => ({
         value: i + 1,
         label: (i + 1).toString()
       }));
+    },
+    currentBorderStyle: {
+      get() {
+        const borderMap = {
+          top: this.localTopBorder,
+          bottom: this.localBottomBorder,
+          left: this.localLeftBorder,
+          right: this.localRightBorder
+        };
+        return borderMap[this.activeBorder] || this.localRightBorder;
+      },
+      set(val) {
+        const borderMap = {
+          top: 'localTopBorder',
+          bottom: 'localBottomBorder',
+          left: 'localLeftBorder',
+          right: 'localRightBorder'
+        };
+        this[borderMap[this.activeBorder]] = { ...val };
+      }
+    },
+    innerBoxStyle() {
+      const getBorderStyle = (border) => {
+        if (!border || border.style === 'none') {
+          return 'none';
+        }
+        const width = border.width || 1;
+        const color = border.color || '#000000';
+        return `${border.style} ${width}px ${color}`;
+      };
+
+      return {
+        borderTop: getBorderStyle(this.localTopBorder),
+        borderRight: getBorderStyle(this.localRightBorder),
+        borderBottom: getBorderStyle(this.localBottomBorder),
+        borderLeft: getBorderStyle(this.localLeftBorder)
+      };
+    },
+    outerBoxClass() {
+      return {
+        'active-top': this.activeBorder === 'top',
+        'active-right': this.activeBorder === 'right',
+        'active-bottom': this.activeBorder === 'bottom',
+        'active-left': this.activeBorder === 'left'
+      };
+    }
+  },
+  watch: {
+    visible(newVal) {
+      if (newVal) {
+        this.loadBorderData();
+      }
     }
   },
   methods: {
     loadBorderData() {
+      const defaultBorder = { style: 'none', width: 1, color: '#000000' };
+
       if (this.cellStyle) {
-        if (this.cellStyle.topBorder) {
-          this.localTopBorder = { ...this.cellStyle.topBorder };
-          this.localTopBorder.color = this.rgbToHexIfNeeded(this.localTopBorder.color);
-        }
-        if (this.cellStyle.bottomBorder) {
-          this.localBottomBorder = { ...this.cellStyle.bottomBorder };
-          this.localBottomBorder.color = this.rgbToHexIfNeeded(this.localBottomBorder.color);
-        }
-        if (this.cellStyle.leftBorder) {
-          this.localLeftBorder = { ...this.cellStyle.leftBorder };
-          this.localLeftBorder.color = this.rgbToHexIfNeeded(this.localLeftBorder.color);
-        }
-        if (this.cellStyle.rightBorder) {
-          this.localRightBorder = { ...this.cellStyle.rightBorder };
-          this.localRightBorder.color = this.rgbToHexIfNeeded(this.localRightBorder.color);
-        }
+        this.localTopBorder = this.cellStyle.topBorder
+          ? { ...this.cellStyle.topBorder, color: this.rgbToHexIfNeeded(this.cellStyle.topBorder.color) }
+          : { ...defaultBorder };
+        this.localBottomBorder = this.cellStyle.bottomBorder
+          ? { ...this.cellStyle.bottomBorder, color: this.rgbToHexIfNeeded(this.cellStyle.bottomBorder.color) }
+          : { ...defaultBorder };
+        this.localLeftBorder = this.cellStyle.leftBorder
+          ? { ...this.cellStyle.leftBorder, color: this.rgbToHexIfNeeded(this.cellStyle.leftBorder.color) }
+          : { ...defaultBorder };
+        this.localRightBorder = this.cellStyle.rightBorder
+          ? { ...this.cellStyle.rightBorder, color: this.rgbToHexIfNeeded(this.cellStyle.rightBorder.color) }
+          : { ...defaultBorder };
       } else {
         this.localTopBorder = { ...this.topBorder };
         this.localBottomBorder = { ...this.bottomBorder };
@@ -275,10 +259,45 @@ export default {
     },
     rgbToHexIfNeeded(color) {
       if (typeof color === 'string' && color.includes(',')) {
-        const rgb = color.split(',');
-        return this.rgbToHex(parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2]));
+        return rgbToHex(color);
       }
       return color;
+    },
+    selectBorder(position) {
+      this.activeBorder = position;
+    },
+    handleOuterBoxClick(event) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      const outerSize = 140;
+      const innerSize = 100;
+      const margin = (outerSize - innerSize) / 2;
+
+      if (y < margin) {
+        this.selectBorder('top');
+      } else if (y > outerSize - margin) {
+        this.selectBorder('bottom');
+      } else if (x < margin) {
+        this.selectBorder('left');
+      } else if (x > outerSize - margin) {
+        this.selectBorder('right');
+      }
+    },
+    applyAllBorder() {
+      const defaultBorder = { style: 'solid', width: 1, color: '#000000' };
+      this.localTopBorder = { ...defaultBorder };
+      this.localBottomBorder = { ...defaultBorder };
+      this.localLeftBorder = { ...defaultBorder };
+      this.localRightBorder = { ...defaultBorder };
+    },
+    applyNoBorder() {
+      const noBorder = { style: 'none', width: 1, color: '#000000' };
+      this.localTopBorder = { ...noBorder };
+      this.localBottomBorder = { ...noBorder };
+      this.localLeftBorder = { ...noBorder };
+      this.localRightBorder = { ...noBorder };
     },
     handleClose() {
       this.$emit('close');
@@ -290,10 +309,10 @@ export default {
       const leftBorder = { ...this.localLeftBorder };
       const rightBorder = { ...this.localRightBorder };
 
-      topBorder.color = this.hexToRgb(this.localTopBorder.color);
-      bottomBorder.color = this.hexToRgb(this.localBottomBorder.color);
-      leftBorder.color = this.hexToRgb(this.localLeftBorder.color);
-      rightBorder.color = this.hexToRgb(this.localRightBorder.color);
+      topBorder.color = hexToRgb(this.localTopBorder.color);
+      bottomBorder.color = hexToRgb(this.localBottomBorder.color);
+      leftBorder.color = hexToRgb(this.localLeftBorder.color);
+      rightBorder.color = hexToRgb(this.localRightBorder.color);
 
       if (this.cellStyle) {
         this.$emit('save', {
@@ -307,32 +326,141 @@ export default {
       }
       this.$emit('close');
       this.$emit('update:visible', false);
-    },
-    hexToRgb(hex) {
-      // 如果已经是RGB格式，直接返回
-      if (typeof hex === 'string' && hex.includes(',')) {
-        return hex;
-      }
-
-      // 将十六进制转换为RGB
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ?
-        `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` :
-        '0,0,0';
-    },
-    rgbToHex(r, g, b) {
-      return "#" + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-      }).join('');
     }
   }
 };
 </script>
 
 <style scoped>
-.tab-content {
-  overflow: auto;
-  height: 400px;
+.border-config-container {
+  padding: 10px;
+}
+
+.preset-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 15px;
+}
+
+.preset-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.main-content {
+  display: flex;
+  gap: 20px;
+}
+
+.preview-section {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.outer-box {
+  width: 140px;
+  height: 140px;
+  border: 1px solid #c0c4cc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.outer-box:hover {
+  border-color: #a0a4ac;
+}
+
+.outer-box.active-top {
+  box-shadow: inset 0 1px 0 rgba(33, 115, 70, 0.4), 0 -1px 0 rgba(33, 115, 70, 0.4);
+}
+
+.outer-box.active-right {
+  box-shadow: inset -1px 0 0 rgba(33, 115, 70, 0.4), 1px 0 0 rgba(33, 115, 70, 0.4);
+}
+
+.outer-box.active-bottom {
+  box-shadow: inset 0 -1px 0 rgba(33, 115, 70, 0.4), 0 1px 0 rgba(33, 115, 70, 0.4);
+}
+
+.outer-box.active-left {
+  box-shadow: inset 1px 0 0 rgba(33, 115, 70, 0.4), -1px 0 0 rgba(33, 115, 70, 0.4);
+}
+
+.inner-box {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.preview-text {
+  font-size: 14px;
+  color: #333;
+  user-select: none;
+}
+
+.border-click-area {
+  position: absolute;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.border-top {
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  height: 20px;
+}
+
+.border-bottom {
+  bottom: -20px;
+  left: -20px;
+  right: -20px;
+  height: 20px;
+}
+
+.border-left {
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  width: 20px;
+}
+
+.border-right {
+  top: 0;
+  bottom: 0;
+  right: -20px;
+  width: 20px;
+}
+
+.property-section {
+  flex: 1;
+}
+
+.property-section .u-form {
+  padding-top: 20px;
 }
 </style>

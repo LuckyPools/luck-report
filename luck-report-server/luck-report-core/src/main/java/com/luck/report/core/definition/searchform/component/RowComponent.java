@@ -2,9 +2,11 @@ package com.luck.report.core.definition.searchform.component;
 
 import com.luck.report.core.definition.searchform.RenderContext;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class RowComponent implements Component {
+public class RowComponent implements Component, Serializable {
+    private static final long serialVersionUID = 1L;
     public static final String KEY = "row_component";
     private String type;
     private Integer gutter;
@@ -20,6 +22,11 @@ public class RowComponent implements Component {
     private String renderKey;
     private String componentName;
     private List<Component> children;
+
+    /**
+     * 默认无参构造器
+     */
+    public RowComponent() {}
 
     @Override
     public String toHtml(RenderContext context) {

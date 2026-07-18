@@ -17,16 +17,23 @@ package com.luck.report.core.definition;
 
 import com.luck.report.core.model.Column;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author Jacky.gao
  * @since 2016年11月1日
  */
-public class ColumnDefinition implements Comparable<ColumnDefinition> {
+public class ColumnDefinition implements Comparable<ColumnDefinition>, Serializable {
+    private static final long serialVersionUID = 1L;
     private int columnNumber;
     private int width;
     private boolean hide;
+
+    /**
+     * 默认无参构造器
+     */
+    public ColumnDefinition() {}
 
     protected Column newColumn(List<Column> columns) {
         Column col = new Column(columns);

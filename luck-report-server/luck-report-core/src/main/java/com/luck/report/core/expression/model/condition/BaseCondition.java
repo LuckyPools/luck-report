@@ -33,8 +33,8 @@ import java.util.logging.Logger;
  * @since 2016年11月22日
  */
 public abstract class BaseCondition implements Condition {
+    private static final long serialVersionUID = 1L;
     protected Op op;
-    protected Logger log = Logger.getAnonymousLogger();
     private String operation;
     private Join join;
     private Condition nextCondition;
@@ -113,6 +113,10 @@ public abstract class BaseCondition implements Condition {
         this.operation = operation;
     }
 
+    public Condition getNextCondition() {
+        return nextCondition;
+    }
+
     public void setNextCondition(Condition nextCondition) {
         this.nextCondition = nextCondition;
     }
@@ -139,5 +143,18 @@ public abstract class BaseCondition implements Condition {
 
     public void setRight(String right) {
         this.right = right;
+    }
+
+    /**
+     * 默认实现递归处理 nextCondition 链。
+     * 子类根据需要覆盖，并在覆盖方法中调用 super.fetchCellName()。
+     */
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (nextCondition != null) {
+            list.addAll(nextCondition.fetchCellName());
+        }
+        return list;
     }
 }

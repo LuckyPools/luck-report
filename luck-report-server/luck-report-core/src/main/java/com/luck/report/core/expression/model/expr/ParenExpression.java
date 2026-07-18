@@ -25,7 +25,9 @@ import java.util.List;
  * @since 2016年11月18日
  */
 public class ParenExpression extends JoinExpression {
-    private static final long serialVersionUID = 142186918381087393L;
+    private static final long serialVersionUID = 1L;
+
+    public ParenExpression() {}
 
     public ParenExpression(List<Operator> operators, List<BaseExpression> expressions) {
         super(operators, expressions);

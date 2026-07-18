@@ -20,7 +20,7 @@ import com.luck.report.core.definition.value.Source;
 import com.luck.report.core.definition.value.Value;
 import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Element;
 
 /**

@@ -32,8 +32,12 @@ import java.util.List;
  * @since 2017年1月1日
  */
 public class CellConditionExpression extends CellExpression {
-    private static final long serialVersionUID = 536887481808944331L;
+    private static final long serialVersionUID = 1L;
     protected Condition condition;
+
+    public CellConditionExpression() {
+        super(null);
+    }
 
     public CellConditionExpression(String cellName, Condition condition) {
         super(cellName);
@@ -72,5 +76,33 @@ public class CellConditionExpression extends CellExpression {
         } else {
             return new NoneExpressionData();
         }
+    }
+
+    /**
+     * 获取条件
+     * @return 条件
+     */
+    public Condition getCondition() {
+        return condition;
+    }
+
+    /**
+     * 设置条件
+     * @param condition 条件
+     */
+    public void setCondition(Condition condition) {
+        this.condition = condition;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
+        }
+        if (condition != null) {
+            list.addAll(condition.fetchCellName());
+        }
+        return list;
     }
 }

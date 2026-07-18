@@ -21,7 +21,7 @@ package com.luck.report.core.exception;
  */
 public class CellDependencyException extends ReportException {
 
-    private static final long serialVersionUID = 5765713360910995235L;
+    private static final long serialVersionUID = 1L;
 
     public CellDependencyException() {
         super("Report cells has cyclic dependency.");

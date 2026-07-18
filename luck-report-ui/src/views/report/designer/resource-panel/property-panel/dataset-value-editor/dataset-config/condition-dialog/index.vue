@@ -7,11 +7,10 @@
     @close="handleClose"
   >
     <div class="dialog-content" >
-      <u-form ref="form" :label-width="120">
+      <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
         <u-form-item :label="$t('dialog.condition.relationship')" v-show="showJoinGroup">
           <u-select
-            v-model="joinValue"
-            :clearable="true"
+            v-model="formData.joinValue"
           >
             <u-option
               v-for="option in joinOptions"
@@ -22,9 +21,9 @@
           </u-select>
         </u-form-item>
 
-        <u-form-item :label="$t('dialog.condition.propertyName')">
+        <u-form-item :label="$t('dialog.condition.propertyName')" prop="propertyValue">
           <u-select
-            v-model="propertyValue"
+            v-model="formData.propertyValue"
             :clearable="true"
           >
             <u-option
@@ -36,9 +35,9 @@
           </u-select>
         </u-form-item>
 
-        <u-form-item :label="$t('dialog.condition.op')">
+        <u-form-item :label="$t('dialog.condition.op')" prop="operatorValue">
           <u-select
-            v-model="operatorValue"
+            v-model="formData.operatorValue"
             :clearable="true"
           >
             <u-option
@@ -50,11 +49,9 @@
           </u-select>
         </u-form-item>
 
-        <u-form-item :label="$t('dialog.condition.valueExpr')">
+        <u-form-item :label="$t('dialog.condition.valueExpr')" prop="valueExpr">
           <u-input
-            v-model="valueExpr"
-            style="width:240px;"
-            @change="validateExpression"
+            v-model="formData.valueExpr"
           >
           </u-input>
         </u-form-item>
@@ -69,7 +66,6 @@
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import UDialog from '@/components/dialog/index.vue';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
@@ -109,61 +105,71 @@ export default {
     }
   },
   data() {
+    const validateValueExpr = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error(this.$t('dialog.condition.inputExpr')));
+        return;
+      }
+      conditionScriptValidation(value).then(errors => {
+        if (errors && errors.length > 0) {
+          callback(new Error(`${value} ${this.$t('dialog.condition.exprError')}`));
+        } else {
+          callback();
+        }
+      }).catch(error => {
+        console.error('Error validating expression:', error);
+        callback(new Error(this.$t('dialog.condition.exprError')));
+      });
+    };
+
     return {
       showJoinGroup: false,
-      joinValue: 'and',
-      propertyValue: '',
-      operatorValue: '==',
-      valueExpr: ''
+      formData: {
+        joinValue: 'and',
+        propertyValue: '',
+        operatorValue: '==',
+        valueExpr: ''
+      },
+      rules: {
+        propertyValue: [{
+          required: true,
+          message: this.$t('dialog.condition.selectProperty'),
+          trigger: 'blur'
+        }],
+        operatorValue: [{
+          required: true,
+          message: this.$t('dialog.condition.selectOp'),
+          trigger: 'blur'
+        }],
+        valueExpr: [{
+          required: true,
+          validator: validateValueExpr,
+          trigger: 'blur'
+        }]
+      }
     };
   },
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.initDialogData();
+        this.resetFormData();
+        this.initData();
       }
-    },
-    condition: {
-      handler() {
-        if (this.visible) {
-          this.initDialogData();
-        }
-      },
-      deep: true
-    },
-    fields: {
-      handler() {
-        if (this.visible) {
-          this.initDialogData();
-        }
-      },
-      deep: true
-    },
-    conditions: {
-      handler() {
-        if (this.visible) {
-          this.initDialogData();
-        }
-      },
-      deep: true
     }
   },
   computed: {
-    // 关系选项
     joinOptions() {
       return [
         { value: 'and', label: this.$t('dialog.condition.and') },
         { value: 'or', label: this.$t('dialog.condition.or') }
       ];
     },
-    // 属性选项
     propertyOptions() {
       return this.fields.map(field => ({
         value: field.name,
         label: field.name
       }));
     },
-    // 操作符选项
     operatorOptions() {
       return [
         { value: '>', label: this.$t('dialog.condition.greatThen') },
@@ -178,71 +184,70 @@ export default {
     }
   },
   methods: {
-    initDialogData() {
+
+    initData() {
       const fields = this.fields || [];
       const condition = this.condition;
 
-      // 设置是否显示关系选择组
       if (condition) {
         this.showJoinGroup = !!condition.join;
       } else {
         this.showJoinGroup = this.conditions && this.conditions.length > 0;
       }
 
-      // 设置默认值
       if (condition) {
-        this.joinValue = condition.join || 'and';
-        this.propertyValue = condition.left || '';
-        this.operatorValue = condition.operation || condition.op || '==';
-        this.valueExpr = condition.right || '';
+        this.formData.joinValue = condition.join || 'and';
+        this.formData.propertyValue = condition.left || '';
+        this.formData.operatorValue = condition.operation || condition.op || '==';
+        this.formData.valueExpr = condition.right || '';
       } else {
-        this.joinValue = 'and';
-        this.propertyValue = fields && fields.length > 0 ? fields[0].name : '';
-        this.operatorValue = '==';
-        this.valueExpr = '';
+        this.formData.joinValue = 'and';
+        this.formData.propertyValue = fields && fields.length > 0 ? fields[0].name : '';
+        this.formData.operatorValue = '==';
+        this.formData.valueExpr = '';
       }
     },
-    handleOk() {
-      if (!this.propertyValue) {
-        showAlert(this.$t('dialog.condition.selectProperty'));
-        return;
-      }
 
-      if (!this.operatorValue) {
-        showAlert(this.$t('dialog.condition.selectOp'));
-        return;
-      }
+    /**
+     * 重置表单数据
+     */
+    resetFormData() {
+      this.$refs.form && this.$refs.form.resetFields();
+    },
 
-      if (!this.valueExpr) {
-        showAlert(this.$t('dialog.condition.inputExpr'));
+    /**
+     * 校验表单
+     * @returns {Promise<boolean>} 校验是否通过
+     */
+    validateForm() {
+      return new Promise((resolve) => {
+        this.$refs.form.validate((valid) => {
+          resolve(valid);
+        });
+      });
+    },
+
+    async handleOk() {
+      const valid = await this.validateForm();
+      if (!valid) {
         return;
       }
 
       const conditionData = {
-        left: this.propertyValue,
-        operation: this.operatorValue,
-        right: this.valueExpr,
-        join: this.showJoinGroup ? this.joinValue : null,
-        isEdit: !!this.condition
+        left: this.formData.propertyValue,
+        operation: this.formData.operatorValue,
+        right: this.formData.valueExpr,
+        join: this.showJoinGroup ? this.formData.joinValue : null,
+        isEdit: !!this.condition,
+        id: this.condition?.id || null
       };
 
       this.$emit('saveAfter', conditionData);
       this.handleClose();
     },
+
     handleClose() {
       this.$emit('update:visible', false);
-    },
-    async validateExpression() {
-      if (!this.valueExpr) return;
-      const val = this.valueExpr;
-      try {
-        const errors = await conditionScriptValidation(val);
-        if (errors && errors.length > 0) {
-          await showAlert(`${val} ${this.$t('dialog.condition.exprError')}`);
-        }
-      } catch (error) {
-        console.error('Error validating expression:', error);
-      }
     }
   }
 };

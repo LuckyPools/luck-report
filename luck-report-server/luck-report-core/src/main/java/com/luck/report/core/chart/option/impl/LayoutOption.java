@@ -18,11 +18,16 @@ package com.luck.report.core.chart.option.impl;
 import com.luck.report.core.chart.option.Option;
 import com.luck.report.core.chart.option.Padding;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class LayoutOption implements Option {
+public class LayoutOption implements Option, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public LayoutOption() {}
     private Padding padding;
 
     @Override
@@ -37,6 +42,14 @@ public class LayoutOption implements Option {
     @Override
     public String getType() {
         return "layout";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public Padding getPadding() {

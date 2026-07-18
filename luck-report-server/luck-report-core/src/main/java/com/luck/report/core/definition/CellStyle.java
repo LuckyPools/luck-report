@@ -16,8 +16,8 @@
 package com.luck.report.core.definition;
 
 import com.luck.report.core.export.pdf.font.FontBuilder;
-import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import org.apache.commons.lang3.StringUtils;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.awt.*;
 import java.io.Serializable;
@@ -28,7 +28,7 @@ import java.io.Serializable;
  * @since 2017年1月18日
  */
 public class CellStyle implements Serializable {
-    private static final long serialVersionUID = 8327688051735343849L;
+    private static final long serialVersionUID = 1L;
     private String bgcolor;
     private String forecolor;
     private int fontSize;
@@ -47,6 +47,11 @@ public class CellStyle implements Serializable {
     private Border bottomBorder;
 
     private Font font;
+
+    /**
+     * 默认无参构造器
+     */
+    public CellStyle() {}
 
     public Border getLeftBorder() {
         return leftBorder;
@@ -176,7 +181,7 @@ public class CellStyle implements Serializable {
         this.lineHeight = lineHeight;
     }
 
-    @JsonIgnore
+    @JsonIgnore // 内部重构
     public Font getFont() {
         if (this.font == null) {
             int fontStyle = Font.PLAIN;

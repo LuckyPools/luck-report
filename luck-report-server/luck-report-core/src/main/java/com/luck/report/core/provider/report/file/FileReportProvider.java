@@ -19,7 +19,7 @@ import com.luck.report.core.exception.ReportException;
 import com.luck.report.core.provider.report.ReportFile;
 import com.luck.report.core.provider.report.ReportProvider;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;

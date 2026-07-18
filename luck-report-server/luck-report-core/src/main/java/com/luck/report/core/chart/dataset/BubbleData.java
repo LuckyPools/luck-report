@@ -15,14 +15,20 @@
  ******************************************************************************/
 package com.luck.report.core.chart.dataset;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class BubbleData {
+public class BubbleData implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private double x;
     private double y;
     private double r;
+
+    public BubbleData() {}
 
     public BubbleData(double x, double y, double r) {
         this.x = x;

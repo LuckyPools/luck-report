@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.luck.report.core.chart.option.impl;
 
+import java.io.Serializable;
+
 import com.luck.report.core.chart.FontStyle;
 import com.luck.report.core.chart.option.Option;
 
@@ -22,7 +24,8 @@ import com.luck.report.core.chart.option.Option;
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class TooltipOption implements Option {
+public class TooltipOption implements Option, Serializable {
+    private static final long serialVersionUID = 1L;
     private boolean enabled = true;
     private int titleFontSize = 12;
     private FontStyle titleFontStyle = FontStyle.bold;
@@ -30,6 +33,8 @@ public class TooltipOption implements Option {
     private int bodyFontSize = 12;
     private FontStyle bodyFontStyle = FontStyle.normal;
     private String bodyFontColor = "#fff";
+
+    public TooltipOption() {}
 
     @Override
     public String buildOptionJson() {
@@ -49,6 +54,14 @@ public class TooltipOption implements Option {
     @Override
     public String getType() {
         return "tooltips";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public boolean isEnabled() {

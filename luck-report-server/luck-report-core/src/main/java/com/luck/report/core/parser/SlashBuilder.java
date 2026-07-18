@@ -21,7 +21,6 @@ import com.luck.report.core.definition.value.Slash;
 import com.luck.report.core.definition.value.SlashValue;
 import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.utils.UnitUtils;
-import com.luck.report.core.definition.*;
 import org.springframework.util.Base64Utils;
 
 import javax.imageio.ImageIO;

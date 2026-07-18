@@ -17,15 +17,14 @@ package com.luck.report.core.definition;
 
 import com.luck.report.core.Range;
 import com.luck.report.core.definition.value.Value;
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.model.Cell;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -33,7 +32,7 @@ import java.util.Map;
  * @since 2016年11月1日
  */
 public class CellDefinition implements Serializable {
-    private static final long serialVersionUID = -2667510071560936139L;
+    private static final long serialVersionUID = 1L;
     private int rowNumber;
     private int columnNumber;
     private int rowSpan;
@@ -41,12 +40,11 @@ public class CellDefinition implements Serializable {
     private String name;
     private Value value;
     private CellStyle cellStyle = new CellStyle();
-
     private String linkUrl;
     private String linkTargetWindow;
     private List<LinkParameter> linkParameters;
 
-    @JsonIgnore
+    @JsonIgnore // 序列化会丢失
     private Expression linkUrlExpression;
 
     private boolean fillBlankRows;
@@ -57,14 +55,14 @@ public class CellDefinition implements Serializable {
 
     private Expand expand = Expand.None;
 
-    @JsonIgnore
+    @JsonIgnore // 序列化会丢失
     private Range duplicateRange;
-    @JsonIgnore
-    private List<String> increaseSpanCellNames = new ArrayList<String>();
-    @JsonIgnore
+    @JsonIgnore // 序列化会丢失
+    private Set<String> increaseSpanCellNames = new HashSet<String>();
+    @JsonIgnore // 序列化会丢失
     private Map<String, BlankCellInfo> newBlankCellsMap = new HashMap<String, BlankCellInfo>();
-    @JsonIgnore
-    private List<String> newCellNames = new ArrayList<String>();
+    @JsonIgnore // 序列化会丢失
+    private Set<String> newCellNames = new HashSet<String>();
 
     /**
      * 当前单元格左父格名
@@ -77,25 +75,30 @@ public class CellDefinition implements Serializable {
     /**
      * 当前单元格左父格
      */
-    @JsonIgnore
+    @JsonIgnore // 序列化会丢失
     private CellDefinition leftParentCell;
     /**
      * 当前单元格上父格
      */
-    @JsonIgnore
+    @JsonIgnore // 序列化会丢失
     private CellDefinition topParentCell;
     /**
      * 当前单无格所在行的所有子格
      */
-    @JsonIgnore
-    private List<CellDefinition> rowChildrenCells = new ArrayList<CellDefinition>();
+    @JsonIgnore // 序列化会丢失
+    private List<CellDefinition> rowChildrenCells = new ArrayList<>();
     /**
      * 当前单无格所在列的所有子格
      */
-    @JsonIgnore
+    @JsonIgnore // 序列化会丢失
     private List<CellDefinition> columnChildrenCells = new ArrayList<CellDefinition>();
 
     private List<ConditionPropertyItem> conditionPropertyItems;
+
+    /**
+     * 默认无参构造器
+     */
+    public CellDefinition() {}
 
     protected Cell newCell() {
         Cell cell = new Cell();
@@ -247,7 +250,7 @@ public class CellDefinition implements Serializable {
         return columnChildrenCells;
     }
 
-    public List<String> getIncreaseSpanCellNames() {
+    public Set<String> getIncreaseSpanCellNames() {
         return increaseSpanCellNames;
     }
 
@@ -255,7 +258,7 @@ public class CellDefinition implements Serializable {
         return newBlankCellsMap;
     }
 
-    public List<String> getNewCellNames() {
+    public Set<String> getNewCellNames() {
         return newCellNames;
     }
 
@@ -265,6 +268,15 @@ public class CellDefinition implements Serializable {
 
     public void setLinkUrl(String linkUrl) {
         this.linkUrl = linkUrl;
+        if (StringUtils.isNotBlank(linkUrl)
+                && linkUrl.startsWith(ExpressionUtils.EXPR_PREFIX)
+                && linkUrl.endsWith(ExpressionUtils.EXPR_SUFFIX)) {
+            String expr = linkUrl.substring(2, linkUrl.length() - 1);
+            Expression urlExpression = ExpressionUtils.parseExpression(expr);
+            this.linkUrlExpression = urlExpression;
+        } else {
+            this.linkUrlExpression = null;
+        }
     }
 
     public String getLinkTargetWindow() {

@@ -62,13 +62,15 @@ public class HideRowColumnBuilder {
                 }
             } else {
                 cell = fetchPrevColumnCell(report, colNumber - 2, row);
-                int colSpan = cell.getColSpan();
-                if (colSpan > 0) {
-                    colSpan--;
-                    if (colSpan == 1) {
-                        colSpan = 0;
+                if(cell != null){
+                    int colSpan = cell.getColSpan();
+                    if (colSpan > 0) {
+                        colSpan--;
+                        if (colSpan == 1) {
+                            colSpan = 0;
+                        }
+                        cell.setColSpan(colSpan);
                     }
-                    cell.setColSpan(colSpan);
                 }
             }
             rowMap.remove(col);

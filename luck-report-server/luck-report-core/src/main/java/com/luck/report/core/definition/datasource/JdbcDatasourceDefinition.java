@@ -21,6 +21,7 @@ import com.luck.report.core.definition.dataset.SqlDatasetDefinition;
 import com.luck.report.core.exception.ReportComputeException;
 import org.springframework.jdbc.support.JdbcUtils;
 
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -31,13 +32,19 @@ import java.util.Map;
  * @author Jacky.gao
  * @since 2016年12月27日
  */
-public class JdbcDatasourceDefinition implements DatasourceDefinition {
+public class JdbcDatasourceDefinition implements DatasourceDefinition, Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
     private String driver;
     private String url;
     private String username;
     private String password;
     private List<DatasetDefinition> datasets;
+
+    /**
+     * 默认无参构造器
+     */
+    public JdbcDatasourceDefinition() {}
 
     public List<Dataset> buildDatasets(Connection conn, Map<String, Object> parameters) {
         if (datasets == null || datasets.size() == 0) {
@@ -71,6 +78,14 @@ public class JdbcDatasourceDefinition implements DatasourceDefinition {
     @Override
     public DatasourceType getType() {
         return DatasourceType.jdbc;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化
+     * @param type 数据源类型
+     */
+    public void setType(DatasourceType type) {
+        // 空实现，忽略type字段
     }
 
     @Override

@@ -29,8 +29,10 @@ import java.util.List;
  * @since 2017年7月11日
  */
 public class CurrentCellDataExpression extends BaseExpression {
-    private static final long serialVersionUID = 7517926036810650110L;
+    private static final long serialVersionUID = 1L;
     private String property;
+
+    public CurrentCellDataExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
@@ -41,6 +43,14 @@ public class CurrentCellDataExpression extends BaseExpression {
         Object obj = bindDataList.get(0);
         Object data = Utils.getProperty(obj, property);
         return new ObjectExpressionData(data);
+    }
+
+    /**
+     * 获取属性名
+     * @return 属性名
+     */
+    public String getProperty() {
+        return property;
     }
 
     public void setProperty(String property) {

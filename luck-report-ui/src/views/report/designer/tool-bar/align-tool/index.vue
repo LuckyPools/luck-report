@@ -41,7 +41,7 @@ export default {
         },
         {
           text: this.$t('tools.alignTop.middleAlign'),
-          icon: 'iconfont icon-justify',
+          icon: 'iconfont icon-vertical-align-middle',
           action: () => this.handleAlignMiddle()
         },
         {
@@ -130,7 +130,7 @@ export default {
       const oldAligns = {};
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
@@ -196,8 +196,4 @@ export default {
 </script>
 
 <style scoped>
-.align-top-tool-dropdown {
-  position: relative;
-  display: inline-block;
-}
 </style>

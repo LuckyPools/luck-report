@@ -15,13 +15,21 @@
  ******************************************************************************/
 package com.luck.report.core.definition.mapping;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年3月29日
  */
-public class MappingItem {
+public class MappingItem implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String value;
     private String label;
+
+    /**
+     * 默认无参构造器
+     */
+    public MappingItem() {}
 
     public String getValue() {
         return value;

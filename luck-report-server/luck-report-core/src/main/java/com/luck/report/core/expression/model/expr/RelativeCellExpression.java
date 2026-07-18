@@ -32,7 +32,11 @@ import java.util.List;
  * @since 2017年1月21日
  */
 public class RelativeCellExpression extends CellExpression {
-    private static final long serialVersionUID = 8826396779392348224L;
+    private static final long serialVersionUID = 1L;
+
+    public RelativeCellExpression() {
+        super(null);
+    }
 
     public RelativeCellExpression(String cellName) {
         super(cellName);

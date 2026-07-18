@@ -22,10 +22,15 @@ import java.io.Serializable;
  * @since 2014年3月12日
  */
 public class Border implements Serializable {
-    private static final long serialVersionUID = 5320929211828633858L;
+    private static final long serialVersionUID = 1L;
     private int width;
     private String color;
     private BorderStyle style;
+
+    /**
+     * 默认无参构造器
+     */
+    public Border() {}
 
     public int getWidth() {
         return width;

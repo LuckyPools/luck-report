@@ -16,7 +16,7 @@
 package com.luck.report.core.build.assertor;
 
 import com.luck.report.core.Utils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 

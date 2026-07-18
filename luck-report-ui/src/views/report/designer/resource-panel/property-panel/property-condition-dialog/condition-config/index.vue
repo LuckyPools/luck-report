@@ -1,47 +1,47 @@
 <template>
-  <div>
+  <div class="condition-style">
     <ColorConfig
-      :cell-style="localItem.cellStyle"
+      :cell-style="localGroup.cellStyle"
       @color-change="handleColorChange"
     />
 
     <FontConfig
-      :cell-style="localItem.cellStyle"
+      :cell-style="localGroup.cellStyle"
       @font-change="handleFontChange"
     />
 
     <AlignConfig
-      :cell-style="localItem.cellStyle"
+      :cell-style="localGroup.cellStyle"
       @align-change="handleAlignChange"
     />
 
     <BorderConfig
-      :cell-style="localItem.cellStyle"
+      :cell-style="localGroup.cellStyle"
       @border-change="handleBorderChange"
       @border-save="handleBorderSave"
     />
 
     <ValueConfig
-      :cell-style="localItem.cellStyle"
-      :new-value="localItem.newValue"
+      :cell-style="localGroup.cellStyle"
+      :new-value="localGroup.newValue"
       @value-change="handleValueChange"
     />
 
     <SizeConfig
-      :row-height="localItem.rowHeight"
-      :col-width="localItem.colWidth"
+      :row-height="localGroup.rowHeight"
+      :col-width="localGroup.colWidth"
       @size-change="handleSizeChange"
     />
 
     <PagingConfig
-      :paging="localItem.paging"
+      :paging="localGroup.paging"
       @paging-change="handlePagingChange"
     />
 
     <LinkConfig
-      :link-url="localItem.linkUrl"
-      :link-target-window="localItem.linkTargetWindow"
-      :link-parameters="localItem.linkParameters"
+      :link-url="localGroup.linkUrl"
+      :link-target-window="localGroup.linkTargetWindow"
+      :link-parameters="localGroup.linkParameters"
       @link-change="handleLinkChange"
     />
   </div>
@@ -70,14 +70,14 @@ export default {
     LinkConfig
   },
   props: {
-    item: {
+    selectedGroup: {
       type: Object,
       default: null
     }
   },
   data() {
     return {
-      localItem: {
+      localGroup: {
         cellStyle: null,
         rowHeight: null,
         colWidth: null,
@@ -91,7 +91,7 @@ export default {
     };
   },
   watch: {
-    item: {
+    selectedGroup: {
       handler(newVal) {
         this.updateConfig(newVal);
       },
@@ -102,7 +102,7 @@ export default {
   methods: {
     updateConfig(config) {
       if (!config) {
-        this.localItem = {
+        this.localGroup = {
           cellStyle: {},
           rowHeight: null,
           colWidth: null,
@@ -114,110 +114,110 @@ export default {
           name: null
         };
       } else {
-        const tempItem = JSON.parse(JSON.stringify(config));
+        const tempGroup = JSON.parse(JSON.stringify(config));
 
-        this.localItem = {
-          cellStyle: tempItem.cellStyle || {},
-          rowHeight: tempItem.rowHeight !== undefined ? tempItem.rowHeight : null,
-          colWidth: tempItem.colWidth !== undefined ? tempItem.colWidth : null,
-          newValue: tempItem.newValue !== undefined ? tempItem.newValue : null,
-          linkUrl: tempItem.linkUrl !== undefined ? tempItem.linkUrl : null,
-          linkTargetWindow: tempItem.linkTargetWindow !== undefined ? tempItem.linkTargetWindow : null,
-          linkParameters: tempItem.linkParameters !== undefined ? tempItem.linkParameters : null,
-          paging: tempItem.paging !== undefined ? tempItem.paging : null,
-          name: tempItem.name !== undefined ? tempItem.name : null,
+        this.localGroup = {
+          cellStyle: tempGroup.cellStyle || {},
+          rowHeight: tempGroup.rowHeight !== undefined ? tempGroup.rowHeight : null,
+          colWidth: tempGroup.colWidth !== undefined ? tempGroup.colWidth : null,
+          newValue: tempGroup.newValue !== undefined ? tempGroup.newValue : null,
+          linkUrl: tempGroup.linkUrl !== undefined ? tempGroup.linkUrl : null,
+          linkTargetWindow: tempGroup.linkTargetWindow !== undefined ? tempGroup.linkTargetWindow : null,
+          linkParameters: tempGroup.linkParameters !== undefined ? tempGroup.linkParameters : null,
+          paging: tempGroup.paging !== undefined ? tempGroup.paging : null,
+          name: tempGroup.name !== undefined ? tempGroup.name : null,
         };
       }
     },
 
     handleColorChange({ type, checked, value, scope }) {
-      if (!this.localItem.cellStyle) {
-        this.localItem.cellStyle = {};
+      if (!this.localGroup.cellStyle) {
+        this.localGroup.cellStyle = {};
       }
 
       if (type === 'forecolor') {
-        this.localItem.cellStyle.forecolor = value;
-        this.localItem.cellStyle.forecolorScope = scope;
+        this.localGroup.cellStyle.forecolor = value;
+        this.localGroup.cellStyle.forecolorScope = scope;
       } else if (type === 'bgcolor') {
-        this.localItem.cellStyle.bgcolor = value;
-        this.localItem.cellStyle.bgcolorScope = scope;
+        this.localGroup.cellStyle.bgcolor = value;
+        this.localGroup.cellStyle.bgcolorScope = scope;
       }
 
       this.emitPropertyChange();
     },
 
     handleFontChange({ type, checked, value, scope }) {
-      if (!this.localItem.cellStyle) {
-        this.localItem.cellStyle = {};
+      if (!this.localGroup.cellStyle) {
+        this.localGroup.cellStyle = {};
       }
 
       if (type === 'fontFamily') {
-        this.localItem.cellStyle.fontFamily = value;
-        this.localItem.cellStyle.fontFamilyScope = scope;
+        this.localGroup.cellStyle.fontFamily = value;
+        this.localGroup.cellStyle.fontFamilyScope = scope;
       } else if (type === 'fontSize') {
-        this.localItem.cellStyle.fontSize = value;
-        this.localItem.cellStyle.fontSizeScope = scope;
+        this.localGroup.cellStyle.fontSize = value;
+        this.localGroup.cellStyle.fontSizeScope = scope;
       } else if (type === 'bold') {
-        this.localItem.cellStyle.bold = value;
-        this.localItem.cellStyle.boldScope = scope;
+        this.localGroup.cellStyle.bold = value;
+        this.localGroup.cellStyle.boldScope = scope;
       } else if (type === 'italic') {
-        this.localItem.cellStyle.italic = value;
-        this.localItem.cellStyle.italicScope = scope;
+        this.localGroup.cellStyle.italic = value;
+        this.localGroup.cellStyle.italicScope = scope;
       } else if (type === 'underline') {
-        this.localItem.cellStyle.underline = value;
-        this.localItem.cellStyle.underlineScope = scope;
+        this.localGroup.cellStyle.underline = value;
+        this.localGroup.cellStyle.underlineScope = scope;
       }
 
       this.emitPropertyChange();
     },
 
     handleAlignChange({ type, checked, value, scope }) {
-      if (!this.localItem.cellStyle) {
-        this.localItem.cellStyle = {};
+      if (!this.localGroup.cellStyle) {
+        this.localGroup.cellStyle = {};
       }
 
       if (type === 'align') {
-        this.localItem.cellStyle.align = value;
-        this.localItem.cellStyle.alignScope = scope;
+        this.localGroup.cellStyle.align = value;
+        this.localGroup.cellStyle.alignScope = scope;
       } else if (type === 'valign') {
-        this.localItem.cellStyle.valign = value;
-        this.localItem.cellStyle.valignScope = scope;
+        this.localGroup.cellStyle.valign = value;
+        this.localGroup.cellStyle.valignScope = scope;
       }
 
       this.emitPropertyChange();
     },
 
     handleBorderChange({ checked, borders }) {
-      if (!this.localItem.cellStyle) {
-        this.localItem.cellStyle = {};
+      if (!this.localGroup.cellStyle) {
+        this.localGroup.cellStyle = {};
       }
 
-      this.localItem.cellStyle.leftBorder = borders.leftBorder;
-      this.localItem.cellStyle.rightBorder = borders.rightBorder;
-      this.localItem.cellStyle.topBorder = borders.topBorder;
-      this.localItem.cellStyle.bottomBorder = borders.bottomBorder;
+      this.localGroup.cellStyle.leftBorder = borders.leftBorder;
+      this.localGroup.cellStyle.rightBorder = borders.rightBorder;
+      this.localGroup.cellStyle.topBorder = borders.topBorder;
+      this.localGroup.cellStyle.bottomBorder = borders.bottomBorder;
 
       this.emitPropertyChange();
     },
 
     handleBorderSave(borderData) {
-      if (this.localItem.cellStyle) {
-        this.localItem.cellStyle.topBorder = borderData.topBorder;
-        this.localItem.cellStyle.bottomBorder = borderData.bottomBorder;
-        this.localItem.cellStyle.leftBorder = borderData.leftBorder;
-        this.localItem.cellStyle.rightBorder = borderData.rightBorder;
+      if (this.localGroup.cellStyle) {
+        this.localGroup.cellStyle.topBorder = borderData.topBorder;
+        this.localGroup.cellStyle.bottomBorder = borderData.bottomBorder;
+        this.localGroup.cellStyle.leftBorder = borderData.leftBorder;
+        this.localGroup.cellStyle.rightBorder = borderData.rightBorder;
       }
       this.emitPropertyChange();
     },
 
     handleValueChange({ type, checked, value }) {
       if (type === 'newValue') {
-        this.localItem.newValue = value;
+        this.localGroup.newValue = value;
       } else if (type === 'format') {
-        if (!this.localItem.cellStyle) {
-          this.localItem.cellStyle = {};
+        if (!this.localGroup.cellStyle) {
+          this.localGroup.cellStyle = {};
         }
-        this.localItem.cellStyle.format = value;
+        this.localGroup.cellStyle.format = value;
       }
 
       this.emitPropertyChange();
@@ -225,31 +225,43 @@ export default {
 
     handleSizeChange({ type, checked, value }) {
       if (type === 'rowHeight') {
-        this.localItem.rowHeight = value;
+        this.localGroup.rowHeight = value;
       } else if (type === 'colWidth') {
-        this.localItem.colWidth = value;
+        this.localGroup.colWidth = value;
       }
 
       this.emitPropertyChange();
     },
 
     handlePagingChange({ checked, paging }) {
-      this.localItem.paging = paging;
+      this.localGroup.paging = paging;
       this.emitPropertyChange();
     },
 
     handleLinkChange({ checked, linkUrl, linkTargetWindow, linkParameters }) {
-      this.localItem.linkUrl = linkUrl;
-      this.localItem.linkTargetWindow = linkTargetWindow;
-      this.localItem.linkParameters = linkParameters;
+      this.localGroup.linkUrl = linkUrl;
+      this.localGroup.linkTargetWindow = linkTargetWindow;
+      this.localGroup.linkParameters = linkParameters;
       this.emitPropertyChange();
     },
 
     emitPropertyChange() {
       this.$nextTick(() => {
-        this.$emit('property-changed', this.localItem);
+        this.$emit('property-changed', this.localGroup);
       });
     }
   }
 };
 </script>
+<style scoped>
+.condition-style{
+  height: 446px;
+  overflow-y: scroll;
+}
+</style>
+<style>
+.condition-config-row {
+  height: 36px;
+  margin-bottom: 5px;
+}
+</style>

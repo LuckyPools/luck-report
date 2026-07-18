@@ -1,11 +1,11 @@
 <template>
-  <div style="width: 250px; height: 450px;">
-    <div class="form-group" style="margin-bottom: 5px;">
+  <div style="width: 210px; height: 450px;">
+    <div>
       <div class="u-inline">
         <u-input
           v-model="searchKeyword"
           :placeholder="$t('dialog.sql.search')"
-          style="width: 190px;"
+          style="width: 160px;"
         />
       </div>
       <div class="u-inline" style="vertical-align: middle;margin-left: 5px">
@@ -17,12 +17,12 @@
           </u-button>
       </div>
     </div>
-    <div class="table-container">
-      <table class="data-table" style="font-size: 12px;">
+    <div class="table-wrapper" style="margin-top: 5px;">
+      <table class="table-container" style="font-size: 12px;" v-loading="loading">
         <thead>
-          <tr style="height: 30px;background: #fafafa">
-            <td style="width: 135px;"><span>{{ $t('dialog.sql.tableName') }}</span></td>
-            <td style="width: 30px;"><span>{{ $t('dialog.sql.type') }}</span></td>
+          <tr>
+            <th style="width: 160px;"><span>{{ $t('dialog.sql.tableName') }}</span></th>
+            <th style="width: 35px;"><span>{{ $t('dialog.sql.type') }}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -33,7 +33,7 @@
             @dblclick="addSql(table.name)"
           >
             <td>
-              <a href="###" :title="$t('dialog.sql.addSql')" @click="addSql(table.name)">
+              <a href="javascript:void(0)" :title="$t('dialog.sql.addSql')" @click="addSql(table.name)">
                 {{ table.name }}
               </a>
             </td>
@@ -54,6 +54,7 @@ import { showAlert } from '@/utils/comnon.js';
 import { buildDatabaseTables } from '@/api/designer';
 import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";
+import { LoadingDirective } from '@/components/loading/instance.js';
 
 export default {
   name: 'SearchTable',
@@ -61,8 +62,11 @@ export default {
     UButton,
     UInput
   },
+  directives: {
+    loading: LoadingDirective
+  },
   props: {
-    db: {
+    datasourceData: {
       type: Object
     },
     triggerLoad: {
@@ -74,7 +78,8 @@ export default {
   data() {
     return {
       tables: [],
-      searchKeyword: ''
+      searchKeyword: '',
+      loading: false
     }
   },
   watch: {
@@ -108,19 +113,20 @@ export default {
      * 加载数据库表格列表
      */
     async loadDatabaseTables() {
-      if (!this.db) return;
+      if (!this.datasourceData) return;
 
       this.searchKeyword = '';
-      const type = this.db.type;
+      this.loading = true;
+      const type = this.datasourceData.type;
       const parameters = { type };
 
       if (type === 'jdbc') {
-        parameters.username = this.db.username;
-        parameters.password = this.db.password;
-        parameters.driver = this.db.driver;
-        parameters.url = this.db.url;
+        parameters.username = this.datasourceData.username;
+        parameters.password = this.datasourceData.password;
+        parameters.driver = this.datasourceData.driver;
+        parameters.url = this.datasourceData.url;
       } else if (type === 'buildin') {
-        parameters.name = this.db.name;
+        parameters.name = this.datasourceData.name;
         // 确保 type 参数被正确设置
         parameters.type = 'buildin';
       }
@@ -129,11 +135,13 @@ export default {
         const tables = await buildDatabaseTables(parameters);
         this.setTables(tables);
       } catch (error) {
-        if (error.message) {
-          showAlert('服务端错误：' + error.message);
+        if (error.msg) {
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('dialog.sql.loadFail'));
         }
+      } finally {
+        this.loading = false;
       }
     }
   }
@@ -141,27 +149,8 @@ export default {
 </script>
 
 <style scoped>
-.search-btn{
-    vertical-align: middle;
-    margin-left: 5px
-}
 
-.table-container {
-    height: 380px; /* 减去搜索框和表头的高度 */
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid #ddd;
-    border-top: none;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-
-.data-table td {
-    border: 1px solid #ddd;
+.table-container td {
     padding: 4px;
     word-wrap: break-word;
 }

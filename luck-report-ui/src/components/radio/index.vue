@@ -3,9 +3,9 @@
       class="u-radio"
       :class="{
       'u-radio-selected': selected,
-      'u-radio-disabled': disabled || myDisabled,
-      [`u-radio-${size}-border`]: border,
-      [`u-radio-${size}-button`]: button,
+      'u-radio-disabled': disabled || localDisabled,
+      [`u-radio-${localSize}-border`]: border,
+      [`u-radio-${localSize}-button`]: button,
       'u-radio-selected-button': selected && button,
     }"
   >
@@ -13,13 +13,13 @@
         class="u-radio-input"
         type="radio"
         @click="onClick"
-        :disabled="disabled || myDisabled"
+        :disabled="disabled || localDisabled"
     />
     <span
         class="u-radio-icon"
         :class="{
         'u-radio-icon-selected': selected,
-        'u-radio-icon-disabled': disabled || myDisabled,
+        'u-radio-icon-disabled': disabled || localDisabled,
         'u-radio-icon-button': button
       }"
     >
@@ -41,8 +41,9 @@ export default {
   data() {
     return {
       selected: false, // 是否被选中
-      myDisabled: false, // 内部的禁用属性，交由父级控制
+      localDisabled: false, // 内部的禁用属性，交由父级控制
       button: false, // 按钮样式
+      localSize: 'medium', // 真实用于渲染的尺寸，由父级同步（避开 prop 警告）
     }
   },
   props: {
@@ -78,6 +79,13 @@ export default {
     value: {
       handler(newVal) {
         this.selected = this.value && this.value === this.label
+      },
+      immediate: true,
+    },
+    // 把 prop 同步到内部 data，组组件直接改 localSize 不再触发 prop 警告
+    size: {
+      handler(newVal) {
+        this.localSize = newVal
       },
       immediate: true,
     },

@@ -58,9 +58,6 @@ public class DatasetValueParser extends ValueParser {
         List<GroupItem> groupItems = null;
         List<MappingItem> mappingItems = null;
         List<Condition> conditions = new ArrayList<Condition>();
-        PropertyExpressionCondition topCondition = null;
-        PropertyExpressionCondition prevCondition = null;
-        value.setConditions(conditions);
         for (Object obj : element.elements()) {
             if (obj == null || !(obj instanceof Element)) {
                 continue;
@@ -69,51 +66,34 @@ public class DatasetValueParser extends ValueParser {
             if (ele.getName().equals("condition")) {
                 PropertyExpressionCondition condition = parseCondition(ele);
                 conditions.add(condition);
-                if (topCondition == null) {
-                    topCondition = condition;
-                    prevCondition = topCondition;
-                } else {
-                    prevCondition.setNextCondition(condition);
-                    prevCondition.setJoin(condition.getJoin());
-                    prevCondition = condition;
-                }
             } else if (ele.getName().equals("group-item")) {
                 if (groupItems == null) {
-                    groupItems = new ArrayList<GroupItem>();
+                    groupItems = new ArrayList<>();
                     value.setGroupItems(groupItems);
                 }
                 GroupItem item = new GroupItem();
                 item.setName(ele.attributeValue("name"));
                 groupItems.add(item);
-                PropertyExpressionCondition groupItemTopCondition = null;
-                List<Condition> itemConditions = new ArrayList<Condition>();
+                List<Condition> itemConditions = new ArrayList<>();
                 for (Object o : ele.elements()) {
                     if (o == null || !(o instanceof Element)) {
                         continue;
                     }
                     PropertyExpressionCondition itemCondition = parseCondition((Element) o);
                     itemConditions.add(itemCondition);
-                    if (groupItemTopCondition == null) {
-                        groupItemTopCondition = itemCondition;
-                    } else {
-                        groupItemTopCondition.setNextCondition(itemCondition);
-                    }
                 }
-                item.setCondition(groupItemTopCondition);
                 item.setConditions(itemConditions);
             } else if (ele.getName().equals("mapping-item")) {
                 MappingItem item = new MappingItem();
                 item.setLabel(ele.attributeValue("label"));
                 item.setValue(ele.attributeValue("value"));
                 if (mappingItems == null) {
-                    mappingItems = new ArrayList<MappingItem>();
+                    mappingItems = new ArrayList<>();
                 }
                 mappingItems.add(item);
             }
         }
-        if (topCondition != null) {
-            value.setCondition(topCondition);
-        }
+        value.setConditions(conditions);
         if (mappingItems != null) {
             value.setMappingItems(mappingItems);
         }
@@ -137,7 +117,6 @@ public class DatasetValueParser extends ValueParser {
                 continue;
             }
             String expr = e.getTextTrim();
-            condition.setRightExpression(ExpressionUtils.parseExpression(expr));
             condition.setRight(expr);
             break;
         }

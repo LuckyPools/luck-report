@@ -1,6 +1,6 @@
 <template>
   <div class="tree" style="margin-left: 10px">
-    <ul style="padding-left: 20px;">
+    <ul class="tree-root">
       <li>
         <!-- 数据源节点 -->
         <span
@@ -14,13 +14,13 @@
             style="margin-right:2px"
           ></i>
           <i class="iconfont icon-share"></i>
-          <a href="###" class="ds_name">{{ name }}</a>
+          <a href="javascript:void(0)" class="ds_name">{{ name }}</a>
         </span>
 
         <!-- 数据集列表 -->
         <ul
           v-show="datasourceExpanded"
-          style="margin-left: -16px;"
+          class="node-list"
         >
           <li
             v-for="(dataset, index) in datasets"
@@ -38,7 +38,7 @@
                 style="margin-right:2px"
               ></i>
               <i class="iconfont icon-sqlds"></i>
-              <a href="###" class="dataset_name">{{ dataset.name }}</a>
+              <a href="javascript:void(0)" class="dataset_name">{{ dataset.name }}</a>
             </span>
 
             <!-- 字段列表 -->
@@ -53,11 +53,13 @@
                 <span
                   :id="'field_' + dataset.name + '_' + field.name + '_' + fieldIndex"
                   :title="$t('tree.doubleClick')"
+                  draggable="true"
                   @dblclick="handleFieldDoubleClick(dataset, field)"
+                  @dragstart="handleFieldDragStart($event, dataset, field)"
                   @contextmenu.prevent.stop="showFieldContextMenu($event, dataset, field, fieldIndex)"
                 >
                   <i class="iconfont icon-property"></i>
-                  <a href="###">{{ field.name }}</a>
+                  <a href="javascript:void(0)">{{ field.name }}</a>
                 </span>
               </li>
             </ul>
@@ -66,10 +68,9 @@
       </li>
     </ul>
 
-    <!-- SQL数据集对话框 -->
     <SqlDatasetDialog
       :visible="sqlDatasetDialogVisible"
-      :db="currentDbInfo"
+      :datasourceData="currentDatasourceData"
       :datasetData="currentDatasetData"
       @save="handleSqlDatasetSave"
       @close="sqlDatasetDialogVisible = false"
@@ -90,7 +91,7 @@
 </template>
 
 <script>
-import uuid from 'node-uuid';
+import { v1 as uuidv1 } from 'uuid';
 import { showAlert, showConfirm } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
 import SqlDatasetDialog from '@/views/report/designer/resource-panel/datasource-panel/sql-dataset-dialog/index.vue';
@@ -126,21 +127,21 @@ export default {
   },
   data() {
       return {
-        id: 'buildin_' + uuid.v1(),
+        id: 'buildin_' + uuidv1(),
         datasourceExpanded: true,
         datasetExpanded: {},
         currentDataset: null,
         fieldNameDialogVisible: false,
         sqlDatasetDialogVisible: false,
-        currentDbInfo: null,
+        currentDatasourceData: null,
         currentDatasetData: null
       };
   },
-  created() {
+  mounted() {
     // 初始化数据集展开状态
     if (this.datasets && this.datasets.length > 0) {
       for (let i = 0; i < this.datasets.length; i++) {
-        this.$set(this.datasetExpanded, i, true);
+        this.$set(this.datasetExpanded, i, false);
       }
     }
   },
@@ -189,7 +190,7 @@ export default {
      * 添加数据集操作
      */
     addDatasetAction() {
-      this.currentDbInfo = {
+      this.currentDatasourceData = {
         type: 'buildin',
         name: this.name
       };
@@ -257,7 +258,7 @@ export default {
         }
 
         const newDatasets = deepCopy(this.datasets);
-        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
         if (!targetDataset.fields) {
           targetDataset.fields = [];
         }
@@ -282,7 +283,7 @@ export default {
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-      this.currentDbInfo = {
+      this.currentDatasourceData = {
         type: 'buildin',
         name: this.name
       };
@@ -344,7 +345,7 @@ export default {
       let that = this;
       showConfirm(`${this.$t('tree.delFieldConfirm')}[${field.name}]？`).then(() => {
         const newDatasets = deepCopy(this.datasets);
-        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
         if (targetDataset && targetDataset.fields) {
           targetDataset.fields.splice(fieldIndex, 1);
           that.$emit('update-datasource', {
@@ -360,7 +361,23 @@ export default {
      * 字段双击事件
      */
     handleFieldDoubleClick(dataset, field) {
-      this._buildClickEvent(dataset, field, this.context);
+      this.buildClickEvent(dataset, field, this.context);
+    },
+
+    /**
+     * 字段拖拽开始事件
+     * @param {DragEvent} event - 拖拽事件对象
+     * @param {Object} dataset - 数据集对象
+     * @param {Object} field - 字段对象
+     */
+    handleFieldDragStart(event, dataset, field) {
+      const dragData = {
+        datasetName: dataset.name,
+        fieldName: field.name,
+        type: 'dataset-field'
+      };
+      event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+      event.dataTransfer.effectAllowed = 'copy';
     },
 
     /**
@@ -383,7 +400,7 @@ export default {
       try {
         const fields = await buildFields(parameters);
         const newDatasets = deepCopy(this.datasets);
-        const targetDataset = newDatasets.find(ds => ds.name === dataset.name);
+        const targetDataset = newDatasets.find(item => item.name === dataset.name);
         if (targetDataset) {
           targetDataset.fields = fields;
           this.$emit('update-datasource', {
@@ -393,8 +410,8 @@ export default {
           });
         }
       } catch (error) {
-        if (error.message) {
-          showAlert("服务端错误：" + error.message);
+        if (error.msg) {
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
           showAlert(this.$t('tree.loadFieldFail'));
         }
@@ -402,9 +419,9 @@ export default {
     },
 
     /**
-     * BaseTree 的 _buildClickEvent 方法
+     * BaseTree 的 buildClickEvent 方法
      */
-    _buildClickEvent(dataset, field, context) {
+    buildClickEvent(dataset, field, context) {
       const hot = TableManager.get();
       if (!hot) {
         showAlert(this.$t('tree.cellTip'));
@@ -418,7 +435,7 @@ export default {
         return;
       }
 
-      const rowIndex = selected[0], colIndex = selected[1];
+      const [rowIndex, colIndex, endRow, endCol] = selected[0];
       let cellDef = getCell(rowIndex, colIndex);
 
       if (cellDef.value.type !== 'dataset') {
@@ -446,7 +463,7 @@ export default {
       hot.render();
 
       if (hot.hooks) {
-        hot.hooks.run(hot, 'afterSelectionEnd', selected[0], selected[1], selected[2], selected[3]);
+        hot.hooks.run(hot, 'afterSelectionEnd', rowIndex, colIndex, endRow, endCol);
       }
     },
 

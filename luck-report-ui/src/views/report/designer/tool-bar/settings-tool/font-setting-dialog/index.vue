@@ -24,7 +24,7 @@
 
         <!-- 颜色选择 -->
         <u-form-item :label="$t('dialog.fontSetting.color')">
-          <UColorPicker v-model="colorValue" />
+          <UColorPicker v-model="localColor" />
         </u-form-item>
 
         <!-- 字体大小 -->
@@ -99,6 +99,7 @@ import UButton from "@/components/button/index.vue";
 import UColorPicker from "@/components/color-picker/index.vue";
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
+import { rgbToHex, hexToRgb } from '@/utils/color';
 
 export default {
   name: 'FontSettingDialog',
@@ -138,6 +139,7 @@ export default {
         italic: 'false',
         underline: 'false'
       },
+      localColor: '#000000',
       fontFamilies: [
         '宋体', '仿宋', '黑体', '楷体', '微软雅黑',
         'Arial', 'Impact', 'Times New Roman', 'Comic Sans MS', 'Courier New'
@@ -146,33 +148,6 @@ export default {
     };
   },
   computed: {
-    colorValue: {
-      get() {
-        // 将RGB格式转换为十六进制格式
-        if (this.localStyle.forecolor) {
-          const rgb = this.localStyle.forecolor.split(',');
-          if (rgb.length === 3) {
-            return '#' + rgb.map(val => {
-              const hex = parseInt(val).toString(16);
-              return hex.length === 1 ? '0' + hex : hex;
-            }).join('');
-          }
-        }
-        return '#000000';
-      },
-      set(value) {
-        // 将十六进制格式转换为RGB格式
-        if (value && value.startsWith('#')) {
-          const hex = value.substring(1);
-          if (hex.length === 6) {
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            this.localStyle.forecolor = `${r},${g},${b}`;
-          }
-        }
-      }
-    },
     fontFamilyOptions() {
       return this.fontFamilies.map(font => ({
         value: font,
@@ -202,6 +177,9 @@ export default {
       if (this.visible) {
         this.initializeStyle();
       }
+    },
+    localColor(newVal) {
+      this.localStyle.forecolor = hexToRgb(newVal);
     }
   },
   created() {
@@ -217,6 +195,7 @@ export default {
         italic: this.fontStyle.italic !== undefined ? String(this.fontStyle.italic) : 'false',
         underline: this.fontStyle.underline !== undefined ? String(this.fontStyle.underline) : 'false'
       };
+      this.localColor = rgbToHex(this.localStyle.forecolor);
     },
     handleOk() {
       const resultStyle = {

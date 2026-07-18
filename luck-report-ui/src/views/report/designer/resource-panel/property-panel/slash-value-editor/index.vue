@@ -1,65 +1,55 @@
 <template>
   <div class="slash-value-editor">
-    <label>{{ $t('property.slash.content') }}：</label>
-    <div ref="headerContainer">
-      <u-button
-          style="margin-bottom: 10px;margin-top: 10px;float: right"
-          @click="handleRefresh"
-          icon="icon-refresh"
-      >
-        {{ $t('property.slash.refresh') }}
-      </u-button>
-      <div ref="slashContainer">
-        <!-- 斜线项将在这里动态渲染 -->
-        <div v-for="(slash, index) in slashes" :key="index" class="slash-item">
 
-          <div style="margin-top: 10px">
-            <span>{{ $t('property.slash.name') }}：</span>
-            <div class="u-inline">
-              <u-input
-                  v-model="slash.text"
-                  style="width:120px;"
-                  @change="handleSlashChange(index)"
-              />
-            </div>
-          </div>
-
-          <div style="margin-top: 10px">
-            <span>Y：</span>
-            <div class="u-inline">
-              <u-input-number
-                  v-model="slash.y"
-                  @change="handleSlashChange(index)"
-              >
-              </u-input-number>
-            </div>
-          </div>
-
-          <div style="margin-top: 10px">
-            <span>X：</span>
-            <div class="u-inline">
-              <u-input-number
-                  v-model="slash.x"
-                  @change="handleSlashChange(index)"
-              >
-              </u-input-number>
-            </div>
-          </div>
-
-          <div style="margin-top: 10px">
-            <span>{{ $t('property.slash.angle') }}：</span>
-            <div class="u-inline">
-              <u-input-number
-                  v-model="slash.degree"
-                  @change="handleSlashChange(index)"
-              >
-              </u-input-number>
-            </div>
-          </div>
-
-        </div>
-      </div>
+    <div class="property-quote">
+      <span>{{ $t('property.slash.config') }}</span>
     </div>
+
+    <u-form :label-width="100" labelPosition="left">
+
+      <u-form-item class="property-label">
+        <u-button
+            @click="handleRefresh"
+            icon="icon-refresh"
+            style="float: right"
+        >
+          {{ $t('property.slash.refresh') }}
+        </u-button>
+      </u-form-item>
+
+      <div v-for="(slash, index) in slashes" :key="index" class="slash-item">
+
+        <u-form-item class="property-label" :label="$t('property.slash.name')" style="margin-bottom: 10px">
+          <u-input
+              v-model="slash.text"
+              style="width: 250px"
+              @change="handleSlashChange(index)"
+          />
+        </u-form-item>
+
+        <u-form-item class="property-label" label="Y" style="margin-bottom: 10px">
+          <u-input-number
+              v-model="slash.y"
+              @change="handleSlashChange(index)"
+          />
+        </u-form-item>
+
+        <u-form-item class="property-label" label="X" style="margin-bottom: 10px">
+          <u-input-number
+              v-model="slash.x"
+              @change="handleSlashChange(index)"
+          />
+        </u-form-item>
+
+        <u-form-item class="property-label" :label="$t('property.slash.angle')" style="margin-bottom: 10px">
+          <u-input-number
+              v-model="slash.degree"
+              @change="handleSlashChange(index)"
+          />
+        </u-form-item>
+
+      </div>
+    </u-form>
   </div>
 </template>
 
@@ -71,10 +61,15 @@ import CrossTabWidget from '@/views/report/designer/edit-table/cross-tab-widget/
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";
+import UForm from "@/components/form/index.vue";
+import UFormItem from "@/components/form-item/index.vue";
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'SlashValueEditor',
   components: {
+    UForm,
+    UFormItem,
     UButton,
     UInputNumber,
     UInput
@@ -102,24 +97,33 @@ export default {
       slashes: []
     };
   },
+  computed: {
+    ...mapGetters('report', ['getIsCellUpdate']),
+    isCellUpdate() {
+      return this.getIsCellUpdate;
+    },
+    cellPosition() {
+      return `${this.rowIndex},${this.colIndex}`;
+    }
+  },
   watch: {
-    rowIndex: {
+    cellPosition: {
       immediate: true,
       handler() {
         this.loadSlashes();
       }
     },
-    colIndex: {
-      immediate: true,
-      handler() {
-        this.loadSlashes();
+    isCellUpdate: {
+      handler(newVal) {
+        if (newVal) {
+          this.loadSlashes();
+          this.setCellUpdate(false);
+        }
       }
     }
   },
-  mounted() {
-    this.loadSlashes();
-  },
   methods: {
+    ...mapActions('report', ['setCellUpdate']),
     loadSlashes() {
       const cellDef = getCell(this.rowIndex, this.colIndex);
       if (cellDef && cellDef.value && cellDef.value.slashes) {
@@ -164,11 +168,7 @@ export default {
 </script>
 
 <style scoped>
-.slash-value-editor {
-  padding: 10px;
-}
-
 .slash-item{
-  margin-top: 10px;
+  margin-top: 22px;
 }
 </style>

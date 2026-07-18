@@ -20,14 +20,14 @@ import com.luck.report.core.export.pdf.font.FontBuilder;
 import com.luck.report.core.model.Cell;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Phrase;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Jacky.gao
  * @since 2014年4月17日
  */
 public class CellPhrase extends Phrase {
-    private static final long serialVersionUID = 8712267867853876619L;
+    private static final long serialVersionUID = 1L;
 
     public CellPhrase(Cell cell, Object cellData) {
         String text = "";

@@ -18,10 +18,10 @@ package com.luck.report.core.expression.function.math;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
-import org.apache.commons.lang.math.RandomUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Jacky.gao
@@ -38,7 +38,7 @@ public class RandomFunction extends MathFunction {
         if (feed == 0) {
             return Math.random();
         }
-        return RandomUtils.nextInt(feed);
+        return ThreadLocalRandom.current().nextInt(0, feed);
     }
 
     @Override

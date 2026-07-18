@@ -20,7 +20,7 @@ package com.luck.report.core.exception;
  * @since 2016年12月22日
  */
 public class ConvertException extends ReportException {
-    private static final long serialVersionUID = 8681316352205087220L;
+    private static final long serialVersionUID = 1L;
 
     public ConvertException(Exception ex) {
         super(ex);

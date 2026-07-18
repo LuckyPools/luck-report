@@ -30,8 +30,12 @@ import java.util.List;
  * @since 2017年4月6日
  */
 public class WholeCellExpression extends CellExpression {
-    private static final long serialVersionUID = 4926788994485522808L;
+    private static final long serialVersionUID = 1L;
     private Condition condition;
+
+    public WholeCellExpression() {
+        super(null);
+    }
 
     public WholeCellExpression(String cellName) {
         super(cellName);
@@ -66,7 +70,27 @@ public class WholeCellExpression extends CellExpression {
         }
     }
 
+    /**
+     * 获取条件
+     * @return 条件
+     */
+    public Condition getCondition() {
+        return condition;
+    }
+
     public void setCondition(Condition condition) {
         this.condition = condition;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
+        }
+        if (condition != null) {
+            list.addAll(condition.fetchCellName());
+        }
+        return list;
     }
 }

@@ -20,7 +20,7 @@ package com.luck.report.core.exception;
  * @since 2016年12月6日
  */
 public class ExpressionParserException extends ReportException {
-    private static final long serialVersionUID = 5086685918063939805L;
+    private static final long serialVersionUID = 1L;
 
     public ExpressionParserException(String msg) {
         super(msg);

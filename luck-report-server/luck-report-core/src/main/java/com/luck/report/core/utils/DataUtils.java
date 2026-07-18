@@ -15,12 +15,11 @@
  ******************************************************************************/
 package com.luck.report.core.utils;
 
-import com.luck.report.core.Utils;
 import com.luck.report.core.build.Context;
+import com.luck.report.core.definition.Expand;
 import com.luck.report.core.definition.value.DatasetValue;
 import com.luck.report.core.definition.value.ExpressionValue;
 import com.luck.report.core.definition.value.Value;
-import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.expression.model.expr.JoinExpression;
@@ -29,7 +28,9 @@ import com.luck.report.core.expression.model.expr.dataset.DatasetExpression;
 import com.luck.report.core.model.Cell;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Jacky.gao
@@ -46,85 +47,71 @@ public class DataUtils {
         if (topCell != null) {
             topList = topCell.getBindData();
         }
-        if (leftList == null && topList == null) {
-            List<?> data = context.getDatasetData(datasetName);
-            return data;
-        } else if (leftList == null) {
-            return topList;
-        } else if (topList == null) {
-            return leftList;
-        } else {
-            List<Object> list = null;
-            Object data = null;
-            String prop = null;
+        if (leftList != null && topList != null) {
+            List<Object> data = new ArrayList<Object>();
+            List<Object> biggerList = null;
+            List<Object> smallerList = null;
             if (leftList.size() > topList.size()) {
-                list = topList;
-                data = leftCell.getData();
-                Value value = leftCell.getValue();
-                DatasetExpression de = fetchDatasetExpression(value);
-                if (de == null) {
-                    throw new ReportComputeException("Unsupport value : " + value);
-                }
-                prop = de.getProperty();
+                biggerList = leftList;
+                smallerList = topList;
             } else {
-                list = leftList;
-                data = topCell.getData();
-                Value value = topCell.getValue();
-                DatasetExpression de = fetchDatasetExpression(value);
-                if (de == null) {
-                    throw new ReportComputeException("Unsupport value : " + value);
-                }
-                prop = de.getProperty();
+                biggerList = topList;
+                smallerList = leftList;
             }
-            List<Object> result = new ArrayList<Object>();
-            for (Object obj : list) {
-                Object o = Utils.getProperty(obj, prop);
-                if ((o == null && data == null)) {
-                    result.add(obj);
-                } else if (o != null && o.equals(data)) {
-                    result.add(obj);
-                } else if (data != null && data.equals(o)) {
-                    result.add(obj);
+            Set<Object> set = new HashSet<Object>();
+            for (Object object : smallerList) {
+                set.add(object);
+            }
+            for (Object object : biggerList) {
+                if (set.contains(object)) {
+                    data.add(object);
                 }
             }
-            return result;
+            return data;
         }
+        if (leftList != null) {
+            return leftList;
+        }
+        if (topList != null) {
+            return topList;
+        }
+        return context.getDatasetData(datasetName);
     }
 
     public static Cell fetchLeftCell(Cell cell, Context context, String datasetName) {
-        Cell targetCell = null;
         Cell leftCell = cell.getLeftParentCell();
         if (leftCell != null) {
-            Value leftCellValue = leftCell.getValue();
-            DatasetExpression leftDSValue = fetchDatasetExpression(leftCellValue);
-            if (leftDSValue != null) {
-                String leftDatasetName = leftDSValue.getDatasetName();
-                if (leftDatasetName.equals(datasetName)) {
-                    if (leftCell.getBindData() != null) {
-                        targetCell = leftCell;
+            if (Expand.Down.equals(leftCell.getExpand())) {
+                Value leftCellValue = leftCell.getValue();
+                DatasetExpression leftDSValue = fetchDatasetExpression(leftCellValue);
+                if (leftDSValue != null) {
+                    String leftDatasetName = leftDSValue.getDatasetName();
+                    if (leftDatasetName.equals(datasetName)) {
+                        return leftCell;
                     }
                 }
             }
+            return fetchLeftCell(leftCell, context, datasetName);
         }
-        return targetCell;
+        return null;
     }
 
     public static Cell fetchTopCell(Cell cell, Context context, String datasetName) {
-        Cell targetCell = null;
         Cell topCell = cell.getTopParentCell();
         if (topCell != null) {
-            Value topCellValue = topCell.getValue();
-            DatasetExpression leftDSValue = fetchDatasetExpression(topCellValue);
-            if (leftDSValue != null) {
-                String leftDatasetName = leftDSValue.getDatasetName();
-                if (leftDatasetName.equals(datasetName)) {
-                    if (topCell.getBindData() != null) {
-                        targetCell = topCell;
+            if (Expand.Right.equals(topCell.getExpand())) {
+                Value topCellValue = topCell.getValue();
+                DatasetExpression leftDSValue = fetchDatasetExpression(topCellValue);
+                if (leftDSValue != null) {
+                    String leftDatasetName = leftDSValue.getDatasetName();
+                    if (leftDatasetName.equals(datasetName)) {
+                        return topCell;
                     }
                 }
             }
+            return fetchTopCell(topCell, context, datasetName);
         }
-        return targetCell;
+        return null;
     }
 
     public static DatasetExpression fetchDatasetExpression(Value value) {

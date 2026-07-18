@@ -19,7 +19,7 @@ import com.luck.report.core.Utils;
 import com.luck.report.core.definition.*;
 import com.luck.report.core.parser.Parser;
 import com.luck.report.core.definition.*;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Element;
 
 /**

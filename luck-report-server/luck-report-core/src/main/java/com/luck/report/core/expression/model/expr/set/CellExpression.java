@@ -35,8 +35,11 @@ import java.util.Map;
  * @since 2017年1月1日
  */
 public class CellExpression extends BaseExpression {
-    private static final long serialVersionUID = 8376298136905903019L;
+    private static final long serialVersionUID = 1L;
     protected String cellName;
+
+    public CellExpression() {}
+
     public CellExpression(String cellName) {
         this.cellName = cellName;
     }
@@ -47,17 +50,20 @@ public class CellExpression extends BaseExpression {
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
         List<Cell> targetCells = Utils.fetchTargetCells(cell, context, cellName);
+        if (targetCells == null || targetCells.isEmpty()) {
+            return new NoneExpressionData();
+        }
+        if (targetCells.size() == 1) {
+            return new ObjectExpressionData(targetCells.get(0).getData());
+        }
         if (targetCells.size() > 1) {
             List<Object> list = new ArrayList<Object>();
             for (Cell targetCell : targetCells) {
                 list.add(targetCell.getData());
             }
             return new ObjectListExpressionData(list);
-        } else if (targetCells.size() == 1) {
-            return new ObjectExpressionData(targetCells.get(0).getData());
-        } else {
-            return new NoneExpressionData();
         }
+        return new NoneExpressionData();
     }
 
     public ExpressionData<?> computePageCells(Cell cell, Cell currentCell, Context context) {
@@ -102,6 +108,31 @@ public class CellExpression extends BaseExpression {
                 }
                 list.add(targetCell);
             }
+        }
+        return list;
+    }
+
+    /**
+     * 获取单元格名称
+     * @return 单元格名称
+     */
+    public String getCellName() {
+        return cellName;
+    }
+
+    /**
+     * 设置单元格名称
+     * @param cellName 单元格名称
+     */
+    public void setCellName(String cellName) {
+        this.cellName = cellName;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (cellName != null && !cellName.isEmpty()) {
+            list.add(cellName);
         }
         return list;
     }

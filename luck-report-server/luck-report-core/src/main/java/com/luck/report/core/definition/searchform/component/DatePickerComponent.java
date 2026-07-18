@@ -2,7 +2,10 @@ package com.luck.report.core.definition.searchform.component;
 
 import com.luck.report.core.definition.searchform.RenderContext;
 
+import java.io.Serializable;
+
 public class DatePickerComponent extends BaseInputComponent {
+    private static final long serialVersionUID = 1L;
     private String format;
     private String type;
     private String placeholder;
@@ -11,6 +14,11 @@ public class DatePickerComponent extends BaseInputComponent {
     private boolean readonly;
     private String valueFormat;
     private String defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public DatePickerComponent() {}
 
     @Override
     public String initJs(RenderContext context) {

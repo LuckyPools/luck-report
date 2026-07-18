@@ -2,7 +2,8 @@
   <div>
     <UDialog
       :title="$t('dialog.sql.title')"
-      width="1080px"
+      width="1000px"
+      top="10vh"
       :visible="visible"
       :z-index="20000"
       @close="closeDialog"
@@ -12,7 +13,7 @@
           <!-- 左侧容器：搜索表格 -->
           <div class="left-panel">
             <SearchTable
-                :db="db"
+                :datasourceData="datasourceData"
                 :trigger-load="triggerLoadSearchTable"
                 @add="handleAddSql"
                 @load-complete="handleSearchTableLoadComplete"
@@ -44,9 +45,7 @@
     </UDialog>
     <PreviewDataDialog
       :visible="previewDialogVisible"
-      :loading="previewDialogLoading"
-      :errorInfo="previewDialogErrorInfo"
-      :resultData="previewDialogResultData"
+      :parameters="previewParameters"
       @close="closePreviewDialog"
     />
   </div>
@@ -61,7 +60,6 @@ import ParameterEditor from './parameter-editor/index.vue';
 import PreviewDataDialog from '@/views/report/designer/resource-panel/datasource-panel/preview-data-dialog/index.vue';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
-import { previewData } from '@/api/designer/index.js';
 import {showAlert} from "@/utils/comnon";
 import { mapGetters } from 'vuex';
 import {deepCopy} from "@/components/utils";
@@ -81,7 +79,7 @@ export default {
       type: Boolean,
       default: false
     },
-    db: {
+    datasourceData: {
       type: Object,
       default: null
     },
@@ -104,24 +102,19 @@ export default {
       oldName: '',
       currentData: {},
       previewDialogVisible: false,
-      previewDialogLoading: true,
-      previewDialogErrorInfo: null,
-      previewDialogResultData: null,
+      previewParameters: null,
       triggerLoadSearchTable: false
     };
   },
   watch: {
     visible(newVal) {
       if (newVal) {
-        this.initDialog();
+        this.initData();
       }
     }
   },
   methods: {
-    /**
-     * 初始化对话框
-     */
-    initDialog() {
+    initData() {
       this.currentData = {};
       this.datasetName = '';
       this.sql = '';
@@ -197,9 +190,14 @@ export default {
     /**
      * 预览数据
      */
-    async handlePreview() {
+    handlePreview() {
       const sql = this.sql || '';
-      const type = this.db.type;
+      if (!sql || sql === '') {
+        showAlert(this.$t('dialog.sql.sqlTip'));
+        return;
+      }
+
+      const type = this.datasourceData.type;
       const parameters = {
         sql,
         type,
@@ -207,36 +205,18 @@ export default {
       };
 
       if (type === 'jdbc') {
-        parameters.username = this.db.username;
-        parameters.password = this.db.password;
-        parameters.driver = this.db.driver;
-        parameters.url = this.db.url;
+        parameters.username = this.datasourceData.username;
+        parameters.password = this.datasourceData.password;
+        parameters.driver = this.datasourceData.driver;
+        parameters.url = this.datasourceData.url;
       } else if (type === 'buildin') {
-        parameters.name = this.db.name;
+        parameters.name = this.datasourceData.name;
       }
 
+      this.previewParameters = parameters;
       this.previewDialogVisible = true;
-      this.previewDialogLoading = true;
-      this.previewDialogErrorInfo = null;
-      this.previewDialogResultData = null;
-
-      try {
-        const data = await previewData(parameters);
-        this.previewDialogLoading = false;
-        this.previewDialogResultData = data;
-      } catch (error) {
-        let msg = this.$t('dialog.sql.previewFail');
-        if(error.msg){
-          msg = error.msg;
-        }
-        this.previewDialogLoading = false;
-        this.previewDialogErrorInfo = `<div style='color: #d30e00;'>${msg}</div>`;
-      }
     },
 
-    /**
-     * 处理确认保存（来自页脚按钮）
-     */
     handleConfirm() {
       const name = this.datasetName || '';
       const sql = this.sql || '';
@@ -299,7 +279,7 @@ export default {
 }
 
 .left-panel {
-  flex: 0 0 300px;
+  flex: 0 0 200px;
   height: 100%;
 }
 
@@ -311,4 +291,3 @@ export default {
   height: 100%;
 }
 </style>
-

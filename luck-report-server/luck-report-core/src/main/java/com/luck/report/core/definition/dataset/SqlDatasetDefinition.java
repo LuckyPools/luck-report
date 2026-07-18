@@ -24,6 +24,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.utils.ProcedureUtils;
+import com.luck.report.core.utils.SqlSecurityUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
@@ -40,16 +41,22 @@ import java.util.regex.Pattern;
  * @since 2016年12月27日
  */
 public class SqlDatasetDefinition implements DatasetDefinition {
-    private static final long serialVersionUID = -1134526105416805870L;
+    private static final long serialVersionUID = 1L;
     private String name;
     private String sql;
     private List<Parameter> parameters;
     private List<Field> fields;
     private Expression sqlExpression;
 
+    /**
+     * 默认无参构造器
+     */
+    public SqlDatasetDefinition() {}
+
     public Dataset buildDataset(Map<String, Object> parameterMap, Connection conn) {
         String sqlForUse = sql;
-        Context context = new Context(null, parameterMap);
+        Map<String, Object> pmap = buildParameters(parameterMap);
+        Context context = new Context(null, pmap);
         if (sqlExpression != null) {
             sqlForUse = executeSqlExpr(sqlExpression, context);
         } else {
@@ -63,15 +70,20 @@ public class SqlDatasetDefinition implements DatasetDefinition {
                 sqlForUse = sqlForUse.replace(substr, result);
             }
         }
-        Utils.logToConsole("RUNTIME SQL:" + sqlForUse);
-        Map<String, Object> pmap = buildParameters(parameterMap);
+        SqlSecurityUtils.validate(sqlForUse);
+        long start = System.currentTimeMillis();
+        Utils.logToConsole("START [" + start + "] RUNTIME SQL:" + sqlForUse);
+        List<Map<String, Object>> list;
         if (ProcedureUtils.isProcedure(sqlForUse)) {
-            List<Map<String, Object>> result = ProcedureUtils.procedureQuery(sqlForUse, pmap, conn);
-            return new Dataset(name, result);
+            list = ProcedureUtils.procedureQuery(sqlForUse, pmap, conn);
+        } else {
+            SingleConnectionDataSource datasource = new SingleConnectionDataSource(conn, false);
+            NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasource);
+            list = jdbcTemplate.queryForList(sqlForUse, pmap);
         }
-        SingleConnectionDataSource datasource = new SingleConnectionDataSource(conn, false);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasource);
-        List<Map<String, Object>> list = jdbcTemplate.queryForList(sqlForUse, pmap);
+        long end = System.currentTimeMillis();
+        String msg = "END   [" + start + "] SQL EXECUTION TIME:" + (end - start) + "ms";
+        Utils.logToConsole(msg);
         return new Dataset(name, list);
     }
 
@@ -116,6 +128,10 @@ public class SqlDatasetDefinition implements DatasetDefinition {
 
     public void setSqlExpression(Expression sqlExpression) {
         this.sqlExpression = sqlExpression;
+    }
+
+    public Expression getSqlExpression() {
+        return sqlExpression;
     }
 
     public List<Parameter> getParameters() {

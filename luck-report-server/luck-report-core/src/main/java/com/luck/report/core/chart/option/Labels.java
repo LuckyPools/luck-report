@@ -17,11 +17,16 @@ package com.luck.report.core.chart.option;
 
 import com.luck.report.core.chart.FontStyle;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class Labels {
+public class Labels implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public Labels() {}
     private int boxWidth = 40;
     private int fontSize = 12;
     private FontStyle fontStyle = FontStyle.normal;

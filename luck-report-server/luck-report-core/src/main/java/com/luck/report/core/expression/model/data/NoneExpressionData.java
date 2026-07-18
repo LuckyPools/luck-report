@@ -15,13 +15,27 @@
  ******************************************************************************/
 package com.luck.report.core.expression.model.data;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年5月5日
  */
-public class NoneExpressionData implements ExpressionData<Object> {
+public class NoneExpressionData implements ExpressionData<Object>, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public NoneExpressionData() {}
+
     @Override
     public Object getData() {
         return null;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的data字段
+     * @param data 数据对象（忽略）
+     */
+    public void setData(Object data) {
+        // 空实现，忽略data字段
     }
 }

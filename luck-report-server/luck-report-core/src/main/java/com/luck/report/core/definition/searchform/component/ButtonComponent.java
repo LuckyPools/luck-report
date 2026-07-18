@@ -1,10 +1,13 @@
 package com.luck.report.core.definition.searchform.component;
 
 import com.luck.report.core.definition.searchform.RenderContext;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ButtonComponent implements Component {
+import java.io.Serializable;
+
+public class ButtonComponent implements Component, Serializable {
+    private static final long serialVersionUID = 1L;
     private String label;
     private String type;
     private String size;
@@ -22,6 +25,11 @@ public class ButtonComponent implements Component {
 
     @JsonProperty("vModel")
     private String vModel;
+
+    /**
+     * 默认无参构造器
+     */
+    public ButtonComponent() {}
 
     @Override
     public String toHtml(RenderContext context) {
@@ -138,7 +146,7 @@ public class ButtonComponent implements Component {
         this.renderKey = renderKey;
     }
 
-    @JsonIgnore
+    @JsonIgnore // 内部重构
     public String getVModel() {
         return vModel;
     }

@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-btn-group">
+  <div class="u-inline">
     <ButtonGroup
       :buttonText="currentFontFamily"
       :showText="true"
@@ -89,7 +89,7 @@ export default {
 
       const table = TableManager.get();
       const selected = table.getSelected();
-      let startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      let [startRow, startCol, endRow, endCol] = selected[0];
 
       if (startRow > endRow) {
         [startRow, endRow] = [endRow, startRow];
@@ -196,4 +196,13 @@ export default {
 </script>
 
 <style scoped>
+.font-family-tool-dropdown ::v-deep .button-text {
+  display: inline-block;
+  vertical-align: top;
+  width: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 0;
+}
 </style>

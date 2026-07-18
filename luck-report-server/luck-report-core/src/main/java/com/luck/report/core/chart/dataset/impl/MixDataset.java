@@ -22,6 +22,7 @@ import com.luck.report.core.chart.dataset.impl.category.LineDataset;
 import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.model.Cell;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +30,10 @@ import java.util.List;
  * @author Jacky.gao
  * @since 2017年6月8日
  */
-public class MixDataset implements Dataset {
+public class MixDataset implements Dataset, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public MixDataset() {}
     private List<BarDataset> barDatasets = new ArrayList<BarDataset>();
     private List<LineDataset> lineDatasets = new ArrayList<LineDataset>();
 
@@ -63,6 +67,14 @@ public class MixDataset implements Dataset {
     @Override
     public String getType() {
         return "bar";
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(String type) {
+        // 空实现，忽略type字段
     }
 
     public List<BarDataset> getBarDatasets() {

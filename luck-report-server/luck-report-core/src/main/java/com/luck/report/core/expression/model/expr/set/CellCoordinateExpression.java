@@ -35,10 +35,14 @@ import java.util.List;
  * @since 2017年1月1日
  */
 public class CellCoordinateExpression extends CellExpression {
-    private static final long serialVersionUID = 4132183845260722859L;
+    private static final long serialVersionUID = 1L;
     private Condition condition;
     private CellCoordinateSet leftCoordinate;
     private CellCoordinateSet topCoordinate;
+
+    public CellCoordinateExpression() {
+        super(null);
+    }
 
     public CellCoordinateExpression(String cellName, CellCoordinateSet leftCoordinate) {
         super(cellName);
@@ -288,5 +292,84 @@ public class CellCoordinateExpression extends CellExpression {
         }
         List<Cell> topCellList = targetTopCell.getColumnChildrenCellsMap().get(cellName);
         return topCellList;
+    }
+
+    /**
+     * 获取条件
+     * @return 条件
+     */
+    public Condition getCondition() {
+        return condition;
+    }
+
+    /**
+     * 设置条件
+     * @param condition 条件
+     */
+    public void setCondition(Condition condition) {
+        this.condition = condition;
+    }
+
+    /**
+     * 获取左侧坐标集
+     * @return 左侧坐标集
+     */
+    public CellCoordinateSet getLeftCoordinate() {
+        return leftCoordinate;
+    }
+
+    /**
+     * 设置左侧坐标集
+     * @param leftCoordinate 左侧坐标集
+     */
+    public void setLeftCoordinate(CellCoordinateSet leftCoordinate) {
+        this.leftCoordinate = leftCoordinate;
+    }
+
+    /**
+     * 获取顶部坐标集
+     * @return 顶部坐标集
+     */
+    public CellCoordinateSet getTopCoordinate() {
+        return topCoordinate;
+    }
+
+    /**
+     * 设置顶部坐标集
+     * @param topCoordinate 顶部坐标集
+     */
+    public void setTopCoordinate(CellCoordinateSet topCoordinate) {
+        this.topCoordinate = topCoordinate;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (condition != null) {
+            list.addAll(condition.fetchCellName());
+        }
+        if (leftCoordinate != null) {
+            List<CellCoordinate> cellCoordinates = leftCoordinate.getCellCoordinates();
+            if (cellCoordinates != null && cellCoordinates.size() > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (CellCoordinate c : cellCoordinates) {
+                    sb.append(c.getCellName()).append(":");
+                }
+                sb.append(cellName);
+                list.add(sb.toString());
+            }
+        }
+        if (topCoordinate != null) {
+            List<CellCoordinate> cellCoordinates = topCoordinate.getCellCoordinates();
+            if (cellCoordinates != null && cellCoordinates.size() > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (CellCoordinate c : cellCoordinates) {
+                    sb.append(c.getCellName()).append(":");
+                }
+                sb.append(cellName);
+                list.add(sb.toString());
+            }
+        }
+        return list;
     }
 }

@@ -14,7 +14,7 @@ export function doDeleteCol() {
         showAlert($t('table.colTip'));
         return;
     }
-    let startCol = selected[1], endCol = selected[3];
+    let [startRow, startCol, endRow, endCol] = selected[0];
     if (endCol < startCol) {
         let tempStartCol = startCol;
         startCol = endCol;

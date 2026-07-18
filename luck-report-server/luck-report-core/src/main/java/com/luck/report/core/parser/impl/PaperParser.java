@@ -18,7 +18,8 @@ package com.luck.report.core.parser.impl;
 import com.luck.report.core.definition.*;
 import com.luck.report.core.parser.Parser;
 import com.luck.report.core.definition.*;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.dom4j.Element;
 
 /**
@@ -76,7 +77,10 @@ public class PaperParser implements Parser<Paper> {
         if (StringUtils.isNotBlank(htmlIntervalRefreshValue)) {
             paper.setHtmlIntervalRefreshValue(Integer.valueOf(htmlIntervalRefreshValue));
         }
-        paper.setBgImage(element.attributeValue("bg-image"));
+        String bgImage = element.attributeValue("bg-image");
+        if (StringUtils.isNotBlank(bgImage)) {
+            paper.setBgImage(StringEscapeUtils.unescapeXml(bgImage));
+        }
         return paper;
     }
 }

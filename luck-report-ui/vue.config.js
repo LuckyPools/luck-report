@@ -13,6 +13,7 @@ module.exports = {
     proxy: {
       '/api': {
         target: API_BASE_URL,
+        // 匹配 luck-report.servletPrefix
         pathRewrite: { '^/api': '/report' },
         ws: true,
         changeOrigin: true

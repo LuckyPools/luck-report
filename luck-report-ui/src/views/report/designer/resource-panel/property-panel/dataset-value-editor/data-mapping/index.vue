@@ -1,15 +1,11 @@
 <template>
   <div class="data-mapping-tab">
-    <!-- 数据映射选项卡内容 -->
-    <div style="padding-top: 10px">
-      <!-- 当没有选择数据集或聚合类型不支持映射时显示提示 -->
-      <div v-if="!showMappingOptions" class="alert alert-info" style="margin-bottom: 10px;">
-      </div>
+    <u-form :label-width="100" labelPosition="left">
+      <div style="padding-top: 10px">
+        <div v-if="!showMappingOptions" class="alert alert-info" style="margin-bottom: 10px;">
+        </div>
 
-      <!-- 映射类型选择 -->
-      <div v-show="showMappingOptions" class="form-group">
-        <label>{{ $t('property.dataset.mappingType') }}：</label>
-        <div class="u-inline">
+        <u-form-item :label="$t('property.dataset.mappingType')" v-show="showMappingOptions">
           <u-radio-group
               v-model="localMappingType"
               @change="handleMappingTypeChange">
@@ -21,62 +17,55 @@
             {{ option.label }}
             </u-radio>
           </u-radio-group>
-        </div>
-      </div>
+        </u-form-item>
 
-      <!-- 简单映射 -->
-      <div v-show="showMappingOptions && localMappingType === 'simple'" class="form-group">
-        <div class="top-button">
-          <u-button
-              type="info"
-              :title="$t('property.dataset.addMappping')"
-              @click="handleAddMapping"
-              icon="icon-plus-circle"
-          >
-          </u-button>
+        <div v-show="showMappingOptions && localMappingType === 'simple'" class="form-group table-wrapper">
+          <div class="top-button">
+            <u-button
+                type="info"
+                :title="$t('property.dataset.addMappping')"
+                @click="handleAddMapping"
+                icon="icon-plus-circle"
+            >
+            </u-button>
+          </div>
+          <table class="table-container" style="margin-top: 10px">
+            <thead>
+              <tr>
+                <th style="width: 130px;"><span>{{ $t('property.dataset.realValue') }}</span></th>
+                <th style="width: 150px;"><span>{{ $t('property.dataset.displayValue') }}</span></th>
+                <th style="width: 80px;"><span>{{ $t('property.dataset.op') }}</span></th>
+              </tr>
+            </thead>
+            <tbody style="font-size: 12px">
+              <tr v-for="(item, index) in localMappingItems" :key="index" style="height: 30px">
+                <td><span>{{ item.value }}</span></td>
+                <td><span>{{ item.label }}</span></td>
+                <td>
+                  <u-button
+                      type="info"
+                      icon="icon-edit"
+                      :title="$t('dialog.urlParam.edit')"
+                      @click="handleEditMapping(index)"
+                      style="border: none">
+                  </u-button>
+                  <u-button
+                      type="info"
+                      icon="icon-delete"
+                      :title="$t('dialog.urlParam.delete')"
+                      @click="handleDeleteMapping(index)"
+                      style="border: none;color: red">
+                  </u-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table" style="margin-top: 10px">
-          <thead>
-            <tr style="background-color: #f5f5f5;height: 30px;">
-              <td style="width: 130px;"><span>{{ $t('property.dataset.realValue') }}</span></td>
-              <td style="width: 150px;"><span>{{ $t('property.dataset.displayValue') }}</span></td>
-              <td style="width: 80px;"><span>{{ $t('property.dataset.op') }}</span></td>
-            </tr>
-          </thead>
-          <tbody style="font-size: 12px">
-            <tr v-for="(item, index) in localMappingItems" :key="index" style="height: 30px">
-              <td><span>{{ item.value }}</span></td>
-              <td><span>{{ item.label }}</span></td>
-              <td>
-                <u-button
-                    type="info"
-                    icon="icon-edit"
-                    :title="$t('dialog.urlParam.edit')"
-                    @click="handleEditMapping(index)"
-                    style="border: none">
-                </u-button>
-                <u-button
-                    type="info"
-                    icon="icon-delete"
-                    :title="$t('dialog.urlParam.delete')"
-                    @click="handleDeleteMapping(index)"
-                    style="border: none">
-                </u-button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
 
-      <!-- 数据集映射 -->
-      <div v-show="showMappingOptions && localMappingType === 'dataset'" class="form-group">
-        <!-- 数据集选择 -->
-        <div class="form-group">
-          <label>{{ $t('property.dataset.dataset') }}：</label>
-          <div class="u-inline">
+        <div v-show="showMappingOptions && localMappingType === 'dataset'">
+          <u-form-item :label="$t('property.dataset.dataset')">
             <u-select
               v-model="localMappingDataset"
-              :clearable="true"
               @change="handleMappingDatasetChange"
             >
               <u-option
@@ -86,16 +75,11 @@
                 :label="option.label"
               />
             </u-select>
-          </div>
-        </div>
+          </u-form-item>
 
-        <!-- 键属性选择 -->
-        <div class="form-group">
-          <label>{{ $t('property.dataset.realValueProp') }}：</label>
-          <div class="u-inline">
+          <u-form-item :label="$t('property.dataset.realValueProp')">
             <u-select
               v-model="localMappingKeyProperty"
-              :clearable="true"
               @change="handleMappingKeyPropertyChange"
             >
               <u-option
@@ -105,16 +89,11 @@
                 :label="option.label"
               />
             </u-select>
-          </div>
-        </div>
+          </u-form-item>
 
-        <!-- 值属性选择 -->
-        <div class="form-group">
-          <label>{{ $t('property.dataset.displayValueProp') }}：</label>
-          <div class="u-inline">
+          <u-form-item :label="$t('property.dataset.displayValueProp')">
             <u-select
               v-model="localMappingValueProperty"
-              :clearable="true"
               @change="handleMappingValuePropertyChange"
             >
               <u-option
@@ -124,10 +103,10 @@
                 :label="option.label"
               />
             </u-select>
-          </div>
+          </u-form-item>
         </div>
       </div>
-    </div>
+    </u-form>
     <!-- 映射对话框 -->
     <mapping-dialog
       :visible.sync="dialogVisible"
@@ -147,6 +126,8 @@ import UOption from '@/components/option/index.vue';
 import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UButton from '@/components/button/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
 import { mapGetters } from 'vuex';
 
 export default {
@@ -157,7 +138,9 @@ export default {
     UOption,
     URadioGroup,
     URadio,
-    UButton
+    UButton,
+    UForm,
+    UFormItem
   },
   props: {
     datasets: {
@@ -241,23 +224,18 @@ export default {
     // 监听props变化，更新本地数据
     mappingType(newVal) {
       this.localMappingType = newVal;
-      this.$emit('mapping-type-change', newVal);
     },
     mappingItems(newVal) {
       this.localMappingItems = [...newVal];
-      this.$emit('mapping-items-change', newVal);
     },
     mappingDataset(newVal) {
       this.localMappingDataset = newVal;
-      this.$emit('mapping-dataset-change', newVal);
     },
     mappingKeyProperty(newVal) {
       this.localMappingKeyProperty = newVal;
-      this.$emit('mapping-key-property-change', newVal);
     },
     mappingValueProperty(newVal) {
       this.localMappingValueProperty = newVal;
-      this.$emit('mapping-value-property-change', newVal);
     },
     localMappingDataset: {
       handler() {
@@ -276,8 +254,8 @@ export default {
 
       // 加载选中数据集的字段
       if (this.localMappingDataset) {
-        for (let ds of this.datasources) {
-          let datasets = ds.datasets || [];
+        for (let datasource of this.datasources) {
+          let datasets = datasource.datasets || [];
           for (let dataset of datasets) {
             if (dataset.name === this.localMappingDataset) {
               this.mappingFields = dataset.fields || [];

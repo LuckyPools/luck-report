@@ -30,7 +30,11 @@ import java.util.Map;
  * @since 2017年4月5日
  */
 public class CellPositionExpression extends CellExpression {
-    private static final long serialVersionUID = 6881039873078990276L;
+    private static final long serialVersionUID = 1L;
+
+    public CellPositionExpression() {
+        super(null);
+    }
 
     public CellPositionExpression(String cellName) {
         super(cellName);

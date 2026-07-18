@@ -17,11 +17,13 @@ package com.luck.report.core.definition;
 
 import com.luck.report.core.build.Context;
 import com.luck.report.core.build.paging.HeaderFooter;
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 import java.util.List;
@@ -31,7 +33,7 @@ import java.util.List;
  * @since 2017年1月16日
  */
 public class HeaderFooterDefinition implements Serializable {
-    private static final long serialVersionUID = -7239528314017768029L;
+    private static final long serialVersionUID = 1L;
     private String left;
     private String center;
     private String right;
@@ -43,12 +45,17 @@ public class HeaderFooterDefinition implements Serializable {
     private boolean underline;
     private int height = 30;
     private int margin = 30;
-    @JsonIgnore
+    @JsonIgnore // 内部重构 left
     private Expression leftExpression;
-    @JsonIgnore
+    @JsonIgnore // 内部重构 center
     private Expression centerExpression;
-    @JsonIgnore
+    @JsonIgnore // 内部重构 right
     private Expression rightExpression;
+
+    /**
+     * 默认无参构造器
+     */
+    public HeaderFooterDefinition() {}
 
     public HeaderFooter buildHeaderFooter(int pageIndex, Context context) {
         HeaderFooter hf = new HeaderFooter();
@@ -110,20 +117,46 @@ public class HeaderFooterDefinition implements Serializable {
     public String getLeft() {
         return left;
     }
+
+    /**
+     * 设置左侧内容，同时自动解析表达式
+     * @param left 左侧内容字符串
+     */
     public void setLeft(String left) {
         this.left = left;
+        if (StringUtils.isNotBlank(left)) {
+            this.leftExpression = ExpressionUtils.parseExpression(left);
+        }
     }
+
     public String getCenter() {
         return center;
     }
+
+    /**
+     * 设置中间内容，同时自动解析表达式
+     * @param center 中间内容字符串
+     */
     public void setCenter(String center) {
         this.center = center;
+        if (StringUtils.isNotBlank(center)) {
+            this.centerExpression = ExpressionUtils.parseExpression(center);
+        }
     }
+
     public String getRight() {
         return right;
     }
+
+    /**
+     * 设置右侧内容，同时自动解析表达式
+     * @param right 右侧内容字符串
+     */
     public void setRight(String right) {
         this.right = right;
+        if (StringUtils.isNotBlank(right)) {
+            this.rightExpression = ExpressionUtils.parseExpression(right);
+        }
     }
     public String getFontFamily() {
         return fontFamily;

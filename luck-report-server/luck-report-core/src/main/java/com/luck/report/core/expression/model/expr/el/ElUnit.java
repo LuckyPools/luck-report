@@ -19,16 +19,21 @@ import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.expression.model.Operator;
 import com.luck.report.core.utils.ArithUtils;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年4月25日
  */
-public class ElUnit {
+public class ElUnit implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Object left;
     private Object right;
     private Operator op;
     private Operator nextOp;
     private ElUnit nextUnit;
+
+    public ElUnit() {}
 
     public Object compute() {
         if (right instanceof ElUnit) {

@@ -15,15 +15,23 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年3月14日
  */
-public class Slash {
+public class Slash implements Serializable {
+    private static final long serialVersionUID = 1L;
     private int x;
     private int y;
     private int degree;
     private String text;
+
+    /**
+     * 默认无参构造器
+     */
+    public Slash() {}
 
     public int getX() {
         return x;

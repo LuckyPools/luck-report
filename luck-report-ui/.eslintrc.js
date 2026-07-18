@@ -54,7 +54,8 @@ module.exports = {
         'multiline-ternary': 0
     },
     parserOptions: {
-        parser: 'babel-eslint'
+        parser: '@babel/eslint-parser',
+        requireConfigFile: false
     },
     overrides: [
         {

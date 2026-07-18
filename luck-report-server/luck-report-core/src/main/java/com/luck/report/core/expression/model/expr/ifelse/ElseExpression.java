@@ -21,13 +21,18 @@ import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.expression.model.expr.ExpressionBlock;
 import com.luck.report.core.model.Cell;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Jacky.gao
  * @since 2017年1月16日
  */
 public class ElseExpression extends BaseExpression {
-    private static final long serialVersionUID = 7686136494993309779L;
+    private static final long serialVersionUID = 1L;
     private ExpressionBlock expression;
+
+    public ElseExpression() {}
 
     @Override
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
@@ -40,5 +45,14 @@ public class ElseExpression extends BaseExpression {
 
     public void setExpression(ExpressionBlock expression) {
         this.expression = expression;
+    }
+
+    @Override
+    public List<String> fetchCellName() {
+        List<String> list = new ArrayList<String>();
+        if (expression != null) {
+            list.addAll(expression.fetchCellName());
+        }
+        return list;
     }
 }

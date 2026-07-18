@@ -21,15 +21,17 @@ import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.model.Cell;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Jacky.gao
  * @since 2017年1月20日
  */
 public class CellObjectExpression extends BaseExpression {
-    private static final long serialVersionUID = 1558531964770533126L;
+    private static final long serialVersionUID = 1L;
     private String property;
+
+    public CellObjectExpression() {}
 
     public CellObjectExpression(String property) {
         this.property = property;
@@ -45,5 +47,21 @@ public class CellObjectExpression extends BaseExpression {
             return new ObjectExpressionData(obj);
         }
         return new ObjectExpressionData(cell);
+    }
+
+    /**
+     * 获取属性名
+     * @return 属性名
+     */
+    public String getProperty() {
+        return property;
+    }
+
+    /**
+     * 设置属性名
+     * @param property 属性名
+     */
+    public void setProperty(String property) {
+        this.property = property;
     }
 }

@@ -17,25 +17,23 @@ package com.luck.report.core.definition;
 
 import com.luck.report.core.definition.datasource.DatasourceDefinition;
 import com.luck.report.core.definition.searchform.SearchForm;
+import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.model.Cell;
 import com.luck.report.core.model.Column;
 import com.luck.report.core.model.Report;
 import com.luck.report.core.model.Row;
-import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.annotate.JsonIgnore;
+import org.apache.commons.lang3.StringUtils;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Jacky.gao
  * @since 2016年11月1日
  */
 public class ReportDefinition implements Serializable {
-	private static final long serialVersionUID = 5934291400824773809L;
+	private static final long serialVersionUID = 1L;
 	private String reportFullName;
 	private Paper paper;
 	private CellDefinition rootCell;
@@ -46,8 +44,14 @@ public class ReportDefinition implements Serializable {
 	private List<RowDefinition> rows;
 	private List<ColumnDefinition> columns;
 	private List<DatasourceDefinition> datasources;
-	@JsonIgnore
+	@JsonIgnore // 内部重构
 	private String style;
+
+	/**
+	 * 默认无参构造器
+	 */
+	public ReportDefinition() {
+	}
 
 	public Report newReport() {
 		Report report = new Report();
@@ -108,7 +112,9 @@ public class ReportDefinition implements Serializable {
 			}
 			report.addCell(cell);
 		}
+		Map<String, CellDefinition> cellDefinitionMap = new HashMap<>();
 		for (CellDefinition cellDef : cells) {
+			cellDefinitionMap.put(cellDef.getName(), cellDef);
 			Cell targetCell = cellMap.get(cellDef);
 			CellDefinition leftParentCellDef = cellDef.getLeftParentCell();
 			if (leftParentCellDef != null) {
@@ -123,21 +129,141 @@ public class ReportDefinition implements Serializable {
 				targetCell.setTopParentCell(null);
 			}
 		}
+		// 预计算每个 Cell 的 行列子单元格
+		for (CellDefinition cellDef : cells) {
+			Set<String> dependencyCellNames = ExpressionUtils.getDependencyCellNames(cellDef, cellDefinitionMap);
+			if (!dependencyCellNames.isEmpty()) {
+				for (String cellName : dependencyCellNames) {
+					// 处理冒号分隔的多级依赖单元格坐标 [A1:B1:C1]
+					if (cellName.contains(":")) {
+						setChildCellNames(cellName.split(":"), cellDefinitionMap, cellMap);
+						continue;
+					}
+					CellDefinition leftParent = fetchLeftParent(cellDef, cellName);
+					if (leftParent != null) {
+						Cell targetCell = null;
+						if (leftParent.getName().equals(cellName)) {
+							CellDefinition parent = leftParent.getLeftParentCell();
+							if (parent != null) {
+								targetCell = cellMap.get(parent);
+							}
+						} else {
+							targetCell = cellMap.get(leftParent);
+						}
+						if (targetCell != null) {
+							Set<String> rowChildNames = targetCell.getRowChildCellNames();
+							if (rowChildNames == null) {
+								rowChildNames = new HashSet<String>();
+								targetCell.setRowChildCellNames(rowChildNames);
+							}
+							rowChildNames.add(cellName);
+						}
+					}
+					CellDefinition topParent = fetchTopParent(cellDef, cellName);
+					if (topParent != null) {
+						Cell targetCell = null;
+						if (topParent.getName().equals(cellName)) {
+							CellDefinition parent = topParent.getTopParentCell();
+							if (parent != null) {
+								targetCell = cellMap.get(parent);
+							}
+						} else {
+							targetCell = cellMap.get(topParent);
+						}
+						if (targetCell != null) {
+							Set<String> columnChildNames = targetCell.getColumnChildCellNames();
+							if (columnChildNames == null) {
+								columnChildNames = new HashSet<String>();
+								targetCell.setColumnChildCellNames(columnChildNames);
+							}
+							columnChildNames.add(cellName);
+						}
+					}
+				}
+			}
+		}
 		for (CellDefinition cellDef : cells) {
 			Cell targetCell = cellMap.get(cellDef);
-
-			List<CellDefinition> rowChildrenCellDefinitions = cellDef.getRowChildrenCells();
-			for (CellDefinition childCellDef : rowChildrenCellDefinitions) {
-				Cell childCell = cellMap.get(childCellDef);
-				targetCell.addRowChild(childCell);
+			Cell leftParentCell = targetCell.getLeftParentCell();
+			if (leftParentCell != null) {
+				leftParentCell.addRowChild(targetCell);
 			}
-			List<CellDefinition> columnChildrenCellDefinitions = cellDef.getColumnChildrenCells();
-			for (CellDefinition childCellDef : columnChildrenCellDefinitions) {
-				Cell childCell = cellMap.get(childCellDef);
-				targetCell.addColumnChild(childCell);
+			Cell topParentCell = targetCell.getTopParentCell();
+			if (topParentCell != null) {
+				topParentCell.addColumnChild(targetCell);
 			}
 		}
 		return report;
+	}
+
+	/**
+	 * 处理冒号分隔的多级依赖单元格坐标绑定
+	 */
+	private void setChildCellNames(String[] cellNames, Map<String, CellDefinition> cellDefinitionMap, Map<CellDefinition, Cell> cellMap) {
+		for (int i = cellNames.length - 1; i > 0; i--) {
+			String name = cellNames[i];
+			String preName = cellNames[i - 1];
+			CellDefinition cur = cellDefinitionMap.get(name);
+			if (cur == null) {
+				continue;
+			}
+			CellDefinition leftParent = fetchLeftParent(cur, preName);
+			if (leftParent != null && leftParent.getName().equals(preName)) {
+				Cell targetCell = cellMap.get(leftParent);
+				Set<String> rowChildNames = targetCell.getRowChildCellNames();
+				if (rowChildNames == null) {
+					rowChildNames = new HashSet<String>();
+					targetCell.setRowChildCellNames(rowChildNames);
+				}
+				rowChildNames.add(name);
+			}
+			CellDefinition topParent = fetchTopParent(cur, preName);
+			if (topParent != null && topParent.getName().equals(preName)) {
+				Cell targetCell = cellMap.get(topParent);
+				Set<String> columnChildNames = targetCell.getColumnChildCellNames();
+				if (columnChildNames == null) {
+					columnChildNames = new HashSet<String>();
+					targetCell.setColumnChildCellNames(columnChildNames);
+				}
+				columnChildNames.add(name);
+			}
+		}
+	}
+
+	/**
+	 * 沿左父格链向上查找匹配指定名称的 CellDefinition
+	 */
+	private CellDefinition fetchLeftParent(CellDefinition cellDef, String cellName) {
+		CellDefinition leftParentCell = cellDef.getLeftParentCell();
+		if (leftParentCell == null) {
+			return null;
+		}
+		if (leftParentCell.getName().equals(cellName)) {
+			return leftParentCell;
+		}
+		Set<String> newCellNames = leftParentCell.getNewCellNames();
+		if (newCellNames != null && newCellNames.contains(cellName)) {
+			return leftParentCell;
+		}
+		return fetchLeftParent(leftParentCell, cellName);
+	}
+
+	/**
+	 * 沿上父格链向上查找匹配指定名称的 CellDefinition
+	 */
+	private CellDefinition fetchTopParent(CellDefinition cellDef, String cellName) {
+		CellDefinition topParentCell = cellDef.getTopParentCell();
+		if (topParentCell == null) {
+			return null;
+		}
+		if (topParentCell.getName().equals(cellName)) {
+			return topParentCell;
+		}
+		Set<String> newCellNames = topParentCell.getNewCellNames();
+		if (newCellNames != null && newCellNames.contains(cellName)) {
+			return topParentCell;
+		}
+		return fetchTopParent(topParentCell, cellName);
 	}
 
 	public String getStyle() {

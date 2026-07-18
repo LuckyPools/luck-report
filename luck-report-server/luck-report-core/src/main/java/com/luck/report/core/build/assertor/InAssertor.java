@@ -45,9 +45,13 @@ public class InAssertor implements Assertor {
             }
             return false;
         } else if (right instanceof String) {
+            String leftString = String.valueOf(left);
+            if (leftString.equals(right)) {
+                return true;
+            }
             String[] array = right.toString().split(",");
-            for (String str : array) {
-                if (left.equals(str)) {
+            for (String target : array) {
+                if (leftString.equals(target)) {
                     return true;
                 }
             }

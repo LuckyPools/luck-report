@@ -20,6 +20,7 @@ import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * @author Jacky.gao
@@ -27,4 +28,10 @@ import java.io.Serializable;
  */
 public interface Expression extends Serializable {
     ExpressionData<?> execute(Cell cell, Cell currentCell, Context context);
+
+    /**
+     * 从表达式中提取引用的单元格名称
+     * @return 引用的单元格名称列表
+     */
+    List<String> fetchCellName();
 }

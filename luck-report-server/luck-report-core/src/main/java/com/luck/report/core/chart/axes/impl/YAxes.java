@@ -24,6 +24,9 @@ import com.luck.report.core.chart.axes.YPosition;
  * @since 2017年6月14日
  */
 public class YAxes extends BaseAxes {
+    private static final long serialVersionUID = 1L;
+
+    public YAxes() {}
     private YPosition yposition;
 
     @Override

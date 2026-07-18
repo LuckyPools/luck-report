@@ -25,8 +25,10 @@ import com.luck.report.core.model.Cell;
  * @since 2018年7月15日
  */
 public class VariableExpression extends BaseExpression {
-    private static final long serialVersionUID = 4810887743258516630L;
+    private static final long serialVersionUID = 1L;
     private String text;
+
+    public VariableExpression() {}
 
     public VariableExpression(String text) {
         this.text = text;
@@ -36,5 +38,21 @@ public class VariableExpression extends BaseExpression {
     protected ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
         Object obj = context.getVariable(text);
         return new ObjectExpressionData(obj);
+    }
+
+    /**
+     * 获取变量名
+     * @return 变量名
+     */
+    public String getText() {
+        return text;
+    }
+
+    /**
+     * 设置变量名
+     * @param text 变量名
+     */
+    public void setText(String text) {
+        this.text = text;
     }
 }

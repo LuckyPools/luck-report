@@ -6,12 +6,18 @@ import com.luck.report.core.definition.searchform.RenderContext;
 import java.util.List;
 
 public class RadioGroupComponent extends BaseInputComponent {
+    private static final long serialVersionUID = 1L;
     private List<Option> options;
     private boolean disabled;
     private String optionType;
     private boolean border;
     private String size;
     private String defaultValue;
+
+    /**
+     * 默认无参构造器
+     */
+    public RadioGroupComponent() {}
 
     @Override
     public String initJs(RenderContext context) {

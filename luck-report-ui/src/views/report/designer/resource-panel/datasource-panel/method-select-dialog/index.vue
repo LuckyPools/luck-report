@@ -2,6 +2,7 @@
   <UDialog
       :title="$t('dialog.methodSelect.title')"
       width="600px"
+      top="25vh"
       :visible="visible"
       @close="closeDialog"
       :loading="loading"
@@ -10,9 +11,9 @@
       {{ $t('dialog.methodSelect.load') }}
     </div>
     <div v-else>
-      <table class="data-table">
+      <table class="table-container">
         <thead>
-        <tr style="background: #f4f4f4; height: 30px;">
+        <tr>
           <td><span>{{ $t('dialog.methodSelect.methodName') }}</span></td>
           <td><span>{{ $t('dialog.methodSelect.select') }}</span></td>
         </tr>
@@ -21,7 +22,7 @@
         <tr v-for="(methodItem, index) in methods" :key="index" style="height: 35px;">
           <td><span>{{ methodItem }}</span></td>
           <td>
-            <u-button type="text" icon="icon-hand-up" @click="selectMethod(methodItem)"></u-button>
+            <u-button type="info" icon="icon-hand-up" style="border: none;" @click="selectMethod(methodItem)"></u-button>
           </td>
         </tr>
         </tbody>
@@ -34,7 +35,7 @@
 </template>
 
 <script>
-import { loadMethods } from '@/api/designer/index.js';
+import {loadMethods} from '@/api/designer/index.js';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 import {showAlert} from "@/utils/comnon";
@@ -81,15 +82,14 @@ export default {
     async loadMethods() {
       this.loading = true;
       try {
-        const response = await loadMethods(this.beanId);
-        this.methods = response;
+        this.methods = await loadMethods(this.beanId);
         this.loading = false;
       } catch (error) {
         this.loading = false;
         if (error.msg) {
-          showAlert("服务端错误：" + error.msg);
+          showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
-          showAlert(`加载方法[${this.beanId}]失败`);
+          showAlert(this.$t('methodSelect.loadFail', { beanId: this.beanId }));
         }
       }
     },

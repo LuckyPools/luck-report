@@ -15,79 +15,179 @@
  ******************************************************************************/
 package com.luck.report.core.cache;
 
-import com.luck.report.core.chart.ChartData;
-import com.luck.report.core.definition.ReportDefinition;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
+
+import com.luck.report.core.Utils;
+import com.luck.report.core.exception.ReportException;
+import com.luck.report.core.model.Report;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.Set;
 
 /**
- * @author Jacky.gao
- * @since 2017年3月8日
+ * 缓存操作统一入口工具类。
+ * @author luckyPools
+ * @since 2026年05月15日
  */
-public class CacheUtils implements ApplicationContextAware {
-    private static ReportCache reportCache;
-    private static ReportDefinitionCache reportDefinitionCache;
-    private static String CHART_DATA_KEY = "_chart_data_";
+public class CacheUtils {
 
-    @SuppressWarnings("unchecked")
-    public static ChartData getChartData(String chartId) {
-        String key = CHART_DATA_KEY;
-        if (reportCache != null) {
-            Map<String, ChartData> chartDataMap = (Map<String, ChartData>) reportCache.getObject(key);
-            if (chartDataMap != null) {
-                return chartDataMap.get(chartId);
+    /**
+     * 通用缓存服务实例，使用 volatile 保证多线程可见性
+     */
+    private static volatile ReportCache reportCache;
+
+    /**
+     * 缓存前缀
+     */
+    private static volatile ReportCacheKeyResolver reportCacheKeyResolver;
+
+    /**
+     * 获取缓存服务实例，使用双重检查锁定保证线程安全。
+     *
+     * @return 缓存服务实例
+     * @throws IllegalStateException 当缓存服务未初始化时抛出
+     */
+    private static ReportCache getReportCache() {
+        if (reportCache == null) {
+            synchronized (CacheUtils.class) {
+                if (reportCache == null) {
+                    Collection<ReportCache> services = Utils.getApplicationContext().getBeansOfType(ReportCache.class).values();
+                    for (ReportCache cache : services) {
+                        if (cache.disabled()) {
+                            continue;
+                        }
+                        reportCache = cache;
+                        break;
+                    }
+                    if (reportCache == null) {
+                        throw new ReportException("Missing ReportCache implementation. Please verify your configuration.");
+                    }
+                }
             }
         }
-        return null;
+        return reportCache;
     }
 
-    public static void storeChartDataMap(Map<String, ChartData> map) {
-        String key = CHART_DATA_KEY;
-        if (reportCache != null) {
-            reportCache.storeObject(key, map);
-        }
-    }
 
-    public static Object getObject(String file) {
-        if (reportCache != null) {
-            return reportCache.getObject(file);
-        }
-        return null;
-    }
-
-    public static void storeObject(String file, Object obj) {
-        if (reportCache != null) {
-            reportCache.storeObject(file, obj);
-        }
-    }
-
-    public static ReportDefinition getReportDefinition(String file) {
-        return reportDefinitionCache.getReportDefinition(file);
-    }
-
-    public static void cacheReportDefinition(String file, ReportDefinition reportDefinition) {
-        reportDefinitionCache.cacheReportDefinition(file, reportDefinition);
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        Collection<ReportCache> coll = applicationContext.getBeansOfType(ReportCache.class).values();
-        for (ReportCache cache : coll) {
-            if (cache.disabled()) {
-                continue;
+    /**
+     * 获取缓存服务实例，使用双重检查锁定保证线程安全。
+     *
+     * @return 缓存服务实例
+     * @throws IllegalStateException 当缓存服务未初始化时抛出
+     */
+    private static ReportCacheKeyResolver getReportCacheKeyResolver() {
+        if (reportCacheKeyResolver == null) {
+            synchronized (CacheUtils.class) {
+                if (reportCacheKeyResolver == null) {
+                    Collection<ReportCacheKeyResolver> services = Utils.getApplicationContext().getBeansOfType(ReportCacheKeyResolver.class).values();
+                    for (ReportCacheKeyResolver resolver : services) {
+                        if (resolver.disabled()) {
+                            continue;
+                        }
+                        reportCacheKeyResolver = resolver;
+                        break;
+                    }
+                    if (reportCacheKeyResolver == null) {
+                        throw new ReportException("Missing ReportCacheKeyResolver implementation. Please verify your configuration.");
+                    }
+                }
             }
-            reportCache = cache;
-            break;
         }
-        Collection<ReportDefinitionCache> reportCaches = applicationContext.getBeansOfType(ReportDefinitionCache.class).values();
-        if (reportCaches.isEmpty()) {
-            reportDefinitionCache = new DefaultMemoryReportDefinitionCache();
-        } else {
-            reportDefinitionCache = reportCaches.iterator().next();
-        }
+        return reportCacheKeyResolver;
+    }
+
+
+    /**
+     * 根据键获取缓存值。
+     *
+     * @param key 缓存键，不能为空
+     * @param <T> 返回值类型
+     * @return 缓存值，不存在或已过期返回 null
+     */
+    public static <T> T get(String key) {
+        return getReportCache().get(key);
+    }
+
+    /**
+     * 根据键获取缓存值并转换为指定类型。
+     *
+     * @param key   缓存键，不能为空
+     * @param clazz 目标类型，不能为空
+     * @param <T>   返回值类型
+     * @return 缓存值，不存在或已过期返回 null
+     */
+    public static <T> T get(String key, Class<T> clazz) {
+        return getReportCache().get(key, clazz);
+    }
+
+    /**
+     * 存入缓存，使用默认过期时间（5 分钟）。
+     *
+     * @param key   缓存键，不能为空
+     * @param value 缓存值，不能为空
+     * @param <T>   值类型
+     */
+    public static <T> void put(String key, T value) {
+        getReportCache().put(key, value);
+    }
+
+    /**
+     * 存入缓存，指定过期时间。
+     *
+     * @param key   缓存键，不能为空
+     * @param value 缓存值，不能为空
+     * @param time  过期时间，单位：秒
+     * @param <T>   值类型
+     */
+    public static <T> void put(String key, T value, long time) {
+        getReportCache().put(key, value, time);
+    }
+
+    /**
+     * 判断缓存键是否存在且未过期。
+     *
+     * @param key 缓存键，不能为空
+     * @return 存在且未过期返回 true，否则返回 false
+     */
+    public static boolean exists(String key) {
+        return getReportCache().exists(key);
+    }
+
+    /**
+     * 删除指定缓存键。
+     *
+     * @param key 缓存键，不能为空
+     */
+    public static void remove(String key) {
+        getReportCache().remove(key);
+    }
+
+    /**
+     * 根据前缀查询匹配的所有缓存键。
+     *
+     * @param keyPatten 缓存键前缀，不能为空
+     * @return 匹配的缓存键集合
+     */
+    public static Set<String> keys(String keyPatten) {
+        return getReportCache().keys(keyPatten);
+    }
+
+    /**
+     * 设置缓存键的过期时间。
+     *
+     * @param key  缓存键，不能为空
+     * @param time 过期时间，单位：秒
+     * @return 设置成功返回 true，键不存在或已过期返回 false
+     */
+    public static boolean setExpire(String key, long time) {
+        return getReportCache().setExpire(key, time);
+    }
+
+
+    /**
+     * 获取隔离缓存前缀
+     * @return
+     */
+    public static String getCacheScopePrefix(){
+        return getReportCacheKeyResolver().getPrefix();
     }
 }

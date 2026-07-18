@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-btn-group">
+  <div class="u-inline">
     <ButtonGroup
       iconClass="iconfont icon-pie-chart"
       :title="$t('tools.chart.chart')"
@@ -120,7 +120,7 @@ export default {
 
       const hot = TableManager.get();
       const selected = hot.getSelected();
-      const startRow = selected[0], startCol = selected[1], endRow = selected[2], endCol = selected[3];
+      const [startRow, startCol, endRow, endCol] = selected[0];
       const cellDef = getCell(startRow, startCol);
       const oldValue = cellDef.value;
       const oldCellData = hot.getDataAtCell(startRow, startCol);

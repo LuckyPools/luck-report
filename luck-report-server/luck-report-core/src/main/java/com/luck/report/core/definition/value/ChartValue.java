@@ -15,14 +15,23 @@
  ******************************************************************************/
 package com.luck.report.core.definition.value;
 
+
 import com.luck.report.core.chart.Chart;
+
+import java.io.Serializable;
 
 /**
  * @author Jacky.gao
  * @since 2017年6月9日
  */
-public class ChartValue implements Value {
+public class ChartValue implements Value, Serializable {
+    private static final long serialVersionUID = 1L;
     private Chart chart;
+
+    /**
+     * 默认无参构造器
+     */
+    public ChartValue() {}
 
     @Override
     public String getValue() {
@@ -32,6 +41,22 @@ public class ChartValue implements Value {
     @Override
     public ValueType getType() {
         return ValueType.chart;
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的type字段
+     * @param type 类型（忽略）
+     */
+    public void setType(ValueType type) {
+        // 空实现，忽略type字段
+    }
+
+    /**
+     * 空实现，用于兼容JSON反序列化时可能存在的value字段
+     * @param value 值（忽略）
+     */
+    public void setValue(String value) {
+        // 空实现，忽略value字段
     }
 
     public Chart getChart() {

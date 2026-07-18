@@ -24,7 +24,6 @@ import java.util.Map;
  * @since 2016年12月4日
  */
 public interface ExportManager {
-    public static final String BEAN_ID = "luck-report.exportManager";
 
     /**
      * 导出Html报表

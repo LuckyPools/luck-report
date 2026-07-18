@@ -2,7 +2,7 @@
   <UDialog
     :title="$t('dialog.setting.title')"
     width="800px"
-    :visible="dialogVisible"
+    :visible="visible"
     @close="handleClose"
   >
     <div class="settings-dialog">
@@ -102,7 +102,7 @@ import UButton from "@/components/button/index.vue";
 import UTabs from "@/components/tabs/index.vue";
 import UTabPane from "@/components/tabs/pane.vue";
 import PageSettings from './page/index.vue';
-import HeaderFooterSettings from './headerFooter/index.vue';
+import HeaderFooterSettings from '@/views/report/designer/tool-bar/settings-tool/settings-dialog/header-footer/index.vue';
 import PagingSettings from './paging/index.vue';
 import ColumnSettings from './column/index.vue';
 import { mapGetters } from 'vuex';
@@ -129,10 +129,8 @@ export default {
   },
   data() {
     return {
-      dialogVisible: false,
       activeTab: 'page',
       paperSizeList: buildPageSizeList(),
-      initializing: false, // 添加初始化标志
       paper: {
         paperType: 'A4',
         width: mmToPoint(210),
@@ -176,7 +174,8 @@ export default {
         underline: false
       },
       headerFontDialogVisible: false,
-      footerFontDialogVisible: false
+      footerFontDialogVisible: false,
+      isPrintLineRefresh: false
     };
   },
   computed: {
@@ -185,23 +184,9 @@ export default {
       return this.getContext;
     }
   },
-  created() {
-    // 初始化dialogVisible
-    this.dialogVisible = this.visible;
-
-    if (this.visible && this.context) {
-      this.initializeData();
-    }
-  },
   watch: {
     visible(newVal) {
-      this.dialogVisible = newVal;
       if (newVal && this.context) {
-        this.initializeData();
-      }
-    },
-    context(newVal) {
-      if (newVal) {
         this.initializeData();
       }
     }
@@ -217,9 +202,6 @@ export default {
         console.error('context.reportDef 未定义，无法初始化数据');
         return;
       }
-
-      // 设置初始化标志
-      this.initializing = true;
 
       const reportDefCopy = deepCopy(this.context.reportDef);
 
@@ -241,17 +223,15 @@ export default {
       this.header = { ...reportDefCopy.header };
       this.footer = { ...reportDefCopy.footer };
 
-      // 初始化完成后，清除初始化标志
-      this.initializing = false;
+      this.isPrintLineRefresh = false;
+
     },
     handleClose() {
-      this.dialogVisible = false;
       this.$emit('close');
     },
     handleOk() {
       // 检查 reportDef 是否存在
       if (!this.context || !this.context.reportDef) {
-        this.dialogVisible = false;
         this.$emit('ok');
         return;
       }
@@ -268,23 +248,21 @@ export default {
         footer: newFooter
       });
 
-      this.dialogVisible = false;
+      if (this.isPrintLineRefresh) {
+        this.$store.dispatch('report/setIsPrintLineRefresh', true);
+      }
+
       this.$emit('ok');
     },
     updatePaperSize() {
       if (this.paper.paperType !== 'CUSTOM') {
         return;
       }
-
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
+      this.isPrintLineRefresh = true;
       setDirty();
     },
     updateMargins() {
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
+      this.isPrintLineRefresh = true;
       setDirty();
     },
     updateBackgroundImage() {
@@ -320,10 +298,6 @@ export default {
       this.footer = value;
     },
     handleFixRowsChange(value) {
-      if (this.initializing) {
-        return;
-      }
-
       if (this.paper.pagingMode === 'fixrows' && value < 1) {
         showAlert(this.$t('dialog.setting.fixRowsTip'));
         return;
@@ -381,16 +355,12 @@ export default {
         const pageSize = this.paperSizeList[value];
         this.paper.width = mmToPoint(pageSize.width);
         this.paper.height = mmToPoint(pageSize.height);
-        if (this.context && this.context.printLine) {
-          this.context.printLine.refresh();
-        }
+        this.isPrintLineRefresh = true;
       }
       setDirty();
     },
     handleOrientationChange() {
-      if (this.context && this.context.printLine) {
-        this.context.printLine.refresh();
-      }
+      this.isPrintLineRefresh = true;
       setDirty();
     },
     handleHtmlAlignChange() {
@@ -410,6 +380,11 @@ export default {
 </script>
 
 <style scoped>
+
+.settings-dialog{
+  height: 400px;
+}
+
 .tab-content {
   padding: 10px 0;
 }
@@ -421,4 +396,5 @@ export default {
 .btn-cancel {
   margin-right: 10px;
 }
+
 </style>

@@ -21,6 +21,9 @@ package com.luck.report.core.chart.dataset.impl.category;
  * @since 2017年6月9日
  */
 public class DoughnutDataset extends PieDataset {
+    private static final long serialVersionUID = 1L;
+
+    public DoughnutDataset() {}
     @Override
     public String getType() {
         return "doughnut";

@@ -16,11 +16,14 @@
 package com.luck.report.core.chart.dataset;
 
 
+import java.io.Serializable;
+
 /**
  * @author Jacky.gao
  * @since 2017年6月9日
  */
-public abstract class BaseDataset implements Dataset {
+public abstract class BaseDataset implements Dataset, Serializable {
+    private static final long serialVersionUID = 1L;
     protected String getRgbColor(int index) {
         String[] COLORS = {"255, 99, 132", "54, 162, 235", "255, 205, 86", "75, 192, 192",
                 "255, 159, 64", "153,102,255", "53,202,25", "201,203,207", "205,92,92",
