@@ -11,11 +11,11 @@ import java.util.Enumeration;
  * @description:
  * @date 2026-04-30 14:09
  */
-public class Boot3RequestInfoProvider implements RequestInfoProvider {
+public class Boot4RequestInfoProvider implements RequestInfoProvider {
 
     private final HttpServletRequest request;
 
-    public Boot3RequestInfoProvider(HttpServletRequest request) {
+    public Boot4RequestInfoProvider(HttpServletRequest request) {
         this.request = request;
     }
 

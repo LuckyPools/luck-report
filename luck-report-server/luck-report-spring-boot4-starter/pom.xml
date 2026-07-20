@@ -9,7 +9,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>luck-report-spring-boot3-starter</artifactId>
+    <artifactId>luck-report-spring-boot4-starter</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

@@ -1,9 +1,8 @@
 package com.luck.report.web.cache.impl;
 
 import com.luck.report.core.cache.ReportCacheKeyResolver;
+import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.utils.RequestHolder;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  *
@@ -43,7 +42,7 @@ public class SessionCacheKeyResolver implements ReportCacheKeyResolver {
      */
     @Override
     public String getPrefix() {
-        return getSessionId();
+        return SessionCacheKeyResolver.getSessionId();
     }
 
     /**
@@ -52,10 +51,8 @@ public class SessionCacheKeyResolver implements ReportCacheKeyResolver {
      * @return Session ID，请求不存在或 Session 无效返回 null
      */
     private static String getSessionId() {
-        HttpServletRequest req = RequestHolder.getRequest();
-        if (req == null) {
-            return null;
-        }
-        return req.getSession().getId();
+        RequestInfoProvider req = RequestHolder.getRequest();
+        if (req == null) return null;
+        return req.getSessionId();
     }
 }

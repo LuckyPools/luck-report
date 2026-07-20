@@ -20,10 +20,8 @@ import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.provider.Boot2RequestInfoProvider;
 import com.luck.report.web.provider.Boot2ResponseInfoProvider;
 import com.luck.report.web.provider.RequestInfoProvider;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
+@ConditionalOnBean(HttpServletRequest.class)
 @Configuration
 public class WebConfig {
 

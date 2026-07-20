@@ -1,5 +1,7 @@
 package com.luck.report.web.controller.word;
 
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,8 +9,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -27,7 +27,7 @@ public class ExportWordController {
      * 构建Word报表
      */
     @RequestMapping("/build")
-    public void build(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void build(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
         String fileName = req.getParameter("reportPath");
         String mode = req.getParameter("mode");
         String wordName = req.getParameter("_n");

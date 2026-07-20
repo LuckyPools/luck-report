@@ -1,7 +1,5 @@
 package com.luck.report.web.provider;
 
-import org.springframework.stereotype.Component;
-
 import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
 

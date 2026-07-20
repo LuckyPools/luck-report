@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Import;
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.luck.report.web.config.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.luck.report.web.handler.*"),
 })
-public class LuckReportBoot3AutoConfiguration {
+public class LuckReportBoot4AutoConfiguration {
 
 
 }

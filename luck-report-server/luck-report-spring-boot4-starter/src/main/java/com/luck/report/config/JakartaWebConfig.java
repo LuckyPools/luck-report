@@ -17,12 +17,13 @@ package com.luck.report.config;
 
 
 import com.luck.report.filter.JakartaRequestHolderFilter;
-import com.luck.report.provider.Boot3RequestInfoProvider;
-import com.luck.report.provider.Boot3ResponseInfoProvider;
+import com.luck.report.provider.Boot4RequestInfoProvider;
+import com.luck.report.provider.Boot4ResponseInfoProvider;
 import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.provider.ResponseInfoProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,7 @@ import org.springframework.context.annotation.Configuration;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
+@ConditionalOnBean(HttpServletRequest.class)
 @Configuration
 public class JakartaWebConfig {
 
@@ -54,12 +56,12 @@ public class JakartaWebConfig {
 
     @Bean
     public RequestInfoProvider requestInfoProvider(HttpServletRequest request) {
-        return new Boot3RequestInfoProvider(request);
+        return new Boot4RequestInfoProvider(request);
     }
 
     @Bean
     public ResponseInfoProvider responseInfoProvider(HttpServletResponse response) {
-        return new Boot3ResponseInfoProvider(response);
+        return new Boot4ResponseInfoProvider(response);
     }
 
 }

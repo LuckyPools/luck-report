@@ -7,15 +7,14 @@ import com.luck.report.web.domain.vo.request.BuildDatabaseTablesRequest;
 import com.luck.report.web.domain.vo.request.BuildFieldsRequest;
 import com.luck.report.web.domain.vo.request.PreviewDataRequest;
 import com.luck.report.web.domain.vo.request.TestConnectionRequest;
+import com.luck.report.web.provider.ResponseInfoProvider;
 import com.luck.report.web.service.DatasourceService;
-import com.luck.report.web.utils.ResponseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -35,54 +34,54 @@ public class DatasourceController {
      * 加载内置数据源
      */
     @RequestMapping("/loadBuildinDatasources")
-    public void loadBuildinDatasources(HttpServletResponse resp) throws IOException {
+    public void loadBuildinDatasources(ResponseInfoProvider resp) throws IOException {
         List<String> datasources = datasourceService.loadBuildinDatasources();
-        ResponseUtils.writeObjectToJson(resp, datasources);
+        resp.writeObjectToJson(datasources);
     }
 
     /**
      * 加载Bean方法
      */
     @RequestMapping("/loadMethods")
-    public void loadMethods(@RequestParam("beanId") String beanId, HttpServletResponse resp) throws IOException {
+    public void loadMethods(@RequestParam("beanId") String beanId, ResponseInfoProvider resp) throws IOException {
         List<String> result = datasourceService.loadMethods(beanId);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 
     /**
      * 构建类字段
      */
     @RequestMapping("/buildClass")
-    public void buildClass(@RequestParam("clazz") String clazz, HttpServletResponse resp) throws IOException {
+    public void buildClass(@RequestParam("clazz") String clazz, ResponseInfoProvider resp) throws IOException {
         List<Field> result = datasourceService.buildClass(clazz);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 
     /**
      * 构建数据库表
      */
     @RequestMapping("/buildDatabaseTables")
-    public void buildDatabaseTables(BuildDatabaseTablesRequest req, HttpServletResponse resp) throws ReportServiceException, IOException {
+    public void buildDatabaseTables(BuildDatabaseTablesRequest req, ResponseInfoProvider resp) throws ReportServiceException, IOException {
         List<Map<String, String>> tables = datasourceService.buildDatabaseTables(req);
-        ResponseUtils.writeObjectToJson(resp, tables);
+        resp.writeObjectToJson(tables);
     }
 
     /**
      * 构建字段
      */
     @RequestMapping("/buildFields")
-    public void buildFields(BuildFieldsRequest req, HttpServletResponse resp) throws IOException {
+    public void buildFields(BuildFieldsRequest req, ResponseInfoProvider resp) throws IOException {
         List<Field> fields = datasourceService.buildFields(req);
-        ResponseUtils.writeObjectToJson(resp, fields);
+        resp.writeObjectToJson(fields);
     }
 
     /**
      * 预览数据
      */
     @RequestMapping("/previewData")
-    public void previewData(PreviewDataRequest req, HttpServletResponse resp) throws ReportServiceException, IOException {
+    public void previewData(PreviewDataRequest req, ResponseInfoProvider resp) throws ReportServiceException, IOException {
         DataResult result = datasourceService.previewData(req);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 
     /**
@@ -93,9 +92,9 @@ public class DatasourceController {
                                @RequestParam(value = "password", required = false) String password,
                                @RequestParam("driver") String driver,
                                @RequestParam("url") String url,
-                               HttpServletResponse resp) throws IOException {
+                               ResponseInfoProvider resp) throws IOException {
         TestConnectionRequest req = new TestConnectionRequest(username, password, driver, url);
         Map<String, Object> result = datasourceService.testConnection(req);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 }
