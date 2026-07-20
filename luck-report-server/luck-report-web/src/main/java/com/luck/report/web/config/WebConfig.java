@@ -20,7 +20,9 @@ import com.luck.report.web.filter.RequestHolderFilter;
 import com.luck.report.web.provider.Boot2RequestInfoProvider;
 import com.luck.report.web.provider.Boot2ResponseInfoProvider;
 import com.luck.report.web.provider.RequestInfoProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import com.luck.report.web.provider.ResponseInfoProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +36,8 @@ import javax.servlet.http.HttpServletResponse;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
-@ConditionalOnBean(HttpServletRequest.class)
+@ConditionalOnClass(name = "javax.servlet.http.HttpServletRequest")
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 public class WebConfig {
 
@@ -55,12 +58,12 @@ public class WebConfig {
     }
 
     @Bean
-    public Boot2RequestInfoProvider boot2RequestInfoProvider(HttpServletRequest request) {
+    public RequestInfoProvider boot2RequestInfoProvider(HttpServletRequest request) {
         return new Boot2RequestInfoProvider(request);
     }
 
     @Bean
-    public Boot2ResponseInfoProvider boot2ResponseInfoProvider(HttpServletResponse response) {
+    public ResponseInfoProvider boot2ResponseInfoProvider(HttpServletResponse response) {
         return new Boot2ResponseInfoProvider(response);
     }
 }

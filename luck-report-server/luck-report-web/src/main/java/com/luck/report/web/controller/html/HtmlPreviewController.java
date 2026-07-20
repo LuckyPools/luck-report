@@ -1,9 +1,8 @@
 package com.luck.report.web.controller.html;
 
 import com.luck.report.core.definition.Paper;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.domain.vo.report.HtmlReportVo;
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.provider.ResponseInfoProvider;
 import com.luck.report.web.service.HtmlPreviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,7 +18,7 @@ import java.util.Map;
  */
 @RestController("bean.htmlPreviewController")
 @RequestMapping("${luck-report.servletPrefix:}/html")
-public class HtmlPreviewController {
+public class HtmlPreviewController extends BaseController {
 
     @Autowired
     @Qualifier("bean.htmlPreviewService")
@@ -29,7 +28,7 @@ public class HtmlPreviewController {
      * 加载HTML预览内容
      */
     @RequestMapping("/loadHtml")
-    public void loadHtml(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void loadHtml() throws IOException {
         String pageIndex = req.getParameter("_i");
         String mode = req.getParameter("mode");
         HtmlReportVo vo = htmlPreviewService.loadHtml(req, pageIndex, mode);
@@ -40,7 +39,7 @@ public class HtmlPreviewController {
      * 加载打印页HTML
      */
     @RequestMapping("/loadPrintPages")
-    public void loadPrintPages(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void loadPrintPages() throws IOException {
         String mode = req.getParameter("mode");
         String html = htmlPreviewService.loadPrintPages(req, mode);
         Map<String, String> map = new HashMap<>(2);
@@ -52,7 +51,7 @@ public class HtmlPreviewController {
      * 加载报表纸张信息
      */
     @RequestMapping("/loadPagePaper")
-    public void loadPagePaper(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void loadPagePaper() throws IOException {
         String mode = req.getParameter("mode");
         Paper paper = htmlPreviewService.loadPagePaper(req, mode);
         resp.writeObjectToJson(paper);
@@ -62,7 +61,7 @@ public class HtmlPreviewController {
      * 加载数据
      */
     @RequestMapping("/loadData")
-    public void loadData(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void loadData() throws IOException {
         String pageIndex = req.getParameter("_i");
         String mode = req.getParameter("mode");
         HtmlReportVo vo = htmlPreviewService.loadData(req, pageIndex, mode);

@@ -1,8 +1,8 @@
 package com.luck.report.web.controller.designer;
 
 import com.luck.report.core.expression.ErrorInfo;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
-import com.luck.report.web.provider.ResponseInfoProvider;
 import com.luck.report.web.service.DesignerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,7 +23,7 @@ import java.util.Map;
  */
 @Controller("bean.designerController")
 @RequestMapping("${luck-report.servletPrefix:}/designer")
-public class DesignerController {
+public class DesignerController extends BaseController {
 
     @Autowired
     @Qualifier("bean.designerService")
@@ -34,7 +34,7 @@ public class DesignerController {
      */
     @RequestMapping("/scriptValidation")
     @ResponseBody
-    public void scriptValidation(@RequestParam("content") String content, ResponseInfoProvider resp) throws IOException {
+    public void scriptValidation(@RequestParam("content") String content) throws IOException {
         List<ErrorInfo> infos = designerService.scriptValidation(content);
         resp.writeObjectToJson(infos);
     }
@@ -44,7 +44,7 @@ public class DesignerController {
      */
     @RequestMapping("/conditionScriptValidation")
     @ResponseBody
-    public void conditionScriptValidation(@RequestParam("content") String content, ResponseInfoProvider resp) throws IOException {
+    public void conditionScriptValidation(@RequestParam("content") String content) throws IOException {
         List<ErrorInfo> infos = designerService.conditionScriptValidation(content);
         resp.writeObjectToJson(infos);
     }
@@ -54,7 +54,7 @@ public class DesignerController {
      */
     @RequestMapping("/parseDatasetName")
     @ResponseBody
-    public void parseDatasetName(@RequestParam("expr") String expr, ResponseInfoProvider resp) throws IOException {
+    public void parseDatasetName(@RequestParam("expr") String expr) throws IOException {
         String datasetName = designerService.parseDatasetName(expr);
         Map<String, String> result = new java.util.HashMap<>(2);
         result.put("datasetName", datasetName);
@@ -67,8 +67,8 @@ public class DesignerController {
     @RequestMapping("/savePreviewFile")
     @ResponseBody
     public void savePreviewFile(@RequestParam("fileName") String fileName,
-                                @RequestParam("content") String content,
-                                ResponseInfoProvider resp) {
+                                @RequestParam("content") String content
+    ) {
         designerService.savePreviewFile(fileName, content);
     }
 
@@ -77,7 +77,7 @@ public class DesignerController {
      */
     @RequestMapping(value = "/loadReport")
     @ResponseBody
-    public void loadReport(@RequestParam("filePath") String filePath, ResponseInfoProvider resp) throws IOException {
+    public void loadReport(@RequestParam("filePath") String filePath) throws IOException {
         ReportDefinitionVo vo = designerService.loadReport(filePath);
         resp.writeObjectToJson(vo);
     }
@@ -106,8 +106,8 @@ public class DesignerController {
      */
     @RequestMapping("/loadReportProviders")
     @ResponseBody
-    public void loadReportProviders(@RequestParam(value = "path", required = false) String path,
-                                    ResponseInfoProvider resp) throws IOException {
+    public void loadReportProviders(@RequestParam(value = "path", required = false) String path
+    ) throws IOException {
         Object result = designerService.loadReportProviders(path);
         resp.writeObjectToJson(result);
     }

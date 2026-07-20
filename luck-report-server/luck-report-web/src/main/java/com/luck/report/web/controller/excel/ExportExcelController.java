@@ -1,7 +1,6 @@
 package com.luck.report.web.controller.excel;
 
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +16,7 @@ import java.io.OutputStream;
  */
 @RestController("bean.exportExcelController")
 @RequestMapping("${luck-report.servletPrefix:}/excel")
-public class ExportExcelController {
+public class ExportExcelController extends BaseController {
 
     @Autowired
     @Qualifier("bean.reportExportService")
@@ -27,30 +26,30 @@ public class ExportExcelController {
      * 构建Excel报表
      */
     @RequestMapping("/build")
-    public void build(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
-        buildExcel(req, resp, false, false);
+    public void build() throws IOException {
+        buildExcel(false, false);
     }
 
     /**
      * 分页导出Excel报表
      */
     @RequestMapping("/paging")
-    public void paging(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
-        buildExcel(req, resp, true, false);
+    public void paging() throws IOException {
+        buildExcel(true, false);
     }
 
     /**
      * 按Sheet导出Excel报表
      */
     @RequestMapping("/sheet")
-    public void sheet(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
-        buildExcel(req, resp, false, true);
+    public void sheet() throws IOException {
+        buildExcel(false, true);
     }
 
     /**
      * 构建Excel报表并写入响应流
      */
-    private void buildExcel(RequestInfoProvider req, ResponseInfoProvider resp, boolean withPage, boolean withSheet) throws IOException {
+    private void buildExcel(boolean withPage, boolean withSheet) throws IOException {
         String fileName = req.getParameter("reportPath");
         String mode = req.getParameter("mode");
         String excelName = req.getParameter("_n");

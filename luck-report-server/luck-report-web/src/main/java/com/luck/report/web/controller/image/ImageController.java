@@ -1,8 +1,7 @@
 package com.luck.report.web.controller.image;
 
 import com.luck.report.core.cache.ResourceCache;
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.web.controller.base.BaseController;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,13 +18,13 @@ import java.io.OutputStream;
  */
 @RestController("bean.imageController")
 @RequestMapping("${luck-report.servletPrefix:}/image")
-public class ImageController {
+public class ImageController extends BaseController {
 
     /**
      * 获取图片资源
      */
     @RequestMapping(value = {"", "/"})
-    public void getImage(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void getImage() throws IOException {
         String key = req.getParameter("_key");
         if (StringUtils.isNotBlank(key)) {
             byte[] bytes = (byte[]) ResourceCache.getObject(key);

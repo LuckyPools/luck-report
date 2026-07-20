@@ -1,7 +1,6 @@
 package com.luck.report.web.controller.pdf;
 
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +16,7 @@ import java.io.OutputStream;
  */
 @RestController("bean.exportPdfController")
 @RequestMapping("${luck-report.servletPrefix:}/pdf")
-public class ExportPdfController {
+public class ExportPdfController extends BaseController {
 
     @Autowired
     @Qualifier("bean.reportExportService")
@@ -27,26 +26,26 @@ public class ExportPdfController {
      * 构建PDF报表（下载）
      */
     @RequestMapping("/build")
-    public void build(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void build() throws IOException {
         String fileName = req.getParameter("reportPath");
         String pdfName = req.getParameter("_n");
         DownloadUtils.buildDownloadHeader(resp, fileName, pdfName, ".pdf");
-        buildPdf(req, resp);
+        buildPdf();
     }
 
     /**
      * 显示PDF报表（POST方式，支持传递纸张参数）
      */
     @RequestMapping("/show")
-    public void show(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    public void show() throws IOException {
         resp.setContentType("application/pdf");
-        buildPdf(req, resp);
+        buildPdf();
     }
 
     /**
      * 构建PDF报表并写入响应流
      */
-    private void buildPdf(RequestInfoProvider req, ResponseInfoProvider resp) throws IOException {
+    private void buildPdf() throws IOException {
         String mode = req.getParameter("mode");
         String fileName = req.getParameter("reportPath");
         String paperJson = req.getParameter("_paper");

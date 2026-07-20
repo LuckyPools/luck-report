@@ -2,12 +2,12 @@ package com.luck.report.web.controller.designer;
 
 import com.luck.report.core.definition.dataset.Field;
 import com.luck.report.core.exception.ReportServiceException;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.domain.vo.dataset.DataResult;
 import com.luck.report.web.domain.vo.request.BuildDatabaseTablesRequest;
 import com.luck.report.web.domain.vo.request.BuildFieldsRequest;
 import com.luck.report.web.domain.vo.request.PreviewDataRequest;
 import com.luck.report.web.domain.vo.request.TestConnectionRequest;
-import com.luck.report.web.provider.ResponseInfoProvider;
 import com.luck.report.web.service.DatasourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,7 +24,7 @@ import java.util.Map;
  */
 @RestController("bean.datasourceController")
 @RequestMapping("${luck-report.servletPrefix:}/datasource")
-public class DatasourceController {
+public class DatasourceController extends BaseController {
 
     @Autowired
     @Qualifier("bean.datasourceService")
@@ -34,7 +34,7 @@ public class DatasourceController {
      * 加载内置数据源
      */
     @RequestMapping("/loadBuildinDatasources")
-    public void loadBuildinDatasources(ResponseInfoProvider resp) throws IOException {
+    public void loadBuildinDatasources() throws IOException {
         List<String> datasources = datasourceService.loadBuildinDatasources();
         resp.writeObjectToJson(datasources);
     }
@@ -43,7 +43,7 @@ public class DatasourceController {
      * 加载Bean方法
      */
     @RequestMapping("/loadMethods")
-    public void loadMethods(@RequestParam("beanId") String beanId, ResponseInfoProvider resp) throws IOException {
+    public void loadMethods(@RequestParam("beanId") String beanId) throws IOException {
         List<String> result = datasourceService.loadMethods(beanId);
         resp.writeObjectToJson(result);
     }
@@ -52,7 +52,7 @@ public class DatasourceController {
      * 构建类字段
      */
     @RequestMapping("/buildClass")
-    public void buildClass(@RequestParam("clazz") String clazz, ResponseInfoProvider resp) throws IOException {
+    public void buildClass(@RequestParam("clazz") String clazz) throws IOException {
         List<Field> result = datasourceService.buildClass(clazz);
         resp.writeObjectToJson(result);
     }
@@ -61,7 +61,7 @@ public class DatasourceController {
      * 构建数据库表
      */
     @RequestMapping("/buildDatabaseTables")
-    public void buildDatabaseTables(BuildDatabaseTablesRequest req, ResponseInfoProvider resp) throws ReportServiceException, IOException {
+    public void buildDatabaseTables(BuildDatabaseTablesRequest req) throws ReportServiceException, IOException {
         List<Map<String, String>> tables = datasourceService.buildDatabaseTables(req);
         resp.writeObjectToJson(tables);
     }
@@ -70,7 +70,7 @@ public class DatasourceController {
      * 构建字段
      */
     @RequestMapping("/buildFields")
-    public void buildFields(BuildFieldsRequest req, ResponseInfoProvider resp) throws IOException {
+    public void buildFields(BuildFieldsRequest req) throws IOException {
         List<Field> fields = datasourceService.buildFields(req);
         resp.writeObjectToJson(fields);
     }
@@ -79,7 +79,7 @@ public class DatasourceController {
      * 预览数据
      */
     @RequestMapping("/previewData")
-    public void previewData(PreviewDataRequest req, ResponseInfoProvider resp) throws ReportServiceException, IOException {
+    public void previewData(PreviewDataRequest req) throws ReportServiceException, IOException {
         DataResult result = datasourceService.previewData(req);
         resp.writeObjectToJson(result);
     }
@@ -91,8 +91,8 @@ public class DatasourceController {
     public void testConnection(@RequestParam(value = "username", required = false) String username,
                                @RequestParam(value = "password", required = false) String password,
                                @RequestParam("driver") String driver,
-                               @RequestParam("url") String url,
-                               ResponseInfoProvider resp) throws IOException {
+                               @RequestParam("url") String url
+    ) throws IOException {
         TestConnectionRequest req = new TestConnectionRequest(username, password, driver, url);
         Map<String, Object> result = datasourceService.testConnection(req);
         resp.writeObjectToJson(result);

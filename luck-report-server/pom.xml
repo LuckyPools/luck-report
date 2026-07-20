@@ -41,6 +41,7 @@
         <ooxml-schemas.version>1.4</ooxml-schemas.version>
         <zxing-core.version>3.5.4</zxing-core.version>
         <jsqlparser.version>4.9</jsqlparser.version>
+        <postgresql.version>42.7.10</postgresql.version>
     </properties>
 
 
@@ -74,6 +75,11 @@
                 <groupId>com.dameng</groupId>
                 <artifactId>DmJdbcDriver18</artifactId>
                 <version>${dameng.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
             </dependency>
             <!-- 数据库驱动 结束 -->
 

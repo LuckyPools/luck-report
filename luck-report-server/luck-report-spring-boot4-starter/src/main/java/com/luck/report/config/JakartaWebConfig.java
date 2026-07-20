@@ -23,7 +23,8 @@ import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.provider.ResponseInfoProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +35,8 @@ import org.springframework.context.annotation.Configuration;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
-@ConditionalOnBean(HttpServletRequest.class)
+@ConditionalOnClass(name = "jakarta.servlet.http.HttpServletRequest")
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 public class JakartaWebConfig {
 
