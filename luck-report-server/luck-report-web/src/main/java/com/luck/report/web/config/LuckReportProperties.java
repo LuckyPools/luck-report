@@ -1,4 +1,4 @@
-package com.luck.report.config;
+package com.luck.report.web.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
