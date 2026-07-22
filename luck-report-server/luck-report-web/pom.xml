@@ -39,11 +39,6 @@
             <artifactId>commons-beanutils</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.luck.cloud</groupId>
             <artifactId>luck-report-font</artifactId>
             <version>${revision}</version>

@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>com.luck.cloud</groupId>
-            <artifactId>luck-report-web</artifactId>
+            <artifactId>luck-report-spring-boot2-starter</artifactId>
             <version>${revision}</version>
         </dependency>
 
