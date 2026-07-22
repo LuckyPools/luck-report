@@ -7,7 +7,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -54,6 +53,6 @@ public class ResourceLoaderController extends BaseController {
                 IOUtils.closeQuietly(input);
                 IOUtils.closeQuietly(output);
             }
-        } else resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        } else resp.setStatus(404);
     }
 }

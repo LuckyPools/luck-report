@@ -14,7 +14,7 @@
         <module>luck-report-core</module>
         <module>luck-report-font</module>
         <module>luck-report-pub</module>
-        <module>luck-report-spring-boot4-starter</module>
+        <module>luck-report-spring-boot3-starter</module>
         <module>luck-report-spring-boot2-starter</module>
     </modules>
 

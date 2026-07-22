@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Import;
 /**
  * @author jack
  * @version 1.0
- * @description: springboot2 starter 自动装配类
- * @date 2026-07-22 8:39
+ * @description: springboot3 自动装配类
+ * @date 2026-04-30 9:13
  */
-@Import(JavaxWebConfig.class)
+@Import(JakartaWebConfig.class)
 @EnableConfigurationProperties(LuckReportProperties.class)
 @Configuration
 @ComponentScan(basePackages = "com.luck.report")
 @ConditionalOnProperty(prefix = "luck-report", name = "autoConfig", havingValue = "true", matchIfMissing = true)
-public class LuckReportSpringBoot2AutoConfiguration {
+public class LuckReportBoot3AutoConfiguration {
 }

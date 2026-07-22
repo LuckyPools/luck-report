@@ -9,3 +9,9 @@
 
 # 1.0.0\(2026-05-20)
 *  支持分布式缓存
+
+# 1.0.1\(2026-07-22)
+*  支持多版本的 Spring Boot ，同时兼容 Spring Boot 2.x / 3.x / 4.x
+*  新增 `luck-report-spring-boot2-starter`，支持 Spring Boot 2.7.x
+*  新增 `luck-report-spring-boot3-starter`，支持 Spring Boot 3.x / 4.x
+*  移除 `LuckReportMainConfig` 配置类
