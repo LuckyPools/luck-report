@@ -15,10 +15,10 @@
  ******************************************************************************/
 package com.luck.report.web.filter;
 
+import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.utils.RequestHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -30,9 +30,14 @@ import java.io.IOException;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
-@Component("bean.requestHolderFilter")
 public class RequestHolderFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(RequestHolderFilter.class);
+
+    private final RequestInfoProvider requestInfoProvider;
+
+    public RequestHolderFilter(RequestInfoProvider requestInfoProvider) {
+        this.requestInfoProvider = requestInfoProvider;
+    }
 
     @Override
     public void init(FilterConfig filterConfig) {
@@ -50,7 +55,7 @@ public class RequestHolderFilter implements Filter {
         }
 
         // 设置请求到RequestHolder
-        RequestHolder.setRequest(httpRequest);
+        RequestHolder.setRequest(requestInfoProvider);
         try {
             // 继续过滤器链
             chain.doFilter(request, response);

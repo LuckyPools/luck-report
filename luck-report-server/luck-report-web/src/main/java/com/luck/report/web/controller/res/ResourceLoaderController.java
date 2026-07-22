@@ -1,12 +1,12 @@
 package com.luck.report.web.controller.res;
 
+import com.luck.report.web.controller.base.BaseController;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +18,7 @@ import java.io.OutputStream;
  */
 @RestController("bean.resourceLoaderController")
 @RequestMapping("${luck-report.servletPrefix:}/res")
-public class ResourceLoaderController {
+public class ResourceLoaderController extends BaseController {
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -27,30 +27,24 @@ public class ResourceLoaderController {
      * 加载静态资源
      */
     @RequestMapping({"", "/**"})
-    public void loadResource(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void loadResource() throws IOException {
         // 获取完整URI
         String uri = req.getRequestURI();
         // 找到/res/的位置
         int resIndex = uri.indexOf("/res/");
+        // 路径格式不正确，返回404
         if (resIndex != -1) {
             // 提取/res/后面的资源路径
             String resPath = uri.substring(resIndex + 5); // 5是/res/的长度
             String p = "classpath:" + resPath;
 
             // 设置响应内容类型
-            if (p.endsWith(".js")) {
-                resp.setContentType("text/javascript");
-            } else if (p.endsWith(".css")) {
-                resp.setContentType("text/css");
-            } else if (p.endsWith(".png")) {
-                resp.setContentType("image/png");
-            } else if (p.endsWith(".jpg")) {
-                resp.setContentType("image/jpeg");
-            } else if (p.endsWith(".svg")) {
-                resp.setContentType("image/svg+xml");
-            } else {
-                resp.setContentType("application/octet-stream");
-            }
+            if (p.endsWith(".js")) resp.setContentType("text/javascript");
+            else if (p.endsWith(".css")) resp.setContentType("text/css");
+            else if (p.endsWith(".png")) resp.setContentType("image/png");
+            else if (p.endsWith(".jpg")) resp.setContentType("image/jpeg");
+            else if (p.endsWith(".svg")) resp.setContentType("image/svg+xml");
+            else resp.setContentType("application/octet-stream");
 
             InputStream input = applicationContext.getResource(p).getInputStream();
             OutputStream output = resp.getOutputStream();
@@ -60,9 +54,6 @@ public class ResourceLoaderController {
                 IOUtils.closeQuietly(input);
                 IOUtils.closeQuietly(output);
             }
-        } else {
-            // 路径格式不正确，返回404
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-        }
+        } else resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
     }
 }

@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.word;
 
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,8 +8,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -17,7 +16,7 @@ import java.io.OutputStream;
  */
 @RestController("bean.exportWordController")
 @RequestMapping("${luck-report.servletPrefix:}/word")
-public class ExportWordController {
+public class ExportWordController extends BaseController {
 
     @Autowired
     @Qualifier("bean.reportExportService")
@@ -27,7 +26,7 @@ public class ExportWordController {
      * 构建Word报表
      */
     @RequestMapping("/build")
-    public void build(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void build() throws IOException {
         String fileName = req.getParameter("reportPath");
         String mode = req.getParameter("mode");
         String wordName = req.getParameter("_n");

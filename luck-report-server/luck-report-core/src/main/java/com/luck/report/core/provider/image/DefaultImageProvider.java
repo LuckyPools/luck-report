@@ -60,10 +60,10 @@ public class DefaultImageProvider implements ImageProvider, ApplicationContextAw
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        if (applicationContext instanceof WebApplicationContext) {
-            WebApplicationContext context = (WebApplicationContext) applicationContext;
-            baseWebPath = context.getServletContext().getRealPath("/");
-        }
         this.applicationContext = applicationContext;
+    }
+
+    public void setBaseWebPath(String baseWebPath) {
+        this.baseWebPath = baseWebPath;
     }
 }

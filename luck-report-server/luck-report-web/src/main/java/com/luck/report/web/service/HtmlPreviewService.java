@@ -8,24 +8,20 @@ import com.luck.report.core.chart.ChartData;
 import com.luck.report.core.definition.Paper;
 import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.exception.ReportComputeException;
-import com.luck.report.core.export.ExportManager;
-import com.luck.report.core.export.FullPageData;
-import com.luck.report.core.export.PageBuilder;
-import com.luck.report.core.export.ReportRender;
-import com.luck.report.core.export.SinglePageData;
+import com.luck.report.core.export.*;
 import com.luck.report.core.export.html.HtmlProducer;
 import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.model.Report;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.domain.vo.cell.ChartDataVo;
 import com.luck.report.web.domain.vo.report.HtmlReportVo;
+import com.luck.report.web.provider.RequestInfoProvider;
 import com.luck.report.web.utils.UrlParameterUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -54,12 +50,12 @@ public class HtmlPreviewService {
     /**
      * 加载HTML预览内容并组装返回数据
      *
-     * @param req        HTTP请求对象
-     * @param pageIndex  页码索引，可为空
-     * @param mode       运行模式，可为空
+     * @param req       HTTP请求对象
+     * @param pageIndex 页码索引，可为空
+     * @param mode      运行模式，可为空
      * @return HTML预览报表VO
      */
-    public HtmlReportVo loadHtml(HttpServletRequest req, String pageIndex, String mode) {
+    public HtmlReportVo loadHtml(RequestInfoProvider req, String pageIndex, String mode) {
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         HtmlReport htmlReport = loadReport(req, pageIndex, mode, parameters);
         return toVo(htmlReport);
@@ -68,38 +64,34 @@ public class HtmlPreviewService {
     /**
      * 加载打印页HTML（合并多列/多页输出）
      *
-     * @param req   HTTP请求对象
-     * @param mode  运行模式，可为空
+     * @param req  HTTP请求对象
+     * @param mode 运行模式，可为空
      * @return 打印页HTML内容
      */
-    public String loadPrintPages(HttpServletRequest req, String mode) {
+    public String loadPrintPages(RequestInfoProvider req, String mode) {
         String fileName = req.getParameter("reportPath");
         fileName = UrlParameterUtils.doubleDecode(fileName);
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         ReportDefinition reportDefinition;
-        if (isPreview) {
-            reportDefinition = reportDefinitionService.getReportDefinition(fileName);
-        } else {
-            reportDefinition = reportRender.getReportDefinition(fileName);
-        }
+        if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(fileName);
+        else reportDefinition = reportRender.getReportDefinition(fileName);
         Report report = reportBuilder.buildReport(reportDefinition, parameters);
         FullPageData pageData = PageBuilder.buildFullPageData(report);
         StringBuilder sb = new StringBuilder();
         List<List<Page>> list = pageData.getPageList();
         Context context = report.getContext();
-        if (!list.isEmpty()) {
-            for (int i = 0; i < list.size(); i++) {
-                List<Page> columnPages = list.get(i);
-                if (i == 0) {
-                    String html = htmlProducer.produce(context, columnPages, pageData.getColumnMargin(), false);
-                    sb.append(html);
-                } else {
-                    String html = htmlProducer.produce(context, columnPages, pageData.getColumnMargin(), false);
-                    sb.append(html);
-                }
+        if (!list.isEmpty()) for (int i = 0; i < list.size(); i++) {
+            List<Page> columnPages = list.get(i);
+            if (i == 0) {
+                String html = htmlProducer.produce(context, columnPages, pageData.getColumnMargin(), false);
+                sb.append(html);
+            } else {
+                String html = htmlProducer.produce(context, columnPages, pageData.getColumnMargin(), false);
+                sb.append(html);
             }
-        } else {
+        }
+        else {
             List<Page> pages = report.getPages();
             for (int i = 0; i < pages.size(); i++) {
                 Page page = pages.get(i);
@@ -118,32 +110,29 @@ public class HtmlPreviewService {
     /**
      * 加载报表纸张信息
      *
-     * @param req   HTTP请求对象
-     * @param mode  运行模式，可为空
+     * @param req  HTTP请求对象
+     * @param mode 运行模式，可为空
      * @return 纸张信息
      */
-    public Paper loadPagePaper(HttpServletRequest req, String mode) {
+    public Paper loadPagePaper(RequestInfoProvider req, String mode) {
         String fileName = req.getParameter("reportPath");
         fileName = UrlParameterUtils.doubleDecode(fileName);
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         ReportDefinition reportDefinition;
-        if (isPreview) {
-            reportDefinition = reportDefinitionService.getReportDefinition(fileName);
-        } else {
-            reportDefinition = reportRender.getReportDefinition(fileName);
-        }
+        if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(fileName);
+        else reportDefinition = reportRender.getReportDefinition(fileName);
         return reportDefinition.getPaper();
     }
 
     /**
      * 加载报表数据（不渲染HTML，只返回分页信息和图表数据）
      *
-     * @param req        HTTP请求对象
-     * @param pageIndex  页码索引，可为空
-     * @param mode       运行模式，可为空
+     * @param req       HTTP请求对象
+     * @param pageIndex 页码索引，可为空
+     * @param mode      运行模式，可为空
      * @return HTML预览报表VO
      */
-    public HtmlReportVo loadData(HttpServletRequest req, String pageIndex, String mode) {
+    public HtmlReportVo loadData(RequestInfoProvider req, String pageIndex, String mode) {
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         HtmlReport htmlReport = loadReport(req, pageIndex, mode, parameters);
         return toVo(htmlReport);
@@ -158,21 +147,17 @@ public class HtmlPreviewService {
      * @param parameters 报表参数
      * @return HTML报表对象
      */
-    private HtmlReport loadReport(HttpServletRequest req, String pageIndex, String mode, Map<String, Object> parameters) {
+    private HtmlReport loadReport(RequestInfoProvider req, String pageIndex, String mode, Map<String, Object> parameters) {
         String fileName = req.getParameter("reportPath");
         fileName = UrlParameterUtils.doubleDecode(fileName);
-        if (StringUtils.isBlank(fileName)) {
-            throw new ReportComputeException("Report file can not be null");
-        }
+        if (StringUtils.isBlank(fileName)) throw new ReportComputeException("Report file can not be null");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         HtmlReport htmlReport;
         if (isPreview) {
             ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
-            if (!CollectionUtils.isEmpty(chartMap)) {
-                ChartScopeCache.storeChartDataMap(chartMap);
-            }
+            if (!CollectionUtils.isEmpty(chartMap)) ChartScopeCache.storeChartDataMap(chartMap);
             htmlReport = new HtmlReport();
             String html;
             if (StringUtils.isNotBlank(pageIndex) && !pageIndex.equals("0")) {
@@ -183,17 +168,11 @@ public class HtmlPreviewService {
                 if (pages.size() == 1) {
                     Page page = pages.get(0);
                     html = htmlProducer.produce(context, page, false);
-                } else {
-                    html = htmlProducer.produce(context, pages, pageData.getColumnMargin(), false);
-                }
+                } else html = htmlProducer.produce(context, pages, pageData.getColumnMargin(), false);
                 htmlReport.setTotalPage(pageData.getTotalPages());
                 htmlReport.setPageIndex(index);
-            } else {
-                html = htmlProducer.produce(report);
-            }
-            if (report.getPaper().isColumnEnabled()) {
-                htmlReport.setColumn(report.getPaper().getColumnCount());
-            }
+            } else html = htmlProducer.produce(report);
+            if (report.getPaper().isColumnEnabled()) htmlReport.setColumn(report.getPaper().getColumnCount());
             htmlReport.setChartDatas(report.getContext().getChartDataMap().values());
             htmlReport.setContent(html);
             htmlReport.setTotalPage(report.getPages().size());
@@ -201,14 +180,10 @@ public class HtmlPreviewService {
             htmlReport.setSearchForm(reportDefinition.buildSearchForm());
             htmlReport.setReportAlign(report.getPaper().getHtmlReportAlign().name());
             htmlReport.setHtmlIntervalRefreshValue(report.getPaper().getHtmlIntervalRefreshValue());
-        } else {
-            if (StringUtils.isNotBlank(pageIndex) && !pageIndex.equals("0")) {
-                int index = Integer.parseInt(pageIndex);
-                htmlReport = exportManager.exportHtml(fileName, req.getContextPath(), parameters, index);
-            } else {
-                htmlReport = exportManager.exportHtml(fileName, req.getContextPath(), parameters);
-            }
-        }
+        } else if (StringUtils.isNotBlank(pageIndex) && !pageIndex.equals("0")) {
+            int index = Integer.parseInt(pageIndex);
+            htmlReport = exportManager.exportHtml(fileName, req.getContextPath(), parameters, index);
+        } else htmlReport = exportManager.exportHtml(fileName, req.getContextPath(), parameters);
         return htmlReport;
     }
 
@@ -219,9 +194,7 @@ public class HtmlPreviewService {
      * @return HTML预览报表VO
      */
     private HtmlReportVo toVo(HtmlReport htmlReport) {
-        if (htmlReport == null) {
-            return new HtmlReportVo();
-        }
+        if (htmlReport == null) return new HtmlReportVo();
         HtmlReportVo vo = new HtmlReportVo();
         vo.setContent(htmlReport.getContent());
         vo.setStyle(htmlReport.getStyle());
@@ -243,9 +216,7 @@ public class HtmlPreviewService {
      */
     public Collection<ChartDataVo> convertToChartDataVo(Collection<ChartData> chartDatas) {
         Collection<ChartDataVo> chartDataVos = new ArrayList<>();
-        if (chartDatas == null || chartDatas.isEmpty()) {
-            return chartDataVos;
-        }
+        if (chartDatas == null || chartDatas.isEmpty()) return chartDataVos;
         for (ChartData chartData : chartDatas) {
             ChartDataVo chartDataVo = new ChartDataVo(chartData.getId(), chartData.getJson());
             chartDataVos.add(chartDataVo);

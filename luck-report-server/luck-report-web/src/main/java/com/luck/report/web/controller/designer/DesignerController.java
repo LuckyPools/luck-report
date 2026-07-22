@@ -1,9 +1,9 @@
 package com.luck.report.web.controller.designer;
 
 import com.luck.report.core.expression.ErrorInfo;
+import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
 import com.luck.report.web.service.DesignerService;
-import com.luck.report.web.utils.ResponseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,7 @@ import java.util.Map;
  */
 @Controller("bean.designerController")
 @RequestMapping("${luck-report.servletPrefix:}/designer")
-public class DesignerController {
+public class DesignerController extends BaseController {
 
     @Autowired
     @Qualifier("bean.designerService")
@@ -35,9 +34,9 @@ public class DesignerController {
      */
     @RequestMapping("/scriptValidation")
     @ResponseBody
-    public void scriptValidation(@RequestParam("content") String content, HttpServletResponse resp) throws IOException {
+    public void scriptValidation(@RequestParam("content") String content) throws IOException {
         List<ErrorInfo> infos = designerService.scriptValidation(content);
-        ResponseUtils.writeObjectToJson(resp, infos);
+        resp.writeObjectToJson(infos);
     }
 
     /**
@@ -45,9 +44,9 @@ public class DesignerController {
      */
     @RequestMapping("/conditionScriptValidation")
     @ResponseBody
-    public void conditionScriptValidation(@RequestParam("content") String content, HttpServletResponse resp) throws IOException {
+    public void conditionScriptValidation(@RequestParam("content") String content) throws IOException {
         List<ErrorInfo> infos = designerService.conditionScriptValidation(content);
-        ResponseUtils.writeObjectToJson(resp, infos);
+        resp.writeObjectToJson(infos);
     }
 
     /**
@@ -55,11 +54,11 @@ public class DesignerController {
      */
     @RequestMapping("/parseDatasetName")
     @ResponseBody
-    public void parseDatasetName(@RequestParam("expr") String expr, HttpServletResponse resp) throws IOException {
+    public void parseDatasetName(@RequestParam("expr") String expr) throws IOException {
         String datasetName = designerService.parseDatasetName(expr);
         Map<String, String> result = new java.util.HashMap<>(2);
         result.put("datasetName", datasetName);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 
     /**
@@ -68,8 +67,8 @@ public class DesignerController {
     @RequestMapping("/savePreviewFile")
     @ResponseBody
     public void savePreviewFile(@RequestParam("fileName") String fileName,
-                                @RequestParam("content") String content,
-                                HttpServletResponse resp) {
+                                @RequestParam("content") String content
+    ) {
         designerService.savePreviewFile(fileName, content);
     }
 
@@ -78,9 +77,9 @@ public class DesignerController {
      */
     @RequestMapping(value = "/loadReport")
     @ResponseBody
-    public void loadReport(@RequestParam("filePath") String filePath, HttpServletResponse resp) throws IOException {
+    public void loadReport(@RequestParam("filePath") String filePath) throws IOException {
         ReportDefinitionVo vo = designerService.loadReport(filePath);
-        ResponseUtils.writeObjectToJson(resp, vo);
+        resp.writeObjectToJson(vo);
     }
 
     /**
@@ -107,9 +106,9 @@ public class DesignerController {
      */
     @RequestMapping("/loadReportProviders")
     @ResponseBody
-    public void loadReportProviders(@RequestParam(value = "path", required = false) String path,
-                                    HttpServletResponse resp) throws IOException {
+    public void loadReportProviders(@RequestParam(value = "path", required = false) String path
+    ) throws IOException {
         Object result = designerService.loadReportProviders(path);
-        ResponseUtils.writeObjectToJson(resp, result);
+        resp.writeObjectToJson(result);
     }
 }

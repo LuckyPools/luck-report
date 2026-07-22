@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.luck.cloud</groupId>
         <artifactId>luck-report-server</artifactId>
-        <version>1.0.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>luck-report-pub</artifactId>
@@ -31,6 +31,11 @@
             <groupId>com.dameng</groupId>
             <artifactId>DmJdbcDriver18</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

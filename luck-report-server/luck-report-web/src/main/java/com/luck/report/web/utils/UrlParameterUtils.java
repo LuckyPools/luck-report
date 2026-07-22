@@ -16,8 +16,8 @@
 package com.luck.report.web.utils;
 
 import com.luck.report.web.exception.ReportDesignException;
+import com.luck.report.web.provider.RequestInfoProvider;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Enumeration;
@@ -32,9 +32,7 @@ import java.util.Map;
  */
 public class UrlParameterUtils {
     public static String doubleDecode(String str) {
-        if (str == null) {
-            return str;
-        }
+        if (str == null) return str;
         try {
             str = URLDecoder.decode(str, "utf-8");
             str = URLDecoder.decode(str, "utf-8");
@@ -44,19 +42,15 @@ public class UrlParameterUtils {
         }
     }
 
-    public static Map<String, Object> buildParameters(HttpServletRequest req) {
+    public static Map<String, Object> buildParameters(RequestInfoProvider req) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         Enumeration<?> enumeration = req.getParameterNames();
         while (enumeration.hasMoreElements()) {
             Object obj = enumeration.nextElement();
-            if (obj == null) {
-                continue;
-            }
+            if (obj == null) continue;
             String name = obj.toString();
             String value = req.getParameter(name);
-            if (name == null || value == null || name.startsWith("_")) {
-                continue;
-            }
+            if (name == null || value == null || name.startsWith("_")) continue;
             parameters.put(name, UrlParameterUtils.doubleDecode(value));
         }
         return parameters;

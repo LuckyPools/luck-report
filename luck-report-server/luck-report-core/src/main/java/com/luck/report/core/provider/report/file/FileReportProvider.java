@@ -25,7 +25,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.web.context.WebApplicationContext;
 
-import javax.servlet.ServletContext;
 import java.io.*;
 import java.util.*;
 
@@ -151,11 +150,13 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
         File file = new File(fileStoreDir);
         if (file.exists()) {
             return;
+        } else {
+            file.mkdirs();
         }
+
         if (applicationContext instanceof WebApplicationContext) {
             WebApplicationContext context = (WebApplicationContext) applicationContext;
-            ServletContext servletContext = context.getServletContext();
-            String basePath = servletContext.getRealPath("/");
+            String basePath = context.getServletContext().getRealPath("/");
             fileStoreDir = basePath + fileStoreDir;
             file = new File(fileStoreDir);
             if (!file.exists()) {

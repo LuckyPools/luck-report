@@ -15,10 +15,20 @@
  ******************************************************************************/
 package com.luck.report.web.config;
 
+
 import com.luck.report.web.filter.RequestHolderFilter;
+import com.luck.report.web.provider.Boot2RequestInfoProvider;
+import com.luck.report.web.provider.Boot2ResponseInfoProvider;
+import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.web.provider.ResponseInfoProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Web配置类，用于注册过滤器和其他Web相关配置
@@ -26,6 +36,8 @@ import org.springframework.context.annotation.Configuration;
  * @author Jacky.gao
  * @since 2017年3月8日
  */
+@ConditionalOnClass(name = "javax.servlet.http.HttpServletRequest")
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 public class WebConfig {
 
@@ -33,9 +45,9 @@ public class WebConfig {
      * 注册RequestHolderFilter，确保在所有请求处理过程中设置和清理RequestHolder
      */
     @Bean
-    public FilterRegistrationBean<RequestHolderFilter> requestHolderFilterRegistration() {
+    public FilterRegistrationBean<RequestHolderFilter> requestHolderFilterRegistration(RequestInfoProvider requestInfoProvider) {
         FilterRegistrationBean<RequestHolderFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new RequestHolderFilter());
+        registration.setFilter(new RequestHolderFilter(requestInfoProvider));
         // 拦截所有请求
         registration.addUrlPatterns("/*");
         // 设置过滤器名称
@@ -43,5 +55,15 @@ public class WebConfig {
         // 设置过滤器顺序，确保它在其他过滤器之前执行
         registration.setOrder(1);
         return registration;
+    }
+
+    @Bean
+    public RequestInfoProvider boot2RequestInfoProvider(HttpServletRequest request) {
+        return new Boot2RequestInfoProvider(request);
+    }
+
+    @Bean
+    public ResponseInfoProvider boot2ResponseInfoProvider(HttpServletResponse response) {
+        return new Boot2ResponseInfoProvider(response);
     }
 }
