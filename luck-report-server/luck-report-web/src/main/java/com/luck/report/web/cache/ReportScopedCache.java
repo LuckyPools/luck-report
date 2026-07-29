@@ -1,6 +1,6 @@
 package com.luck.report.web.cache;
 
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.infra.modules.cache.utils.CacheUtils;
 
 /**
  * 临时报表对象缓存工具类，用于缓存报表预览等临时数据。

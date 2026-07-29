@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.core.cache;
+package com.luck.report.infra.modules.cache.service;
 
 
 import java.util.Set;

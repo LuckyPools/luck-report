@@ -15,6 +15,8 @@
  ******************************************************************************/
 package com.luck.report.core.cache;
 
+import com.luck.report.infra.modules.cache.utils.CacheUtils;
+
 /**
  * 图片资源缓存工具类，用于缓存报表中使用的图片资源。
  *

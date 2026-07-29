@@ -15,6 +15,7 @@
  ******************************************************************************/
 package com.luck.report.core.cache;
 
+import com.luck.report.infra.modules.cache.utils.CacheUtils;
 import com.luck.report.core.chart.ChartData;
 
 import java.util.Map;

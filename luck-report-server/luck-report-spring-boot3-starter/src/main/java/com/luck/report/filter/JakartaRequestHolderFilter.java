@@ -15,8 +15,8 @@
  ******************************************************************************/
 package com.luck.report.filter;
 
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.utils.RequestHolder;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.context.RequestHolder;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;

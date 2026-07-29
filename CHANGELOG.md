@@ -15,3 +15,7 @@
 *  新增 `luck-report-spring-boot2-starter`，支持 Spring Boot 2.7.x
 *  新增 `luck-report-spring-boot3-starter`，支持 Spring Boot 3.x / 4.x
 *  移除 `LuckReportMainConfig` 配置类
+
+# 1.0.2\(2026-07-29)
+*  新增 `luck-report-redis`，实现 redis 缓存功能
+*  调整 `ReportCache`、`ReportCacheKeyResolver` 类路径

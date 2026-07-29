@@ -1,7 +1,7 @@
 package com.luck.report.provider;
 
 import com.luck.report.utils.JakartaResponseUtils;
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.ResponseInfoProvider;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;

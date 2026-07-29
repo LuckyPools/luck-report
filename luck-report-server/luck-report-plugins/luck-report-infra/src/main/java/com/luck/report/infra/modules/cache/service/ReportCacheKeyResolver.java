@@ -1,4 +1,4 @@
-package com.luck.report.core.cache;
+package com.luck.report.infra.modules.cache.service;
 
 /**
  * 缓存键生成策略

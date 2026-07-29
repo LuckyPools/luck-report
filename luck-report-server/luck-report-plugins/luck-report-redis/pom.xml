@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.luck.cloud</groupId>
+        <artifactId>luck-report-plugins</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>luck-report-redis</artifactId>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>com.luck.cloud</groupId>
+            <artifactId>luck-report-infra</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- Redis 依赖，提供 RedisTemplate 与连接池支持 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Jackson Java 8 日期时间模块，支持 LocalDateTime 等 JSR-310 类型的序列化/反序列化 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+    </dependencies>
+</project>

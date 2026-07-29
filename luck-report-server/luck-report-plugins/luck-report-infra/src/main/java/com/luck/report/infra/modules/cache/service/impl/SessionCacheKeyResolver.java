@@ -1,8 +1,8 @@
-package com.luck.report.web.cache.impl;
+package com.luck.report.infra.modules.cache.service.impl;
 
-import com.luck.report.core.cache.ReportCacheKeyResolver;
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.utils.RequestHolder;
+import com.luck.report.infra.modules.cache.service.ReportCacheKeyResolver;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.context.RequestHolder;
 
 /**
  *

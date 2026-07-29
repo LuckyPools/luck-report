@@ -1,9 +1,8 @@
 package com.luck.report.web.controller.base;
 
-import com.luck.report.web.provider.RequestInfoProvider;
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.ResponseInfoProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * @author jack

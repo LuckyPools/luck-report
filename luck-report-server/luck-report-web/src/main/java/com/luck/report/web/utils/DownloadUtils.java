@@ -1,6 +1,6 @@
 package com.luck.report.web.utils;
 
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.ResponseInfoProvider;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
