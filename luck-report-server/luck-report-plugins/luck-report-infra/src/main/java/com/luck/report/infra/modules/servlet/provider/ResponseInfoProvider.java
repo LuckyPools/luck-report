@@ -1,4 +1,4 @@
-package com.luck.report.web.provider;
+package com.luck.report.infra.modules.servlet.provider;
 
 import java.io.IOException;
 import java.io.OutputStream;

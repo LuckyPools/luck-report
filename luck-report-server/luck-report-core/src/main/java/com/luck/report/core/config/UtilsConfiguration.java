@@ -2,7 +2,7 @@ package com.luck.report.core.config;
 
 import com.luck.report.core.UReportPropertyPlaceholderConfigurer;
 import com.luck.report.core.Utils;
-import com.luck.report.core.cache.CacheUtils;
+import com.luck.report.infra.modules.cache.utils.CacheUtils;
 import com.luck.report.core.expression.ExpressionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

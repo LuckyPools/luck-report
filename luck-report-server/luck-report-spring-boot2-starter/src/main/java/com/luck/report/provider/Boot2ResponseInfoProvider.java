@@ -1,7 +1,7 @@
 package com.luck.report.provider;
 
 import com.luck.report.utils.JavaxResponseUtils;
-import com.luck.report.web.provider.ResponseInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.ResponseInfoProvider;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

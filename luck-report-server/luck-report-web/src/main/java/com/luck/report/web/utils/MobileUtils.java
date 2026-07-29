@@ -15,7 +15,7 @@
  ******************************************************************************/
 package com.luck.report.web.utils;
 
-import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

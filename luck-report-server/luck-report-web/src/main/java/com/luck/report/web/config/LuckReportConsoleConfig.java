@@ -1,9 +1,9 @@
 package com.luck.report.web.config;
 
-import com.luck.report.core.cache.ReportCache;
-import com.luck.report.core.cache.ReportCacheKeyResolver;
-import com.luck.report.web.cache.impl.LocalCacheService;
-import com.luck.report.web.cache.impl.SessionCacheKeyResolver;
+import com.luck.report.infra.modules.cache.service.ReportCache;
+import com.luck.report.infra.modules.cache.service.ReportCacheKeyResolver;
+import com.luck.report.infra.modules.cache.service.impl.LocalCacheService;
+import com.luck.report.infra.modules.cache.service.impl.SessionCacheKeyResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -13,9 +13,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.web.utils;
+package com.luck.report.infra.modules.servlet.context;
 
-import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
 
 /**
  * @author Jacky.gao

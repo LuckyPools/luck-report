@@ -1,9 +1,9 @@
-package com.luck.report.web.cache.impl;
+package com.luck.report.infra.modules.cache.service.impl;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import com.luck.report.core.cache.ReportCache;
+import com.luck.report.infra.modules.cache.service.ReportCache;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
  * @author luckyPools
  * @since 2017年3月8日
  */
-@Service
 public class LocalCacheService implements ReportCache {
 
     /**

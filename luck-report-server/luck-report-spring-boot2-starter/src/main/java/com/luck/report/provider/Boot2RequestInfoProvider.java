@@ -1,6 +1,6 @@
 package com.luck.report.provider;
 
-import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;

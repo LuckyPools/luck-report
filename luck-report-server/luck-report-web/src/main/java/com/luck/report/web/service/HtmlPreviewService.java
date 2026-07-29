@@ -15,7 +15,7 @@ import com.luck.report.core.model.Report;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.domain.vo.cell.ChartDataVo;
 import com.luck.report.web.domain.vo.report.HtmlReportVo;
-import com.luck.report.web.provider.RequestInfoProvider;
+import com.luck.report.infra.modules.servlet.provider.RequestInfoProvider;
 import com.luck.report.web.utils.UrlParameterUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;

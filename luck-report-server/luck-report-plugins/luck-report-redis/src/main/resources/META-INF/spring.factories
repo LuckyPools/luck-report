@@ -1,0 +1,3 @@
+# Redis Cache Auto Configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.luck.report.redis.config.RedisCacheAutoConfiguration

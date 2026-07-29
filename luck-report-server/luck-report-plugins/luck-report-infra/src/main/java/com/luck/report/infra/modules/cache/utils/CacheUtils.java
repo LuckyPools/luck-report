@@ -13,12 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package com.luck.report.core.cache;
+package com.luck.report.infra.modules.cache.utils;
 
 
-import com.luck.report.core.Utils;
-import com.luck.report.core.exception.ReportException;
-import com.luck.report.core.model.Report;
+import com.luck.report.infra.exception.BeanException;
+import com.luck.report.infra.modules.cache.service.ReportCache;
+import com.luck.report.infra.modules.cache.service.ReportCacheKeyResolver;
+import com.luck.report.infra.utils.SpringBeanUtils;
 
 import java.util.Collection;
 import java.util.Set;
@@ -50,7 +51,7 @@ public class CacheUtils {
         if (reportCache == null) {
             synchronized (CacheUtils.class) {
                 if (reportCache == null) {
-                    Collection<ReportCache> services = Utils.getApplicationContext().getBeansOfType(ReportCache.class).values();
+                    Collection<ReportCache> services = SpringBeanUtils.getBeans(ReportCache.class);
                     for (ReportCache cache : services) {
                         if (cache.disabled()) {
                             continue;
@@ -59,7 +60,7 @@ public class CacheUtils {
                         break;
                     }
                     if (reportCache == null) {
-                        throw new ReportException("Missing ReportCache implementation. Please verify your configuration.");
+                        throw new BeanException("Missing ReportCache implementation. Please verify your configuration.");
                     }
                 }
             }
@@ -78,7 +79,7 @@ public class CacheUtils {
         if (reportCacheKeyResolver == null) {
             synchronized (CacheUtils.class) {
                 if (reportCacheKeyResolver == null) {
-                    Collection<ReportCacheKeyResolver> services = Utils.getApplicationContext().getBeansOfType(ReportCacheKeyResolver.class).values();
+                    Collection<ReportCacheKeyResolver> services = SpringBeanUtils.getBeans(ReportCacheKeyResolver.class);
                     for (ReportCacheKeyResolver resolver : services) {
                         if (resolver.disabled()) {
                             continue;
@@ -87,7 +88,7 @@ public class CacheUtils {
                         break;
                     }
                     if (reportCacheKeyResolver == null) {
-                        throw new ReportException("Missing ReportCacheKeyResolver implementation. Please verify your configuration.");
+                        throw new BeanException("Missing ReportCacheKeyResolver implementation. Please verify your configuration.");
                     }
                 }
             }
