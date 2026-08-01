@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.dataset.dataset')" style="margin-top: 10px">
         <u-select
             v-model="localDataset"

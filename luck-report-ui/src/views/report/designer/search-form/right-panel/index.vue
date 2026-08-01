@@ -349,27 +349,27 @@
             <u-input v-model="formConf.formRules" :placeholder="$t('searchForm.enterFormRules')" />
           </u-form-item>
           <u-form-item :label="$t('searchForm.formSize')" button>
-            <u-radio-group v-model="formConf.size" button>
-              <u-radio label="medium" size="small">
+            <u-radio-group size="small" v-model="formConf.size" button>
+              <u-radio label="medium">
                 {{ $t('searchForm.medium') }}
               </u-radio>
-              <u-radio label="small" size="small">
+              <u-radio label="small">
                 {{ $t('searchForm.small') }}
               </u-radio>
-              <u-radio label="mini" size="small">
+              <u-radio label="mini">
                 {{ $t('searchForm.mini') }}
               </u-radio>
             </u-radio-group>
           </u-form-item>
           <u-form-item :label="$t('searchForm.labelPosition')">
-            <u-radio-group v-model="formConf.labelPosition" button>
-              <u-radio label="left" size="small">
+            <u-radio-group size="small" v-model="formConf.labelPosition" button>
+              <u-radio label="left">
                 {{ $t('searchForm.leftAlign') }}
               </u-radio>
-              <u-radio label="right" size="small">
+              <u-radio label="right">
                 {{ $t('searchForm.rightAlign') }}
               </u-radio>
-              <u-radio label="top" size="small">
+              <u-radio label="top">
                 {{ $t('searchForm.topAlign') }}
               </u-radio>
             </u-radio-group>

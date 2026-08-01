@@ -1,6 +1,6 @@
 <template>
   <div class="axis-config">
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
 
       <div class="property-quote">
         {{ $t('chart.xAxis') }}

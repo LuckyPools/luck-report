@@ -1,7 +1,7 @@
 <template>
   <div class="cell-value-editor">
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
 
       <!-- 父单元格配置 -->
       <div v-show="showParentGroup" ref="parentGroup">
@@ -80,6 +80,22 @@
         </u-form-item>
       </div>
 
+      <!-- 单元格类型 -->
+      <u-form-item class="property-label" v-show="showTypeGroup" :label="$t('property.prop.cellType')">
+        <u-select
+            v-model="cellType"
+            @change="handleCellTypeChange"
+            style="width: 250px"
+        >
+          <u-option
+              v-for="option in cellTypeOptions"
+              :key="option.value"
+              :value="option.value"
+              :label="option.label"
+          />
+        </u-select>
+      </u-form-item>
+
       <!-- 渲染器配置 -->
       <div v-show="showRendererGroup" ref="rendererGroup" class="form-group" style="margin-bottom:6px">
         <label>{{ $t('property.prop.renderBean') }}：</label>
@@ -139,22 +155,6 @@
           </u-button>
         </u-form-item>
       </div>
-
-      <!-- 单元格类型 -->
-      <u-form-item class="property-label" v-show="showTypeGroup" :label="$t('property.prop.cellType')">
-        <u-select
-            v-model="cellType"
-            @change="handleCellTypeChange"
-            style="width: 250px"
-        >
-          <u-option
-              v-for="option in cellTypeOptions"
-              :key="option.value"
-              :value="option.value"
-              :label="option.label"
-          />
-        </u-select>
-      </u-form-item>
 
     </u-form>
     <!-- URL参数对话框 -->

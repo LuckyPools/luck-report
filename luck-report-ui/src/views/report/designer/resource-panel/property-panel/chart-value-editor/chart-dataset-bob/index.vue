@@ -1,7 +1,7 @@
 <template>
   <div class="chart-dataset-bob">
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('chart.dataset')">
         <u-select
           v-model="localDatasetName"

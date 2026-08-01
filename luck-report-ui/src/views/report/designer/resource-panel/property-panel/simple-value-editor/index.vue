@@ -5,7 +5,7 @@
       {{ $t('property.simple.config') }}
     </div>
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.simple.lineHeight')">
         <u-input-number
             v-model="lineHeight"

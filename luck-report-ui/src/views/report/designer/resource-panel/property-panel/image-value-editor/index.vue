@@ -5,7 +5,7 @@
       {{ $t('property.image.config') }}
     </div>
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.image.width') + '(px)'">
         <u-input-number
           :placeholder="$t('property.image.widthPlaceholder')"

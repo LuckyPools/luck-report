@@ -5,7 +5,7 @@
       {{ $t('property.zxing.config') }}
     </div>
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.zxing.width')">
         <u-input-number
           v-model="width"

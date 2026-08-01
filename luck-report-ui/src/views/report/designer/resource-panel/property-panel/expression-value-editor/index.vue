@@ -1,6 +1,6 @@
 <template>
   <div class="expression-value-editor" ref="container" >
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
 
       <div class="property-quote">
         {{ $t('property.expr.config') }}
