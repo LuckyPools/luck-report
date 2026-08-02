@@ -174,6 +174,7 @@ public class DesignerService implements ApplicationContextAware {
         }
         ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
         ReportDefinitionWrapperCache.putObject(file, wrapper);
+        ReportScopedCache.removeObject(file);
         targetReportProvider.saveReport(file, content);
     }
 

@@ -50,7 +50,7 @@ public class JdbcDatasourceDefinition implements DatasourceDefinition, Serializa
         if (datasets == null || datasets.size() == 0) {
             return null;
         }
-        if (conn == null) conn = getConnection();
+        if (conn == null) conn = buildConnection();
         List<Dataset> list = new ArrayList<Dataset>();
         try {
 
@@ -65,7 +65,7 @@ public class JdbcDatasourceDefinition implements DatasourceDefinition, Serializa
         return list;
     }
 
-    private Connection getConnection() {
+    private Connection buildConnection() {
         try {
             Class.forName(driver);
             Connection conn = DriverManager.getConnection(url, username, password);
