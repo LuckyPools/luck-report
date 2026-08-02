@@ -2,12 +2,12 @@
  * Created by Jacky.gao on 2016/7/27.
  */
 import UndoManager from 'undo-manager';
-import MessageBox from '@/components/messagebox/instance.js';
 import store from '@/store';
 import {getCell, getCellName} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 import { getUrlQueryString } from '@/utils/url';
 import { $t } from '@/locales';
+import { showAlert } from '@/utils/comnon.js';
 
 export function resetTableData(hot){
     const countCols=hot.countCols(),countRows=hot.countRows(),data=[];
@@ -151,7 +151,7 @@ export function tableToXml(context){
                     msg=$t('validation.cell.aggregateRequired', { cell: cellName });
                 }
                 if(msg){
-                    MessageBox.alert(msg);
+                    showAlert(msg);
                     throw msg;
                 }
                 const mappingType=value.mappingType || 'simple';
@@ -190,7 +190,7 @@ export function tableToXml(context){
             }else if(value.type==='expression'){
                 if(!value.value || value.value===''){
                     const msg=$t('validation.cell.expressionRequired', { cell: cellName });
-                    MessageBox.alert(msg);
+                    showAlert(msg);
                     throw msg;
                 }
                 cellXml+=`<expression-value>`;
@@ -209,7 +209,7 @@ export function tableToXml(context){
                     msg=$t('validation.cell.imageExpressionRequired', { cell: cellName });
                 }
                 if(msg){
-                    MessageBox.alert(msg);
+                    showAlert(msg);
                     throw msg;
                 }
                 cellXml+=`<image-value source="${value.source}"`;
@@ -233,7 +233,7 @@ export function tableToXml(context){
                     msg=$t('validation.cell.zxingExpressionRequired', { cell: cellName });
                 }
                 if(msg){
-                    MessageBox.alert(msg);
+                    showAlert(msg);
                     throw msg;
                 }
                 cellXml+=`<zxing-value source="${value.source}" category="${value.category}" width="${value.width}" height="${value.height}"`;
@@ -316,7 +316,7 @@ export function tableToXml(context){
                 }
                 
                 if(msg){
-                    MessageBox.alert(msg);
+                    showAlert(msg);
                     throw msg;
                 }
                 
@@ -428,6 +428,9 @@ export function tableToXml(context){
                 }
                 if(pc.newValue && pc.newValue!==''){
                     cellXml+=` new-value="${pc.newValue}"`;
+                }
+                if(pc.renderFlag !== null && pc.renderFlag !== undefined){
+                    cellXml+=` render-flag="${pc.renderFlag}"`;
                 }
                 if(pc.linkUrl && pc.linkUrl!==''){
                     cellXml+=` link-url="${pc.linkUrl}"`;

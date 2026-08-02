@@ -148,7 +148,7 @@ public class HtmlProducer {
                 sb.append(">");
                 boolean hasLink = false;
                 String linkURL = cell.getLinkUrl();
-                if (StringUtils.isNotBlank(linkURL)) {
+                if (StringUtils.isNotBlank(linkURL) && cell.isRenderFlag()) {
                     Expression urlExpression = cell.getLinkUrlExpression();
                     if (urlExpression != null) {
                         ExpressionData<?> exprData = urlExpression.execute(cell, cell, context);
@@ -191,7 +191,10 @@ public class HtmlProducer {
                     if (StringUtils.isBlank(target)) target = "_self";
                     sb.append("<a href=\"" + linkURL + "\" target=\"" + target + "\">");
                 }
-                Object obj = (cell.getFormatData() == null) ? "" : cell.getFormatData();
+                Object obj = "";
+                if (cell.isRenderFlag() && cell.getFormatData() != null) {
+                    obj = cell.getFormatData();
+                }
                 if (obj instanceof Image) {
                     Image img = (Image) obj;
                     String path = img.getPath();

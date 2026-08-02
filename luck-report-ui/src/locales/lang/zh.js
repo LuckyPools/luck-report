@@ -353,6 +353,8 @@ const zh = {
             "rowHeight": "行高",
             "colWidth": "列宽",
             "paging": "分页",
+            "renderCell": "渲染单元格",
+            "renderCellTip": "取消勾选后，单元格参与计算但不渲染内容",
             "rowBefore": "当前行前",
             "rowAfter": "当前行后",
             "link": "链接",
@@ -525,6 +527,9 @@ const zh = {
         }
     },
     "property": {
+        "condition": {
+            "config": "条件配置"
+        },
         "datasource": {
             "title": "添加数据库连接",
             "addBean": "添加SpringBean连接",
@@ -569,7 +574,7 @@ const zh = {
             "format": "格式化",
             "formatTip": "对日期或数字格式化，如#.##",
             "conditionProp": "条件属性",
-            "configCondition": "配置条件",
+            "configCondition": "条件配置",
             "syntaxError": "语法检查操作失败！"
         },
         "dataset": {

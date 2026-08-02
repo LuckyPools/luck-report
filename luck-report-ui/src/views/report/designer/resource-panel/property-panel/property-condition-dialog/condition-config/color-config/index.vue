@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-row class="condition-config-row" type="flex" align="middle">
+    <u-row v-if="showForecolor" class="condition-config-row" type="flex" align="middle">
       <u-col :span="8">
         <u-checkbox v-model="forceChecked" @change="onForceChange">
           {{ $t('dialog.propCondition.forecolor') }}
@@ -86,6 +86,16 @@ export default {
     cellStyle: {
       type: Object,
       default: () => ({})
+    },
+    cellType: {
+      type: String,
+      default: 'simple'
+    }
+  },
+  computed: {
+    // 图片类(image/zxing/slash)与图表类(chart)无文字内容，前景色不生效，仅保留背景色
+    showForecolor() {
+      return !['image', 'zxing', 'slash', 'chart'].includes(this.cellType);
     }
   },
   data() {

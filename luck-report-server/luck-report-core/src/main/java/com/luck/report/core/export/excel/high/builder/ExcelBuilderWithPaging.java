@@ -139,7 +139,7 @@ public class ExcelBuilderWithPaging extends ExcelBuilder {
                             CellRangeAddress cellRegion = new CellRangeAddress(rowNumber, (rowNumber + rowSpan), i - skipCol, (i - skipCol + colSpan));
                             sheet.addMergedRegion(cellRegion);
                         }
-                        Object obj = cellInfo.getFormatData();
+                        Object obj = cellInfo.isRenderFlag() ? cellInfo.getFormatData() : null;
                         if (obj != null) {
                             if (obj instanceof String) {
                                 cell.setCellValue((String) obj);

@@ -1,5 +1,20 @@
 <template>
   <div class="scatter-chart-value-editor" ref="container">
+    <div class="property-quote">
+      <span>{{ $t('property.condition.config') }}</span>
+    </div>
+    <u-form :label-width="100" labelPosition="right">
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
+
     <!-- 选项卡导航 -->
     <u-tabs v-model="activeTab" type="button">
       <u-tab-pane :label="$t('chart.datasetBind')" index="dataset">
@@ -35,6 +50,15 @@
         />
       </u-tab-pane>
     </u-tabs>
+
+    <!-- 条件属性对话框 -->
+    <PropertyConditionDialog
+        :visible.sync="propertyConditionDialogVisible"
+        :cell-type="currentCellType"
+        :fields="getConditionFields()"
+        :conditionGroups="conditionGroups"
+        @saveAfter="handlePropertyConditionSave"
+    />
   </div>
 </template>
 
@@ -48,17 +72,25 @@ import ChartOption from '@/views/report/designer/resource-panel/property-panel/c
 import ChartDataConfig from '@/views/report/designer/resource-panel/property-panel/chart-value-editor/chart-dataset-bob/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
+import UButton from '@/components/button/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
+import conditionPropertyMixin from '../property-condition-dialog/condition-property-minx';
 
 import { mapGetters, mapActions } from 'vuex';
 
 export default {
   name: 'ScatterChartValueEditor',
+  mixins: [conditionPropertyMixin],
   components: {
     ChartAxis,
     ChartOption,
     ChartDataConfig,
     UTabs,
-    UTabPane
+    UTabPane,
+    UButton,
+    UForm,
+    UFormItem
   },
   props: {
     rowIndex: {
@@ -210,6 +242,12 @@ export default {
   },
   methods: {
     ...mapActions('report', ['setCellUpdate']),
+    /**
+     * 覆盖 mixin：图表绑定了数据集，返回真实字段列表以支持「属性」条件类型
+     */
+    getConditionFields() {
+      return this.currentFields;
+    },
     // 加载图表配置
     loadChartConfig() {
       const cellDef = getCell(this.rowIndex, this.colIndex);

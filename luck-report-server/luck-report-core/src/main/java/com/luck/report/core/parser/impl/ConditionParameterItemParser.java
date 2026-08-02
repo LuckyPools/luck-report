@@ -60,6 +60,10 @@ public class ConditionParameterItemParser implements Parser<ConditionPropertyIte
         }
         item.setName(element.attributeValue("name"));
         item.setNewValue(element.attributeValue("new-value"));
+        String renderFlag = element.attributeValue("render-flag");
+        if (StringUtils.isNotBlank(renderFlag)) {
+            item.setRenderFlag(Boolean.parseBoolean(renderFlag));
+        }
         item.setLinkUrl(element.attributeValue("link-url"));
         item.setLinkTargetWindow(element.attributeValue("link-target-window"));
         List<LinkParameter> parameters = null;

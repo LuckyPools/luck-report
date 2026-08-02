@@ -260,7 +260,7 @@ public class WordProducer implements Producer {
         } else {
             run = para.createRun();
         }
-        Object value = cell.getFormatData();
+        Object value = cell.isRenderFlag() ? cell.getFormatData() : null;
         if (value instanceof String) {
             String text = value.toString();
             if (text.contains("\n")) {

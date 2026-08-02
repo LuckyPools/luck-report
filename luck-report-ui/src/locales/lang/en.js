@@ -352,6 +352,8 @@ const en = {
             "rowHeight": "Row Height",
             "colWidth": "Col Width",
             "paging": "Paging",
+            "renderCell": "Render Cell",
+            "renderCellTip": "When unchecked, the cell participates in calculation but content is not rendered",
             "rowBefore": "Current Row Before",
             "rowAfter": "Current Row After",
             "link": "Link",
@@ -524,6 +526,9 @@ const en = {
         }
     },
     "property": {
+        "condition": {
+            "config": "Condition Config"
+        },
         "datasource": {
             "title": "Add Database Connection",
             "addBean": "Add SpringBean Connection",
@@ -568,7 +573,7 @@ const en = {
             "format": "Format",
             "formatTip": "Format date or number，like: #.##",
             "conditionProp": "Condition Property",
-            "configCondition": "Config Condition Property",
+            "configCondition": "Condition Config",
             "syntaxError": "Syntax check failed."
         },
         "dataset": {

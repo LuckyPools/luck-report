@@ -40,6 +40,10 @@ public class ConditionPropertyItem implements Serializable {
     private int colWidth = -1;
 
     private String newValue;
+    /**
+     * 渲染标记：null=未配置(不覆盖)；true=渲染单元格内容(默认)；false=参与计算但不渲染内容
+     */
+    private Boolean renderFlag;
     private String linkUrl;
     private String linkTargetWindow;
     private List<LinkParameter> linkParameters;
@@ -113,6 +117,14 @@ public class ConditionPropertyItem implements Serializable {
 
     public void setNewValue(String newValue) {
         this.newValue = newValue;
+    }
+
+    public Boolean getRenderFlag() {
+        return renderFlag;
+    }
+
+    public void setRenderFlag(Boolean renderFlag) {
+        this.renderFlag = renderFlag;
     }
 
     public String getLinkUrl() {

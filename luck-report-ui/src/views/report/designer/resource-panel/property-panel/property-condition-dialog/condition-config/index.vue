@@ -2,15 +2,18 @@
   <div class="condition-style">
     <ColorConfig
       :cell-style="localGroup.cellStyle"
+      :cell-type="cellType"
       @color-change="handleColorChange"
     />
 
     <FontConfig
+      v-if="showFontConfig"
       :cell-style="localGroup.cellStyle"
       @font-change="handleFontChange"
     />
 
     <AlignConfig
+      v-if="showAlignConfig"
       :cell-style="localGroup.cellStyle"
       @align-change="handleAlignChange"
     />
@@ -22,9 +25,15 @@
     />
 
     <ValueConfig
+      v-if="showValueConfig"
       :cell-style="localGroup.cellStyle"
       :new-value="localGroup.newValue"
       @value-change="handleValueChange"
+    />
+
+    <RenderConfig
+        :render-flag="localGroup.renderFlag"
+        @render-change="handleRenderChange"
     />
 
     <SizeConfig
@@ -55,6 +64,7 @@ import BorderConfig from './border-config/index.vue';
 import ValueConfig from './value-config/index.vue';
 import SizeConfig from './size-config/index.vue';
 import PagingConfig from './paging-config/index.vue';
+import RenderConfig from './render-config/index.vue';
 import LinkConfig from './link-config/index.vue';
 
 export default {
@@ -67,12 +77,36 @@ export default {
     ValueConfig,
     SizeConfig,
     PagingConfig,
+    RenderConfig,
     LinkConfig
   },
   props: {
     selectedGroup: {
       type: Object,
       default: null
+    },
+    cellType: {
+      type: String,
+      default: 'simple'
+    }
+  },
+  computed: {
+    // 单元格分类：text(文本) / image(图片) / chart(图表)
+    // 图片类(image/zxing/slash)：字体、新值、格式化不生效
+    // 图表类(chart)：字体、对齐、新值、格式化不生效
+    cellCategory() {
+      if (['image', 'zxing', 'slash'].includes(this.cellType)) return 'image';
+      if (this.cellType === 'chart') return 'chart';
+      return 'text';
+    },
+    showFontConfig() {
+      return this.cellCategory === 'text';
+    },
+    showAlignConfig() {
+      return this.cellCategory !== 'chart';
+    },
+    showValueConfig() {
+      return this.cellCategory === 'text';
     }
   },
   data() {
@@ -86,6 +120,7 @@ export default {
         linkTargetWindow: null,
         linkParameters: null,
         paging: null,
+        renderFlag: null,
         name: null
       }
     };
@@ -111,6 +146,7 @@ export default {
           linkTargetWindow: null,
           linkParameters: null,
           paging: null,
+          renderFlag: null,
           name: null
         };
       } else {
@@ -125,6 +161,7 @@ export default {
           linkTargetWindow: tempGroup.linkTargetWindow !== undefined ? tempGroup.linkTargetWindow : null,
           linkParameters: tempGroup.linkParameters !== undefined ? tempGroup.linkParameters : null,
           paging: tempGroup.paging !== undefined ? tempGroup.paging : null,
+          renderFlag: tempGroup.renderFlag !== undefined ? tempGroup.renderFlag : null,
           name: tempGroup.name !== undefined ? tempGroup.name : null,
         };
       }
@@ -235,6 +272,11 @@ export default {
 
     handlePagingChange({ checked, paging }) {
       this.localGroup.paging = paging;
+      this.emitPropertyChange();
+    },
+
+    handleRenderChange({ checked, value }) {
+      this.localGroup.renderFlag = value;
       this.emitPropertyChange();
     },
 

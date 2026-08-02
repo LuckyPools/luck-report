@@ -37,6 +37,7 @@
         <legend class="legend-style">{{ $t('dialog.propCondition.propConfig') }}</legend>
         <condition-config
           :selected-group="selectedGroup"
+          :cell-type="cellType"
           @property-changed="onPropertyChanged"
         />
       </fieldset>
@@ -79,6 +80,10 @@ export default {
     conditionGroups: {
       type: Array,
       default: () => []
+    },
+    cellType: {
+      type: String,
+      default: 'simple'
     }
   },
   computed: {
@@ -214,6 +219,14 @@ export default {
     selectFirstGroup() {
       if (this.localConditionGroups.length > 0) {
         this.selectedGroupIndex = 0;
+        const group = this.localConditionGroups[0];
+        this.selectedGroup = group;
+        this.showPropertyGroup = true;
+        if (!group.conditions) {
+          group.conditions = [];
+        }
+        this.currentConditions = [...group.conditions];
+        this.resetConditionSelection = false;
       }
     },
 

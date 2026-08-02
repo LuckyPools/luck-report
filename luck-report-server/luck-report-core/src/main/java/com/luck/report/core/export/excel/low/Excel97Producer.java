@@ -149,7 +149,7 @@ public class Excel97Producer {
                                 CellRangeAddress cellRegion = new CellRangeAddress(rowNumber, (rowNumber + rowSpan), i, (i + colSpan));
                                 sheet.addMergedRegion(cellRegion);
                             }
-                            Object obj = cellInfo.getFormatData();
+                            Object obj = cellInfo.isRenderFlag() ? cellInfo.getFormatData() : null;
                             if (obj != null) {
                                 if (obj instanceof String) {
                                     cell.setCellValue((String) obj);
@@ -298,7 +298,7 @@ public class Excel97Producer {
                             CellRangeAddress cellRegion = new CellRangeAddress(rowNumber, (rowNumber + rowSpan), i, (i + colSpan));
                             sheet.addMergedRegion(cellRegion);
                         }
-                        Object obj = cellInfo.getFormatData();
+                        Object obj = cellInfo.isRenderFlag() ? cellInfo.getFormatData() : null;
                         if (obj != null) {
                             if (obj instanceof String) {
                                 cell.setCellValue((String) obj);

@@ -2,6 +2,21 @@
   <div class="simple-value-editor">
 
     <div class="property-quote">
+      <span>{{ $t('property.condition.config') }}</span>
+    </div>
+    <u-form :label-width="100" labelPosition="right">
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
+
+    <div class="property-quote">
       {{ $t('property.simple.config') }}
     </div>
 
@@ -24,6 +39,15 @@
         </textarea>
       </u-form-item>
     </u-form>
+
+    <!-- 条件属性对话框 -->
+    <PropertyConditionDialog
+        :visible.sync="propertyConditionDialogVisible"
+        :cell-type="currentCellType"
+        :fields="getConditionFields()"
+        :conditionGroups="conditionGroups"
+        @saveAfter="handlePropertyConditionSave"
+    />
   </div>
 </template>
 
@@ -31,16 +55,20 @@
 import {setDirty} from "@/utils/table";
 import { deepCopy } from '@/components/utils/index.js';
 import UInputNumber from '@/components/input-number/index.vue';
+import UButton from '@/components/button/index.vue';
 import UForm from "@/components/form/index.vue";
 import UFormItem from "@/components/form-item/index.vue";
+import conditionPropertyMixin from '../property-condition-dialog/condition-property-minx';
 import { mapGetters, mapActions } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'SimpleValueEditor',
+  mixins: [conditionPropertyMixin],
   components: {
     UInputNumber,
+    UButton,
     UForm,
     UFormItem
   },
