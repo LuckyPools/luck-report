@@ -135,6 +135,10 @@ export default {
     conditions: {
       type: Array,
       default: () => []
+    },
+    cellType: {
+      type: String,
+      default: 'simple'
     }
   },
   data() {
@@ -227,11 +231,22 @@ export default {
       ];
     },
     leftTypeOptions() {
-      return [
+      const supportMap = {
+        simple: ['current', 'expression'],
+        dataset: ['current', 'property', 'expression'],
+        image: ['expression'],
+        slash: ['expression'],
+        zxing: ['expression'],
+        chart: ['expression'],
+        expression: ['current', 'expression']
+      };
+      const supported = supportMap[this.cellType] || ['current', 'property', 'expression'];
+      const allOptions = [
         { value: 'current', label: this.$t('dialog.editPropCondition.currentValue') },
         { value: 'property', label: this.$t('dialog.editPropCondition.property') },
         { value: 'expression', label: this.$t('dialog.editPropCondition.expression') }
       ];
+      return allOptions.filter(opt => supported.includes(opt.value));
     },
     fieldOptions() {
       return this.fields.map(field => ({
@@ -288,7 +303,8 @@ export default {
         this.formData.value = this.condition.right || '';
         this.formData.join = this.condition.join || 'and';
       } else {
-        this.formData.leftType = 'current';
+        const supportedTypes = this.leftTypeOptions.map(opt => opt.value);
+        this.formData.leftType = supportedTypes[0] || 'current';
         this.formData.property = '';
         this.formData.expression = '';
         this.formData.operator = '';

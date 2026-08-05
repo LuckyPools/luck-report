@@ -27,6 +27,7 @@
           :fields="fields"
           :conditions="currentConditions"
           :reset-selection="resetConditionSelection"
+          :cell-type="cellType"
           @condition-added="onConditionAdded"
           @condition-updated="onConditionUpdated"
           @condition-deleted="onConditionDeleted"

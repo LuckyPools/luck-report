@@ -47,6 +47,7 @@
       :fields="fields"
       :condition="condition"
       :conditions="localConditions"
+      :cell-type="cellType"
       @saveAfter="handleSaveAfter"
       @close="dialogVisible = false"
     />
@@ -83,6 +84,10 @@ export default {
     resetSelection: {
       type: Boolean,
       default: true
+    },
+    cellType: {
+      type: String,
+      default: 'simple'
     }
   },
   data() {
