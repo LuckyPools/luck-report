@@ -20,5 +20,5 @@ package com.luck.report.core.definition.datasource;
  * @since 2017年2月8日
  */
 public enum DatasourceType {
-    jdbc, spring, buildin;
+    jdbc, spring, buildin, staticDs
 }

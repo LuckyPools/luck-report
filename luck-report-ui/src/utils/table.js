@@ -578,6 +578,17 @@ export function tableToXml(context){
                 }
                 ds+=`</dataset>`;
             }
+        }else if (type === 'staticDs'){
+            ds+=` remark="${encode(datasource.remark)}"`;
+            ds+='>';
+            for(let dataset of datasource.datasets){
+                ds+=`<dataset name="${encode(dataset.name)}" type="staticDs">`;
+                ds+=`<content><![CDATA[${dataset.content}]]></content>`;
+                for(let field of dataset.fields){
+                    ds+=`<field name="${field.name}"/>`;
+                }
+                ds+=`</dataset>`;
+            }
         }
         ds+="</datasource>";
         datasourceXml+=ds;

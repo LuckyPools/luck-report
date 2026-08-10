@@ -23,6 +23,7 @@ import TableManager from './manager.js';
 import { getLibMode } from '@/lib/navigator';
 import PrintLine from "@/views/report/designer/print-line/index.vue";
 import '../../../../assets/css/designer/table.css';
+import report from "@/store/modules/report";
 
 export default {
   name: 'ContentTable',
@@ -400,7 +401,7 @@ export default {
         let formData = new FormData();
         formData.append('filePath', filePath);
         const reportDef = await loadReport(formData);
-
+        console.log(reportDef);
         this.reportDef = reportDef;
         this.buildReportData(reportDef);
         this.buildMenu();

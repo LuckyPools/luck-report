@@ -500,6 +500,16 @@ const zh = {
             "view": "视图",
             "loadFail": "加载表失败!"
         },
+        "json":{
+            "ok":"确定",
+            "jsonTip":"json内容不能为空!",
+            "nameTip":"数据集名称不能为空",
+            "ds":"json数据集",
+            "doFmtErr":"执行JSON格式化失败",
+            "arrFmtErr":"JSON 格式必须为数组（Array）",
+            "fmtErr":"JSON格式不正确!",
+            "emptyArrErr":"json数据集的数组不能为空!"
+        },
         "urlParam": {
             "title": "URL参数配置",
             "add": "添加参数",
@@ -522,6 +532,17 @@ const zh = {
         "common": {
             "ok": "确定",
             "cancel": "取消"
+        },
+        "staticDatasource":{
+            "title":"静态数据源配置",
+            "name":"名称",
+            "remark":"备注",
+            "nameTip":"名称不能为空!"
+
+        },
+        "staticDataset":{
+            "desc":"只支持json数据格式，且只会解析第一级，如: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
+            "title":"配置静态数据集"
         }
     },
     "property": {
@@ -663,6 +684,9 @@ const zh = {
             "down": "向下",
             "right": "向右",
             "noneExpand": "不展开"
+        },
+        staticDatasource: {
+            "title":"静态数据源"
         }
     },
     "chart": {

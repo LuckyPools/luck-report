@@ -357,6 +357,7 @@ export default {
 
         let filePath = this.currentPath ? this.currentPath + '/' + this.fileName : this.fileName;
         const fullFileName = this.currentProviderPrefix + filePath + ".ureport.xml";
+        console.log("save report context",this.context);
         const content = tableToXml(this.context);
         let that = this;
         saveReportFile(fullFileName, content)

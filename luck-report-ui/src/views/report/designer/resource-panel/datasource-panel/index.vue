@@ -28,6 +28,16 @@
         @click="showBuildinDialog"
       >
       </u-button>
+
+      <!-- 静态数据源按钮 -->
+      <u-button
+          type="info"
+          class="toolbar-btn"
+          icon="icon-database"
+          :title="$t('property.staticDatasource.title')"
+          @click="showStaticDatasourceDialog"
+      >
+      </u-button>
     </div>
 
     <!-- 树容器 -->
@@ -42,6 +52,17 @@
         @remove="removeDatasource"
         @update-datasource="updateDatasource"
       />
+
+        <!-- 静态数据源树组件 -->
+        <StaticTree
+            v-for="(datasource, index) in staticDatasources"
+            :key="'static_' + '_' + index"
+            :datasources="datasources"
+            :datasource="datasource"
+            ref="staticTree"
+            @remove="removeDatasource"
+            @update-datasource="updateDatasource"
+        />
 
       <!-- Spring树组件 -->
       <SpringTree
@@ -95,6 +116,16 @@
       @close="buildinDialogVisible = false"
       @select="addBuildinDatasource"
     />
+
+    <!-- 静态数据源对话框 -->
+    <StaticDatasourceDialog
+        ref="staticDatasourceDialog"
+        :datasources="datasources"
+        :visible="staticDatasourceVisible"
+        :datasource="currentStaticDatasource"
+        @close="staticDatasourceVisible = false"
+        @save="addStaticDatasource"
+    />
   </div>
 </template>
 
@@ -109,17 +140,23 @@ import BuildinDatasourceSelectDialog from './buildin-datasource-select-dialog/in
 import UButton from "@/components/button/index.vue";
 import {deepCopy} from "@/components/utils";
 import { updateReportDef } from '@/utils/contextActions.js';
+import StaticDatasourceDialog
+  from "@/views/report/designer/resource-panel/datasource-panel/static-datasource-dialog/index.vue";
+import StaticTree from "@/views/report/designer/resource-panel/datasource-panel/static-tree/index.vue";
+
 
 export default {
   name: 'DatasourcePanel',
   components: {
+    StaticDatasourceDialog,
     UButton,
     DatabaseTree,
     SpringTree,
     BuildinTree,
     DatasourceDialog,
     SpringDialog,
-    BuildinDatasourceSelectDialog
+    BuildinDatasourceSelectDialog,
+    StaticTree
   },
 
   data() {
@@ -129,7 +166,9 @@ export default {
       datasourceDialogVisible: false,
       currentDatasource: null,
       springDialogVisible: false,
-      currentSpringDatasource: null
+      currentSpringDatasource: null,
+      staticDatasourceVisible:false,
+      currentStaticDatasource: null
     };
   },
   computed: {
@@ -147,11 +186,17 @@ export default {
     buildinDatasources() {
       return this.datasources.filter(item => item.type === 'buildin');
     },
+    // 分离不同类型的数据源以便渲染
+    staticDatasources() {
+      console.log("init static datasources",this.datasources)
+      return this.datasources.filter(item => item.type === 'staticDs');
+    },
 
   },
   watch: {
     context: {
       handler(newContext) {
+        console.log("newContext",newContext);
         if (newContext && newContext.reportDef) {
           this.initializeDatasources();
         }
@@ -201,6 +246,13 @@ export default {
     showBuildinDialog() {
       this.buildinDialogVisible = true;
     },
+    /**
+     * 显示静态数据源对话框
+     */
+    showStaticDatasourceDialog() {
+      this.staticDatasourceVisible = true;
+      this.currentStaticDatasource = null;
+    },
 
     /**
      * 添加JDBC数据源
@@ -220,6 +272,24 @@ export default {
       this.$set(this.datasources, newIndex, newDatasource);
 
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
+      updateReportDef(reportDef);
+    },
+
+    /**
+     * 添加JDBC数据源
+     */
+    addStaticDatasource(datasource) {
+      const newDatasource = {
+        name: datasource.name,
+        remark:datasource.remark,
+        type:datasource.type
+      };
+
+      const newIndex = this.datasources.length;
+      this.$set(this.datasources, newIndex, newDatasource);
+
+      const reportDef = { ...this.context.reportDef, datasources: this.datasources };
+
       updateReportDef(reportDef);
     },
 
@@ -277,6 +347,7 @@ export default {
      * 更新数据源
      */
     updateDatasource(data) {
+      console.log("updateDatasource", data);
       // 查找并更新匹配的数据源
       const index = this.datasources.findIndex(item => item.name === data.oldName);
       if (index !== -1) {

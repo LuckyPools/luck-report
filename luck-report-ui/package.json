@@ -19,6 +19,7 @@
     "core-js": "^3.8.3",
     "handsontable": "^6.2.2",
     "js-beautify": "1.13.0",
+    "jsonlint-mod": "^1.7.6",
     "raphael": "^2.2.7",
     "save-svg-as-png": "^1.3.2",
     "stream-browserify": "^3.0.0",
