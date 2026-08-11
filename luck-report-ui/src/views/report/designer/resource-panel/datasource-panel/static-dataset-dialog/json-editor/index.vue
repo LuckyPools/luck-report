@@ -30,7 +30,7 @@
             type="primary"
             size="small"
             class="mr-l-8"
-            @click="formatJson(codeMirror)"
+            @click="showExcelToJsonDialog"
             style="margin-left: 10px"
         >
           导入excel
@@ -46,6 +46,7 @@
         ></textarea>
       </div>
     </div>
+    <excel-to-json ref="excelToJsonRef" :visible="visibleExcelImp"  @close="visibleExcelImp = false" @json-imported="handleJson"></excel-to-json>
   </div>
 </template>
 
@@ -63,16 +64,17 @@ import 'codemirror/addon/fold/foldgutter.css';   // 折叠图标样式
 import 'codemirror/addon/lint/json-lint';
 import jsonlint from 'jsonlint-mod';
 
-import {showAlert} from '@/utils/comnon.js';
-import {scriptValidation} from '@/api/designer';
 import UInput from '@/components/input/index.vue';
 import UButton from "@/components/button/index.vue";
+import ExcelToJson
+  from "@/views/report/designer/resource-panel/datasource-panel/static-dataset-dialog/excel-to-json/index.vue";
 window.jsonlint = jsonlint;
 export default {
   name: 'JsonEditor',
   components: {
     UButton,
-    UInput
+    UInput,
+    ExcelToJson
   },
   props: {
     name: {
@@ -82,7 +84,7 @@ export default {
     content: {
       type: String,
       default: ''
-    }
+    },
   },
   watch: {
     name(newVal) {
@@ -100,7 +102,9 @@ export default {
     return {
       datasetName: this.name,
       codeMirror: null,
-      isSilentUpdate: false
+      isSilentUpdate: false,
+      visibleExcelImp: false,
+
     };
   },
   beforeUnmount() {
@@ -123,7 +127,7 @@ export default {
 
     /**
      * 方法说明：初始化或更新CodeMirror编辑器
-     * @param {string} initialSql - 初始SQL内容，可为空
+     * @param {string} initialSql - 初始JSON内容，可为空
      */
     initCodeMirror(initialSql = '') {
       const textarea = this.$refs.jsonTextarea;
@@ -244,6 +248,18 @@ export default {
       } catch (e) {
         return { valid: false, message: `${this.$t('dialog.json.fmtErr')}: ${e.message}` };
       }
+    },
+    showExcelToJsonDialog(){
+      this.visibleExcelImp=true;
+    },
+    handleJson(json) {
+      console.log("excel to json",json)
+      this.setJson(json);
+      this.isSilentUpdate = true;
+      this.$emit('json-change',json);
+      this.$nextTick(() => {
+        this.formatJson(this.codeMirror);
+      });
     },
   }
 };

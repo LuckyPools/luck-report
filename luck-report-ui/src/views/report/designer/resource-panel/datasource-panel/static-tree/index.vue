@@ -193,7 +193,7 @@ export default {
      */
     showDatasetContextMenu(event, dataset, index) {
       const items = [
-        {key: 'add', name: this.$t('tree.addField'), icon: 'add'},
+        // {key: 'add', name: this.$t('tree.addField'), icon: 'add'},
         {key: 'edit', name: this.$t('tree.edit'), icon: 'edit'},
         {key: 'delete', name: this.$t('tree.del'), icon: 'delete'},
         {key: 'refresh', name: this.$t('tree.refresh'), icon: 'loading'}

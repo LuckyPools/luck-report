@@ -94,7 +94,8 @@ export default {
       this.content = '';
       this.parameters = [];
       this.oldName = '';
-
+      console.log("static dataset dialog datasetData",this.datasetData);
+      console.log("this content",this.content);
       if (this.datasetData) {
         this.currentData = { ...this.datasetData };
         this.datasetName = this.datasetData.name || '';

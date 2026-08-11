@@ -543,6 +543,24 @@ const zh = {
         "staticDataset":{
             "desc":"只支持json数据格式，且只会解析第一级，如: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
             "title":"配置静态数据集"
+        },
+        "excelToJson":{
+            "title":"Excel转JSON",
+            "headerRowIndex":"字段名行(从0开始)",
+            "firstDataRowIndex":"第一个数据行",
+            "lastDataRowIndex":"最后一个数据行",
+            "dateOrder":"日期排序",
+            "dateSeparator":"日期分隔符",
+            "timeSeparator":"时间分隔符",
+            "decimalSymbol":"小数点符号",
+            "dateTimeOrder":"日期时间排序",
+            "outputDateFormat":"输出JSON中的日期格式",
+            "selectFile":"选择上传文件",
+            "fileRequired":"请选择上传文件",
+            "filePlaceholder":"支持:xls,xlsx格式",
+            "parseAndImport":"确定解析并导入",
+            "autoInfer":"",
+            "toEnd":""
         }
     },
     "property": {
