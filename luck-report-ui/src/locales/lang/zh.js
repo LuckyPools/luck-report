@@ -542,7 +542,10 @@ const zh = {
         },
         "staticDataset":{
             "desc":"只支持json数据格式，且只会解析第一级，如: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
-            "title":"配置静态数据集"
+            "title":"配置静态数据集",
+            "jsonPreviewTitle":"静态数据预览",
+            "jsonPreview":"静态数据预览",
+
         },
         "excelToJson":{
             "title":"Excel转JSON",

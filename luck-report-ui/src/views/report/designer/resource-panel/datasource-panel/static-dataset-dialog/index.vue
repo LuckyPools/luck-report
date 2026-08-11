@@ -24,9 +24,12 @@
       </div>
 
       <div slot="footer" style="text-align: right">
+        <u-button @click="handlePreviewJson" style="margin-right: 10px">{{ $t('dialog.staticDataset.jsonPreview') }}</u-button>
         <u-button @click="handleConfirm">{{ $t('dialog.json.ok') }}</u-button>
       </div>
     </UDialog>
+
+    <json-table-preview :data="content" :visible="previewDialogVisible" @close="previewDialogVisible=false" />
   </div>
 </template>
 
@@ -40,13 +43,17 @@ import { mapGetters } from 'vuex';
 import {deepCopy} from "@/components/utils";
 import JsonEditor
   from "@/views/report/designer/resource-panel/datasource-panel/static-dataset-dialog/json-editor/index.vue";
+import JsonTablePreview
+  from "@/views/report/designer/resource-panel/datasource-panel/static-dataset-dialog/json-table-preview/index.vue";
+import showMessage from "@/components/message/instance";
 
 export default {
   name: 'StaticDatasetDialog',
   components: {
     JsonEditor,
     UDialog,
-    UButton
+    UButton,
+    JsonTablePreview
   },
   props: {
     visible: {
@@ -184,7 +191,15 @@ export default {
      */
     closeDialog() {
       this.$emit('close');
-    }
+    },
+
+    handlePreviewJson() {
+      if (this.content && this.content !== ''){
+        this.previewDialogVisible = true;
+      }else {
+        showAlert(this.$t('dialog.json.jsonTip'));
+      }
+    },
   }
 };
 </script>
