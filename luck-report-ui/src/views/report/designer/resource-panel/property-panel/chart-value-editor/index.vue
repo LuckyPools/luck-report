@@ -15,6 +15,10 @@
       </u-form-item>
     </u-form>
 
+    <div class="property-quote">
+      <span>{{ chartTypeName }}</span>
+    </div>
+
     <u-tabs v-model="activeTab" type="button">
       <u-tab-pane :label="$t('chart.datasetBind')" index="dataset" >
         <!-- 数据集绑定选项卡 -->
@@ -188,6 +192,12 @@ export default {
       },
       cellPosition() {
         return `${this.rowIndex},${this.colIndex}`;
+      },
+      /**
+       * 当前图表类型名称（拼接"配置"后缀，用于区分不同图表类型）
+       */
+      chartTypeName() {
+        return this.$t('chart.typeNames.' + this.id) + this.$t('chart.config');
       },
       /**
        * 根据当前 datasetName 获取对应数据集的字段列表

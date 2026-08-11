@@ -112,6 +112,13 @@ const en = {
             "title": "Print Line",
             "showPrintLine": "Show Print Line",
             "hidePrintLine": "Hide Print Line"
+        },
+        "help": {
+            "title": "Help",
+            "doc": "User Guide",
+            "docDesc": "Product intro, feature guides and tutorials to help you get started.",
+            "issue": "Feedback",
+            "issueDesc": "Encounter a problem or have a suggestion? Submit an issue on Gitee."
         }
     },
     "dialog": {
@@ -670,6 +677,19 @@ const en = {
         }
     },
     "chart": {
+        "config": "Config",
+        "typeNames": {
+            "bar": "Bar",
+            "line": "Line",
+            "horbar": "Horizontal Bar",
+            "area": "Area",
+            "radar": "Radar",
+            "polar": "Polar",
+            "doughnut": "Doughnut",
+            "pie": "Pie",
+            "scatter": "Scatter",
+            "bubble": "Bubble"
+        },
         "datasetBind": "Dataset Bind",
         "option": "Option",
         "axisConfig": "Axis Config",
@@ -679,11 +699,11 @@ const en = {
         "yProperty": "Y Property",
         "rProperty": "R Property",
         "valueProperty": "Value Property",
-        "seriesProperty": "Series Property",
-        "property": "Property",
-        "static": "Static Value",
-        "prop": "Property",
-        "staticValue": "Static Value",
+        "seriesProperty": "Series Split",
+        "property": "By Field",
+        "static": "Single Series",
+        "prop": "Series Field",
+        "staticValue": "Series Name",
         "aggregate": "Aggregate Type",
         "select": "Select",
         "sum": "Sum",

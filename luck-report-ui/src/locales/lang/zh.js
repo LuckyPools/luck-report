@@ -113,6 +113,13 @@ const zh = {
             "title": "打印线",
             "showPrintLine": "显示打印线",
             "hidePrintLine": "隐藏打印线"
+        },
+        "help": {
+            "title": "帮助",
+            "doc": "操作指南",
+            "docDesc": "包含产品介绍、功能说明、使用教程，帮助你快速上手报表设计。",
+            "issue": "提问反馈",
+            "issueDesc": "使用中遇到问题或有功能建议，可在 Gitee 提交 Issue 与我们交流。"
         }
     },
     "dialog": {
@@ -671,6 +678,19 @@ const zh = {
         }
     },
     "chart": {
+        "config": "配置",
+        "typeNames": {
+            "bar": "柱状图",
+            "line": "曲线图",
+            "horbar": "水平柱状图",
+            "area": "面积图",
+            "radar": "雷达图",
+            "polar": "极坐标图",
+            "doughnut": "圆环图",
+            "pie": "饼状图",
+            "scatter": "散点图",
+            "bubble": "气泡图"
+        },
         "datasetBind": "数据集绑定",
         "option": "选项",
         "axisConfig": "轴配置",
@@ -680,11 +700,11 @@ const zh = {
         "yProperty": "Y值属性",
         "rProperty": "半径值属性",
         "valueProperty": "值属性",
-        "seriesProperty": "系列值",
-        "property": "属性",
-        "static": "静态值",
-        "prop": "属性",
-        "staticValue": "静态值",
+        "seriesProperty": "系列划分",
+        "property": "按字段",
+        "static": "单系列",
+        "prop": "系列字段",
+        "staticValue": "系列名称",
         "aggregate": "聚合方式",
         "select": "罗列数据",
         "sum": "汇总",

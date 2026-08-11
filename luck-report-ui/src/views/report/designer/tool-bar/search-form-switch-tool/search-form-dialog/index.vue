@@ -1,6 +1,6 @@
 <template>
   <UDialog
-    top="20px"
+    top="40px"
     :title="$t('dialog.searchForm.title')"
     width="1200px"
     :visible="visible"
