@@ -36,6 +36,7 @@ public class ConditionPropertyItemVo implements Serializable {
     private int rowHeight = -1;
     private int colWidth = -1;
     private String newValue;
+    private Boolean renderFlag;
     private String linkUrl;
     private String linkTargetWindow;
     private List<LinkParameterVo> linkParameters;
@@ -86,6 +87,14 @@ public class ConditionPropertyItemVo implements Serializable {
 
     public void setNewValue(String newValue) {
         this.newValue = newValue;
+    }
+
+    public Boolean getRenderFlag() {
+        return renderFlag;
+    }
+
+    public void setRenderFlag(Boolean renderFlag) {
+        this.renderFlag = renderFlag;
     }
 
     public String getLinkUrl() {

@@ -3,7 +3,7 @@
     <div class="property-quote">
       {{ $t('chart.titleConfig') }}
     </div>
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('chart.display')">
         <u-radio-group
             v-model="localChartConfig.title.display"
@@ -44,7 +44,7 @@
     <div class="property-quote">
       {{ $t('chart.legendConfig') }}
     </div>
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('chart.display')">
         <u-radio-group
             v-model="localChartConfig.legend.display"
@@ -77,7 +77,7 @@
       <div class="property-quote">
         {{ $t('chart.dataLabelConfig') }}
       </div>
-      <u-form :label-width="100" labelPosition="left">
+      <u-form :label-width="100" labelPosition="right">
         <u-form-item class="property-label" :label="$t('chart.display')">
           <u-radio-group
               v-model="localChartConfig.dataLabels.display"
@@ -96,7 +96,7 @@
     <div class="property-quote">
       {{ $t('chart.motionConfig') }}
     </div>
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('chart.motionDelay')">
         <u-input-number
             v-model="localChartConfig.animation.duration"
@@ -124,7 +124,7 @@
       <div class="property-quote">
         {{ $t('chart.layout') }}
       </div>
-      <u-form :label-width="100" labelPosition="left">
+      <u-form :label-width="100" labelPosition="right">
         <u-form-item class="property-label" :label="$t('chart.up')">
           <u-input-number
               v-model="localChartConfig.layout.top"

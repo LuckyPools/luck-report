@@ -24,6 +24,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.utils.ProcedureUtils;
+import com.luck.report.core.utils.SqlParamUtils;
 import com.luck.report.core.utils.SqlSecurityUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
@@ -55,6 +56,7 @@ public class SqlDatasetDefinition implements DatasetDefinition {
 
     public Dataset buildDataset(Map<String, Object> parameterMap, Connection conn) {
         String sqlForUse = sql;
+        sqlForUse = SqlParamUtils.convertToNamedParam(sqlForUse);
         Map<String, Object> pmap = buildParameters(parameterMap);
         Context context = new Context(null, pmap);
         if (sqlExpression != null) {

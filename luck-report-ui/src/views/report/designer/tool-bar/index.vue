@@ -15,6 +15,7 @@
       <PrintLineTool ref="printLineTool" />
       <SearchFormSwitchTool ref="searchFormSwitchTool" />
       <SettingsTool ref="settingsTool" />
+      <HelpTool ref="helpTool" />
     </div>
     <div class="ud-toolbar-content">
       <div class="toolbar-box">
@@ -64,6 +65,7 @@ import ChartTool from '@/views/report/designer/tool-bar/chart-tool/index.vue';
 import ZxingTool from '@/views/report/designer/tool-bar/zxing-tool/index.vue';
 import SearchFormSwitchTool from '@/views/report/designer/tool-bar/search-form-switch-tool/index.vue';
 import SettingsTool from '@/views/report/designer/tool-bar/settings-tool/index.vue';
+import HelpTool from '@/views/report/designer/tool-bar/help-tool/index.vue';
 import BorderTool from "@/views/report/designer/tool-bar/border-tool/index.vue";
 
 export default {
@@ -94,7 +96,8 @@ export default {
     ChartTool,
     ZxingTool,
     SearchFormSwitchTool,
-    SettingsTool
+    SettingsTool,
+    HelpTool
   },
   props: {
     selectedCells: {

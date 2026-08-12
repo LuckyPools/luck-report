@@ -2,10 +2,25 @@
   <div class="zxing-value-editor" ref="container">
 
     <div class="property-quote">
+      <span>{{ $t('property.condition.config') }}</span>
+    </div>
+    <u-form :label-width="100" labelPosition="right">
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
+
+    <div class="property-quote">
       {{ $t('property.zxing.config') }}
     </div>
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.zxing.width')">
         <u-input-number
           v-model="width"
@@ -87,6 +102,15 @@
         <textarea ref="codeEditor"></textarea>
       </div>
     </u-form>
+
+    <!-- 条件属性对话框 -->
+    <PropertyConditionDialog
+        :visible.sync="propertyConditionDialogVisible"
+        :cell-type="currentCellType"
+        :fields="getConditionFields()"
+        :conditionGroups="conditionGroups"
+        @saveAfter="handlePropertyConditionSave"
+    />
   </div>
 </template>
 
@@ -103,8 +127,10 @@ import URadio from '@/components/radio/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import UInputNumber from '@/components/input-number/index.vue'
 import UInput from '@/components/input/index.vue'
+import UButton from '@/components/button/index.vue'
 import UFormItem from '@/components/form-item/index.vue'
 import { deepCopy } from '@/components/utils/index.js';
+import conditionPropertyMixin from '../property-condition-dialog/condition-property-minx';
 import { mapGetters, mapActions } from 'vuex';
 import {setCell, getCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
@@ -112,6 +138,7 @@ import UForm from "@/components/form/index.vue";
 
 export default {
   name: 'ZxingValueEditor',
+  mixins: [conditionPropertyMixin],
   components: {
     UForm,
     USelect,
@@ -120,6 +147,7 @@ export default {
     URadio,
     UInputNumber,
     UInput,
+    UButton,
     UFormItem
   },
   props: {

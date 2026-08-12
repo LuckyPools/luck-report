@@ -1,6 +1,6 @@
 <template>
   <div>
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.dataset.dataset')" style="margin-top: 10px">
         <u-select
             v-model="localDataset"
@@ -130,16 +130,6 @@
             @change="handleMultipleChange"
         />
       </u-form-item>
-
-      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
-        <u-button
-            type="info"
-            icon="icon-filter"
-            @click="handleConditionPropertyConfig"
-        >
-          {{ $t('property.base.configCondition') }}
-        </u-button>
-      </u-form-item>
     </u-form>
 
     <!-- 自定义分组对话框组件 -->
@@ -148,15 +138,6 @@
       :group-items="groupItems"
       :fields="fields"
       @save="handleCustomGroupSave"
-    />
-
-    <!-- 属性条件对话框组件 -->
-    <PropertyConditionDialog
-        ref="propertyConditionDialog"
-        :visible.sync="propertyConditionDialogVisible"
-        :fields="fields"
-        :conditionGroups="conditionGroups"
-        @saveAfter="handlePropertyConditionSave"
     />
   </div>
 </template>
@@ -170,7 +151,6 @@ import UInputNumber from '@/components/input-number/index.vue';
 import UButton from '@/components/button/index.vue';
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
-import PropertyConditionDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/index.vue';
 import CustomGroupDialog from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/custom-group-dialog/index.vue';
 import { setDirty } from '@/utils/table.js';
 import { showAlert } from '@/utils/comnon.js';
@@ -189,7 +169,6 @@ export default {
     UButton,
     UForm,
     UFormItem,
-    PropertyConditionDialog,
     CustomGroupDialog,
     VueSimpleSuggest
   },
@@ -254,10 +233,6 @@ export default {
     showExpandOptions: {
       type: Boolean,
       default: true
-    },
-    conditionGroups: {
-      type: Array,
-      default: () => []
     }
   },
   data() {
@@ -275,7 +250,6 @@ export default {
       localShowSortOptions: true,
       localShowExpandOptions: true,
       isInitialized: false,
-      propertyConditionDialogVisible: false,
       customGroupDialogVisible: false,
       suggestionList:[
         "yyyy/MM/dd",
@@ -537,22 +511,6 @@ export default {
       // 触发事件，通知父组件
       this.$emit('update:multiple', this.localMultiple);
       this.$emit('multiple-change', this.localMultiple);
-    },
-
-    /**
-     * 处理条件属性配置
-     */
-    handleConditionPropertyConfig() {
-      this.propertyConditionDialogVisible = true;
-    },
-
-    /**
-     * 处理属性条件保存后的回调
-     */
-    handlePropertyConditionSave(conditionGroups) {
-      this.$emit('update:conditionGroups', conditionGroups);
-      this.$emit('condition-groups-change', conditionGroups);
-      setDirty();
     },
 
     /**

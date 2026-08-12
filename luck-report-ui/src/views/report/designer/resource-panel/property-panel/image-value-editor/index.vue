@@ -2,10 +2,25 @@
   <div class="image-value-editor" ref="container">
 
     <div class="property-quote">
+      <span>{{ $t('property.condition.config') }}</span>
+    </div>
+    <u-form :label-width="100" labelPosition="right">
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
+
+    <div class="property-quote">
       {{ $t('property.image.config') }}
     </div>
 
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <u-form-item class="property-label" :label="$t('property.image.width') + '(px)'">
         <u-input-number
           :placeholder="$t('property.image.widthPlaceholder')"
@@ -77,6 +92,15 @@
         </div>
       </div>
     </u-form>
+
+    <!-- 条件属性对话框 -->
+    <PropertyConditionDialog
+        :visible.sync="propertyConditionDialogVisible"
+        :cell-type="currentCellType"
+        :fields="getConditionFields()"
+        :conditionGroups="conditionGroups"
+        @saveAfter="handlePropertyConditionSave"
+    />
   </div>
 </template>
 
@@ -94,14 +118,17 @@ import URadioGroup from '@/components/radio-group/index.vue';
 import URadio from '@/components/radio/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
+import UButton from '@/components/button/index.vue';
 import { showAlert } from '@/utils/comnon.js';
 import { deepCopy } from '@/components/utils/index.js';
+import conditionPropertyMixin from '../property-condition-dialog/condition-property-minx';
 import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ImageValueEditor',
+  mixins: [conditionPropertyMixin],
   components: {
     UForm,
     UFormItem,
@@ -110,7 +137,8 @@ export default {
     URadioGroup,
     URadio,
     UInputNumber,
-    UInput
+    UInput,
+    UButton
   },
   props: {
     rowIndex: {

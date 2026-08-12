@@ -1,6 +1,21 @@
 <template>
   <div class="dataset-value-editor" ref="container">
 
+    <div class="property-quote">
+      <span>{{ $t('property.condition.config') }}</span>
+    </div>
+    <u-form :label-width="100" labelPosition="right">
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
+
     <u-tabs v-model="activeTab" type="button">
       <u-tab-pane :label="$t('property.dataset.datasetConfig')" index="dataset">
         <dataset-config
@@ -19,7 +34,6 @@
             :multiple.sync="multiple"
             :show-sort-options.sync="showSortOptions"
             :show-expand-options.sync="showExpandOptions"
-            :condition-groups.sync="conditionGroups"
             @dataset-change="handleDatasetChange"
             @property-change="handlePropertyChange"
             @aggregate-change="handleAggregateChange"
@@ -30,7 +44,6 @@
             @format-change="handleFormatChange"
             @fill-blank-rows-change="handleFillBlankRowsChange"
             @multiple-change="handleMultipleChange"
-            @condition-groups-change="handleConditionGroupsChange"
             @update-custom-group="handleUpdateCustomGroup"
         />
       </u-tab-pane>
@@ -61,6 +74,15 @@
         />
       </u-tab-pane>
     </u-tabs>
+
+    <!-- 条件属性对话框 -->
+    <PropertyConditionDialog
+        :visible.sync="propertyConditionDialogVisible"
+        :cell-type="currentCellType"
+        :fields="getConditionFields()"
+        :conditionGroups="conditionGroups"
+        @saveAfter="handlePropertyConditionSave"
+    />
   </div>
 </template>
 
@@ -72,18 +94,26 @@ import DataMapping from '@/views/report/designer/resource-panel/property-panel/d
 import DatasetConfig from '@/views/report/designer/resource-panel/property-panel/dataset-value-editor/dataset-config/index.vue';
 import UTabs from '@/components/tabs/index.vue';
 import UTabPane from '@/components/tabs/pane.vue';
+import UButton from '@/components/button/index.vue';
+import UForm from '@/components/form/index.vue';
+import UFormItem from '@/components/form-item/index.vue';
+import conditionPropertyMixin from '../property-condition-dialog/condition-property-minx';
 import { mapGetters, mapActions } from 'vuex';
 import {getCell, setCell} from "@/utils/contextActions";
 import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'DatasetValueEditor',
+  mixins: [conditionPropertyMixin],
   components: {
     FilterCondition,
     DataMapping,
     DatasetConfig,
     UTabs,
-    UTabPane
+    UTabPane,
+    UButton,
+    UForm,
+    UFormItem
   },
   props: {
     rowIndex: {
@@ -174,6 +204,12 @@ export default {
   },
   methods: {
     ...mapActions('report', ['setCellUpdate']),
+    /**
+     * 覆盖 mixin：数据集单元格返回当前数据集字段，支持「属性」条件类型
+     */
+    getConditionFields() {
+      return this.currentFields;
+    },
     /**
      * 加载单元格数据
      */

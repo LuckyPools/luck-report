@@ -1,6 +1,6 @@
 <template>
   <div class="data-mapping-tab">
-    <u-form :label-width="100" labelPosition="left">
+    <u-form :label-width="100" labelPosition="right">
       <div style="padding-top: 10px">
         <div v-if="!showMappingOptions" class="alert alert-info" style="margin-bottom: 10px;">
         </div>

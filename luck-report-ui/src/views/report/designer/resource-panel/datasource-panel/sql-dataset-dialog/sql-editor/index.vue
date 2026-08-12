@@ -17,7 +17,7 @@
       </span>
       <textarea
         ref="sqlTextarea"
-        placeholder="select username,dept_id from employee where dept_id=:deptId"
+        placeholder="select username,dept_id from employee where dept_id=#{deptId}"
         class="form-control sql-editor-textarea"
         rows="8"
         cols="30"

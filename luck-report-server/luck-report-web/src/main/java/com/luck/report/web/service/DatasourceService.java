@@ -12,6 +12,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.utils.ProcedureUtils;
+import com.luck.report.core.utils.SqlParamUtils;
 import com.luck.report.core.utils.SqlSecurityUtils;
 import com.luck.report.web.domain.vo.dataset.DataResult;
 import com.luck.report.web.domain.vo.request.BuildDatabaseTablesRequest;
@@ -192,6 +193,7 @@ public class DatasourceService {
             conn = buildConnection(req);
             Map<String, Object> map = buildParameters(req.getParameters());
             String sql = parseSql(req.getSql(), map);
+            sql = SqlParamUtils.convertToNamedParam(sql);
             if (ProcedureUtils.isProcedure(sql)) {
                 List<Field> fieldsList = ProcedureUtils.procedureColumnsQuery(sql, map, conn);
                 fields.addAll(fieldsList);
@@ -247,6 +249,7 @@ public class DatasourceService {
         String parameters = req.getParameters();
         Map<String, Object> map = buildParameters(parameters);
         String originalSql = parseSql(sql, map);
+        originalSql = SqlParamUtils.convertToNamedParam(originalSql);
         SqlSecurityUtils.validate(originalSql);
         Connection conn = null;
         try {

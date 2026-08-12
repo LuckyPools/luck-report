@@ -84,6 +84,11 @@ public class Cell implements ReportCell {
     private String linkTargetWindow;
     private List<LinkParameter> linkParameters;
 
+    /**
+     * 渲染标记：为 true 时渲染单元格内容，为 false 时参与计算但不渲染内容
+     */
+    private boolean renderFlag = true;
+
     private Map<String, String> linkParameterMap;
 
     private Expression linkUrlExpression;
@@ -339,6 +344,11 @@ public class Cell implements ReportCell {
             if (StringUtils.isNotBlank(item.getNewValue())) {
                 this.data = item.getNewValue();
                 this.formatData = item.getNewValue();
+            }
+            // 渲染标记：非null才覆盖(未配置不覆盖)，遵循条件属性"有值才覆盖"规则
+            Boolean renderFlag = item.getRenderFlag();
+            if (renderFlag != null) {
+                this.renderFlag = renderFlag;
             }
             if (StringUtils.isNotBlank(item.getLinkUrl())) {
                 linkUrl = item.getLinkUrl();
@@ -891,6 +901,14 @@ public class Cell implements ReportCell {
 
     public void setLinkUrl(String linkUrl) {
         this.linkUrl = linkUrl;
+    }
+
+    public boolean isRenderFlag() {
+        return renderFlag;
+    }
+
+    public void setRenderFlag(boolean renderFlag) {
+        this.renderFlag = renderFlag;
     }
 
     public String getLinkTargetWindow() {

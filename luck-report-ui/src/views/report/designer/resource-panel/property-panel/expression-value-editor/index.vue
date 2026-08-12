@@ -1,6 +1,21 @@
 <template>
   <div class="expression-value-editor" ref="container" >
-    <u-form :label-width="100" labelPosition="left">
+    <div class="property-quote">
+      <span>{{ $t('property.condition.config') }}</span>
+    </div>
+    <u-form :label-width="100" labelPosition="right">
+      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
+        <u-button
+            type="info"
+            icon="icon-filter"
+            @click="handleConditionPropertyConfig"
+        >
+          {{ $t('property.base.configCondition') }}
+        </u-button>
+      </u-form-item>
+    </u-form>
+
+    <u-form :label-width="100" labelPosition="right">
 
       <div class="property-quote">
         {{ $t('property.expr.config') }}
@@ -53,17 +68,6 @@
         ></vue-simple-suggest>
       </u-form-item>
 
-      <!-- 条件属性配置 -->
-      <u-form-item class="property-label" :label="$t('property.base.conditionProp')">
-        <u-button
-            type="info"
-            icon="icon-filter"
-            @click="handleConditionPropertyConfig"
-        >
-          {{ $t('property.base.configCondition') }}
-        </u-button>
-      </u-form-item>
-
       <!-- 表达式编辑器 -->
       <u-form-item class="property-label" :label="$t('property.expr.expr')">
       </u-form-item>
@@ -76,7 +80,8 @@
     <PropertyConditionDialog
         ref="propertyConditionDialog"
         :visible.sync="propertyConditionDialogVisible"
-        :fields="[]"
+        :cell-type="currentCellType"
+        :fields="getConditionFields()"
         :conditionGroups="conditionGroups"
         @saveAfter="handlePropertyConditionSave"
     />
@@ -89,7 +94,7 @@ import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/lint/lint.js';
 import { setDirty } from '@/utils/table.js';
 import { scriptValidation } from '@/api/designer/index.js';
-import PropertyConditionDialog from '@/views/report/designer/resource-panel/property-panel/property-condition-dialog/index.vue';
+import conditionPropertyMixin from '../property-condition-dialog/condition-property-minx';
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
 import URadioGroup from '@/components/radio-group/index.vue';
@@ -105,10 +110,10 @@ import TableManager from '@/views/report/designer/edit-table/manager.js';
 
 export default {
   name: 'ExpressionValueEditor',
+  mixins: [conditionPropertyMixin],
   components: {
     UForm,
     UFormItem,
-    PropertyConditionDialog,
     URadioGroup,
     URadio,
     UButton,
@@ -179,9 +184,7 @@ export default {
         "0.00E00",
         "##0.0E0"
       ],
-      loadingCellData: false,
-      propertyConditionDialogVisible: false,
-      conditionGroups: []
+      loadingCellData: false
     };
   },
   watch: {
@@ -405,46 +408,6 @@ export default {
             newCellDef.cellStyle = {};
           }
           newCellDef.cellStyle.format = this.format;
-          setCell( i, j, newCellDef );
-        }
-      }
-      setDirty();
-    },
-
-    /**
-     * 处理条件属性配置
-     */
-    async handleConditionPropertyConfig() {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) return;
-
-      const conditionGroups = cellDef.conditionPropertyItems
-          ? deepCopy(cellDef.conditionPropertyItems)
-          : [];
-
-      this.showPropertyConditionDialog(conditionGroups);
-    },
-
-    /**
-     * 显示条件属性对话框
-     */
-    showPropertyConditionDialog(conditionGroups) {
-      this.conditionGroups = conditionGroups;
-      this.propertyConditionDialogVisible = true;
-    },
-
-    /**
-     * 处理属性条件保存后的回调
-     */
-    handlePropertyConditionSave(conditionGroups) {
-      const cellDef = getCell(this.rowIndex, this.colIndex);
-      if (!cellDef) return;
-
-      const newCellDef = deepCopy(cellDef);
-      newCellDef.conditionPropertyItems = deepCopy(conditionGroups);
-
-      for (let i = this.rowIndex; i <= this.row2Index; i++) {
-        for (let j = this.colIndex; j <= this.col2Index; j++) {
           setCell( i, j, newCellDef );
         }
       }

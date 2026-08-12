@@ -22,7 +22,8 @@ public class TransformUReportUtils {
     private static int fieldCounter = 100;
 
     public static void main(String[] args) {
-        transformXmlFolder("D:\\report\\","E:\\luckStudio\\IO\\report\\测试\\");
+        transformXmlFile("E:\\luckStudio\\IO\\report\\测试v1报表-参数.ureport.xml","E:\\luckStudio\\IO\\report\\测试");
+        //transformXmlFolder("D:\\report\\","E:\\luckStudio\\IO\\report\\测试\\");
     }
 
     /**
@@ -97,6 +98,9 @@ public class TransformUReportUtils {
                 oldRoot.remove(searchFormElement);
                 oldRoot.elements().add(index, formElement);
             }
+
+            // 转换 SQL 参数占位符：:paramName → #{paramName}
+            transformSqlElements(oldRoot);
 
             String fileName = inputFile.getName();
             File outputDir = new File(outputDirPath);
@@ -497,6 +501,35 @@ public class TransformUReportUtils {
      */
     private static String generateRenderKey() {
         return String.valueOf(System.currentTimeMillis() + (int)(Math.random() * 1000));
+    }
+
+    /**
+     * 递归转换XML中所有 <sql> 元素的参数占位符：:paramName → #{paramName}
+     * 排除数字后的冒号（时间格式如 12:30:00）和标识符后的冒号，支持中文参数名。
+     * 使用 CDATA 重新写入内容，避免 setText 丢失 CDATA 包装导致 pretty print
+     * 时 trimText 把 SQL 中的换行折叠成空格。
+     * @param element 当前XML元素
+     */
+    private static void transformSqlElements(Element element) {
+        @SuppressWarnings("unchecked")
+        List<Element> children = element.elements();
+        for (Element child : children) {
+            if ("sql".equals(child.getName())) {
+                String text = child.getText();
+                if (text != null && text.contains(":")) {
+                    // 排除数字后的冒号（如时间 12:30:00）和标识符后的冒号，支持中文参数名
+                    String converted = text.replaceAll(
+                            "(?<![a-zA-Z0-9_\\p{L}]):([a-zA-Z_\\p{L}][a-zA-Z0-9_\\p{L}]*)",
+                            "#{$1}"
+                    );
+                    child.clearContent();
+                    child.addCDATA(converted);
+                }
+            } else {
+                // 非sql元素继续递归查找
+                transformSqlElements(child);
+            }
+        }
     }
 
 }
