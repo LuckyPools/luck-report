@@ -96,6 +96,9 @@ export default {
         return;
       }
       this.setJson(newVal || '');
+      this.$nextTick(() => {
+        this.formatJson(this.codeMirror);
+      });
     }
   },
   data() {
@@ -116,6 +119,7 @@ export default {
   },
   mounted() {
     this.initCodeMirror(this.content);
+
   },
   methods: {
     /**
@@ -166,6 +170,9 @@ export default {
           this.isSilentUpdate = true;
           this.$emit('json-change', this.getJson());
         }
+      });
+      this.$nextTick(() => {
+          this.formatJson(this.codeMirror);
       });
     },
 
@@ -253,7 +260,6 @@ export default {
       this.visibleExcelImp=true;
     },
     handleJson(json) {
-      console.log("excel to json",json)
       this.setJson(json);
       this.isSilentUpdate = true;
       this.$emit('json-change',json);

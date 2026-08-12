@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -90,6 +91,20 @@ public class ImportExcelController extends BaseController {
             throw new RuntimeException("Excel格式错误: " + e.getMessage());
         } catch (Exception e) {
             throw new RuntimeException("解析失败: " + e.getMessage());
+        }
+    }
+
+
+    /**
+     * 获取Excel文件的Sheet列表
+     */
+    @PostMapping("/getExcelSheet")
+    public void getExcelSheet(MultipartFile file) {
+        try {
+            List<Map<String, Object>> sheetSummaryList = ExcelToJsonUtil.getSheetSummaryList(file.getInputStream());
+            resp.writeObjectToJson(sheetSummaryList);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -9,13 +9,12 @@
   >
     <div class="dialog-content">
       <div class="content-layout">
-
         <div class="json-table-preview">
           <!-- 工具栏 -->
           <div class="preview-toolbar">
-      <span class="preview-info">
-        共 {{ rowCount }} 行，{{ columnCount }} 列
-      </span>
+            <span class="preview-info">
+              共 {{ rowCount }} 行，{{ columnCount }} 列
+            </span>
           </div>
 
           <!-- 空状态 -->
@@ -23,30 +22,50 @@
             {{ emptyMessage }}
           </div>
 
-          <!-- 表格区域 -->
-          <div v-else class="preview-table-wrapper">
-            <table class="preview-table">
-              <thead>
-              <tr>
-                <th class="row-index-col">#</th>
-                <th v-for="col in columns" :key="col.key" :title="col.key">
-                  {{ col.label }}
-                </th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(row, rowIndex) in displayData" :key="rowIndex">
-                <td class="row-index-col">{{ rowIndex + 1 }}</td>
-                <td v-for="col in columns" :key="col.key" :title="getCellValue(row, col.key)">
+          <!-- 表格区域 (改用 div 模拟) -->
+          <div v-else class="preview-table-container">
+            <!-- 固定表头 -->
+            <div class="table-header" ref="headerWrap">
+              <div class="table-row">
+                <div class="table-cell header-cell row-index-col">#</div>
+                <div
+                    v-for="col in columns"
+                    :key="col.key"
+                    class="table-cell header-cell"
+                    :style="{ width: colWidths[col.key] + 'px' }"
+                    :title="col.label"
+                >
+                  <span class="cell-text">{{ col.label }}</span>
+                  <!-- 拖拽手柄 -->
+                  <div
+                      class="resize-handle"
+                      @mousedown="startResize($event, col.key)"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 可滚动表体 -->
+            <div class="table-body" ref="bodyWrap" @scroll="syncHeaderScroll">
+              <div
+                  v-for="(row, rowIndex) in displayData"
+                  :key="rowIndex"
+                  class="table-row body-row"
+              >
+                <div class="table-cell body-cell row-index-col">{{ rowIndex + 1 }}</div>
+                <div
+                    v-for="col in columns"
+                    :key="col.key"
+                    class="table-cell body-cell"
+                    :style="{ width: colWidths[col.key] + 'px' }"
+                    :title="getCellValue(row, col.key)"
+                >
                   {{ getCellValue(row, col.key) }}
-                </td>
-              </tr>
-              </tbody>
-            </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-
       </div>
     </div>
 
@@ -59,73 +78,48 @@
 <script>
 import UButton from '@/components/button/index.vue';
 import UDialog from "@/components/dialog/index.vue";
-import JsonEditor
-  from "@/views/report/designer/resource-panel/datasource-panel/static-dataset-dialog/json-editor/index.vue";
 
 export default {
   name: 'JsonTablePreview',
   components: { UDialog, UButton },
   props: {
-    visible: {
-      type: Boolean,
-      default: false
-    },
-    /** JSON 字符串或已解析的数组/对象 */
-    data: {
-      type: [String, Array, Object],
-      default: ''
-    },
-    /** 最大预览行数，0 表示不限制 */
-    maxRows: {
-      type: Number,
-      default: 200
-    }
+    visible: { type: Boolean, default: false },
+    data: { type: [String, Array, Object], default: '' },
+    maxRows: { type: Number, default: 200 }
+  },
+  data() {
+    return {
+      // 存储每列的实际宽度
+      colWidths: {},
+      // 拖拽状态
+      resizing: false,
+      resizeKey: null,
+      startX: 0,
+      startWidth: 0
+    };
   },
   computed: {
-    /** 安全解析后的原始数据 */
     parsedData() {
       if (Array.isArray(this.data)) return this.data;
       if (typeof this.data === 'string') {
-        try {
-          return JSON.parse(this.data);
-        } catch {
-          return null;
-        }
+        try { return JSON.parse(this.data); } catch { return null; }
       }
       if (this.data && typeof this.data === 'object') return this.data;
       return null;
     },
-
-    /** 是否为合法非空数组 */
     isValidArray() {
       return Array.isArray(this.parsedData) && this.parsedData.length > 0;
     },
-
-    /** 空状态提示文案 */
     emptyMessage() {
-      if (!this.data || (typeof this.data === 'string' && !this.data.trim())) {
-        return '暂无数据';
-      }
-      if (!Array.isArray(this.parsedData)) {
-        return '数据格式不是 JSON 数组，无法以表格形式预览';
-      }
+      if (!this.data || (typeof this.data === 'string' && !this.data.trim())) return '暂无数据';
+      if (!Array.isArray(this.parsedData)) return '数据格式不是 JSON 数组，无法以表格形式预览';
       return 'JSON 数组为空';
     },
-
-    /** 实际展示的数据（受 maxRows 限制） */
     displayData() {
       if (!this.isValidArray) return [];
-      if (this.maxRows > 0) {
-        return this.parsedData.slice(0, this.maxRows);
-      }
-      return this.parsedData;
+      return this.maxRows > 0 ? this.parsedData.slice(0, this.maxRows) : this.parsedData;
     },
-
-    rowCount() {
-      return this.isValidArray ? this.parsedData.length : 0;
-    },
-
-    /** 自动从所有行中提取列名（取并集，保持首次出现顺序） */
+    rowCount() { return this.isValidArray ? this.parsedData.length : 0; },
     columns() {
       if (!this.isValidArray) return [];
       const keySet = new Set();
@@ -133,65 +127,82 @@ export default {
       for (const row of this.parsedData) {
         if (row && typeof row === 'object' && !Array.isArray(row)) {
           Object.keys(row).forEach((k) => {
-            if (!keySet.has(k)) {
-              keySet.add(k);
-              keys.push(k);
-            }
+            if (!keySet.has(k)) { keySet.add(k); keys.push(k); }
           });
         }
       }
       return keys.map((k) => ({ key: k, label: k }));
     },
-
-    columnCount() {
-      return this.columns.length;
+    columnCount() { return this.columns.length; }
+  },
+  watch: {
+    // 当列发生变化时，重新计算初始宽度
+    columns: {
+      immediate: true,
+      handler(newCols) {
+        const widths = {};
+        newCols.forEach(col => {
+          // 列宽随标题：根据标题长度估算，最小 80px
+          const estimated = (col.label || '').length * 14 + 32;
+          widths[col.key] = Math.max(estimated, 80);
+        });
+        this.colWidths = widths;
+      }
     }
   },
   methods: {
-    closeDialog() {
-      this.$emit('close');
-    },
-    /**
-     * 获取单元格显示值
-     * - null / undefined → "-"
-     * - 对象 / 数组 → 紧凑 JSON 字符串
-     * - 其他 → String()
-     */
+    closeDialog() { this.$emit('close'); },
     getCellValue(row, key) {
       if (!row || typeof row !== 'object') return '-';
       const val = row[key];
       if (val === null || val === undefined) return '-';
       if (typeof val === 'object') {
-        try {
-          return JSON.stringify(val);
-        } catch {
-          return String(val);
-        }
+        try { return JSON.stringify(val); } catch { return String(val); }
       }
       return String(val);
     },
 
-    /** 复制原始 JSON 到剪贴板 */
-    async copyJson() {
-      const text = typeof this.data === 'string'
-          ? this.data
-          : JSON.stringify(this.data, null, 2);
-      try {
-        await navigator.clipboard.writeText(text);
-        this.$emit('copied');
-      } catch {
-        // fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        this.$emit('copied');
+    /** 同步表头横向滚动 */
+    syncHeaderScroll(e) {
+      if (this.$refs.headerWrap) {
+        this.$refs.headerWrap.scrollLeft = e.target.scrollLeft;
       }
+    },
+
+    /** 开始拖拽列宽 */
+    startResize(e, key) {
+      e.preventDefault();
+      this.resizing = true;
+      this.resizeKey = key;
+      this.startX = e.clientX;
+      this.startWidth = this.colWidths[key];
+
+      document.addEventListener('mousemove', this.onResize);
+      document.addEventListener('mouseup', this.stopResize);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+
+    onResize(e) {
+      if (!this.resizing) return;
+      const diff = e.clientX - this.startX;
+      const newWidth = Math.max(60, this.startWidth + diff); // 最小宽度 60px
+      // 使用 $set 确保 Vue2 响应式更新
+      this.$set(this.colWidths, this.resizeKey, newWidth);
+    },
+
+    stopResize() {
+      this.resizing = false;
+      this.resizeKey = null;
+      document.removeEventListener('mousemove', this.onResize);
+      document.removeEventListener('mouseup', this.stopResize);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     }
+  },
+  beforeDestroy() {
+    document.removeEventListener('mousemove', this.onResize);
+    document.removeEventListener('mouseup', this.stopResize);
   }
 };
 </script>
@@ -213,11 +224,7 @@ export default {
   background: #f5f7fa;
   border-bottom: 1px solid #e4e7ed;
 }
-
-.preview-info {
-  color: #606266;
-  font-size: 12px;
-}
+.preview-info { color: #606266; font-size: 12px; }
 
 /* ---- 空状态 ---- */
 .preview-empty {
@@ -227,44 +234,57 @@ export default {
   font-size: 14px;
 }
 
-/* ---- 表格容器（横向+纵向滚动） ---- */
-.preview-table-wrapper {
-  max-height: 400px;
+/* ---- 表格容器 ---- */
+.preview-table-container {
+  display: flex;
+  flex-direction: column;
+  max-height: 400px; /* 超出最大高度 */
+}
+
+/* ---- 表头区域 (固定) ---- */
+.table-header {
+  flex-shrink: 0;
+  overflow-x: auto;
+  background: #fafafa;
+  border-bottom: 2px solid #e4e7ed;
+  scrollbar-width: none; /* 隐藏表头滚动条 */
+}
+.table-header::-webkit-scrollbar { display: none; }
+
+/* ---- 表体区域 (滚动) ---- */
+.table-body {
+  flex: 1;
+  min-height: 0; /* 关键：允许 flex 子项收缩并出现滚动条 */
   overflow: auto;
 }
 
-/* ---- 表格本体 ---- */
-.preview-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  white-space: nowrap;
+/* ---- 行与单元格 (Flex 模拟) ---- */
+.table-row {
+  display: flex;
+  min-width: max-content; /* 保证横向滚动时行不被压缩 */
 }
+.body-row:hover .body-cell { background: #f5f7fa; }
 
-.preview-table th,
-.preview-table td {
+.table-cell {
   padding: 8px 12px;
+  box-sizing: border-box;
+  flex-shrink: 0; /* 禁止被 flex 压缩，宽度完全由 style 控制 */
+  line-height: 20px;
   border-bottom: 1px solid #ebeef5;
   border-right: 1px solid #ebeef5;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 100px;
-  max-width: 300px;
+  white-space: nowrap;
 }
+.table-cell:last-child { border-right: none; }
 
-.preview-table th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: #fafafa;
+/* 表头单元格特殊样式 */
+.header-cell {
+  position: relative;
   color: #303133;
   font-weight: 600;
-  border-bottom: 2px solid #e4e7ed;
-}
-
-.preview-table tbody tr:hover {
-  background: #f5f7fa;
+  user-select: none;
 }
 
 /* 序号列固定宽度 */
@@ -274,11 +294,22 @@ export default {
   max-width: 50px !important;
   text-align: center !important;
   color: #909399;
+  flex-shrink: 0;
 }
 
-/* 去除最后一列右边框 */
-.preview-table th:last-child,
-.preview-table td:last-child {
-  border-right: none;
+/* ---- 拖拽手柄 ---- */
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.resize-handle:hover,
+.resize-handle:active {
+  background: #409eff; /* 拖拽时高亮提示 */
+  opacity: 0.3;
 }
 </style>

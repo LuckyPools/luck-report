@@ -239,7 +239,6 @@ export default {
         name: this.datasource.name,
         remark: this.datasource.remark
       };
-      console.log("要编辑的数据源信息", this.currentDatasource);
       this.datasourceDialogVisible = true;
     },
 
@@ -247,7 +246,6 @@ export default {
      * 处理数据源保存事件
      */
     handleDatasourceSave(datasourceData) {
-      console.log("要保存的数据源", datasourceData);
       this.$emit('update-datasource', datasourceData);
     },
 
@@ -317,7 +315,6 @@ export default {
      * 编辑数据集操作
      */
     editDatasetAction(dataset, index) {
-      console.log("edit dataset", dataset)
       this.currentDatasourceData = {
         name: this.datasource.name,
         remark: '',
@@ -414,8 +411,6 @@ export default {
      * 构建字段列表
      */
     async buildFields(dataset, index) {
-      console.log("this.datasource", this.datasource)
-      console.log("build dataset fields", dataset)
       const defaultFields = dataset.fields;
 
       if (defaultFields) {
@@ -436,7 +431,6 @@ export default {
         targetDataset.fields = fields;
       }
 
-      console.log("emit update-datasource", newDatasets);
       this.$emit('update-datasource', {
         name: this.datasource.name,
         oldName: this.datasource.name,
@@ -452,7 +446,6 @@ export default {
      */
     handleJsonDatasetSave(name, oldName, content) {
       const newDatasets = deepCopy(this.dsDatasets);
-      console.log("handleJsonDatasetSave", newDatasets)
       let dataset = newDatasets.find(item => item.name === oldName);
       if (dataset) {
         dataset.name = name;
@@ -462,7 +455,6 @@ export default {
         dataset = {name, content};
         newDatasets.push(dataset);
       }
-      console.log("emit update-datasource", newDatasets)
       this.$emit('update-datasource', {
         name: this.datasource.name,
         oldName: this.datasource.name,
@@ -473,7 +465,6 @@ export default {
       this.$nextTick(() => {
         this.buildFields(dataset);
       });
-      console.log("dataset save finish!")
     },
 
     /**

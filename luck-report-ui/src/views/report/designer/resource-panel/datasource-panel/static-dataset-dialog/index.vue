@@ -101,8 +101,6 @@ export default {
       this.content = '';
       this.parameters = [];
       this.oldName = '';
-      console.log("static dataset dialog datasetData",this.datasetData);
-      console.log("this content",this.content);
       if (this.datasetData) {
         this.currentData = { ...this.datasetData };
         this.datasetName = this.datasetData.name || '';
@@ -135,7 +133,6 @@ export default {
     },
 
     handleConfirm() {
-      console.log("static save confirm")
       const name = this.datasetName || '';
       const content = this.content || '';
 
@@ -180,7 +177,6 @@ export default {
           }
         }
       }
-      console.log("emit save",name,this.oldName,content);
       this.$emit('save', name, this.oldName, content);
       setDirty();
       this.closeDialog();

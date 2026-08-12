@@ -31,7 +31,7 @@ public class ExcelToJsonUtil {
         if (config == null) config = ExcelParseConfig.builder().build();
 
         try (Workbook workbook = WorkbookFactory.create(inputStream)) {
-            Sheet sheet = workbook.getSheetAt(0);
+            Sheet sheet = ExcelToJsonUtil.resolveSheet(workbook, config);
 
             // 1. 读取列名 (Key)
             Row headerRow = sheet.getRow(config.getHeaderRowIndex());
@@ -77,6 +77,31 @@ public class ExcelToJsonUtil {
             }
             return result;
         }
+    }
+
+    /**
+     * 根据配置解析目标Sheet
+     * 优先级: sheetIndex > sheetName > 默认第一个Sheet
+     */
+    private static Sheet resolveSheet(Workbook workbook, ExcelParseConfig config) {
+        // 1. 优先按索引获取
+        if (config.getSheetIndex() != null) {
+            int idx = config.getSheetIndex();
+            if (idx < 0 || idx >= workbook.getNumberOfSheets()) throw new IllegalArgumentException(
+                    String.format("Sheet索引越界: %d, 有效范围: 0~%d", idx, workbook.getNumberOfSheets() - 1));
+            return workbook.getSheetAt(idx);
+        }
+
+        // 2. 按名称获取
+        if (config.getSheetName() != null && !config.getSheetName().trim().isEmpty()) {
+            Sheet sheet = workbook.getSheet(config.getSheetName().trim());
+            if (sheet == null) throw new IllegalArgumentException("找不到指定Sheet: " + config.getSheetName());
+            return sheet;
+        }
+
+        // 3. 默认返回第一个Sheet（向后兼容）
+        if (workbook.getNumberOfSheets() == 0) throw new IllegalStateException("Excel文件中没有任何Sheet");
+        return workbook.getSheetAt(0);
     }
 
     // ==================== 核心取值与类型推断 ====================
@@ -192,5 +217,42 @@ public class ExcelToJsonUtil {
             } else return false;
         }
         return true;
+    }
+
+
+    /**
+     * 获取 Excel 文件中所有 Sheet 的名称列表
+     *
+     * @param inputStream Excel 文件输入流
+     * @return Sheet 名称列表（按顺序）
+     */
+    public static List<String> getSheetNames(InputStream inputStream) throws Exception {
+        Objects.requireNonNull(inputStream, "InputStream不能为空");
+        try (Workbook workbook = WorkbookFactory.create(inputStream)) {
+            List<String> sheetNames = new ArrayList<>();
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) sheetNames.add(workbook.getSheetName(i));
+            return sheetNames;
+        }
+    }
+
+    /**
+     * 获取 Excel 文件中所有 Sheet 的摘要信息（索引 + 名称）
+     * 适用于前端下拉选择等需要同时展示名称和对应索引的场景
+     *
+     * @param inputStream Excel 文件输入流
+     * @return Sheet 摘要信息列表
+     */
+    public static List<Map<String, Object>> getSheetSummaryList(InputStream inputStream) throws Exception {
+        Objects.requireNonNull(inputStream, "InputStream不能为空");
+        try (Workbook workbook = WorkbookFactory.create(inputStream)) {
+            List<Map<String, Object>> summaryList = new ArrayList<>();
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Map<String, Object> sheetInfo = new LinkedHashMap<>();
+                sheetInfo.put("index", i);
+                sheetInfo.put("name", workbook.getSheetName(i));
+                summaryList.add(sheetInfo);
+            }
+            return summaryList;
+        }
     }
 }

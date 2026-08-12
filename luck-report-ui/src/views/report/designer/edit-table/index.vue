@@ -401,7 +401,6 @@ export default {
         let formData = new FormData();
         formData.append('filePath', filePath);
         const reportDef = await loadReport(formData);
-        console.log(reportDef);
         this.reportDef = reportDef;
         this.buildReportData(reportDef);
         this.buildMenu();

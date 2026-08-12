@@ -18,7 +18,6 @@ let externalRequestInstance = null
  * @returns {Promise<never>} 返回 rejected Promise
  */
 function dealError(error) {
-    console.log(error)
     if (error && error.auxCode && error.msg) {
         const clickToCopyText = $t('preview.error.clickToCopy')
         const errorCodeText = $t('preview.error.errorCode')

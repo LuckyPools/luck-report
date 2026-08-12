@@ -188,7 +188,6 @@ export default {
     },
     // 分离不同类型的数据源以便渲染
     staticDatasources() {
-      console.log("init static datasources",this.datasources)
       return this.datasources.filter(item => item.type === 'staticDs');
     },
 
@@ -196,7 +195,6 @@ export default {
   watch: {
     context: {
       handler(newContext) {
-        console.log("newContext",newContext);
         if (newContext && newContext.reportDef) {
           this.initializeDatasources();
         }
@@ -347,7 +345,6 @@ export default {
      * 更新数据源
      */
     updateDatasource(data) {
-      console.log("updateDatasource", data);
       // 查找并更新匹配的数据源
       const index = this.datasources.findIndex(item => item.name === data.oldName);
       if (index !== -1) {

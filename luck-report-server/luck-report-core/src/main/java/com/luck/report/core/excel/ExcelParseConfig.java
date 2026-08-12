@@ -6,6 +6,18 @@ import lombok.Data;
 @Data
 @Builder
 public class ExcelParseConfig {
+
+    /**
+     * 指定解析的Sheet索引（从0开始）
+     * 优先级高于 sheetName，为null时降级使用sheetName
+     */
+    private Integer sheetIndex;
+
+    /**
+     * 指定解析的Sheet名称
+     * 当 sheetIndex 为 null 时生效，为null时默认读取第一个Sheet
+     */
+    private String sheetName;
     /**
      * 字段名(列名)所在行号，从0开始，默认0
      */

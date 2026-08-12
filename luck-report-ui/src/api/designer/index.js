@@ -181,3 +181,13 @@ export async function parseExcelToJson(formData) {
     }
   });
 }
+
+export async function getExcelSheet(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await request.post('/import/getExcelSheet', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}

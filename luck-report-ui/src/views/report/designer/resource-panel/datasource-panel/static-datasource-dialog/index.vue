@@ -1,32 +1,52 @@
 <template>
-    <UDialog
-        :title="$t('dialog.staticDatasource.title')"
-        width="800px"
-        :visible="visible"
-        @close="closeDialog"
-    >
-        <div class="dialog-content">
-            <u-form ref="form" :model="formData" :rules="rules" :label-width="120">
-                <u-form-item :label="$t('dialog.staticDatasource.name')" prop="dsName">
-                    <u-input v-model="formData.dsName" style="width: 600px" />
-                </u-form-item>
+  <UDialog
+      :title="$t('dialog.staticDatasource.title')"
+      width="520px"
+      :visible="visible"
+      @close="closeDialog"
+  >
+    <div class="dialog-content">
+      <u-form
+          ref="form"
+          :model="formData"
+          :rules="rules"
+          label-width="90px"
+          label-position="left"
+          class="static-ds-form"
+      >
+        <u-form-item :label="$t('dialog.staticDatasource.name')" prop="dsName">
+          <u-input
+              v-model="formData.dsName"
+              :placeholder="$t('dialog.staticDatasource.namePlaceholder')"
+              maxlength="50"
+              show-word-limit
+          />
+        </u-form-item>
 
-                <u-form-item :label="$t('dialog.staticDatasource.remark')" prop="remark">
-                    <u-input v-model="formData.remark" style="width: 600px" />
-                </u-form-item>
-            </u-form>
-        </div>
+        <!-- 备注字段已注释，如需恢复可直接取消下方注释 -->
+        <!-- <u-form-item :label="$t('dialog.staticDatasource.remark')" prop="remark">
+          <u-input
+            v-model="formData.remark"
+            type="textarea"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+          />
+        </u-form-item> -->
+      </u-form>
+    </div>
 
-        <div slot="footer" style="text-align: right">
-            <u-button @click="handleOk">{{ $t('dialog.common.ok') }}</u-button>
-        </div>
-    </UDialog>
+    <div slot="footer" class="dialog-footer">
+      <u-button @click="closeDialog">{{ $t('dialog.common.cancel') }}</u-button>
+      <u-button type="primary" :loading="saving" @click="handleOk">
+        {{ $t('dialog.common.ok') }}
+      </u-button>
+    </div>
+  </UDialog>
 </template>
 
 <script>
-import { showAlert } from '@/utils/comnon.js';
 import { setDirty } from '@/utils/table';
-import { testConnection } from '@/api/designer';
 import UDialog from '@/components/dialog/index.vue';
 import UButton from '@/components/button/index.vue';
 import UInput from '@/components/input/index.vue';
@@ -43,17 +63,14 @@ export default {
     UFormItem
   },
   props: {
-    // 用于检查名称是否重复
     datasources: {
       type: Array,
       default: () => []
     },
-    // 控制弹窗显示
     visible: {
       type: Boolean,
       default: false
     },
-    // 数据源数据
     datasource: {
       type: Object,
       default: null
@@ -61,27 +78,30 @@ export default {
   },
   data() {
     const validateDsName = (rule, value, callback) => {
-      if (!value) {
+      if (!value || !value.trim()) {
         callback(new Error(this.$t('dialog.staticDatasource.nameTip')));
-      } else if (this.checkDuplicateName(value)) {
+      } else if (this.checkDuplicateName(value.trim())) {
         callback();
       } else {
-        callback(new Error(`${this.$t('dialog.datasource.datasource')}[${value}]${this.$t('dialog.datasource.existTip')}`));
+        callback(
+            new Error(
+                `${this.$t('dialog.datasource.datasource')}[${value}]${this.$t('dialog.datasource.existTip')}`
+            )
+        );
       }
     };
+
     return {
       formData: {
         dsName: '',
-        remark:''
+        remark: ''
       },
       oldName: null,
-      backdrop: null,
+      saving: false,
       rules: {
-        dsName: [{
-          required: true,
-          validator: validateDsName,
-          trigger: 'blur'
-        }]
+        dsName: [
+          { required: true, validator: validateDsName, trigger: 'blur' }
+        ]
       }
     };
   },
@@ -97,23 +117,19 @@ export default {
     resetForm() {
       this.$refs.form && this.$refs.form.resetFields();
       this.oldName = null;
+      this.saving = false;
     },
 
     initData() {
-      console.log("datasource init ",this.datasource)
-      this.oldName = this.datasource?.name;
+      this.oldName = this.datasource?.name ?? null;
       this.formData = {
-        dsName: this.datasource?.name || '',
-        remark: this.datasource?.remark || ''
+        dsName: this.datasource?.name ?? '',
+        remark: this.datasource?.remark ?? ''
       };
     },
 
     closeDialog() {
       this.$emit('close');
-    },
-
-    handleClose() {
-      this.closeDialog();
     },
 
     handleOk() {
@@ -128,40 +144,47 @@ export default {
       });
     },
 
-    /**
-     * 检查是否有重名的数据源
-     * @param name
-     * @returns {boolean}
-     */
     checkDuplicateName(name) {
       if (!this.oldName || name !== this.oldName) {
-        for (let source of this.datasources) {
-          if (source.name === name) {
-            return false;
-          }
-        }
+        return !this.datasources.some((source) => source.name === name);
       }
       return true;
     },
 
     async save() {
+      if (this.saving) return;
+
       const valid = await this.validateForm();
-      if (!valid) {
-        return;
+      if (!valid) return;
+
+      this.saving = true;
+      try {
+        this.$emit('save', {
+          name: this.formData.dsName.trim(),
+          remark: this.formData.remark,
+          type: 'staticDs',
+          oldName: this.oldName
+        });
+        setDirty();
+        this.closeDialog();
+      } finally {
+        this.saving = false;
       }
-      this.$emit('save', {
-        name: this.formData.dsName,
-        remark: this.formData.remark,
-        type:'staticDs',
-        oldName: this.oldName
-      });
-      setDirty();
-      this.closeDialog();
     }
   }
-}
+};
 </script>
 
 <style scoped>
+.static-ds-form {
+  padding: 8px 0;
+}
 
+.dialog-footer {
+  text-align: right;
+}
+
+.dialog-footer .u-button + .u-button {
+  margin-left: 10px;
+}
 </style>

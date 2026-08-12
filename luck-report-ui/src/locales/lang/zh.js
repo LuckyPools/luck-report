@@ -540,13 +540,16 @@ const zh = {
         },
         "common": {
             "ok": "确定",
-            "cancel": "取消"
+            "cancel": "取消",
+            "next":"下一步",
+            "prev":"上一步"
         },
         "staticDatasource":{
             "title":"静态数据源配置",
             "name":"名称",
             "remark":"备注",
-            "nameTip":"名称不能为空!"
+            "nameTip":"名称不能为空!",
+            "namePlaceholder":"请输入名称"
 
         },
         "staticDataset":{
@@ -570,9 +573,19 @@ const zh = {
             "selectFile":"选择上传文件",
             "fileRequired":"请选择上传文件",
             "filePlaceholder":"支持:xls,xlsx格式",
-            "parseAndImport":"确定解析并导入",
+            "parseAndImport":"确定",
             "autoInfer":"",
-            "toEnd":""
+            "toEnd":"",
+            "selectSheet":"选择sheet",
+            "selectExcelOption":"EXCEL配置",
+            "getSheetError":"获取sheet列表失败",
+            "sheetRequired":"必须选择一个sheet",
+            "clickToReplace":"点击重新选择文件",
+            "dragOrClick":"拖拽文件到此处，或点击上传",
+            "invalidFormat":"不支持的文件格式，请上传xls或xlsx文件",
+            "rowSettings":"行范围设置",
+            "dateTimeSettings":"日期与时间格式",
+            "numberSettings":"数字格式"
         }
     },
     "property": {
