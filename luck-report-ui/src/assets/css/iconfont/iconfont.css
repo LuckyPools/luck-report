@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5096141 */
-  src: url('iconfont.woff2?t=1779945698247') format('woff2'),
-       url('iconfont.woff?t=1779945698247') format('woff'),
-       url('iconfont.ttf?t=1779945698247') format('truetype');
+  src: url('iconfont.woff2?t=1786630849391') format('woff2'),
+       url('iconfont.woff?t=1786630849391') format('woff'),
+       url('iconfont.ttf?t=1786630849391') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,54 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-upload:before {
+  content: "\e605";
+}
+
+.icon-file-source:before {
+  content: "\e793";
+}
+
+.icon-float-image:before {
+  content: "\e741";
+}
+
+.icon-freeze-row:before {
+  content: "\e761";
+}
+
+.icon-freeze-col:before {
+  content: "\e92b";
+}
+
+.icon-lock:before {
+  content: "\e604";
+}
+
+.icon-freeze-window:before {
+  content: "\e63f";
+}
+
+.icon-add-chat1:before {
+  content: "\e908";
+}
+
+.icon-add-chat2:before {
+  content: "\e6b8";
+}
+
+.icon-think:before {
+  content: "\e876";
+}
+
+.icon-four-pointed:before {
+  content: "\e65e";
+}
+
+.icon-four-pointed-outline:before {
+  content: "\e620";
 }
 
 .icon-page-first:before {
