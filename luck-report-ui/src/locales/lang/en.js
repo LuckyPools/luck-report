@@ -529,7 +529,54 @@ const en = {
         },
         "common": {
             "ok": "ok",
-            "cancel": "Cancel"
+            "cancel": "Cancel",
+            "next":"Next",
+            "prev":"Prev"
+        },
+        "staticDatasource":{
+            "title":"Static Datasource Config",
+            "name":"Name",
+            "remark":"Remark",
+            "nameTip":"Name cannot be null!",
+            "namePlaceholder":"Please enter name",
+            "remarkPlaceholder":"Please enter remark"
+
+        },
+        "staticDataset":{
+
+            "desc":"Only JSON data formats are supported, and only the first level is parsed, such as: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
+            "title":"To configure a static dataset",
+            "jsonPreviewTitle":"Static Data Preview",
+            "jsonPreview":"Static Data Preview",
+
+        },
+        "excelToJson":{
+            "title":"Excel To JSON",
+            "headerRowIndex":"Field name row (starting from 0)",
+            "firstDataRowIndex":"First data row",
+            "lastDataRowIndex":"Last data row",
+            "dateOrder":"Date order",
+            "dateSeparator":"Date separator",
+            "timeSeparator":"Time separator",
+            "decimalSymbol":"Decimal symbol",
+            "dateTimeOrder":"Date time order",
+            "outputDateFormat":"Output date format in JSON",
+            "selectFile":"Select upload file",
+            "fileRequired":"Please select upload file",
+            "filePlaceholder":"Supports: xls, xlsx formats",
+            "parseAndImport":"Confirm",
+            "autoInfer":"Auto infer",
+            "toEnd":"To end",
+            "selectSheet":"Select sheet",
+            "selectExcelOption":"Excel Configuration",
+            "getSheetError":"Get sheet list failed",
+            "sheetRequired":"Must select one sheet",
+            "clickToReplace":"Click to reselect file",
+            "dragOrClick":"Drag file to here or click to upload",
+            "invalidFormat":"Unsupported file format, please upload xls or xlsx file",
+            "rowSettings":"Row Range Settings",
+            "dateTimeSettings":"Date and Time Format",
+            "numberSettings":"Number Format"
         }
     },
     "property": {
