@@ -582,7 +582,6 @@ export function tableToXml(context){
                 ds+=`</dataset>`;
             }
         }else if (type === 'staticDs'){
-            ds+=` remark="${encode(datasource.remark)}"`;
             ds+='>';
             for(let dataset of datasource.datasets){
                 ds+=`<dataset name="${encode(dataset.name)}" type="staticDs">`;

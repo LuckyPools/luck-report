@@ -1,76 +1,47 @@
 <template>
   <UDialog
-      :title="$t('dialog.staticDataset.jsonPreviewTitle')"
-      width="1000px"
-      top="10vh"
-      :visible="visible"
-      :z-index="20005"
-      @close="closeDialog"
-  >
-    <div class="dialog-content">
-      <div class="content-layout">
-        <div class="json-table-preview">
-          <!-- 工具栏 -->
-          <div class="preview-toolbar">
-            <span class="preview-info">
-              共 {{ rowCount }} 行，{{ columnCount }} 列
-            </span>
-          </div>
+        :title="$t('dialog.staticDataset.jsonPreviewTitle')"
+        width="1200px"
+        top="50px"
+        :visible="visible"
+        :z-index="20000"
+        @close="closeDialog"
+    >
+    <div class="preview-body-container">
+      <!-- 空状态 -->
+      <div v-if="!isValidArray" class="preview-empty">
+        {{ emptyMessage }}
+      </div>
 
-          <!-- 空状态 -->
-          <div v-if="!isValidArray" class="preview-empty">
-            {{ emptyMessage }}
-          </div>
-
-          <!-- 表格区域 (改用 div 模拟) -->
-          <div v-else class="preview-table-container">
-            <!-- 固定表头 -->
-            <div class="table-header" ref="headerWrap">
-              <div class="table-row">
-                <div class="table-cell header-cell row-index-col">#</div>
-                <div
-                    v-for="col in columns"
-                    :key="col.key"
-                    class="table-cell header-cell"
-                    :style="{ width: colWidths[col.key] + 'px' }"
-                    :title="col.label"
-                >
-                  <span class="cell-text">{{ col.label }}</span>
-                  <!-- 拖拽手柄 -->
-                  <div
-                      class="resize-handle"
-                      @mousedown="startResize($event, col.key)"
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 可滚动表体 -->
-            <div class="table-body" ref="bodyWrap" @scroll="syncHeaderScroll">
-              <div
-                  v-for="(row, rowIndex) in displayData"
-                  :key="rowIndex"
-                  class="table-row body-row"
-              >
-                <div class="table-cell body-cell row-index-col">{{ rowIndex + 1 }}</div>
-                <div
-                    v-for="col in columns"
-                    :key="col.key"
-                    class="table-cell body-cell"
-                    :style="{ width: colWidths[col.key] + 'px' }"
-                    :title="getCellValue(row, col.key)"
-                >
+      <div v-else>
+        <!-- 数据统计信息，样式与 preview-data-dialog 一致 -->
+        <div style="height: 30px; background: #fdfdfd;">
+          <span style="margin: 4px;">{{ $t('dialog.staticDataset.rowCount', { n: rowCount }) }}</span>
+        </div>
+        <!-- 表格区域，使用全局 table-wrapper / table-container 样式，与 preview-data-dialog 保持一致 -->
+        <div class="preview-body-content table-wrapper">
+          <table class="table-container" style="table-layout: fixed;">
+            <thead>
+              <tr>
+                <th v-for="col in columns" :key="col.key" style="word-wrap: break-word; width: 120px;">
+                  {{ col.label }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, rowIndex) in displayData" :key="rowIndex">
+                <td v-for="col in columns" :key="`${rowIndex}-${col.key}`" style="word-wrap: break-word;">
                   {{ getCellValue(row, col.key) }}
-                </div>
-              </div>
-            </div>
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
     <div slot="footer" style="text-align: right">
-      <u-button @click="closeDialog">{{ $t('dialog.json.ok') }}</u-button>
+      <u-button type="info" @click="closeDialog">{{ $t('dialog.common.cancel') }}</u-button>
     </div>
   </UDialog>
 </template>
@@ -85,20 +56,14 @@ export default {
   props: {
     visible: { type: Boolean, default: false },
     data: { type: [String, Array, Object], default: '' },
+    // 最大展示行数，超过截断
     maxRows: { type: Number, default: 200 }
   },
-  data() {
-    return {
-      // 存储每列的实际宽度
-      colWidths: {},
-      // 拖拽状态
-      resizing: false,
-      resizeKey: null,
-      startX: 0,
-      startWidth: 0
-    };
-  },
   computed: {
+    /**
+     * 方法说明：解析传入的 data 为数组
+     * @return {Array|null} 解析后的数组，无法解析时返回 null
+     */
     parsedData() {
       if (Array.isArray(this.data)) return this.data;
       if (typeof this.data === 'string') {
@@ -107,19 +72,39 @@ export default {
       if (this.data && typeof this.data === 'object') return this.data;
       return null;
     },
+    /**
+     * 方法说明：判断解析结果是否为非空数组
+     * @return {boolean} 是否为有效数组
+     */
     isValidArray() {
       return Array.isArray(this.parsedData) && this.parsedData.length > 0;
     },
+    /**
+     * 方法说明：根据数据情况返回空状态提示文案
+     * @return {string} 空状态提示
+     */
     emptyMessage() {
-      if (!this.data || (typeof this.data === 'string' && !this.data.trim())) return '暂无数据';
-      if (!Array.isArray(this.parsedData)) return '数据格式不是 JSON 数组，无法以表格形式预览';
-      return 'JSON 数组为空';
+      if (!this.data || (typeof this.data === 'string' && !this.data.trim())) return this.$t('dialog.staticDataset.empty');
+      if (!Array.isArray(this.parsedData)) return this.$t('dialog.staticDataset.notJsonArray');
+      return this.$t('dialog.staticDataset.emptyArray');
     },
+    /**
+     * 方法说明：返回截断到 maxRows 的展示数据
+     * @return {Array} 展示数据
+     */
     displayData() {
       if (!this.isValidArray) return [];
       return this.maxRows > 0 ? this.parsedData.slice(0, this.maxRows) : this.parsedData;
     },
+    /**
+     * 方法说明：返回数据总条数
+     * @return {number} 行数
+     */
     rowCount() { return this.isValidArray ? this.parsedData.length : 0; },
+    /**
+     * 方法说明：合并所有对象的 key 作为列定义
+     * @return {Array} 列对象数组
+     */
     columns() {
       if (!this.isValidArray) return [];
       const keySet = new Set();
@@ -132,26 +117,20 @@ export default {
         }
       }
       return keys.map((k) => ({ key: k, label: k }));
-    },
-    columnCount() { return this.columns.length; }
-  },
-  watch: {
-    // 当列发生变化时，重新计算初始宽度
-    columns: {
-      immediate: true,
-      handler(newCols) {
-        const widths = {};
-        newCols.forEach(col => {
-          // 列宽随标题：根据标题长度估算，最小 80px
-          const estimated = (col.label || '').length * 14 + 32;
-          widths[col.key] = Math.max(estimated, 80);
-        });
-        this.colWidths = widths;
-      }
     }
   },
   methods: {
+    /**
+     * 方法说明：关闭预览弹窗
+     */
     closeDialog() { this.$emit('close'); },
+
+    /**
+     * 方法说明：获取单元格展示值，对象类型转为 JSON 字符串
+     * @param {Object} row - 行数据，可为空
+     * @param {string} key - 字段名
+     * @return {string} 单元格文本
+     */
     getCellValue(row, key) {
       if (!row || typeof row !== 'object') return '-';
       const val = row[key];
@@ -160,156 +139,44 @@ export default {
         try { return JSON.stringify(val); } catch { return String(val); }
       }
       return String(val);
-    },
-
-    /** 同步表头横向滚动 */
-    syncHeaderScroll(e) {
-      if (this.$refs.headerWrap) {
-        this.$refs.headerWrap.scrollLeft = e.target.scrollLeft;
-      }
-    },
-
-    /** 开始拖拽列宽 */
-    startResize(e, key) {
-      e.preventDefault();
-      this.resizing = true;
-      this.resizeKey = key;
-      this.startX = e.clientX;
-      this.startWidth = this.colWidths[key];
-
-      document.addEventListener('mousemove', this.onResize);
-      document.addEventListener('mouseup', this.stopResize);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    },
-
-    onResize(e) {
-      if (!this.resizing) return;
-      const diff = e.clientX - this.startX;
-      const newWidth = Math.max(60, this.startWidth + diff); // 最小宽度 60px
-      // 使用 $set 确保 Vue2 响应式更新
-      this.$set(this.colWidths, this.resizeKey, newWidth);
-    },
-
-    stopResize() {
-      this.resizing = false;
-      this.resizeKey = null;
-      document.removeEventListener('mousemove', this.onResize);
-      document.removeEventListener('mouseup', this.stopResize);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
     }
-  },
-  beforeDestroy() {
-    document.removeEventListener('mousemove', this.onResize);
-    document.removeEventListener('mouseup', this.stopResize);
   }
 };
 </script>
 
 <style scoped>
-.json-table-preview {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+:root {
+    --dialog-height: 600px;
+}
+
+/* 容器样式与 preview-data-dialog 保持一致 */
+.preview-body-container{
+  min-height: 300px;
+  max-height: var(--dialog-height);
   overflow: hidden;
-  font-size: 13px;
-}
-
-/* ---- 工具栏 ---- */
-.preview-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  flex-direction: column;
+  color: black;
 }
-.preview-info { color: #606266; font-size: 12px; }
 
-/* ---- 空状态 ---- */
+.preview-body-content {
+  min-height: 0;
+  max-height: var(--dialog-height);
+  overflow-x: scroll;
+  margin-top: 2px
+}
+
+/* 单元格内边距与文字颜色，与 preview-data-dialog 一致 */
+.table-container td{
+  padding: 0 5px;
+  color: black;
+}
+
+/* 空状态 */
 .preview-empty {
   padding: 40px 0;
   text-align: center;
   color: #909399;
   font-size: 14px;
-}
-
-/* ---- 表格容器 ---- */
-.preview-table-container {
-  display: flex;
-  flex-direction: column;
-  max-height: 400px; /* 超出最大高度 */
-}
-
-/* ---- 表头区域 (固定) ---- */
-.table-header {
-  flex-shrink: 0;
-  overflow-x: auto;
-  background: #fafafa;
-  border-bottom: 2px solid #e4e7ed;
-  scrollbar-width: none; /* 隐藏表头滚动条 */
-}
-.table-header::-webkit-scrollbar { display: none; }
-
-/* ---- 表体区域 (滚动) ---- */
-.table-body {
-  flex: 1;
-  min-height: 0; /* 关键：允许 flex 子项收缩并出现滚动条 */
-  overflow: auto;
-}
-
-/* ---- 行与单元格 (Flex 模拟) ---- */
-.table-row {
-  display: flex;
-  min-width: max-content; /* 保证横向滚动时行不被压缩 */
-}
-.body-row:hover .body-cell { background: #f5f7fa; }
-
-.table-cell {
-  padding: 8px 12px;
-  box-sizing: border-box;
-  flex-shrink: 0; /* 禁止被 flex 压缩，宽度完全由 style 控制 */
-  line-height: 20px;
-  border-bottom: 1px solid #ebeef5;
-  border-right: 1px solid #ebeef5;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.table-cell:last-child { border-right: none; }
-
-/* 表头单元格特殊样式 */
-.header-cell {
-  position: relative;
-  color: #303133;
-  font-weight: 600;
-  user-select: none;
-}
-
-/* 序号列固定宽度 */
-.row-index-col {
-  width: 50px !important;
-  min-width: 50px !important;
-  max-width: 50px !important;
-  text-align: center !important;
-  color: #909399;
-  flex-shrink: 0;
-}
-
-/* ---- 拖拽手柄 ---- */
-.resize-handle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  cursor: col-resize;
-  z-index: 1;
-}
-.resize-handle:hover,
-.resize-handle:active {
-  background: #409eff; /* 拖拽时高亮提示 */
-  opacity: 0.3;
 }
 </style>

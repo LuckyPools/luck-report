@@ -536,23 +536,26 @@ const en = {
         "staticDatasource":{
             "title":"Static Datasource Config",
             "name":"Name",
-            "remark":"Remark",
             "nameTip":"Name cannot be null!",
-            "namePlaceholder":"Please enter name",
-            "remarkPlaceholder":"Please enter remark"
+            "namePlaceholder":"Please enter name"
 
         },
         "staticDataset":{
-
-            "desc":"Only JSON data formats are supported, and only the first level is parsed, such as: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
+            "desc":"Data is stored in JSON format, parsing up to first-level fields",
             "title":"To configure a static dataset",
             "jsonPreviewTitle":"Static Data Preview",
-            "jsonPreview":"Static Data Preview",
-
+            "jsonPreview":"Preview Data",
+            "importExcel":"Import Data",
+            "inputPlaceholder":"Input...",
+            "format":"Format",
+            "rowCount":"{n} records",
+            "empty":"No data",
+            "notJsonArray":"Data is not a JSON array, cannot preview as table",
+            "emptyArray":"JSON array is empty"
         },
         "excelToJson":{
-            "title":"Excel To JSON",
-            "headerRowIndex":"Field name row (starting from 0)",
+            "title":"Import Data",
+            "headerRowIndex":"Field name row",
             "firstDataRowIndex":"First data row",
             "lastDataRowIndex":"Last data row",
             "dateOrder":"Date order",
@@ -568,15 +571,21 @@ const en = {
             "autoInfer":"Auto infer",
             "toEnd":"To end",
             "selectSheet":"Select sheet",
-            "selectExcelOption":"Excel Configuration",
+            "selectExcelOption":"Data Configuration",
             "getSheetError":"Get sheet list failed",
             "sheetRequired":"Must select one sheet",
             "clickToReplace":"Click to reselect file",
             "dragOrClick":"Drag file to here or click to upload",
             "invalidFormat":"Unsupported file format, please upload xls or xlsx file",
-            "rowSettings":"Row Range Settings",
+            "rowSettings":"Row Range Settings (starting from 1)",
             "dateTimeSettings":"Date and Time Format",
-            "numberSettings":"Number Format"
+            "numberSettings":"Number Format",
+            "noSheets":"No sheets found",
+            "headerRowRequired":"Please enter field name row",
+            "headerRowMustBeNumber":"Field name row must be a number",
+            "headerRowMustBeMinOne":"Field name row must be >= 1",
+            "mustBeNumber":"Must be a number",
+            "mustBeMinOne":"Must be >= 1"
         }
     },
     "property": {

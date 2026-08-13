@@ -13,7 +13,7 @@
               :class="datasourceExpanded ? 'icon-minus-circle' : 'icon-plus-circle'"
               style="margin-right:2px"
           ></i>
-          <i class="iconfont icon-database"></i>
+          <i class="iconfont icon-file-source"></i>
           <a href="javascript:void(0)" class="ds_name">{{ datasource.name }}</a>
         </span>
 
@@ -236,8 +236,7 @@ export default {
      */
     editDatasourceAction() {
       this.currentDatasource = {
-        name: this.datasource.name,
-        remark: this.datasource.remark
+        name: this.datasource.name
       };
       this.datasourceDialogVisible = true;
     },
@@ -303,7 +302,6 @@ export default {
     addDatasetAction() {
       this.currentDatasourceData = {
         name: this.datasource.name,
-        remark: '',
         type: this.type,
         datasources: this.datasources
       };
@@ -317,7 +315,6 @@ export default {
     editDatasetAction(dataset, index) {
       this.currentDatasourceData = {
         name: this.datasource.name,
-        remark: '',
         type: this.type,
         datasource: this.datasources
       };
@@ -336,7 +333,6 @@ export default {
         this.$emit('update-datasource', {
           name: this.datasource.name,
           oldName: this.datasource.name,
-          remark: '',
           type: this.type,
           datasets: newDatasets
         });
@@ -354,7 +350,6 @@ export default {
         this.$emit('update-datasource', {
           name: this.datasource.name,
           oldName: this.datasource.name,
-          remark: '',
           type: this.type,
           datasets: newDatasets
         });
@@ -376,7 +371,6 @@ export default {
           this.$emit('update-datasource', {
             name: this.datasource.name,
             oldName: this.datasource.name,
-            remark: '',
             type: this.type,
             datasets: newDatasets
           });
@@ -434,7 +428,6 @@ export default {
       this.$emit('update-datasource', {
         name: this.datasource.name,
         oldName: this.datasource.name,
-        remark: this.datasource.remark,
         type: this.type,
         datasets: newDatasets
       });
@@ -458,7 +451,6 @@ export default {
       this.$emit('update-datasource', {
         name: this.datasource.name,
         oldName: this.datasource.name,
-        remark: this.datasource.remark,
         type: this.type,
         datasets: newDatasets
       });

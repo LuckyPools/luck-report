@@ -34,49 +34,52 @@
 
         <!-- Step 1: 文件上传 -->
         <div v-show="curStep === 1" class="step-content">
-          <div
-              class="upload-zone"
-              :class="{ 'is-dragging': isDragging, 'has-file': !!fileName }"
-              @click="triggerFileSelect"
-              @dragover.prevent="isDragging = true"
-              @dragleave.prevent="isDragging = false"
-              @drop.prevent="handleDrop"
-          >
-            <input
-                ref="fileInput"
-                type="file"
-                accept=".xlsx,.xls"
-                style="display: none"
-                @change="handleFileChange"
-            />
+          <div class="step-body-wrapper">
+            <div
+                class="upload-zone"
+                :class="{ 'is-dragging': isDragging, 'has-file': !!fileName }"
+                @click="triggerFileSelect"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="handleDrop"
+            >
+              <input
+                  ref="fileInput"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  style="display: none"
+                  @change="handleFileChange"
+              />
 
-            <div class="upload-icon">
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="12" y1="18" x2="12" y2="12"></line>
-                <line x1="9" y1="15" x2="15" y2="15"></line>
-              </svg>
-            </div>
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+              </div>
 
-            <div class="upload-text">
-              <template v-if="fileName">
-                <p class="file-name-display">{{ fileName }}</p>
-                <p class="file-hint">{{ $t('dialog.excelToJson.clickToReplace')  }}</p>
-              </template>
-              <template v-else>
-                <p class="main-text">
-                  {{ $t('dialog.excelToJson.dragOrClick')}}
-                </p>
-                <p class="sub-text">{{ $t('dialog.excelToJson.filePlaceholder') }}</p>
-              </template>
+              <div class="upload-text">
+                <template v-if="fileName">
+                  <p class="file-name-display">{{ fileName }}</p>
+                  <p class="file-hint">{{ $t('dialog.excelToJson.clickToReplace')  }}</p>
+                </template>
+                <template v-else>
+                  <p class="main-text">
+                    {{ $t('dialog.excelToJson.dragOrClick')}}
+                  </p>
+                  <p class="sub-text">{{ $t('dialog.excelToJson.filePlaceholder') }}</p>
+                </template>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Step 2: Sheet 选择 -->
         <div v-show="curStep === 2" class="step-content">
-          <div class="sheet-list">
+          <div class="step-body-wrapper">
+            <div class="sheet-list">
             <div
                 v-for="sheet in sheetList"
                 :key="sheet.index"
@@ -84,15 +87,15 @@
                 :class="{ 'is-selected': formData.sheetIndex === sheet.index }"
                 @click="formData.sheetIndex = sheet.index"
             >
-              <div class="sheet-icon">📊</div>
+              <span class="sheet-radio-dot"></span>
               <div class="sheet-info">
                 <span class="sheet-name">{{ sheet.name }}</span>
               </div>
-              <div class="sheet-check" v-if="formData.sheetIndex === sheet.index">✓</div>
             </div>
 
             <div v-if="!sheetList.length" class="empty-sheet">
-              {{ $t('dialog.excelToJson.noSheets') || '未找到工作表' }}
+              {{ $t('dialog.excelToJson.noSheets') }}
+            </div>
             </div>
           </div>
         </div>
@@ -105,17 +108,17 @@
             <h4 class="group-title">{{ $t('dialog.excelToJson.rowSettings')  }}</h4>
             <u-row :gutter="10">
               <u-col span="8">
-                <u-form-item :label="$t('dialog.excelToJson.headerRowIndex')">
+                <u-form-item :label="$t('dialog.excelToJson.headerRowIndex')" prop="headerRowIndex" required>
                   <u-input v-model.number="formData.headerRowIndex" />
                 </u-form-item>
               </u-col>
               <u-col span="8">
-                <u-form-item :label="$t('dialog.excelToJson.firstDataRowIndex')">
+                <u-form-item :label="$t('dialog.excelToJson.firstDataRowIndex')" prop="firstDataRowIndex">
                   <u-input v-model.number="formData.firstDataRowIndex" :placeholder="$t('dialog.excelToJson.autoInfer')" />
                 </u-form-item>
               </u-col>
               <u-col span="8">
-                <u-form-item :label="$t('dialog.excelToJson.lastDataRowIndex')">
+                <u-form-item :label="$t('dialog.excelToJson.lastDataRowIndex')" prop="lastDataRowIndex">
                   <u-input v-model.number="formData.lastDataRowIndex" :placeholder="$t('dialog.excelToJson.toEnd')" />
                 </u-form-item>
               </u-col>
@@ -177,7 +180,7 @@
     </div>
 
     <div slot="footer" class="dialog-footer">
-      <u-button v-if="curStep > 1" @click="setStep(curStep - 1)">
+      <u-button v-if="curStep > 1" type="info" @click="setStep(curStep - 1)">
         {{ $t('dialog.common.prev') }}
       </u-button>
 
@@ -212,8 +215,6 @@ import USelect from "@/components/select/index.vue";
 import UOption from "@/components/option/index.vue";
 import URow from "@/components/row/index.vue";
 import UCol from "@/components/col/index.vue";
-import URadioGroup from "@/components/radio-group/index.vue";
-import URadio from "@/components/radio/index.vue";
 import { showAlert } from "@/utils/comnon";
 
 export default {
@@ -227,7 +228,7 @@ export default {
     UFormItem,
     UOption,
     URow,
-    UCol,
+    UCol
   },
   props: {
     visible: {
@@ -243,7 +244,7 @@ export default {
       isDragging: false,
       formData: {
         sheetIndex: null,
-        headerRowIndex: 0,
+        headerRowIndex: 1,
         firstDataRowIndex: '',
         lastDataRowIndex: '',
         dateOrder: 'YMD',
@@ -262,7 +263,70 @@ export default {
         { value: 'DT', label: 'DT' },
         { value: 'TD', label: 'TD' }
       ],
-      rules: {},
+      rules: {
+        // 字段名行：必填，必须为数字且大于等于1（对应Excel第1行起）
+        // 注：不使用 async-validator 的 required 规则，因其未指定 type 时默认按 string 校验，
+        // 而 v-model.number 产出的是 number 类型，会被误判为空触发"请输入"。必填语义在 validator 内统一处理。
+        headerRowIndex: [
+          {
+            validator: (rule, value, callback) => {
+              if (value === '' || value === null || value === undefined) {
+                callback(new Error(this.$t('dialog.excelToJson.headerRowRequired')));
+                return;
+              }
+              const num = Number(value);
+              if (isNaN(num)) {
+                callback(new Error(this.$t('dialog.excelToJson.headerRowMustBeNumber')));
+              } else if (num < 1) {
+                callback(new Error(this.$t('dialog.excelToJson.headerRowMustBeMinOne')));
+              } else {
+                callback();
+              }
+            },
+            trigger: 'blur'
+          }
+        ],
+        // 第一个数据行：可为空（留空时后端自动取字段名行下一行），填则必须为数字且大于等于1
+        firstDataRowIndex: [
+          {
+            validator: (rule, value, callback) => {
+              if (value === '' || value === null || value === undefined) {
+                callback();
+                return;
+              }
+              const num = Number(value);
+              if (isNaN(num)) {
+                callback(new Error(this.$t('dialog.excelToJson.mustBeNumber')));
+              } else if (num < 1) {
+                callback(new Error(this.$t('dialog.excelToJson.mustBeMinOne')));
+              } else {
+                callback();
+              }
+            },
+            trigger: 'blur'
+          }
+        ],
+        // 最后一个数据行：可为空（留空时解析到Sheet末尾），填则必须为数字且大于等于1
+        lastDataRowIndex: [
+          {
+            validator: (rule, value, callback) => {
+              if (value === '' || value === null || value === undefined) {
+                callback();
+                return;
+              }
+              const num = Number(value);
+              if (isNaN(num)) {
+                callback(new Error(this.$t('dialog.excelToJson.mustBeNumber')));
+              } else if (num < 1) {
+                callback(new Error(this.$t('dialog.excelToJson.mustBeMinOne')));
+              } else {
+                callback();
+              }
+            },
+            trigger: 'blur'
+          }
+        ]
+      },
       curStep: 1,
       sheetList: []
     };
@@ -294,7 +358,7 @@ export default {
       this.sheetList = [];
       this.formData = {
         sheetIndex: null,
-        headerRowIndex: 0,
+        headerRowIndex: 1,
         firstDataRowIndex: '',
         lastDataRowIndex: '',
         dateOrder: 'YMD',
@@ -359,6 +423,9 @@ export default {
 
     /** 点击确认按钮 */
     async handleOk() {
+      // 提交前校验行号配置，校验失败直接返回，不进入 loading
+      const valid = await this.validateForm();
+      if (!valid) return;
       this.parsing = true;
       try {
         const formPayload = new FormData();
@@ -398,6 +465,10 @@ export default {
           const res = await getExcelSheet(this.rawFile);
           if (res) {
             this.sheetList = res;
+            // 仅有一个 sheet 时默认选中，省去用户手动点击
+            if (res.length === 1) {
+              this.formData.sheetIndex = res[0].index;
+            }
           }
         } catch (error) {
           console.error('Get Excel sheet error:', error);
@@ -528,6 +599,13 @@ export default {
   background: var(--ep-primary);
 }
 
+/* 步骤内容外层容器：固定高度，超出内部滚动，保证"上传文件"与"选择sheet"两步骤高度一致 */
+.step-body-wrapper {
+  height: 250px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
 /* ========== 上传区域 ========== */
 .upload-zone {
   border: 2px dashed var(--ep-border);
@@ -537,6 +615,13 @@ export default {
   cursor: pointer;
   transition: all 0.25s ease;
   background: #fafbfc;
+  /* 撑满 wrapper 高度，上传区铺满固定区域 */
+  min-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .upload-zone:hover,
@@ -593,15 +678,16 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
-  max-height: 360px;
-  overflow-y: auto;
   padding: 4px;
+  box-sizing: border-box;
 }
 
 .sheet-card {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 16px;
   border: 1px solid var(--ep-border);
   border-radius: 8px;
   cursor: pointer;
@@ -619,10 +705,40 @@ export default {
   box-shadow: 0 0 0 1px var(--ep-primary) inset;
 }
 
-.sheet-icon {
-  font-size: 24px;
-  margin-right: 12px;
+/* 左侧 radio 圆点，样式与 u-radio 一致，主题色 #00554a */
+.sheet-radio-dot {
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-right: 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 50%;
+  background-color: #fff;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* 选中时圆点内显示主题色实心小圆 */
+.sheet-card.is-selected .sheet-radio-dot {
+  background-color: #00554a;
+  border-color: #00554a;
+}
+
+.sheet-card.is-selected .sheet-radio-dot::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background-color: #fff;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sheet-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .sheet-name {
@@ -631,13 +747,6 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.sheet-check {
-  margin-left: auto;
-  color: var(--ep-primary);
-  font-weight: bold;
-  flex-shrink: 0;
 }
 
 .empty-sheet {

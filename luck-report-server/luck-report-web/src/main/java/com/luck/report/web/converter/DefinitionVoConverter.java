@@ -342,11 +342,7 @@ public final class DefinitionVoConverter {
             springVo.setBeanId(spring.getBeanId());
             vo = springVo;
         } else if (datasource instanceof StaticDatasourceDefinition) {
-            StaticDatasourceDefinition staticDs = (StaticDatasourceDefinition) datasource;
-            StaticDatasourceDefinitionVo staticDatasourceDefinitionVo = new StaticDatasourceDefinitionVo();
-            staticDatasourceDefinitionVo.setRemark(staticDs.getRemark());
-            vo = staticDatasourceDefinitionVo;
-
+            vo = new DatasourceDefinitionVo();
         } else {
             // 兜底：未识别子类时仅拷贝公共字段
             DefinitionVoConverter.logger.warn("未识别的 DatasourceDefinition 子类: {}", datasource.getClass().getName());

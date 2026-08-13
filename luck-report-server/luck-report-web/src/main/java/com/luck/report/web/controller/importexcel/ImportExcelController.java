@@ -38,11 +38,14 @@ public class ImportExcelController extends BaseController {
 
     /**
      * 上传Excel并按配置参数解析为JSON
+     * 注意：行号参数(headerRowIndex/firstDataRowIndex/lastDataRowIndex)均采用从1开始的语义，
+     * 与Excel中直观的"第几行"一致，内部会转换为POI所需的从0开始的索引
      *
      * @param file              Excel文件
-     * @param headerRowIndex    字段名行号(从0开始)
-     * @param firstDataRowIndex 第一个数据行号(可选)
-     * @param lastDataRowIndex  最后一个数据行号(可选)
+     * @param sheetIndex        指定解析的Sheet索引(从0开始，可选)，为null时默认读取第一个Sheet
+     * @param headerRowIndex    字段名行号(从1开始)，默认1，对应Excel第1行
+     * @param firstDataRowIndex 第一个数据行号(从1开始，可选)，为null时自动取字段名行的下一行
+     * @param lastDataRowIndex  最后一个数据行号(从1开始，可选)，为null时解析到Sheet末尾
      * @param dateOrder         日期排序: DMY / YMD / MDY
      * @param dateSeparator     日期分隔符
      * @param timeSeparator     时间分隔符
@@ -53,7 +56,8 @@ public class ImportExcelController extends BaseController {
     @PostMapping("/parseToJson")
     public void parseExcel(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "headerRowIndex", defaultValue = "0") int headerRowIndex,
+            @RequestParam(value = "sheetIndex", required = false) Integer sheetIndex,
+            @RequestParam(value = "headerRowIndex", defaultValue = "1") int headerRowIndex,
             @RequestParam(value = "firstDataRowIndex", required = false) Integer firstDataRowIndex,
             @RequestParam(value = "lastDataRowIndex", required = false) Integer lastDataRowIndex,
             @RequestParam(value = "dateOrder", defaultValue = "YMD") ExcelParseConfig.DateOrder dateOrder,
@@ -64,17 +68,25 @@ public class ImportExcelController extends BaseController {
             @RequestParam(value = "outputDateFormat", defaultValue = "yyyy-MM-dd HH:mm:ss") String outputDateFormat
     ) {
 
-        // 1. 基础校验
-        if (file == null || file.isEmpty()) throw new RuntimeException("上传文件不能为空");
+        // 1. 基础校验：文件非空 + 格式合法
+        if (file == null || file.isEmpty()) throw new RuntimeException("Upload file cannot be empty");
         String fileName = file.getOriginalFilename();
         if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")))
-            throw new RuntimeException("仅支持 .xlsx 或 .xls 格式的Excel文件");
+            throw new RuntimeException("Only .xlsx or .xls format Excel files are supported");
 
-        // 2. 构建解析配置
+        // 行号边界校验：前端传入为从1开始的行号，必须 >= 1
+        if (headerRowIndex < 1) throw new RuntimeException("Header row index must be >= 1");
+        if (firstDataRowIndex != null && firstDataRowIndex < 1)
+            throw new RuntimeException("First data row index must be >= 1");
+        if (lastDataRowIndex != null && lastDataRowIndex < 1)
+            throw new RuntimeException("Last data row index must be >= 1");
+
+        // 2. 构建解析配置：将1-based行号转换为POI所需的0-based索引
         ExcelParseConfig config = ExcelParseConfig.builder()
-                .headerRowIndex(headerRowIndex)
-                .firstDataRowIndex(firstDataRowIndex)
-                .lastDataRowIndex(lastDataRowIndex)
+                .sheetIndex(sheetIndex)
+                .headerRowIndex(headerRowIndex - 1)
+                .firstDataRowIndex(firstDataRowIndex != null ? firstDataRowIndex - 1 : null)
+                .lastDataRowIndex(lastDataRowIndex != null ? lastDataRowIndex - 1 : null)
                 .dateOrder(dateOrder)
                 .dateSeparator(dateSeparator)
                 .timeSeparator(timeSeparator)
@@ -88,9 +100,9 @@ public class ImportExcelController extends BaseController {
             String json = ExcelToJsonUtil.parseToJson(inputStream, config);
             resp.writeObjectToJson(json);
         } catch (IllegalStateException e) {
-            throw new RuntimeException("Excel格式错误: " + e.getMessage());
+            throw new RuntimeException("Excel format error: " + e.getMessage());
         } catch (Exception e) {
-            throw new RuntimeException("解析失败: " + e.getMessage());
+            throw new RuntimeException("Parse failed: " + e.getMessage());
         }
     }
 

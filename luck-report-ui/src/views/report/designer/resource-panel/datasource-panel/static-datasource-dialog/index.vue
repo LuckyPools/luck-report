@@ -1,20 +1,18 @@
 <template>
   <UDialog
       :title="$t('dialog.staticDatasource.title')"
-      width="520px"
+      width="500px"
       :visible="visible"
       @close="closeDialog"
   >
-    <div class="dialog-content">
+    <div>
       <u-form
           ref="form"
           :model="formData"
           :rules="rules"
-          label-width="90px"
-          label-position="left"
           class="static-ds-form"
       >
-        <u-form-item :label="$t('dialog.staticDatasource.name')" prop="dsName">
+        <u-form-item :label="$t('dialog.staticDatasource.name')" prop="dsName" :label-width="120">
           <u-input
               v-model="formData.dsName"
               :placeholder="$t('dialog.staticDatasource.namePlaceholder')"
@@ -22,22 +20,11 @@
               show-word-limit
           />
         </u-form-item>
-
-        <!-- 备注字段已注释，如需恢复可直接取消下方注释 -->
-        <!-- <u-form-item :label="$t('dialog.staticDatasource.remark')" prop="remark">
-          <u-input
-            v-model="formData.remark"
-            type="textarea"
-            :rows="3"
-            maxlength="200"
-            show-word-limit
-          />
-        </u-form-item> -->
       </u-form>
     </div>
 
     <div slot="footer" class="dialog-footer">
-      <u-button @click="closeDialog">{{ $t('dialog.common.cancel') }}</u-button>
+      <u-button type="info" @click="closeDialog">{{ $t('dialog.common.cancel') }}</u-button>
       <u-button type="primary" :loading="saving" @click="handleOk">
         {{ $t('dialog.common.ok') }}
       </u-button>
@@ -93,8 +80,7 @@ export default {
 
     return {
       formData: {
-        dsName: '',
-        remark: ''
+        dsName: ''
       },
       oldName: null,
       saving: false,
@@ -123,8 +109,7 @@ export default {
     initData() {
       this.oldName = this.datasource?.name ?? null;
       this.formData = {
-        dsName: this.datasource?.name ?? '',
-        remark: this.datasource?.remark ?? ''
+        dsName: this.datasource?.name ?? ''
       };
     },
 
@@ -161,7 +146,6 @@ export default {
       try {
         this.$emit('save', {
           name: this.formData.dsName.trim(),
-          remark: this.formData.remark,
           type: 'staticDs',
           oldName: this.oldName
         });

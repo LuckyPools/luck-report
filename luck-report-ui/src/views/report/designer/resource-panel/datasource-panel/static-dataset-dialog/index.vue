@@ -9,6 +9,10 @@
       @close="closeDialog"
     >
       <div class="dialog-content">
+        <!-- 顶部提示：静态数据集数据格式说明 -->
+        <div class="import-tip-box">
+          <div class="import-description">{{ $t('dialog.staticDataset.desc') }}</div>
+        </div>
         <div class="content-layout">
 
           <JsonEditor
@@ -24,7 +28,7 @@
       </div>
 
       <div slot="footer" style="text-align: right">
-        <u-button @click="handlePreviewJson" style="margin-right: 10px">{{ $t('dialog.staticDataset.jsonPreview') }}</u-button>
+        <u-button type="info" @click="handlePreviewJson" style="margin-right: 10px">{{ $t('dialog.staticDataset.jsonPreview') }}</u-button>
         <u-button @click="handleConfirm">{{ $t('dialog.json.ok') }}</u-button>
       </div>
     </UDialog>
@@ -218,5 +222,19 @@ export default {
   flex-direction: column;
   gap: 10px;
   height: 100%;
+}
+
+/* 底部提示框样式，参照 import-dialog 的 import-tip-box */
+.import-tip-box {
+  padding: 8px 16px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border-left: 5px solid #007868;
+  margin-bottom: 15px;
+}
+
+.import-description {
+  line-height: 2;
+  color: #929191;
 }
 </style>

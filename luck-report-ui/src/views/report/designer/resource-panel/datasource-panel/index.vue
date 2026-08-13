@@ -33,7 +33,7 @@
       <u-button
           type="info"
           class="toolbar-btn"
-          icon="icon-database"
+          icon="icon-file-source"
           :title="$t('property.staticDatasource.title')"
           @click="showStaticDatasourceDialog"
       >
@@ -279,7 +279,6 @@ export default {
     addStaticDatasource(datasource) {
       const newDatasource = {
         name: datasource.name,
-        remark:datasource.remark,
         type:datasource.type
       };
 

@@ -19,8 +19,6 @@ public class StaticDatasourceDefinition implements DatasourceDefinition {
 
     private String name;
 
-    private String remark;
-
     private List<DatasetDefinition> datasets;
 
     @Override
@@ -54,14 +52,6 @@ public class StaticDatasourceDefinition implements DatasourceDefinition {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
-    public void setRemark(String remark) {
-        this.remark = remark;
     }
 
     public void setDatasets(List<DatasetDefinition> datasets) {

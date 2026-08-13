@@ -57,7 +57,6 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
             //静态数据源
             StaticDatasourceDefinition ds = new StaticDatasourceDefinition();
             ds.setName(element.attributeValue("name"));
-            ds.setRemark(element.attributeValue("remark"));
             ds.setDatasets(parseDatasets(element));
             return ds;
         }

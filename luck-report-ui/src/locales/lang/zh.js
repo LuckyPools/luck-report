@@ -511,13 +511,13 @@ const zh = {
         },
         "json":{
             "ok":"确定",
-            "jsonTip":"json内容不能为空!",
+            "jsonTip":"JSON 内容不能为空!",
             "nameTip":"数据集名称不能为空",
-            "ds":"json数据集",
-            "doFmtErr":"执行JSON格式化失败",
+            "ds":"JSON 数据集",
+            "doFmtErr":"执行 JSON 格式化失败",
             "arrFmtErr":"JSON 格式必须为数组（Array）",
-            "fmtErr":"JSON格式不正确!",
-            "emptyArrErr":"json数据集的数组不能为空!"
+            "fmtErr":"JSON 格式不正确!",
+            "emptyArrErr":"JSON 数据集的数组不能为空!"
         },
         "urlParam": {
             "title": "URL参数配置",
@@ -547,21 +547,26 @@ const zh = {
         "staticDatasource":{
             "title":"静态数据源配置",
             "name":"名称",
-            "remark":"备注",
             "nameTip":"名称不能为空!",
             "namePlaceholder":"请输入名称"
 
         },
         "staticDataset":{
-            "desc":"只支持json数据格式，且只会解析第一级，如: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
-            "title":"配置静态数据集",
+            "desc":"数据存储为 JSON 格式，支持解析至一级字段",
+            "title":"静态数据集配置",
             "jsonPreviewTitle":"静态数据预览",
-            "jsonPreview":"静态数据预览",
-
+            "jsonPreview":"预览数据",
+            "importExcel":"导入数据",
+            "inputPlaceholder":"输入...",
+            "format":"格式化",
+            "rowCount":"共{n}条数据",
+            "empty":"暂无数据",
+            "notJsonArray":"数据格式不是 JSON 数组，无法以表格形式预览",
+            "emptyArray":"JSON 数组为空"
         },
         "excelToJson":{
-            "title":"Excel转JSON",
-            "headerRowIndex":"字段名行(从0开始)",
+            "title":"导入数据",
+            "headerRowIndex":"字段名行",
             "firstDataRowIndex":"第一个数据行",
             "lastDataRowIndex":"最后一个数据行",
             "dateOrder":"日期排序",
@@ -569,7 +574,7 @@ const zh = {
             "timeSeparator":"时间分隔符",
             "decimalSymbol":"小数点符号",
             "dateTimeOrder":"日期时间排序",
-            "outputDateFormat":"输出JSON中的日期格式",
+            "outputDateFormat":"输出 JSON 中的日期格式",
             "selectFile":"选择上传文件",
             "fileRequired":"请选择上传文件",
             "filePlaceholder":"支持:xls,xlsx格式",
@@ -577,15 +582,21 @@ const zh = {
             "autoInfer":"",
             "toEnd":"",
             "selectSheet":"选择sheet",
-            "selectExcelOption":"EXCEL配置",
+            "selectExcelOption":"数据配置",
             "getSheetError":"获取sheet列表失败",
             "sheetRequired":"必须选择一个sheet",
             "clickToReplace":"点击重新选择文件",
             "dragOrClick":"拖拽文件到此处，或点击上传",
             "invalidFormat":"不支持的文件格式，请上传xls或xlsx文件",
-            "rowSettings":"行范围设置",
+            "rowSettings":"行范围设置(从1开始)",
             "dateTimeSettings":"日期与时间格式",
-            "numberSettings":"数字格式"
+            "numberSettings":"数字格式",
+            "noSheets":"未找到工作表",
+            "headerRowRequired":"请输入字段名行号",
+            "headerRowMustBeNumber":"字段名行号必须为数字",
+            "headerRowMustBeMinOne":"字段名行号必须大于等于1",
+            "mustBeNumber":"必须为数字",
+            "mustBeMinOne":"必须大于等于1"
         }
     },
     "property": {

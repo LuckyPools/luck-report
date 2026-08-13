@@ -1,49 +1,43 @@
 <template>
   <div class="sql-editor-container">
-    <div class="sql-editor-row">
-      {{ $t('dialog.sql.datasetName') }}：
-      <div class="u-inline">
-        <u-input
-            v-model="datasetName"
-            class="sql-editor-name-input"
-            @input="handleDatasetNameChange"
-        />
-      </div>
+    <!-- 数据集名称行：输入框右侧放置导入excel按钮 -->
+    <div class="sql-editor-row name-row">
+      <span class="row-label">{{ $t('dialog.sql.datasetName') }}：</span>
+      <u-input
+          v-model="datasetName"
+          class="sql-editor-name-input"
+          @input="handleDatasetNameChange"
+      />
+      <u-button
+          native-type="button"
+          type="primary"
+          size="small"
+          class="row-action-btn"
+          icon="icon-upload"
+          @click="showExcelToJsonDialog"
+      >
+        {{ $t('dialog.staticDataset.importExcel') }}
+      </u-button>
     </div>
 
-    <div class="sql-editor-row" style="margin-top: 5px">
-      <span>
-         JSON数据集
-          <span class="sql-editor-desc">{{ $t('dialog.staticDataset.desc') }}</span>
-      </span>
-      <div>
-        <u-button
-            native-type="button"
-            type="primary"
-            size="small"
-            @click="formatJson(codeMirror)"
-        >
-          格式化
-        </u-button>
-        <u-button
-            native-type="button"
-            type="primary"
-            size="small"
-            class="mr-l-8"
-            @click="showExcelToJsonDialog"
-            style="margin-left: 10px"
-        >
-          导入excel
-        </u-button>
-      </div>
-      <div>
+    <!-- JSON输入框行：格式化按钮悬浮在编辑框右上角，类似 vitepress 代码块复制按钮 -->
+    <div class="sql-editor-row editor-row">
+      <div class="editor-wrapper">
         <textarea
             ref="jsonTextarea"
-            placeholder="输入..."
+            :placeholder="$t('dialog.staticDataset.inputPlaceholder')"
             class="form-control sql-editor-textarea"
             rows="8"
             cols="30"
         ></textarea>
+        <button
+            type="button"
+            class="fmt-btn"
+            :title="$t('dialog.staticDataset.format')"
+            @click="formatJson(codeMirror)"
+        >
+          {{ $t('dialog.staticDataset.format') }}
+        </button>
       </div>
     </div>
     <excel-to-json ref="excelToJsonRef" :visible="visibleExcelImp"  @close="visibleExcelImp = false" @json-imported="handleJson"></excel-to-json>
@@ -150,7 +144,20 @@ export default {
         mode: 'application/json',
         lineNumbers: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
-        lint: true,
+        // 自定义 lint：编辑器为空（含纯空白）时不校验，避免初始无内容时行号区出现红色 ❌ 标记；
+        // 非空内容复用 json-lint 已注册的 helper，保留精确的错误行/列定位
+        lint: {
+          getAnnotations: (text, updateLinting, options, cm) => {
+            if (!text || !text.trim()) {
+              return [];
+            }
+            const jsonLinter = cm && cm.getHelper(CodeMirror.Pos(0, 0), 'lint');
+            if (jsonLinter) {
+              return jsonLinter(text, updateLinting, options, cm);
+            }
+            return [];
+          }
+        },
         lineWrapping: true,
         foldGutter: true,
         autoCloseBrackets: true,
@@ -163,7 +170,7 @@ export default {
           'Cmd-Shift-F': (cm) => this.formatJson(cm),  // macOS
         }
       });
-      this.codeMirror.setSize('100%', '204px');
+      this.codeMirror.setSize('100%', '360px');
 
       this.codeMirror.on('change', (cm, change) => {
         if (change.origin !== 'setValue') {
@@ -272,16 +279,81 @@ export default {
 </script>
 
 <style scoped>
+/* 占满父级 flex 容器宽度，min-width:0 保证内部 flex 子项可正常收缩 */
 .sql-editor-container {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 行布局：label + 输入框 + 操作按钮 */
+.sql-editor-row {
+  display: flex;
+  align-items: center;
+}
+
+/* JSON编辑器行顶部对齐，适配较高的 textarea */
+.editor-row {
+  align-items: flex-start;
+  margin-top: 5px;
+}
+
+.row-label {
+  flex-shrink: 0;
 }
 
 .sql-editor-name-input {
-  width: 500px;
+  flex: 1;
 }
 
-.sql-editor-desc {
-  color: #999999;
+.editor-wrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+/* 操作按钮固定宽度，保证两行按钮上下列对齐 */
+.row-action-btn {
+  flex-shrink: 0;
+  margin-left: 10px;
+  min-width: 96px;
+}
+
+/* 导入图标与文本间距 */
+.import-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+
+/* 格式化按钮悬浮于编辑框右上角，样式参考 vitepress 代码块复制按钮：
+   默认隐藏，仅 hover 编辑器时显现，灰色边框、半透明背景 */
+.fmt-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  height: 28px;
+  padding: 0 10px;
   font-size: 12px;
+  color: #666;
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 鼠标 hover 编辑器时显现按钮 */
+.editor-wrapper:hover .fmt-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 按钮自身 hover：边框加深、背景更实 */
+.fmt-btn:hover {
+  border-color: #909399;
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 .sql-editor-textarea {
