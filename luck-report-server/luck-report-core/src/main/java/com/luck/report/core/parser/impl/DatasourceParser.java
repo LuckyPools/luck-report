@@ -20,8 +20,6 @@ import com.luck.report.core.definition.datasource.*;
 import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.parser.Parser;
-import com.luck.report.core.definition.dataset.*;
-import com.luck.report.core.definition.datasource.*;
 import org.dom4j.Element;
 
 import java.util.ArrayList;
@@ -55,6 +53,13 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
             ds.setName(element.attributeValue("name"));
             ds.setDatasets(parseDatasets(element));
             return ds;
+        } else if (type.equals("staticDs")) {
+            //静态数据源
+            StaticDatasourceDefinition ds = new StaticDatasourceDefinition();
+            ds.setName(element.attributeValue("name"));
+            ds.setRemark(element.attributeValue("remark"));
+            ds.setDatasets(parseDatasets(element));
+            return ds;
         }
         return null;
     }
@@ -62,9 +67,7 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
     private List<DatasetDefinition> parseDatasets(Element element) {
         List<DatasetDefinition> list = new ArrayList<DatasetDefinition>();
         for (Object obj : element.elements()) {
-            if (obj == null || !(obj instanceof Element)) {
-                continue;
-            }
+            if (obj == null || !(obj instanceof Element)) continue;
             Element ele = (Element) obj;
             String type = ele.attributeValue("type");
             if (type.equals("sql")) {
@@ -81,6 +84,11 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
                 dataset.setFields(parseFields(ele));
                 dataset.setClazz(ele.attributeValue("clazz"));
                 list.add(dataset);
+            } else if (type.equals("staticDs")) {
+                JsonDatasetDefinition dataset = new JsonDatasetDefinition();
+                dataset.setName(ele.attributeValue("name"));
+                dataset.setContent(parseJson(ele, dataset));
+                list.add(dataset);
             }
         }
         return list;
@@ -89,13 +97,9 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
     private List<Parameter> parseParameters(Element element) {
         List<Parameter> parameters = new ArrayList<Parameter>();
         for (Object obj : element.elements()) {
-            if (obj == null || !(obj instanceof Element)) {
-                continue;
-            }
+            if (obj == null || !(obj instanceof Element)) continue;
             Element ele = (Element) obj;
-            if (!ele.getName().equals("parameter")) {
-                continue;
-            }
+            if (!ele.getName().equals("parameter")) continue;
             Parameter param = new Parameter();
             param.setName(ele.attributeValue("name"));
             param.setDefaultValue(ele.attributeValue("default-value"));
@@ -108,13 +112,9 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
     private List<Field> parseFields(Element element) {
         List<Field> fields = new ArrayList<Field>();
         for (Object obj : element.elements()) {
-            if (obj == null || !(obj instanceof Element)) {
-                continue;
-            }
+            if (obj == null || !(obj instanceof Element)) continue;
             Element ele = (Element) obj;
-            if (!ele.getName().equals("field")) {
-                continue;
-            }
+            if (!ele.getName().equals("field")) continue;
             Field field = new Field(ele.attributeValue("name"));
             fields.add(field);
         }
@@ -123,9 +123,7 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
 
     private String parseSql(Element element, SqlDatasetDefinition dataset) {
         for (Object obj : element.elements()) {
-            if (obj == null || !(obj instanceof Element)) {
-                continue;
-            }
+            if (obj == null || !(obj instanceof Element)) continue;
             Element ele = (Element) obj;
             if (ele.getName().equals("sql")) {
                 String sql = ele.getText().trim();
@@ -135,6 +133,18 @@ public class DatasourceParser implements Parser<DatasourceDefinition> {
                     dataset.setSqlExpression(expr);
                 }
                 return ele.getText();
+            }
+        }
+        return null;
+    }
+
+    private String parseJson(Element element, JsonDatasetDefinition dataset) {
+        for (Object obj : element.elements()) {
+            if (obj == null || !(obj instanceof Element)) continue;
+            Element ele = (Element) obj;
+            if (ele.getName().equals("content")) {
+                String json = ele.getText().trim();
+                return json;
             }
         }
         return null;

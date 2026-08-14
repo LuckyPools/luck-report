@@ -509,6 +509,16 @@ const zh = {
             "view": "视图",
             "loadFail": "加载表失败!"
         },
+        "json":{
+            "ok":"确定",
+            "jsonTip":"json内容不能为空!",
+            "nameTip":"数据集名称不能为空",
+            "ds":"json数据集",
+            "doFmtErr":"执行JSON格式化失败",
+            "arrFmtErr":"JSON 格式必须为数组（Array）",
+            "fmtErr":"JSON格式不正确!",
+            "emptyArrErr":"json数据集的数组不能为空!"
+        },
         "urlParam": {
             "title": "URL参数配置",
             "add": "添加参数",
@@ -530,7 +540,52 @@ const zh = {
         },
         "common": {
             "ok": "确定",
-            "cancel": "取消"
+            "cancel": "取消",
+            "next":"下一步",
+            "prev":"上一步"
+        },
+        "staticDatasource":{
+            "title":"静态数据源配置",
+            "name":"名称",
+            "remark":"备注",
+            "nameTip":"名称不能为空!",
+            "namePlaceholder":"请输入名称"
+
+        },
+        "staticDataset":{
+            "desc":"只支持json数据格式，且只会解析第一级，如: [{\"goodsId\":1001,\"info\":{\"userId\":101,\"username\":\"开发A\"},\"tags\":[\"数码\",\"耳机\"]}] 。其中 goodsId 是可以访问的字段，但 tags[0] 或 info.userId 则不支持访问!",
+            "title":"配置静态数据集",
+            "jsonPreviewTitle":"静态数据预览",
+            "jsonPreview":"静态数据预览",
+
+        },
+        "excelToJson":{
+            "title":"Excel转JSON",
+            "headerRowIndex":"字段名行(从0开始)",
+            "firstDataRowIndex":"第一个数据行",
+            "lastDataRowIndex":"最后一个数据行",
+            "dateOrder":"日期排序",
+            "dateSeparator":"日期分隔符",
+            "timeSeparator":"时间分隔符",
+            "decimalSymbol":"小数点符号",
+            "dateTimeOrder":"日期时间排序",
+            "outputDateFormat":"输出JSON中的日期格式",
+            "selectFile":"选择上传文件",
+            "fileRequired":"请选择上传文件",
+            "filePlaceholder":"支持:xls,xlsx格式",
+            "parseAndImport":"确定",
+            "autoInfer":"",
+            "toEnd":"",
+            "selectSheet":"选择sheet",
+            "selectExcelOption":"EXCEL配置",
+            "getSheetError":"获取sheet列表失败",
+            "sheetRequired":"必须选择一个sheet",
+            "clickToReplace":"点击重新选择文件",
+            "dragOrClick":"拖拽文件到此处，或点击上传",
+            "invalidFormat":"不支持的文件格式，请上传xls或xlsx文件",
+            "rowSettings":"行范围设置",
+            "dateTimeSettings":"日期与时间格式",
+            "numberSettings":"数字格式"
         }
     },
     "property": {
@@ -675,6 +730,9 @@ const zh = {
             "down": "向下",
             "right": "向右",
             "noneExpand": "不展开"
+        },
+        staticDatasource: {
+            "title":"静态数据源"
         }
     },
     "chart": {
