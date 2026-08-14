@@ -260,12 +260,12 @@ export function tableToXml(context){
                 const dataset=chart.dataset;
                 const chartType=dataset.type;
                 let msg=null;
-                
+
                 // 校验数据集名称
                 if(!dataset.datasetName){
                     msg=$t('validation.cell.chartDatasetRequired', { cell: cellName });
                 }
-                
+
                 // 根据图表类型进行不同校验
                 if(!msg){
                     if(chartType==='scatter'){
@@ -314,12 +314,12 @@ export function tableToXml(context){
                         }
                     }
                 }
-                
+
                 if(msg){
                     showAlert(msg);
                     throw msg;
                 }
-                
+
                 cellXml+=`<chart-value>`;
                 cellXml+=`<dataset dataset-name="${dataset.datasetName}" type="${dataset.type}"`;
                 if(dataset.categoryProperty){
@@ -542,13 +542,14 @@ export function tableToXml(context){
     for(let datasource of datasources){
         let ds=`<datasource name="${encode(datasource.name)}" type="${datasource.type}"`;
         let type=datasource.type;
+        const datasets=datasource.datasets||[];
         if(type==='jdbc'){
             ds+=` username="${encode(datasource.username)}"`;
             ds+=` password="${encode(datasource.password)}"`;
             ds+=` url="${encode(datasource.url)}"`;
             ds+=` driver="${datasource.driver}"`;
             ds+='>';
-            for(let dataset of datasource.datasets){
+            for(let dataset of datasets){
                 ds+=`<dataset name="${encode(dataset.name)}" type="sql">`;
                 ds+=`<sql><![CDATA[${dataset.sql}]]></sql>`;
                 for(let field of dataset.fields){
@@ -561,7 +562,7 @@ export function tableToXml(context){
             }
         }else if(type==='spring'){
             ds+=` bean="${datasource.beanId}">`;
-            for(let dataset of datasource.datasets){
+            for(let dataset of datasets){
                 ds+=`<dataset name="${encode(dataset.name)}" type="bean" method="${dataset.method}" clazz="${dataset.clazz}">`;
                 for(let field of dataset.fields){
                     ds+=`<field name="${field.name}"/>`;
@@ -570,7 +571,7 @@ export function tableToXml(context){
             }
         }else if(type==='buildin'){
             ds+='>';
-            for(let dataset of datasource.datasets){
+            for(let dataset of datasets){
                 ds+=`<dataset name="${encode(dataset.name)}" type="sql">`;
                 ds+=`<sql><![CDATA[${dataset.sql}]]></sql>`;
                 for(let field of dataset.fields){
@@ -583,7 +584,7 @@ export function tableToXml(context){
             }
         }else if (type === 'staticDs'){
             ds+='>';
-            for(let dataset of datasource.datasets){
+            for(let dataset of datasets){
                 ds+=`<dataset name="${encode(dataset.name)}" type="staticDs">`;
                 ds+=`<content><![CDATA[${dataset.content}]]></content>`;
                 for(let field of dataset.fields){

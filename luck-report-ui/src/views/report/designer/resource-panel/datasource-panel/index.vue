@@ -279,14 +279,14 @@ export default {
     addStaticDatasource(datasource) {
       const newDatasource = {
         name: datasource.name,
-        type:datasource.type
+        type:datasource.type,
+        datasets: datasource.datasets || []
       };
 
       const newIndex = this.datasources.length;
       this.$set(this.datasources, newIndex, newDatasource);
 
       const reportDef = { ...this.context.reportDef, datasources: this.datasources };
-
       updateReportDef(reportDef);
     },
 

@@ -150,23 +150,19 @@ export default {
         return;
       }
 
-      // 检查数据集名称是否重复
-      let check = false;
-      if (!this.oldName || name !== this.oldName) {
-        check = true;
+      // JSON 数组合法性校验
+      const jsonEditor = this.$refs.jsonEditor;
+      if (jsonEditor) {
+        const result = jsonEditor.validateJsonArray();
+        if (!result.valid) {
+          showAlert(result.message, "error");
+          return;
+        }
       }
 
+      // 名称重复校验：仅在新建或改名时需要
+      const check = !this.oldName || name !== this.oldName;
       if (check) {
-        //检查内容是否为json数组
-        var jsonEditor = this.$refs.jsonEditor;
-        if (jsonEditor) {
-          var result = jsonEditor.validateJsonArray();
-          if (!result.valid){
-            showAlert(result.message,"error");
-            return;
-          }
-        }
-
         for (let datasource of this.context.reportDef.datasources) {
           let datasets = datasource.datasets;
           if (!datasets || !Array.isArray(datasets)) {

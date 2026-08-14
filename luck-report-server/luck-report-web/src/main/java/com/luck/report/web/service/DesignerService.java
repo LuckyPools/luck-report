@@ -119,7 +119,7 @@ public class DesignerService implements ApplicationContextAware {
     }
 
     /**
-     * 加载报表定义，优先从预览缓存加载，缓存不存在时通过ReportRender解析
+     * 加载报表定义
      *
      * @param filePath 报表文件路径，不能为空
      * @return 报表定义VO
@@ -129,15 +129,7 @@ public class DesignerService implements ApplicationContextAware {
             throw new ReportDesignException("Report file can not be null.");
         }
         String fileName = UrlParameterUtils.doubleDecode(filePath);
-        Object obj = ReportScopedCache.getObject(fileName);
-        ReportDefinition reportDefinition;
-        if (obj instanceof ReportDefinitionWrapper) {
-            ReportDefinitionWrapper wrapper = (ReportDefinitionWrapper) obj;
-            reportDefinition = wrapper.getReportDefinition();
-            ReportScopedCache.removeObject(fileName);
-        } else {
-            reportDefinition = reportRender.parseReport(fileName);
-        }
+        ReportDefinition reportDefinition = reportRender.getReportDefinition(fileName);
         return new ReportDefinitionVo(reportDefinition);
     }
 
