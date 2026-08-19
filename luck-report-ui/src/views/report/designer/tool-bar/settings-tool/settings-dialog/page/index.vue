@@ -127,12 +127,32 @@
     <u-row style="margin-top: 5px;">
       <u-col :span="24">
         <u-form-item class="property-label" :label="$t('dialog.setting.bg')">
-          <u-input
-            v-model="localPaper.bgImage"
-            style="width: 470px;"
-            :placeholder="$t('dialog.setting.bgTip')"
-            @blur="handleBgImageChange"
-          />
+          <div style="display: flex; gap: 8px; width: 470px;">
+            <u-select
+              v-model="bgImageSource"
+              style="width: 100px; flex-shrink: 0;"
+              @change="handleBgImageSourceChange"
+            >
+              <u-option value="url" :label="'URL'" />
+              <u-option value="base64" :label="'Base64'" />
+            </u-select>
+            <u-input
+              v-model="localPaper.bgImage"
+              :placeholder="bgImageSource === 'url' ? $t('dialog.setting.bgTip') : $t('dialog.setting.bgBase64Tip')"
+              @blur="handleBgImageChange"
+              style="flex: 1;"
+            />
+            <u-button
+              v-if="bgImageSource === 'base64'"
+              type="info"
+              icon="icon-upload"
+              @click="handleUploadBgImage"
+            >
+              {{ $t('dialog.setting.upload') }}
+            </u-button>
+          </div>
+          <input ref="bgFileInputRef" type="file" accept="image/png,image/jpeg,image/gif,image/webp"
+            style="display: none;" @change="onBgFileSelected" />
         </u-form-item>
       </u-col>
     </u-row>
@@ -141,10 +161,12 @@
 
 <script>
 import { pointToMM, mmToPoint, buildPageSizeList } from '@/utils/table.js';
+import { showAlert } from '@/utils/comnon.js';
 import USelect from '@/components/select/index.vue';
 import UOption from '@/components/option/index.vue';
 import UInputNumber from '@/components/input-number/index.vue';
 import UInput from '@/components/input/index.vue';
+import UButton from '@/components/button/index.vue';
 import UForm from '@/components/form/index.vue';
 import UFormItem from '@/components/form-item/index.vue';
 import URow from '@/components/row/index.vue';
@@ -157,6 +179,7 @@ export default {
     UOption,
     UInputNumber,
     UInput,
+    UButton,
     UForm,
     UFormItem,
     URow,
@@ -171,6 +194,7 @@ export default {
   data() {
     return {
       localPaper: { ...this.paper },
+      bgImageSource: (this.paper.bgImage && this.paper.bgImage.startsWith('data:')) ? 'base64' : 'url',
       paperSizeList: buildPageSizeList(),
       localPageWidth: pointToMM(this.paper.width),
       localPageHeight: pointToMM(this.paper.height),
@@ -212,6 +236,7 @@ export default {
   watch: {
     paper: {
       handler(newVal) {
+        const bgImageChanged = newVal.bgImage !== this.localPaper.bgImage;
         this.localPaper = { ...newVal };
         this.localPageWidth = pointToMM(newVal.width);
         this.localPageHeight = pointToMM(newVal.height);
@@ -219,6 +244,13 @@ export default {
         this.localRightMargin = pointToMM(newVal.rightMargin);
         this.localTopMargin = pointToMM(newVal.topMargin);
         this.localBottomMargin = pointToMM(newVal.bottomMargin);
+        if (bgImageChanged) {
+          if (newVal.bgImage && newVal.bgImage.startsWith('data:')) {
+            this.bgImageSource = 'base64';
+          } else {
+            this.bgImageSource = 'url';
+          }
+        }
       },
       deep: true
     }
@@ -282,6 +314,31 @@ export default {
       }
       this.$emit('update:paper', { ...this.localPaper });
       this.$emit('background-image-change', this.localPaper.bgImage);
+    },
+    handleBgImageSourceChange() {
+      this.localPaper.bgImage = '';
+      this.handleBgImageChange();
+    },
+    handleUploadBgImage() {
+      this.$refs.bgFileInputRef.click();
+    },
+    onBgFileSelected(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
+      if (file.size > MAX_IMAGE_SIZE) {
+        showAlert(this.$t('dialog.setting.sizeExceedTip'));
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        // 保留完整的 data:image/xxx;base64,xxx 格式，以 data: 前缀区分
+        this.localPaper.bgImage = event.target && event.target.result;
+        this.handleBgImageChange();
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
     }
   }
 };

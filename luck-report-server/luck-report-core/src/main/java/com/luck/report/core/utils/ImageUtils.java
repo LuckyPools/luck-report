@@ -32,6 +32,9 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.awt.AlphaComposite;
+import java.awt.RenderingHints;
+
 /**
  * @author Jacky.gao
  * @since 2017年3月20日
@@ -50,6 +53,39 @@ public class ImageUtils {
         byte[] bytes = Base64Utils.decodeFromString(base64Data);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
         return inputStream;
+    }
+
+    /**
+     * 将base64编码的图片按指定宽高缩放后返回新的base64数据
+     * @param base64Data 纯base64数据（不含data:image/xxx;base64,前缀）
+     * @param width 目标宽度，0或负数表示不缩放
+     * @param height 目标高度，0或负数表示不缩放
+     * @return 缩放后的base64数据（统一输出PNG格式）
+     */
+    public static String scaleBase64Image(String base64Data, int width, int height) {
+        if (width <= 0 && height <= 0) {
+            return base64Data;
+        }
+        try {
+            InputStream input = base64DataToInputStream(base64Data);
+            BufferedImage srcImage = ImageIO.read(input);
+            IOUtils.closeQuietly(input);
+            int srcWidth = srcImage.getWidth();
+            int srcHeight = srcImage.getHeight();
+            int targetWidth = width > 0 ? width : srcWidth;
+            int targetHeight = height > 0 ? height : srcHeight;
+            BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = scaledImage.createGraphics();
+            g.setComposite(AlphaComposite.SrcOver);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(srcImage, 0, 0, targetWidth, targetHeight, null);
+            g.dispose();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(scaledImage, "png", baos);
+            return Base64Utils.encodeToString(baos.toByteArray());
+        } catch (Exception ex) {
+            throw new ReportComputeException(ex);
+        }
     }
 
     @SuppressWarnings("unchecked")

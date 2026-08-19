@@ -84,6 +84,29 @@
         />
       </u-form-item>
 
+      <u-form-item class="property-label" :label="$t('property.image.base64Label')" style="align-items: baseline;" v-show="source === 'base64'">
+        <div>
+          <textarea
+            v-model="path"
+            @blur="handlePathChange"
+            :placeholder="path ? `[${$t('property.image.base64Uploaded')}]` : $t('property.image.base64Tip')"
+            style="width: 220px;height: 60px"
+            class="form-control"
+            rows="3">
+          </textarea>
+          <u-button
+            type="info"
+            icon="icon-upload"
+            @click="handleUploadBase64"
+            style="margin-top: 4px;"
+          >
+            {{ $t('property.image.upload') }}
+          </u-button>
+        </div>
+        <input ref="fileInputRef" type="file" accept="image/png,image/jpeg,image/gif,image/webp"
+          style="display: none;" @change="onFileSelected" />
+      </u-form-item>
+
       <div v-show="source === 'expression'">
         <u-form-item class="property-label" :label="$t('property.image.expr')">
         </u-form-item>
@@ -169,6 +192,7 @@ export default {
     sourceOptions() {
       return [
         { value: 'text', label: this.$t('property.image.path') },
+        { value: 'base64', label: this.$t('property.image.base64') },
         { value: 'expression', label: this.$t('property.image.expr') }
       ];
     },
@@ -265,7 +289,7 @@ export default {
       this.source = currentCellDef.value.source || 'text';
 
       this.path = '';
-      if (this.source === 'text') {
+      if (this.source === 'text' || this.source === 'base64') {
         this.path = currentCellDef.value.value || '';
       } else {
         if (this.codeMirror) {
@@ -412,12 +436,45 @@ export default {
       }
       hot.render();
       setDirty();
+    },
+
+    /**
+     * 上传base64图片
+     */
+    handleUploadBase64() {
+      this.$refs.fileInputRef.click();
+    },
+
+    onFileSelected(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
+      if (file.size > MAX_IMAGE_SIZE) {
+        showAlert(this.$t('property.image.sizeExceedTip'));
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target && event.target.result;
+        if (!result) return;
+        // 去掉 data:image/xxx;base64, 前缀，只保留纯 base64 数据
+        const base64Data = result.split(',')[1] || result;
+        this.path = base64Data;
+        this.handlePathChange();
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
     }
   }
 };
 </script>
 
 <style scoped>
+textarea:focus {
+  outline: none;
+  border-color: #00554a;
+}
 </style>
 
 

@@ -20,5 +20,5 @@ package com.luck.report.core.definition.value;
  * @since 2017年3月6日
  */
 public enum Source {
-    text, expression;
+    text, expression, base64;
 }

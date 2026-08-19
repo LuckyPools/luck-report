@@ -42,7 +42,10 @@ public class ImageValueCompute implements ValueCompute {
         int width = value.getWidth(), height = value.getHeight();
         Source source = value.getSource();
         List<BindData> list = new ArrayList<BindData>();
-        if (source.equals(Source.text)) {
+        if (source.equals(Source.base64)) {
+            String base64Data = ImageUtils.scaleBase64Image(value.getValue(), width, height);
+            list.add(new BindData(new Image(base64Data, "", width, height)));
+        } else if (source.equals(Source.text)) {
             String base64Data = ImageUtils.getImageBase64Data(ImageType.image, value.getValue(), width, height);
             list.add(new BindData(new Image(base64Data, value.getValue(), -1, -1)));
         } else {

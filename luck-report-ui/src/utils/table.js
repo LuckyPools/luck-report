@@ -205,6 +205,9 @@ export function tableToXml(context){
                 if(value.source==='text' && (!value.value || value.value.trim()==='')){
                     msg=$t('validation.cell.imagePathRequired', { cell: cellName });
                 }
+                if(value.source==='base64' && (!value.value || value.value.trim()==='')){
+                    msg=$t('validation.cell.imageBase64Required', { cell: cellName });
+                }
                 if(value.source==='expression' && (!value.value || value.value.trim()==='')){
                     msg=$t('validation.cell.imageExpressionRequired', { cell: cellName });
                 }
