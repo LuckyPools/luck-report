@@ -308,9 +308,9 @@ export default {
 
     deleteFile(file, index) {
       showConfirm(this.$t('dialog.save.delConfirm') + file.name).then(() => {
-        const fullFile = this.currentProviderPrefix + (file.path || file.name);
+        const reportPath = this.currentProviderPrefix + (file.path || file.name);
 
-        deleteReportFile(fullFile)
+        deleteReportFile(reportPath)
             .then(() => {
               this.currentReportFiles.splice(index, 1);
 
@@ -356,17 +356,17 @@ export default {
         }
 
         let filePath = this.currentPath ? this.currentPath + '/' + this.fileName : this.fileName;
-        const fullFileName = this.currentProviderPrefix + filePath + ".ureport.xml";
+        const reportPath = this.currentProviderPrefix + filePath + ".ureport.xml";
         const content = tableToXml(this.context);
         let that = this;
-        saveReportFile(fullFileName, content)
+        saveReportFile(reportPath, content)
           .then(() => {
             that.$store.dispatch('report/setIsSaved', true);
-            that.$store.dispatch('report/setFileName', fullFileName);
+            that.$store.dispatch('report/setFileName', reportPath);
             resetDirty();
             showAlert(this.$t('dialog.save.success')).then(() => {
               that.handleClose();
-              that.$emit('saveAfter', fullFileName);
+              that.$emit('saveAfter', reportPath);
             });
           })
           .catch(error => {

@@ -52,27 +52,27 @@ public class ReportExportService {
     /**
      * 构建Excel(xlsx)报表
      *
-     * @param fileName     报表文件路径
+     * @param reportPath     报表文件路径
      * @param mode         运行模式，可为空
      * @param req          HTTP请求对象
      * @param outputStream 输出流
      * @param withPage     是否分页导出
      * @param withSheet    是否按Sheet导出
      */
-    public void buildExcel(String fileName, String mode, RequestInfoProvider req, OutputStream outputStream,
-                           boolean withPage, boolean withSheet) throws IOException {
-        if (StringUtils.isBlank(fileName)) throw new ReportComputeException("Report file can not be null.");
+    public void buildExcel(String reportPath, String mode, RequestInfoProvider req, OutputStream outputStream,
+                           boolean withPage, boolean withSheet) {
+        if (StringUtils.isBlank(reportPath)) throw new ReportComputeException("Report file can not be null.");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         try {
             Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
             if (isPreview) {
-                ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
+                ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
                 Report report = reportBuilder.buildReport(reportDefinition, parameters);
                 if (withPage) excelProducer.produceWithPaging(report, outputStream);
                 else if (withSheet) excelProducer.produceWithSheet(report, outputStream);
                 else excelProducer.produce(report, outputStream);
             } else {
-                ExportConfigure configure = new ExportConfigureImpl(fileName, parameters, outputStream);
+                ExportConfigure configure = new ExportConfigureImpl(reportPath, parameters, outputStream);
                 if (withPage) exportManager.exportExcelWithPaging(configure);
                 else if (withSheet) exportManager.exportExcelWithPagingSheet(configure);
                 else exportManager.exportExcel(configure);
@@ -85,25 +85,25 @@ public class ReportExportService {
     /**
      * 构建Excel97(xls)报表
      *
-     * @param fileName     报表文件路径
+     * @param reportPath     报表文件路径
      * @param mode         运行模式，可为空
      * @param req          HTTP请求对象
      * @param outputStream 输出流
      * @param withPage     是否分页导出
      * @param withSheet    是否按Sheet导出
      */
-    public void buildExcel97(String fileName, String mode, RequestInfoProvider req, OutputStream outputStream,
+    public void buildExcel97(String reportPath, String mode, RequestInfoProvider req, OutputStream outputStream,
                              boolean withPage, boolean withSheet) throws IOException {
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         if (isPreview) {
-            ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
+            ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             if (withPage) excel97Producer.produceWithPaging(report, outputStream);
             else if (withSheet) excel97Producer.produceWithSheet(report, outputStream);
             else excel97Producer.produce(report, outputStream);
         } else {
-            ExportConfigure configure = new ExportConfigureImpl(fileName, parameters, outputStream);
+            ExportConfigure configure = new ExportConfigureImpl(reportPath, parameters, outputStream);
             if (withPage) exportManager.exportExcelWithPaging(configure);
             else if (withSheet) exportManager.exportExcelWithPagingSheet(configure);
             else exportManager.exportExcel(configure);
@@ -113,20 +113,20 @@ public class ReportExportService {
     /**
      * 构建PDF报表
      *
-     * @param fileName     报表文件路径
+     * @param reportPath     报表文件路径
      * @param mode         运行模式，可为空
      * @param paperJson    纸张参数JSON，可为空
      * @param req          HTTP请求对象
      * @param outputStream 输出流
      */
-    public void buildPdf(String fileName, String mode, String paperJson, RequestInfoProvider req,
+    public void buildPdf(String reportPath, String mode, String paperJson, RequestInfoProvider req,
                          OutputStream outputStream) throws IOException {
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         try {
             ReportDefinition reportDefinition;
             Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
-            if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(fileName);
-            else reportDefinition = reportRender.getReportDefinition(fileName);
+            if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
+            else reportDefinition = reportRender.getReportDefinition(reportPath);
 
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             if (paperJson != null && !paperJson.isEmpty()) {
@@ -144,21 +144,21 @@ public class ReportExportService {
     /**
      * 构建Word报表
      *
-     * @param fileName     报表文件路径
+     * @param reportPath     报表文件路径
      * @param mode         运行模式，可为空
      * @param req          HTTP请求对象
      * @param outputStream 输出流
      */
-    public void buildWord(String fileName, String mode, RequestInfoProvider req, OutputStream outputStream) throws IOException {
+    public void buildWord(String reportPath, String mode, RequestInfoProvider req, OutputStream outputStream) throws IOException {
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         try {
             Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
             if (isPreview) {
-                ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
+                ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
                 Report report = reportBuilder.buildReport(reportDefinition, parameters);
                 wordProducer.produce(report, outputStream);
             } else {
-                ExportConfigure configure = new ExportConfigureImpl(fileName, parameters, outputStream);
+                ExportConfigure configure = new ExportConfigureImpl(reportPath, parameters, outputStream);
                 exportManager.exportWord(configure);
             }
         } catch (Exception ex) {

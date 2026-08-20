@@ -3,6 +3,7 @@ package com.luck.report.web.controller.pdf;
 import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
+import com.luck.report.web.utils.UrlParameterUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,9 +28,9 @@ public class ExportPdfController extends BaseController {
      */
     @RequestMapping("/build")
     public void build() throws IOException {
-        String fileName = req.getParameter("reportPath");
+        String reportPath = req.getParameter("reportPath");
         String pdfName = req.getParameter("_n");
-        DownloadUtils.buildDownloadHeader(resp, fileName, pdfName, ".pdf");
+        DownloadUtils.buildDownloadHeader(resp, reportPath, pdfName, ".pdf");
         buildPdf();
     }
 
@@ -47,13 +48,13 @@ public class ExportPdfController extends BaseController {
      */
     private void buildPdf() throws IOException {
         String mode = req.getParameter("mode");
-        String fileName = req.getParameter("reportPath");
+        String reportPath = req.getParameter("reportPath");
         String paperJson = req.getParameter("_paper");
-        fileName = com.luck.report.web.utils.UrlParameterUtils.doubleDecode(fileName);
+        reportPath = UrlParameterUtils.doubleDecode(reportPath);
         OutputStream outputStream = null;
         try {
             outputStream = resp.getOutputStream();
-            reportExportService.buildPdf(fileName, mode, paperJson, req, outputStream);
+            reportExportService.buildPdf(reportPath, mode, paperJson, req, outputStream);
         } finally {
             if (outputStream != null) {
                 outputStream.flush();

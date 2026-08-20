@@ -44,8 +44,8 @@ export default {
 
       const content = tableToXml(this.context);
 
-      const fullFileName = this.getFileName + ".ureport.xml";
-      saveReportFile(fullFileName, content)
+      const reportPath = this.getFileName + ".ureport.xml";
+      saveReportFile(reportPath, content)
           .then(() => {
             showAlert(this.$t('tools.save.successSave'));
             resetDirty();
@@ -59,8 +59,8 @@ export default {
             }
           });
     },
-    handleSaveAfter(fullFile){
-      window.location.replace("?reportPath=" + fullFile);
+    handleSaveAfter(reportPath){
+      window.location.replace("?reportPath=" + reportPath);
     }
   }
 };

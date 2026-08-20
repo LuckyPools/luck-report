@@ -69,13 +69,13 @@ public class HtmlPreviewService {
      * @return 打印页HTML内容
      */
     public String loadPrintPages(RequestInfoProvider req, String mode) {
-        String fileName = req.getParameter("reportPath");
-        fileName = UrlParameterUtils.doubleDecode(fileName);
+        String reportPath = req.getParameter("reportPath");
+        reportPath = UrlParameterUtils.doubleDecode(reportPath);
         Map<String, Object> parameters = UrlParameterUtils.buildParameters(req);
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         ReportDefinition reportDefinition;
-        if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(fileName);
-        else reportDefinition = reportRender.getReportDefinition(fileName);
+        if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
+        else reportDefinition = reportRender.getReportDefinition(reportPath);
         Report report = reportBuilder.buildReport(reportDefinition, parameters);
         FullPageData pageData = PageBuilder.buildFullPageData(report);
         StringBuilder sb = new StringBuilder();
@@ -115,12 +115,12 @@ public class HtmlPreviewService {
      * @return 纸张信息
      */
     public Paper loadPagePaper(RequestInfoProvider req, String mode) {
-        String fileName = req.getParameter("reportPath");
-        fileName = UrlParameterUtils.doubleDecode(fileName);
+        String reportPath = req.getParameter("reportPath");
+        reportPath = UrlParameterUtils.doubleDecode(reportPath);
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         ReportDefinition reportDefinition;
-        if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(fileName);
-        else reportDefinition = reportRender.getReportDefinition(fileName);
+        if (isPreview) reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
+        else reportDefinition = reportRender.getReportDefinition(reportPath);
         return reportDefinition.getPaper();
     }
 
@@ -148,13 +148,13 @@ public class HtmlPreviewService {
      * @return HTML报表对象
      */
     private HtmlReport loadReport(RequestInfoProvider req, String pageIndex, String mode, Map<String, Object> parameters) {
-        String fileName = req.getParameter("reportPath");
-        fileName = UrlParameterUtils.doubleDecode(fileName);
-        if (StringUtils.isBlank(fileName)) throw new ReportComputeException("Report file can not be null");
+        String reportPath = req.getParameter("reportPath");
+        reportPath = UrlParameterUtils.doubleDecode(reportPath);
+        if (StringUtils.isBlank(reportPath)) throw new ReportComputeException("Report file can not be null");
         boolean isPreview = ReportConstants.MODE_KEY.equals(mode);
         HtmlReport htmlReport;
         if (isPreview) {
-            ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(fileName);
+            ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
             if (!CollectionUtils.isEmpty(chartMap)) ChartScopeCache.storeChartDataMap(chartMap);
@@ -182,8 +182,8 @@ public class HtmlPreviewService {
             htmlReport.setHtmlIntervalRefreshValue(report.getPaper().getHtmlIntervalRefreshValue());
         } else if (StringUtils.isNotBlank(pageIndex) && !pageIndex.equals("0")) {
             int index = Integer.parseInt(pageIndex);
-            htmlReport = exportManager.exportHtml(fileName, req.getContextPath(), parameters, index);
-        } else htmlReport = exportManager.exportHtml(fileName, req.getContextPath(), parameters);
+            htmlReport = exportManager.exportHtml(reportPath, req.getContextPath(), parameters, index);
+        } else htmlReport = exportManager.exportHtml(reportPath, req.getContextPath(), parameters);
         return htmlReport;
     }
 

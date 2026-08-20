@@ -50,14 +50,14 @@ public class ExportExcelController extends BaseController {
      * 构建Excel报表并写入响应流
      */
     private void buildExcel(boolean withPage, boolean withSheet) throws IOException {
-        String fileName = req.getParameter("reportPath");
+        String reportPath = req.getParameter("reportPath");
         String mode = req.getParameter("mode");
         String excelName = req.getParameter("_n");
-        DownloadUtils.buildDownloadHeader(resp, fileName, excelName, ".xlsx");
-        fileName = com.luck.report.web.utils.UrlParameterUtils.doubleDecode(fileName);
+        DownloadUtils.buildDownloadHeader(resp, reportPath, excelName, ".xlsx");
+        reportPath = com.luck.report.web.utils.UrlParameterUtils.doubleDecode(reportPath);
         OutputStream outputStream = resp.getOutputStream();
         try {
-            reportExportService.buildExcel(fileName, mode, req, outputStream, withPage, withSheet);
+            reportExportService.buildExcel(reportPath, mode, req, outputStream, withPage, withSheet);
         } finally {
             outputStream.flush();
             outputStream.close();

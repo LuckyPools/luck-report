@@ -11,6 +11,7 @@ import com.luck.report.core.expression.ScriptErrorListener;
 import com.luck.report.core.parser.ReportParser;
 import com.luck.report.core.provider.report.ReportProvider;
 import com.luck.report.web.cache.ReportScopedCache;
+import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.domain.vo.report.ReportDefinitionVo;
 import com.luck.report.web.exception.ReportDesignException;
 import com.luck.report.web.utils.UrlParameterUtils;
@@ -26,7 +27,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.util.*;
@@ -102,17 +102,17 @@ public class DesignerService implements ApplicationContextAware {
     /**
      * 保存预览文件到作用域缓存
      *
-     * @param fileName 文件名，作为缓存键
+     * @param reportPath 文件名，作为缓存键
      * @param content  报表XML内容
      */
-    public void savePreviewFile(String fileName, String content) {
+    public void savePreviewFile(String reportPath, String content) {
         content = decode(content);
-        fileName = decode(fileName);
+        reportPath = decode(reportPath);
         InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
         try {
-            ReportDefinition reportDef = reportParser.parse(inputStream, fileName);
+            ReportDefinition reportDef = reportParser.parse(inputStream, reportPath);
             ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
-            ReportScopedCache.putObject(fileName, wrapper);
+            ReportScopedCache.putObject(reportPath, wrapper);
         } finally {
             IOUtils.closeQuietly(inputStream);
         }
@@ -121,53 +121,65 @@ public class DesignerService implements ApplicationContextAware {
     /**
      * 加载报表定义
      *
-     * @param filePath 报表文件路径，不能为空
+     * @param reportPath 报表文件路径，不能为空
      * @return 报表定义VO
      */
-    public ReportDefinitionVo loadReport(String filePath) {
-        if (filePath == null) {
+    public ReportDefinitionVo loadReport(String reportPath) {
+        if (reportPath == null) {
             throw new ReportDesignException("Report file can not be null.");
         }
-        String fileName = UrlParameterUtils.doubleDecode(filePath);
-        ReportDefinition reportDefinition = reportRender.getReportDefinition(fileName);
+        reportPath = UrlParameterUtils.doubleDecode(reportPath);
+        ReportDefinition reportDefinition = null;
+        if (ReportConstants.DEFAULT_REPORT_TEMPLATE.equals(reportPath)){
+            Object obj = ReportScopedCache.getObject(reportPath);
+            if (obj instanceof ReportDefinitionWrapper) {
+                ReportDefinitionWrapper wrapper = (ReportDefinitionWrapper) obj;
+                reportDefinition = wrapper.getReportDefinition();
+                // 移除上传文件的缓存
+                ReportScopedCache.removeObject(reportPath);
+            }
+        }
+        if (reportDefinition == null){
+            reportDefinition = reportRender.parseReport(reportPath);
+        }
         return new ReportDefinitionVo(reportDefinition);
     }
 
     /**
      * 删除报表文件
      *
-     * @param file 报表文件路径，不能为空
+     * @param reportPath 报表文件路径，不能为空
      */
-    public void deleteReportFile(String file) {
-        if (file == null) {
+    public void deleteReportFile(String reportPath) {
+        if (reportPath == null) {
             throw new ReportDesignException("Report file can not be null.");
         }
-        resolveProvider(file).deleteReport(file);
+        resolveProvider(reportPath).deleteReport(reportPath);
     }
 
     /**
      * 保存报表文件：解析XML内容、写入缓存并调用Provider持久化
      *
-     * @param file    报表文件路径
+     * @param reportPath    报表文件路径
      * @param content 报表XML内容
      */
-    public void saveReportFile(String file, String content) {
-        file = UrlParameterUtils.doubleDecode(file);
+    public void saveReportFile(String reportPath, String content) {
+        reportPath = UrlParameterUtils.doubleDecode(reportPath);
         content = decode(content);
-        ReportProvider targetReportProvider = resolveProvider(file);
+        ReportProvider targetReportProvider = resolveProvider(reportPath);
         ReportDefinition reportDef;
         try {
             InputStream inputStream = IOUtils.toInputStream(content, "utf-8");
-            reportDef = reportParser.parse(inputStream, file);
+            reportDef = reportParser.parse(inputStream, reportPath);
             IOUtils.closeQuietly(inputStream);
         } catch (Exception e) {
             logger.error("Save Report Exception", e);
             throw e;
         }
         ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDef);
-        ReportDefinitionWrapperCache.putObject(file, wrapper);
-        ReportScopedCache.removeObject(file);
-        targetReportProvider.saveReport(file, content);
+        ReportDefinitionWrapperCache.putObject(reportPath, wrapper);
+        ReportScopedCache.removeObject(reportPath);
+        targetReportProvider.saveReport(reportPath, content);
     }
 
     /**

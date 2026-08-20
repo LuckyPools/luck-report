@@ -80,21 +80,21 @@ export default {
 
       this.initHandsontable();
 
-      let filePath = '';
+      let reportPath = '';
       if (this.isLibMode) {
-        filePath = this.localReportPath || this.defaultReportPath;
+        reportPath = this.localReportPath || this.defaultReportPath;
       } else {
-        filePath = utils.getParameter("reportPath");
-        if (!filePath || filePath === '') {
-          filePath = this.defaultReportPath;
+        reportPath = utils.getParameter("reportPath");
+        if (!reportPath || reportPath === '') {
+          reportPath = this.defaultReportPath;
         }
       }
 
-      if (filePath && filePath !== this.defaultReportPath) {
+      if (reportPath && reportPath !== this.defaultReportPath) {
         this.$store.dispatch('report/setIsSaved', true);
       }
 
-      this.loadFile(filePath);
+      this.loadFile(reportPath);
     },
 
     initHandsontable() {
@@ -396,18 +396,18 @@ export default {
       }
     },
 
-    async loadFile(filePath) {
+    async loadFile(reportPath) {
       try {
         let formData = new FormData();
-        formData.append('filePath', filePath);
+        formData.append('reportPath', reportPath);
         const reportDef = await loadReport(formData);
         this.reportDef = reportDef;
         this.buildReportData(reportDef);
         this.buildMenu();
         this.handleReportLoaded();
 
-        if (filePath !== this.defaultReportPath) {
-          this.$store.dispatch('report/setFileName', filePath);
+        if (reportPath !== this.defaultReportPath) {
+          this.$store.dispatch('report/setFileName', reportPath);
         } else {
           this.$store.dispatch('report/setFileName', `${this.$t('table.report.tip')}`);
         }
@@ -425,7 +425,7 @@ export default {
         if (error.msg) {
           showAlert(this.$t('dialog.save.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
         } else {
-          showAlert(this.$t('table.report.load') + `${filePath}` + this.$t('table.report.fail'));
+          showAlert(this.$t('table.report.load') + `${reportPath}` + this.$t('table.report.fail'));
         }
       }
     },

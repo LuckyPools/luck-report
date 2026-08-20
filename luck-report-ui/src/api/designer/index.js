@@ -121,9 +121,15 @@ export async function parseDatasetName(expr) {
   });
 }
 
-export async function saveReportFile(file, content) {
+/**
+ * 保存报表文件
+ * @param reportPath 报表路径，不可为空
+ * @param content 报表XML内容，不可为空
+ * @returns {Promise} 请求结果
+ */
+export async function saveReportFile(reportPath, content) {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('reportPath', reportPath);
   formData.append('content', content);
   return await request.post('/designer/saveReportFile', formData, {
     headers: {
@@ -132,9 +138,14 @@ export async function saveReportFile(file, content) {
   });
 }
 
-export async function deleteReportFile(file) {
+/**
+ * 删除报表文件
+ * @param reportPath 报表路径，不可为空
+ * @returns {Promise} 请求结果
+ */
+export async function deleteReportFile(reportPath) {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('reportPath', reportPath);
   return await request.post('/designer/deleteReportFile', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -142,10 +153,16 @@ export async function deleteReportFile(file) {
   });
 }
 
-export async function savePreviewFile(fileName, content) {
+/**
+ * 保存预览文件
+ * @param reportPath 预览报表路径，不可为空
+ * @param content 报表XML内容，不可为空
+ * @returns {Promise} 请求结果
+ */
+export async function savePreviewFile(reportPath, content) {
   const formData = new FormData();
   formData.append('content', content);
-  formData.append('fileName', fileName);
+  formData.append('reportPath', reportPath);
   return await request.post('/designer/savePreviewFile', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'

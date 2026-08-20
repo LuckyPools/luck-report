@@ -13,19 +13,19 @@ public class DownloadUtils {
      * 构建下载文件名
      * 根据报表文件名和用户指定的文件名生成最终的下载文件名
      *
-     * @param reportFileName 报表文件名，用于在用户未指定文件名时作为默认名称，类型：String，可为空
+     * @param reportPath     报表路径，用于在用户未指定文件名时作为默认名称，类型：String，可为空
      * @param fileName       用户指定的文件名，类型：String，可为空
      * @param extName        文件扩展名（如 .pdf、.docx、.xlsx），类型：String，不可为空
      * @return 构建后的下载文件名（UTF-8编码），类型：String
      */
-    public static String buildDownloadFileName(String reportFileName, String fileName, String extName) {
+    public static String buildDownloadFileName(String reportPath, String fileName, String extName) {
         StringBuilder result = new StringBuilder();
         if (StringUtils.isNotBlank(fileName)) {
             String decodedFileName = UrlParameterUtils.doubleDecode(fileName);
             result.append(decodedFileName);
             if (!decodedFileName.toLowerCase().endsWith(extName)) result.append(extName);
         } else {
-            String decodedReportFileName = UrlParameterUtils.doubleDecode(reportFileName);
+            String decodedReportFileName = UrlParameterUtils.doubleDecode(reportPath);
             int pos = decodedReportFileName.indexOf(":");
             if (pos > 0) decodedReportFileName = decodedReportFileName.substring(pos + 1);
             pos = decodedReportFileName.toLowerCase().indexOf(".ureport.xml");
@@ -41,13 +41,13 @@ public class DownloadUtils {
      * 使用 RFC 5987 标准解决中文文件名乱码问题
      *
      * @param response       HTTP响应对象，用于设置响应头，类型：HttpServletResponse，不可为空
-     * @param reportFileName 报表文件名，用于在用户未指定文件名时作为默认名称，类型：String，可为空
+     * @param reportPath     报表路径，用于在用户未指定文件名时作为默认名称，类型：String，可为空
      * @param fileName       用户指定的文件名，类型：String，可为空
      * @param extName        文件扩展名（如 .pdf、.docx、.xlsx），类型：String，不可为空
      * @return 构建后的下载文件名，类型：String
      */
-    public static String buildDownloadHeader(ResponseInfoProvider response, String reportFileName, String fileName, String extName) {
-        String downloadFileName = DownloadUtils.buildDownloadFileName(reportFileName, fileName, extName);
+    public static String buildDownloadHeader(ResponseInfoProvider response, String reportPath, String fileName, String extName) {
+        String downloadFileName = DownloadUtils.buildDownloadFileName(reportPath, fileName, extName);
 
         try {
             String encodedFileName = URLEncoder.encode(downloadFileName, StandardCharsets.UTF_8.name())

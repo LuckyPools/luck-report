@@ -39,17 +39,17 @@ export default {
 
     handleClick() {
       const content = tableToXml(this.context);
-      let fileName = this.$store.state.report.fileName;
-      if(fileName){
-        fileName = fileName + ".ureport.xml";
+      let reportPath = this.$store.state.report.fileName;
+      if(reportPath){
+        reportPath = reportPath + ".ureport.xml";
       }else{
-        fileName = 'p'
+        reportPath = 'p'
       }
 
-      savePreviewFile(fileName, content)
+      savePreviewFile(reportPath, content)
       .then(() => {
         this.navigator.openPreview({
-          reportPath: fileName,
+          reportPath: reportPath,
           mode: 'preview',
           _i: '1',
           _r: '1'

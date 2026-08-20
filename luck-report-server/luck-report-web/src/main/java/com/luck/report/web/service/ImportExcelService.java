@@ -4,6 +4,7 @@ import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.core.definition.ReportDefinitionWrapper;
 import com.luck.report.core.exception.ReportException;
 import com.luck.report.web.cache.ReportScopedCache;
+import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.controller.importexcel.ExcelParser;
 import com.luck.report.web.controller.importexcel.HSSFExcelParser;
 import com.luck.report.web.controller.importexcel.XSSFExcelParser;
@@ -66,7 +67,7 @@ public class ImportExcelService {
         if (reportDefinition != null) {
             result.put("result", true);
             ReportDefinitionWrapper wrapper = new ReportDefinitionWrapper(reportDefinition);
-            ReportScopedCache.putObject("classpath:template/template.ureport.xml", wrapper);
+            ReportScopedCache.putObject(ReportConstants.DEFAULT_REPORT_TEMPLATE, wrapper);
         } else {
             throw new ReportException("Failed to parse Excel file, please verify the file format");
         }

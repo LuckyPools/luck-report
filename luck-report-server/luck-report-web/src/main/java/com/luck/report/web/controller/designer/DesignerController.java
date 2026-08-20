@@ -63,42 +63,52 @@ public class DesignerController extends BaseController {
 
     /**
      * 保存预览文件
+     *
+     * @param reportPath 报表路径，不可为空
+     * @param content    报表XML内容，不可为空
      */
     @RequestMapping("/savePreviewFile")
     @ResponseBody
-    public void savePreviewFile(@RequestParam("fileName") String fileName,
+    public void savePreviewFile(@RequestParam("reportPath") String reportPath,
                                 @RequestParam("content") String content
     ) {
-        designerService.savePreviewFile(fileName, content);
+        designerService.savePreviewFile(reportPath, content);
     }
 
     /**
      * 加载报表
+     *
+     * @param reportPath 报表路径，不可为空
      */
     @RequestMapping(value = "/loadReport")
     @ResponseBody
-    public void loadReport(@RequestParam("filePath") String filePath) throws IOException {
-        ReportDefinitionVo vo = designerService.loadReport(filePath);
+    public void loadReport(@RequestParam("reportPath") String reportPath) throws IOException {
+        ReportDefinitionVo vo = designerService.loadReport(reportPath);
         resp.writeObjectToJson(vo);
     }
 
     /**
      * 删除报表文件
+     *
+     * @param reportPath 报表路径，不可为空
      */
     @RequestMapping("/deleteReportFile")
     @ResponseBody
-    public void deleteReportFile(@RequestParam("file") String file) {
-        designerService.deleteReportFile(file);
+    public void deleteReportFile(@RequestParam("reportPath") String reportPath) {
+        designerService.deleteReportFile(reportPath);
     }
 
     /**
      * 保存报表文件
+     *
+     * @param reportPath 报表路径，不可为空
+     * @param content    报表XML内容，不可为空
      */
     @RequestMapping("/saveReportFile")
     @ResponseBody
-    public void saveReportFile(@RequestParam("file") String file,
+    public void saveReportFile(@RequestParam("reportPath") String reportPath,
                                @RequestParam("content") String content) {
-        designerService.saveReportFile(file, content);
+        designerService.saveReportFile(reportPath, content);
     }
 
     /**
