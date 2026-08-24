@@ -6,6 +6,7 @@ import {showAlert} from '@/utils/comnon.js';
 import {$t} from "@/locales";
 import {addCell, getCell, getCellsMap, removeCell} from '@/utils/contextActions.js';
 import {deepCopy} from '@/components/utils';
+import {shiftFreezeCols} from '../FreezeState.js';
 
 /**
  * 插入列操作
@@ -69,6 +70,7 @@ export function doInsertCol(left, number = 1) {
         colWidths: newColWidths,
         manualColumnResize: newColWidths
     });
+    shiftFreezeCols(this, position, number, true);
     resetTableData(this);
     setDirty();
 
@@ -104,6 +106,7 @@ export function doInsertCol(left, number = 1) {
                 colWidths: newColWidths,
                 manualColumnResize: newColWidths
             });
+            shiftFreezeCols(_this, position, number, true);
             resetTableData(_this);
             setDirty();
         },
@@ -146,6 +149,7 @@ export function doInsertCol(left, number = 1) {
                 addCell(newCell);
             }
 
+            shiftFreezeCols(_this, position, number, false);
             resetTableData(_this);
             setDirty();
         }

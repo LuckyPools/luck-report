@@ -81,6 +81,14 @@ public class PaperParser implements Parser<Paper> {
         if (StringUtils.isNotBlank(bgImage)) {
             paper.setBgImage(StringEscapeUtils.unescapeXml(bgImage));
         }
+        String freezeRowCellName = element.attributeValue("freeze-row-cell-name");
+        if (StringUtils.isNotBlank(freezeRowCellName)) {
+            paper.setFreezeRowCellName(freezeRowCellName);
+        }
+        String freezeColCellName = element.attributeValue("freeze-col-cell-name");
+        if (StringUtils.isNotBlank(freezeColCellName)) {
+            paper.setFreezeColCellName(freezeColCellName);
+        }
         return paper;
     }
 }

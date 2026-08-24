@@ -12,6 +12,7 @@ import com.luck.report.core.export.*;
 import com.luck.report.core.export.html.HtmlProducer;
 import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.model.Report;
+import com.luck.report.core.utils.FreezeUtils;
 import com.luck.report.web.constant.ReportConstants;
 import com.luck.report.web.domain.vo.cell.ChartDataVo;
 import com.luck.report.web.domain.vo.report.HtmlReportVo;
@@ -180,6 +181,10 @@ public class HtmlPreviewService {
             htmlReport.setSearchForm(reportDefinition.buildSearchForm());
             htmlReport.setReportAlign(report.getPaper().getHtmlReportAlign().name());
             htmlReport.setHtmlIntervalRefreshValue(report.getPaper().getHtmlIntervalRefreshValue());
+            // 冻结行列：从 Paper 锚点解析展开后物理行列数（非 preview 分支在 ExportManagerImpl 内计算）
+            Paper paper = report.getPaper();
+            htmlReport.setFreezeRowCount(FreezeUtils.resolveFreezeRowCount(report, paper.getFreezeRowCellName()));
+            htmlReport.setFreezeColCount(FreezeUtils.resolveFreezeColCount(report, paper.getFreezeColCellName()));
         } else if (StringUtils.isNotBlank(pageIndex) && !pageIndex.equals("0")) {
             int index = Integer.parseInt(pageIndex);
             htmlReport = exportManager.exportHtml(reportPath, req.getContextPath(), parameters, index);
@@ -205,6 +210,8 @@ public class HtmlPreviewService {
         vo.setChartDatas(convertToChartDataVo(htmlReport.getChartDatas()));
         vo.setIntervalRefreshValue(htmlReport.getHtmlIntervalRefreshValue());
         vo.setSearchForm(htmlReport.getSearchForm());
+        vo.setFreezeRowCount(htmlReport.getFreezeRowCount());
+        vo.setFreezeColCount(htmlReport.getFreezeColCount());
         return vo;
     }
 

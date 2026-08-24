@@ -73,6 +73,16 @@ const zh = {
         "crosstab": {
             "title": "斜线表头"
         },
+        "freeze": {
+            "freeze": "冻结",
+            "freezeRow": "冻结行",
+            "freezeCol": "冻结列",
+            "freezePane": "冻结窗格",
+            "unFreezeRow": "取消冻结行",
+            "unFreezeCol": "取消冻结列",
+            "unFreezePane": "取消冻结窗格",
+            "mergeConflict": "冻结边界不能穿过合并单元格，请调整冻结位置或先取消相关合并"
+        },
         "font": {
             "font": "字体"
         },

@@ -14,6 +14,8 @@ import Context from '@/components/Context.js';
 import * as utils from '@/utils/table.js';
 import buildMenuConfigure from './utils/ContextMenu.js';
 import { afterRenderer } from './utils/CellRenderer.js';
+import { parseFreezeRowFromCellName, parseFreezeColFromCellName } from './utils/FreezeState.js';
+import { applyTableBackground } from './utils/BackgroundUtils.js';
 import { renderRowHeader } from './utils/HeaderUtils.js';
 import { loadReport } from '@/api/designer';
 import { showAlert } from '@/utils/comnon.js';
@@ -411,14 +413,7 @@ export default {
         } else {
           this.$store.dispatch('report/setFileName', `${this.$t('table.report.tip')}`);
         }
-        const masterElement = document.querySelector('.ht_master');
-        if (masterElement) {
-          if (reportDef.paper.bgImage) {
-            masterElement.style.background = `url(${reportDef.paper.bgImage}) 50px 26px no-repeat`;
-          } else {
-            masterElement.style.background = 'transparent';
-          }
-        }
+        applyTableBackground(reportDef.paper.bgImage);
 
       } catch (error) {
         this.$emit('error', error);
@@ -472,10 +467,16 @@ export default {
         dataArray.push(rowData);
       }
       this.hot.loadData(dataArray);
+      // 从 paper 冻结锚点解析行列数，应用 handsontable 原生冻结
+      const paperConfig = data.paper || {};
+      const freezeRowCount = parseFreezeRowFromCellName(paperConfig.freezeRowCellName);
+      const freezeColCount = parseFreezeColFromCellName(paperConfig.freezeColCellName);
       this.hot.updateSettings({
         colWidths,
         rowHeights,
         mergeCells,
+        fixedRowsTop: freezeRowCount,
+        fixedColumnsLeft: freezeColCount,
         cells: (row, col) => {
           const cellProperties = {};
           const cellDef = getCell(row, col);

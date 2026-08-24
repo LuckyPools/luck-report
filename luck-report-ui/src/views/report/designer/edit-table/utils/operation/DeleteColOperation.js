@@ -6,6 +6,7 @@ import {showAlert} from '@/utils/comnon.js';
 import {$t} from "@/locales";
 import {addCell, getCell, getContext, removeCell} from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
+import {shiftFreezeCols} from '../FreezeState.js';
 
 export function doDeleteCol() {
     const selected = this.getSelected();
@@ -88,6 +89,7 @@ export function doDeleteCol() {
         addCell(newCell);
     }
     this.updateSettings({colWidths: newColWidths, mergeCells: newMergeCells});
+    shiftFreezeCols(this, startCol, dif, false);
     resetTableData(this);
     setDirty();
 
@@ -163,6 +165,7 @@ export function doDeleteCol() {
                 addCell(newCell);
             }
             _this.updateSettings({colWidths: newColWidths, mergeCells: newMergeCells});
+            shiftFreezeCols(_this, startCol, dif, false);
             resetTableData(_this);
             setDirty();
         },
@@ -189,6 +192,7 @@ export function doDeleteCol() {
                 addCell(cell);
             }
             _this.updateSettings({colWidths: oldColWidths, mergeCells: oldMergeCells});
+            shiftFreezeCols(_this, startCol, dif, true);
             resetTableData(_this);
             setDirty();
         }

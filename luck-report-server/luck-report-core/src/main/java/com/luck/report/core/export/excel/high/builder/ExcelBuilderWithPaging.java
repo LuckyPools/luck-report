@@ -25,6 +25,7 @@ import com.luck.report.core.model.Column;
 import com.luck.report.core.model.Image;
 import com.luck.report.core.model.Report;
 import com.luck.report.core.model.Row;
+import com.luck.report.core.utils.FreezeUtils;
 import com.luck.report.core.utils.ImageUtils;
 import com.luck.report.core.utils.UnitUtils;
 import org.apache.commons.io.IOUtils;
@@ -58,6 +59,10 @@ public class ExcelBuilderWithPaging extends ExcelBuilder {
             List<Column> columns = report.getColumns();
             Map<Row, Map<Column, com.luck.report.core.model.Cell>> cellMap = report.getRowColCellMap();
             int columnSize = columns.size();
+            // 冻结：从 Paper 锚点解析展开后物理行列数；列不随分页变化，全局算一次，行按每页 rows 在循环内算
+            int freezeRowCount = FreezeUtils.resolveFreezeRowCount(report, paper.getFreezeRowCellName());
+            int freezeColCount = FreezeUtils.resolveFreezeColCount(report, paper.getFreezeColCellName());
+            int freezeColSplit = FreezeUtils.countVisibleCols(columns, freezeColCount);
             List<Page> pages = report.getPages();
             int rowNumber = 0, pageIndex = 1;
             Sheet sheet = null;
@@ -242,6 +247,11 @@ public class ExcelBuilderWithPaging extends ExcelBuilder {
                     }
                     row.setHeight((short) UnitUtils.pointToTwip(r.getHeight()));
                     rowNumber++;
+                }
+                // 每页各自冻结：行按当前页可见行数，列用全局有效列数；均为0时不调用避免多余冻结
+                int freezeRowSplit = FreezeUtils.countVisibleRows(rows, freezeRowCount);
+                if (freezeRowSplit > 0 || freezeColSplit > 0) {
+                    sheet.createFreezePane(freezeColSplit, freezeRowSplit);
                 }
                 sheet.setRowBreak(rowNumber - 1);
             }

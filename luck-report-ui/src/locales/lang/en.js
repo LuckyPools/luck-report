@@ -73,6 +73,16 @@ const en = {
         "crosstab": {
             "title": "Slash Line"
         },
+        "freeze": {
+            "freeze": "Freeze",
+            "freezeRow": "Freeze Row",
+            "freezeCol": "Freeze Column",
+            "freezePane": "Freeze Pane",
+            "unFreezeRow": "Unfreeze Row",
+            "unFreezeCol": "Unfreeze Column",
+            "unFreezePane": "Unfreeze Pane",
+            "mergeConflict": "Freeze boundary cannot cross merged cells. Adjust the freeze position or unmerge first"
+        },
         "font": {
             "font": "Font"
         },

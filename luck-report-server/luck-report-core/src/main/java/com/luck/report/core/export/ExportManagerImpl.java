@@ -26,6 +26,7 @@ import com.luck.report.core.export.html.HtmlReport;
 import com.luck.report.core.export.pdf.PdfProducer;
 import com.luck.report.core.export.word.high.WordProducer;
 import com.luck.report.core.model.Report;
+import com.luck.report.core.utils.FreezeUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
@@ -62,6 +63,7 @@ public class ExportManagerImpl implements ExportManager {
         htmlReport.setReportAlign(report.getPaper().getHtmlReportAlign().name());
         htmlReport.setChartDatas(report.getContext().getChartDataMap().values());
         htmlReport.setHtmlIntervalRefreshValue(report.getPaper().getHtmlIntervalRefreshValue());
+        applyFreeze(htmlReport, report);
         return htmlReport;
     }
 
@@ -93,7 +95,18 @@ public class ExportManagerImpl implements ExportManager {
         htmlReport.setReportAlign(report.getPaper().getHtmlReportAlign().name());
         htmlReport.setChartDatas(report.getContext().getChartDataMap().values());
         htmlReport.setHtmlIntervalRefreshValue(report.getPaper().getHtmlIntervalRefreshValue());
+        applyFreeze(htmlReport, report);
         return htmlReport;
+    }
+
+    /**
+     * 从 Paper 冻结锚点解析展开后物理行列数，写入 HtmlReport（前端 sticky 冻结用）
+     * @param htmlReport HTML报表对象，不可空
+     * @param report 展开后的报表对象，不可空
+     */
+    private void applyFreeze(HtmlReport htmlReport, Report report) {
+        htmlReport.setFreezeRowCount(FreezeUtils.resolveFreezeRowCount(report, report.getPaper().getFreezeRowCellName()));
+        htmlReport.setFreezeColCount(FreezeUtils.resolveFreezeColCount(report, report.getPaper().getFreezeColCellName()));
     }
 
     @Override

@@ -30,6 +30,7 @@
         <UnderlineTool ref="underlineTool" :selectedCells="selectedCells" />
         <FontColorTool ref="fontColorTool" :selectedCells="selectedCells" />
         <BgColorTool ref="bgColorTool" :selectedCells="selectedCells" />
+        <FreezeTool ref="freezeTool" />
         <CrosstabTool ref="crosstabTool" :selectedCells="selectedCells" />
         <ImageTool ref="imageTool" :selectedCells="selectedCells" />
         <ChartTool ref="chartTool" :selectedCells="selectedCells" />
@@ -52,6 +53,7 @@ import PrintLineTool from '@/views/report/designer/tool-bar/print-line-tool/inde
 import AlignLeftTool from '@/views/report/designer/tool-bar/align-left-tool/index.vue';
 import AlignTopTool from '@/views/report/designer/tool-bar/align-tool/index.vue';
 import MergeTool from '@/views/report/designer/tool-bar/merge-tool/index.vue';
+import FreezeTool from '@/views/report/designer/tool-bar/freeze-tool/index.vue';
 import FontFamilyTool from '@/views/report/designer/tool-bar/font-family-tool/index.vue';
 import FontSizeTool from '@/views/report/designer/tool-bar/font-size-tool/index.vue';
 import BoldTool from '@/views/report/designer/tool-bar/bold-tool/index.vue';
@@ -84,6 +86,7 @@ export default {
     AlignLeftTool,
     AlignTopTool,
     MergeTool,
+    FreezeTool,
     FontFamilyTool,
     FontSizeTool,
     BoldTool,

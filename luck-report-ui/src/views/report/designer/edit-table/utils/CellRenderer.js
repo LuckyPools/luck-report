@@ -16,6 +16,7 @@ import expandRightIcon from '@/assets/icons/expand-right.svg';
 import propertyIcon from '@/assets/icons/property.svg';
 import expressionIcon from '@/assets/icons/expression.svg';
 import {getCell, getContext} from "@/utils/contextActions";
+import {parseFreezeRowFromCellName, parseFreezeColFromCellName} from './FreezeState.js';
 
 export function afterRenderer(td,row,col,prop,value,cellProperties){
     if(!getContext()){
@@ -226,7 +227,32 @@ export function afterRenderer(td,row,col,prop,value,cellProperties){
             td.style.borderBottom = style;
         }
     }
+
+    // 冻结区边界灰色标识线（仅设计器视觉标识）
+    applyFreezeBorder(td, row, col);
 };
+
+/**
+ * 在冻结区边界叠加灰色标识线（冻结区最后一行底部、最后一列右侧）
+ */
+function applyFreezeBorder(td, row, col) {
+    const context = getContext();
+    const paper = context && context.reportDef && context.reportDef.paper;
+    if (!paper) return;
+    const rc = parseFreezeRowFromCellName(paper.freezeRowCellName);
+    const cc = parseFreezeColFromCellName(paper.freezeColCellName);
+    if (rc <= 0 && cc <= 0) return;
+    const shadows = [];
+    if (rc > 0 && row === rc - 1) {
+        shadows.push('inset 0 -2px 0 #cccccc');
+    }
+    if (cc > 0 && col === cc - 1) {
+        shadows.push('inset -2px 0 0 #cccccc');
+    }
+    if (shadows.length > 0) {
+        td.style.boxShadow = shadows.join(', ');
+    }
+}
 
 // 辅助函数：设置元素样式
 function setStyles(element, styles) {

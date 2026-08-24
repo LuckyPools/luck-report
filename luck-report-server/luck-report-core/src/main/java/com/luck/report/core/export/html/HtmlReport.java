@@ -33,6 +33,10 @@ public class HtmlReport {
     private String reportAlign;
     private Collection<ChartData> chartDatas;
     private int htmlIntervalRefreshValue;
+    /** 展开后冻结行数 */
+    private int freezeRowCount;
+    /** 展开后冻结列数 */
+    private int freezeColCount;
 
     private SearchForm searchForm;
 
@@ -118,5 +122,21 @@ public class HtmlReport {
 
     public void setSearchForm(SearchForm searchForm) {
         this.searchForm = searchForm;
+    }
+
+    public int getFreezeRowCount() {
+        return freezeRowCount;
+    }
+
+    public void setFreezeRowCount(int freezeRowCount) {
+        this.freezeRowCount = freezeRowCount;
+    }
+
+    public int getFreezeColCount() {
+        return freezeColCount;
+    }
+
+    public void setFreezeColCount(int freezeColCount) {
+        this.freezeColCount = freezeColCount;
     }
 }

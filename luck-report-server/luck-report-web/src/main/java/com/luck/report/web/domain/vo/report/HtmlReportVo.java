@@ -30,6 +30,10 @@ public class HtmlReportVo implements Serializable {
     private Integer intervalRefreshValue;
     /** 搜索表单 */
     private Object searchForm;
+    /** 展开后冻结行数 */
+    private int freezeRowCount;
+    /** 展开后冻结列数 */
+    private int freezeColCount;
 
     public HtmlReportVo() {
     }
@@ -104,5 +108,21 @@ public class HtmlReportVo implements Serializable {
 
     public void setSearchForm(Object searchForm) {
         this.searchForm = searchForm;
+    }
+
+    public int getFreezeRowCount() {
+        return freezeRowCount;
+    }
+
+    public void setFreezeRowCount(int freezeRowCount) {
+        this.freezeRowCount = freezeRowCount;
+    }
+
+    public int getFreezeColCount() {
+        return freezeColCount;
+    }
+
+    public void setFreezeColCount(int freezeColCount) {
+        this.freezeColCount = freezeColCount;
     }
 }

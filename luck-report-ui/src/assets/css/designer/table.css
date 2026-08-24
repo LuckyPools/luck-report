@@ -5,6 +5,30 @@
 .handsontable td, .handsontable th{
     background: transparent;
 }
+/** 冻结区克隆层背景色：避免透明导致滚动时看到底层痕迹；inline style 优先级更高，有自定义背景色的单元格不受影响 **/
+.handsontable .ht_clone_top td,
+.handsontable .ht_clone_top th,
+.handsontable .ht_clone_left td,
+.handsontable .ht_clone_left th,
+.handsontable .ht_clone_top_left_corner td,
+.handsontable .ht_clone_top_left_corner th{
+    background-color: #fff;
+}
+/** 克隆层行头 th 右边框：白色背景遮住了 master 表格的边框，需显式补回 **/
+.handsontable .ht_clone_left th,
+.handsontable .ht_clone_top_left_corner th{
+    border-right: 1px solid #CCC !important;
+}
+/** 套打图模式（.handsontable 根有 ht-bgimage 类，由 BackgroundUtils 切换）：
+    克隆层单元格背景透明，改由克隆层容器绘制背景图+白底，与 master 背景对齐 **/
+.handsontable.ht-bgimage .ht_clone_top td,
+.handsontable.ht-bgimage .ht_clone_top th,
+.handsontable.ht-bgimage .ht_clone_left td,
+.handsontable.ht-bgimage .ht_clone_left th,
+.handsontable.ht-bgimage .ht_clone_top_left_corner td,
+.handsontable.ht-bgimage .ht_clone_top_left_corner th{
+    background-color: transparent;
+}
 .handsontable table.htCore{
     border-collapse:collapse;
     cursor: cell;

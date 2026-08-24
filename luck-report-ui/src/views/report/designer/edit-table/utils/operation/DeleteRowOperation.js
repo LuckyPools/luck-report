@@ -14,6 +14,7 @@ import {
     removeCell
 } from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
+import {shiftFreezeRows} from '../FreezeState.js';
 
 export function doDeleteRow() {
     const selected = this.getSelected();
@@ -99,6 +100,7 @@ export function doDeleteRow() {
         addCell(newCell);
     }
     this.updateSettings({rowHeights: newRowHeights, mergeCells: newMergeCells});
+    shiftFreezeRows(this, startRow, dif, false);
     resetTableData(this);
     setDirty();
 
@@ -175,6 +177,7 @@ export function doDeleteRow() {
                 addCell(newCell);
             }
             _this.updateSettings({rowHeights: newRowHeights, mergeCells: newMergeCells});
+            shiftFreezeRows(_this, startRow, dif, false);
             resetTableData(_this);
             setDirty();
         },
@@ -203,6 +206,7 @@ export function doDeleteRow() {
                 addCell(cell);
             }
             _this.updateSettings({rowHeights: oldRowHeights, mergeCells: oldMergeCells});
+            shiftFreezeRows(_this, startRow, dif, true);
             resetTableData(_this);
             setDirty();
         }

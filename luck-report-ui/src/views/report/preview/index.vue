@@ -70,7 +70,8 @@ export default {
       toolsInfo: null,
       pageIndex: null,
       extraParams: {},
-      isShowSearchForm: true
+      isShowSearchForm: true,
+      currentFreezeRowCount: 0
     }
   },
   computed: {
@@ -85,12 +86,21 @@ export default {
     let that = this;
     this.parseParamsFromUrl();
     window.addEventListener('popstate', this.handlePopState);
+    // 冻结行吸附顶部时动态切换工具栏阴影
+    const scrollContainer = document.querySelector('.preview-left-scroll');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', this.toggleToolsShadow);
+    }
     this.initReport().then(() => {
       that.isShowSearchForm = that.isRenderSearchForm
     })
   },
   beforeDestroy() {
     window.removeEventListener('popstate', this.handlePopState);
+    const scrollContainer = document.querySelector('.preview-left-scroll');
+    if (scrollContainer) {
+      scrollContainer.removeEventListener('scroll', this.toggleToolsShadow);
+    }
   },
   methods: {
     toggleCollapse() {
@@ -105,6 +115,9 @@ export default {
       this.searchFormConfig = reportData.searchForm;
       this.injectReportStyle(reportData.style);
       this.initFunctions();
+      this.$nextTick(() => {
+        this.applyFreeze(reportData.freezeRowCount || 0, reportData.freezeColCount || 0);
+      });
 
       this.$emit('ready', { reportData });
     },
@@ -124,6 +137,9 @@ export default {
       const reportData = await this.fetchPageData(pageIndex);
       if (!reportData) return;
       this.renderReportContent(reportData);
+      this.$nextTick(() => {
+        this.applyFreeze(reportData.freezeRowCount || 0, reportData.freezeColCount || 0);
+      });
     },
 
     async fetchPageData(pageIndex) {
@@ -256,10 +272,147 @@ export default {
         tableContainer.innerHTML = reportData.content;
       }
       buildChartDatas(reportData.chartDatas);
+      this.applyFreeze(reportData.freezeRowCount || 0, reportData.freezeColCount || 0);
     },
 
     extractTotalPage(reportData) {
       return reportData.totalPageWithCol || reportData.totalPage || 0;
+    },
+
+    /**
+     * 应用冻结效果：对前 freezeRowCount 行 / freezeColCount 列的 td 设置 position:sticky
+     * 偏移通过 getBoundingClientRect 相对滚动容器计算；读写分离两阶段批量处理，避免反复 reflow
+     */
+    applyFreeze(freezeRowCount, freezeColCount) {
+      this.currentFreezeRowCount = freezeRowCount;
+      if (freezeRowCount <= 0 && freezeColCount <= 0) {
+        const tools = document.querySelector('.tools-content');
+        if (tools) tools.style.boxShadow = '';
+        return;
+      }
+      this.toggleToolsShadow();
+
+      const table = document.querySelector('#report-table table');
+      if (!table) return;
+
+      // 清除上一次的冻结样式（分页刷新场景）
+      table.querySelectorAll('td').forEach(td => {
+        if (td.style.position === 'sticky') {
+          td.style.position = '';
+          td.style.left = '';
+          td.style.top = '';
+          td.style.zIndex = '';
+          td.style.backgroundColor = '';
+          td.style.border = '';
+          td.style.boxShadow = '';
+        }
+      });
+
+      const container = document.querySelector('.preview-left-scroll');
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      // sticky 偏移需扣除 #report-table 的 padding，否则滚动内容会从 padding 缝隙透出
+      const reportTableEl = document.getElementById('report-table');
+      const rtPaddingTop = reportTableEl ? parseFloat(window.getComputedStyle(reportTableEl).paddingTop) || 0 : 0;
+      const rtPaddingLeft = reportTableEl ? parseFloat(window.getComputedStyle(reportTableEl).paddingLeft) || 0 : 0;
+      const scrollLeft = container.scrollLeft;
+      const scrollTop = container.scrollTop;
+      // 网格占位表，处理 rowspan/colspan 确定逻辑列号
+      const grid = [];
+      const rows = table.querySelectorAll('tr');
+
+      const freezeCells = [];
+
+      rows.forEach((row, rowIdx) => {
+        const cells = row.querySelectorAll('td');
+        let colIdx = 0;
+
+        while (grid[rowIdx] && grid[rowIdx][colIdx]) {
+          colIdx++;
+        }
+
+        cells.forEach((cell) => {
+          const colspan = cell.colSpan || 1;
+          const rowspan = cell.rowSpan || 1;
+
+          const isFreezeRow = rowIdx < freezeRowCount;
+          const isFreezeCol = colIdx < freezeColCount;
+
+          if (isFreezeRow || isFreezeCol) {
+            freezeCells.push({
+              td: cell,
+              isFreezeRow,
+              isFreezeCol,
+              cellRect: cell.getBoundingClientRect(),
+              cs: window.getComputedStyle(cell)
+            });
+          }
+
+          for (let r = 0; r < rowspan; r++) {
+            for (let c = 0; c < colspan; c++) {
+              if (!grid[rowIdx + r]) grid[rowIdx + r] = [];
+              grid[rowIdx + r][colIdx + c] = true;
+            }
+          }
+
+          colIdx += colspan;
+          while (grid[rowIdx] && grid[rowIdx][colIdx]) {
+            colIdx++;
+          }
+        });
+      });
+
+      freezeCells.forEach(({ td, isFreezeRow, isFreezeCol, cellRect, cs }) => {
+        td.style.position = 'sticky';
+        // 透明背景用白色兜底，防止滚动内容透出
+        const bg = cs.backgroundColor;
+        td.style.backgroundColor = (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') ? bg : '#fff';
+
+        // border-collapse:collapse + sticky 滚动时边框丢失，用 box-shadow 内阴影模拟
+        const shadows = [];
+        if (parseFloat(cs.borderLeftWidth) > 0) {
+          shadows.push(`inset ${cs.borderLeftWidth} 0 0 0 ${cs.borderLeftColor}`);
+        }
+        if (parseFloat(cs.borderRightWidth) > 0) {
+          shadows.push(`inset -${cs.borderRightWidth} 0 0 0 ${cs.borderRightColor}`);
+        }
+        if (parseFloat(cs.borderTopWidth) > 0) {
+          shadows.push(`inset 0 ${cs.borderTopWidth} 0 0 ${cs.borderTopColor}`);
+        }
+        if (parseFloat(cs.borderBottomWidth) > 0) {
+          shadows.push(`inset 0 -${cs.borderBottomWidth} 0 0 ${cs.borderBottomColor}`);
+        }
+        if (shadows.length > 0) {
+          td.style.border = 'none';
+          td.style.boxShadow = shadows.join(', ');
+        }
+
+        if (isFreezeCol) {
+          const left = cellRect.left - containerRect.left + scrollLeft - rtPaddingLeft;
+          td.style.left = left + 'px';
+        }
+        if (isFreezeRow) {
+          const top = cellRect.top - containerRect.top + scrollTop - rtPaddingTop;
+          td.style.top = top + 'px';
+        }
+        td.style.zIndex = (isFreezeRow && isFreezeCol) ? '3' : '2';
+      });
+    },
+
+    /**
+     * 滚动时切换工具栏阴影：冻结行吸附顶部时白色背景会遮住阴影，视觉不一致，此时隐藏
+     */
+    toggleToolsShadow() {
+      const tools = document.querySelector('.tools-content');
+      if (!tools) return;
+      const container = document.querySelector('.preview-left-scroll');
+      if (!container) return;
+      if (this.currentFreezeRowCount > 0 && container.scrollTop > 0) {
+        tools.style.boxShadow = 'none';
+      } else {
+        tools.style.boxShadow = '';
+      }
     },
 
     computeTools() {

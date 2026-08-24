@@ -24,6 +24,7 @@ import com.luck.report.core.model.Column;
 import com.luck.report.core.model.Image;
 import com.luck.report.core.model.Report;
 import com.luck.report.core.model.Row;
+import com.luck.report.core.utils.FreezeUtils;
 import com.luck.report.core.utils.ImageUtils;
 import com.luck.report.core.utils.UnitUtils;
 import org.apache.commons.io.IOUtils;
@@ -243,6 +244,14 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                 }
                 row.setHeight((short) UnitUtils.pointToTwip(r.getRealHeight()));
                 rowNumber++;
+            }
+            // 冻结窗格：左 freezeColSplit 列、上 freezeRowSplit 行；均为0时不调用避免多余冻结
+            int freezeRowCount = FreezeUtils.resolveFreezeRowCount(report, paper.getFreezeRowCellName());
+            int freezeColCount = FreezeUtils.resolveFreezeColCount(report, paper.getFreezeColCellName());
+            int freezeRowSplit = FreezeUtils.countVisibleRows(rows, freezeRowCount);
+            int freezeColSplit = FreezeUtils.countVisibleCols(columns, freezeColCount);
+            if (freezeRowSplit > 0 || freezeColSplit > 0) {
+                sheet.createFreezePane(freezeColSplit, freezeRowSplit);
             }
             sheet.setRowBreak(rowNumber - 1);
             wb.write(outputStream);

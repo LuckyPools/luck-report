@@ -107,6 +107,7 @@ import PagingSettings from './paging/index.vue';
 import ColumnSettings from './column/index.vue';
 import { mapGetters } from 'vuex';
 import { updateReportDef } from '@/utils/contextActions.js';
+import { applyTableBackground } from '@/views/report/designer/edit-table/utils/BackgroundUtils.js';
 
 export default {
   name: 'SettingsDialog',
@@ -266,17 +267,7 @@ export default {
       setDirty();
     },
     updateBackgroundImage() {
-      if (this.paper.bgImage === '') {
-        const elements = document.querySelectorAll('.ht_master');
-        elements.forEach(el => {
-          el.style.background = 'transparent';
-        });
-      } else {
-        const elements = document.querySelectorAll('.ht_master');
-        elements.forEach(el => {
-          el.style.background = `url(${this.paper.bgImage}) 50px 26px no-repeat`;
-        });
-      }
+      applyTableBackground(this.paper.bgImage);
       setDirty();
     },
     updateHeaderMargin() {

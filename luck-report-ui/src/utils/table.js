@@ -611,6 +611,7 @@ export function tableToXml(context){
     if(paper.columnEnabled){
         xml+=` column-count="${paper.columnCount}" column-margin="${paper.columnMargin}"`;
     }
+    xml+=` freeze-row-cell-name="${paper.freezeRowCellName || ''}" freeze-col-cell-name="${paper.freezeColCellName || ''}"`;
     xml+=`></paper>`;
     if(context.reportDef.searchForm){
         const searchFormXml = objToXml(context.reportDef.searchForm);

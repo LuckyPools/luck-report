@@ -39,6 +39,10 @@ public class Paper implements Serializable {
     private int columnCount = 2;
     private int columnMargin = 5;
     private int htmlIntervalRefreshValue = 0;
+    /** 冻结行锚点单元格名，如 "A3"，空=不冻结行 */
+    private String freezeRowCellName;
+    /** 冻结列锚点单元格名，如 "C1"，空=不冻结列 */
+    private String freezeColCellName;
 
     /**
      * 默认无参构造器
@@ -171,5 +175,21 @@ public class Paper implements Serializable {
 
     public void setHtmlIntervalRefreshValue(int htmlIntervalRefreshValue) {
         this.htmlIntervalRefreshValue = htmlIntervalRefreshValue;
+    }
+
+    public String getFreezeRowCellName() {
+        return freezeRowCellName;
+    }
+
+    public void setFreezeRowCellName(String freezeRowCellName) {
+        this.freezeRowCellName = freezeRowCellName;
+    }
+
+    public String getFreezeColCellName() {
+        return freezeColCellName;
+    }
+
+    public void setFreezeColCellName(String freezeColCellName) {
+        this.freezeColCellName = freezeColCellName;
     }
 }

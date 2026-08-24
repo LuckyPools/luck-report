@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5096141 */
-  src: url('iconfont.woff2?t=1786630849391') format('woff2'),
-       url('iconfont.woff?t=1786630849391') format('woff'),
-       url('iconfont.ttf?t=1786630849391') format('truetype');
+  src: url('iconfont.woff2?t=1787542678089') format('woff2'),
+       url('iconfont.woff?t=1787542678089') format('woff'),
+       url('iconfont.ttf?t=1787542678089') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,38 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-color-slash-header:before {
+  content: "\e70b";
+}
+
+.icon-color-h:before {
+  content: "\e60a";
+}
+
+.icon-color-float-image:before {
+  content: "\e64a";
+}
+
+.icon-tupian2:before {
+  content: "\e6f1";
+}
+
+.icon-color-image:before {
+  content: "\e606";
+}
+
+.icon-color-flow:before {
+  content: "\e75c";
+}
+
+.icon-color-chart:before {
+  content: "\e6e1";
+}
+
+.icon-progress:before {
+  content: "\e624";
 }
 
 .icon-upload:before {
@@ -213,8 +245,12 @@
   content: "\e696";
 }
 
-.icon-qrcode:before {
+.icon-color-qrcode:before {
   content: "\e646";
+}
+
+.icon-qrcode:before {
+  content: "\ed2f";
 }
 
 .icon-line:before {
