@@ -37,12 +37,36 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
     private String fileStoreDir;
     private boolean disabled;
 
+    /**
+     * 解析并校验报表路径，防止路径遍历越界访问 fileStoreDir 之外的文件
+     *
+     * @param file 报表路径（可带 prefix 前缀）
+     * @return 规范化后的绝对路径
+     * @throws ReportException 路径为空或越界时抛出
+     */
+    private String resolvePath(String file) {
+        String relative = file;
+        if (relative.startsWith(prefix)) {
+            relative = relative.substring(prefix.length());
+        }
+        if (StringUtils.isBlank(relative)) {
+            throw new ReportException("Report path can not be empty.");
+        }
+        try {
+            File baseDir = new File(fileStoreDir).getCanonicalFile();
+            File target = new File(baseDir, relative).getCanonicalFile();
+            if (!target.toPath().startsWith(baseDir.toPath())) {
+                throw new ReportException("Report path [" + relative + "] is not allowed.");
+            }
+            return target.getAbsolutePath();
+        } catch (IOException e) {
+            throw new ReportException(e);
+        }
+    }
+
     @Override
     public InputStream loadReport(String file) {
-        if (file.startsWith(prefix)) {
-            file = file.substring(prefix.length(), file.length());
-        }
-        String fullPath = fileStoreDir + "/" + file;
+        String fullPath = resolvePath(file);
         try {
             return new FileInputStream(fullPath);
         } catch (FileNotFoundException e) {
@@ -52,10 +76,7 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
 
     @Override
     public void deleteReport(String file) {
-        if (file.startsWith(prefix)) {
-            file = file.substring(prefix.length(), file.length());
-        }
-        String fullPath = fileStoreDir + "/" + file;
+        String fullPath = resolvePath(file);
         File f = new File(fullPath);
         if (f.exists()) {
             f.delete();
@@ -69,11 +90,24 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
 
     @Override
     public List<ReportFile> getReportFiles(String relativePath) {
+        File baseDir;
         File file;
-        if (relativePath == null || relativePath.isEmpty()) {
-            file = new File(fileStoreDir);
+        try {
+            baseDir = new File(fileStoreDir).getCanonicalFile();
+        } catch (IOException e) {
+            throw new ReportException(e);
+        }
+        if (StringUtils.isBlank(relativePath)) {
+            file = baseDir;
         } else {
-            file = new File(fileStoreDir + "/" + relativePath);
+            try {
+                file = new File(baseDir, relativePath).getCanonicalFile();
+            } catch (IOException e) {
+                throw new ReportException(e);
+            }
+            if (!file.toPath().startsWith(baseDir.toPath())) {
+                throw new ReportException("Path [" + relativePath + "] is not allowed.");
+            }
         }
 
         List<ReportFile> list = new ArrayList<ReportFile>();
@@ -110,10 +144,7 @@ public class FileReportProvider implements ReportProvider, ApplicationContextAwa
 
     @Override
     public void saveReport(String file, String content) {
-        if (file.startsWith(prefix)) {
-            file = file.substring(prefix.length(), file.length());
-        }
-        String fullPath = fileStoreDir + "/" + file;
+        String fullPath = resolvePath(file);
         FileOutputStream outStream = null;
         try {
             outStream = new FileOutputStream(new File(fullPath));
