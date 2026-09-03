@@ -1,4 +1,4 @@
-import { makeMap } from './index'
+import { makeMap, toSafeNumber, isMultiSelectComponent, splitToSafeArray } from './index'
 
 import UCheckbox from "@/components/checkbox/index.vue";
 import UCheckboxGroup from "@/components/checkbox-group/index.vue";
@@ -37,8 +37,25 @@ const isAttr = makeMap(
   + 'target,title,type,usemap,value,width,wrap'
 )
 
-function vModel(self, dataObject, defaultValue) {
-  dataObject.props.value = defaultValue
+const OPTION_VALUE_TAGS = ['u-select', 'u-radio-group', 'u-checkbox-group']
+
+function vModel(self, dataObject, conf) {
+  let defaultValue = conf.defaultValue
+  if (isMultiSelectComponent(conf)) {
+    // 逗号拼接字符串还原为数组供回显
+    defaultValue = splitToSafeArray(defaultValue)
+  } else if (conf.tag === 'u-switch') {
+    // 字符串 "true"/"false" 还原为布尔值
+    if (defaultValue === 'true') {
+      defaultValue = true
+    } else if (defaultValue === 'false') {
+      defaultValue = false
+    }
+  } else if (OPTION_VALUE_TAGS.indexOf(conf.tag) > -1) {
+    // 过 toSafeNumber 与选项 value 类型对齐
+    defaultValue = toSafeNumber(defaultValue)
+  }
+  dataObject.props.value = defaultValue === undefined ? null : defaultValue
 
   dataObject.on.input = val => {
     self.$emit('input', val)
@@ -63,8 +80,9 @@ const componentChild = {
     options(h, conf, key) {
       const list = []
       if (conf.options && Array.isArray(conf.options)) {
+        const forceDisabled = conf.optionSource === 'dataset'
         conf.options.forEach(item => {
-          list.push(<u-option label={item.label} value={item.value} disabled={item.disabled}></u-option>)
+          list.push(<u-option label={item.label} value={toSafeNumber(item.value)} disabled={forceDisabled || item.disabled}></u-option>)
         })
       }
       return list
@@ -74,9 +92,10 @@ const componentChild = {
     options(h, conf, key) {
       const list = []
       if (conf.options && Array.isArray(conf.options)) {
+        const forceDisabled = conf.optionSource === 'dataset'
         conf.options.forEach(item => {
-          if (conf.optionType === 'button') list.push(<u-radio-button label={item.value} size={conf.size}>{item.label}</u-radio-button>)
-          else list.push(<u-radio label={item.value} border={conf.border} size={conf.size}>{item.label}</u-radio>)
+          if (conf.optionType === 'button') list.push(<u-radio-button label={toSafeNumber(item.value)} size={conf.size} disabled={forceDisabled || item.disabled}>{item.label}</u-radio-button>)
+          else list.push(<u-radio label={toSafeNumber(item.value)} border={conf.border} size={conf.size} disabled={forceDisabled || item.disabled}>{item.label}</u-radio>)
         })
       }
       return list
@@ -86,11 +105,12 @@ const componentChild = {
     options(h, conf, key) {
       const list = []
       if (conf.options && Array.isArray(conf.options)) {
+        const forceDisabled = conf.optionSource === 'dataset'
         conf.options.forEach(item => {
           if (conf.optionType === 'button') {
-            list.push(<u-checkbox-button label={item.value} size={conf.size}>{item.label}</u-checkbox-button>)
+            list.push(<u-checkbox-button label={toSafeNumber(item.value)} size={conf.size} disabled={forceDisabled || item.disabled}>{item.label}</u-checkbox-button>)
           } else {
-            list.push(<u-checkbox label={item.value} border={conf.border} size={conf.size}>{item.label}</u-checkbox>)
+            list.push(<u-checkbox label={toSafeNumber(item.value)} border={conf.border} size={conf.size} disabled={forceDisabled || item.disabled}>{item.label}</u-checkbox>)
           }
         })
       }
@@ -144,7 +164,7 @@ export default {
     Object.keys(confClone).forEach(key => {
       const val = confClone[key]
       if (key === 'vModel') {
-        vModel(this, dataObject, confClone.defaultValue)
+        vModel(this, dataObject, confClone)
       } else if (dataObject[key]) {
         dataObject[key] = val
       } else if (!isAttr(key)) {

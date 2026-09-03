@@ -16,25 +16,26 @@ public class CheckboxGroupParser implements FormParser<CheckboxGroupComponent> {
         component.setSize(FormParserUtils.parseStringAttribute(element.attributeValue("size")));
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
         component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
-        
-        component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
+
         component.setBorder(FormParserUtils.parseBooleanAttribute(element.attributeValue("border")));
 
         component.setSpan(FormParserUtils.parseIntAttribute(element.attributeValue("span")));
         component.setLabelWidth(FormParserUtils.parseStringAttribute(element.attributeValue("labelWidth")));
         component.setStyle(FormParserUtils.parseStyle(element.attributeValue("style")));
-        
+
         component.setRequired(FormParserUtils.parseBooleanAttribute(element.attributeValue("required")));
         component.setRegList(FormParserUtils.parseStringList(element.attributeValue("regList")));
         component.setChangeTag(FormParserUtils.parseBooleanAttribute(element.attributeValue("changeTag")));
-        
+
         component.setDocument(FormParserUtils.parseStringAttribute(element.attributeValue("document")));
         component.setFormId(FormParserUtils.parseStringAttribute(element.attributeValue("formId")));
         component.setRenderKey(FormParserUtils.parseStringAttribute(element.attributeValue("renderKey")));
         component.setVModel(FormParserUtils.parseStringAttribute(element.attributeValue("vModel")));
-        component.setDefaultValue(FormParserUtils.parseStringList(element.attributeValue("defaultValue")));
+        component.setDefaultValue(FormParserUtils.parseMultiValueAttribute(element.attributeValue("defaultValue")));
         component.setLayout(FormParserUtils.parseStringAttribute(element.attributeValue("layout")));
-        
+        component.setOptionSource(FormParserUtils.parseStringAttribute(element.attributeValue("optionSource")));
+        component.setDatasetOption(FormParserUtils.parseDatasetOption(element));
+
         List<Option> options = new ArrayList<Option>();
         for (Object obj : element.elements()) {
             if (obj == null || !(obj instanceof Element)) {
@@ -50,7 +51,7 @@ public class CheckboxGroupParser implements FormParser<CheckboxGroupComponent> {
             option.setValue(FormParserUtils.parseStringAttribute(ele.attributeValue("value")));
         }
         component.setOptions(options);
-        
+
         return component;
     }
 

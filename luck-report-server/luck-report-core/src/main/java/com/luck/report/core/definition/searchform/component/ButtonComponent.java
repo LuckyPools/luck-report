@@ -12,7 +12,6 @@ public class ButtonComponent implements Component, Serializable {
     private String type;
     private String size;
     private String icon;
-    private boolean disabled;
     private String tag;
     private Integer span;
     private String layout;
@@ -72,14 +71,6 @@ public class ButtonComponent implements Component, Serializable {
 
     public void setIcon(String icon) {
         this.icon = icon;
-    }
-
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
     }
 
     public String getTag() {

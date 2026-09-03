@@ -16,8 +16,6 @@ public class DatePickerParser implements FormParser<DatePickerComponent> {
         component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
         
         component.setClearable(FormParserUtils.parseBooleanAttribute(element.attributeValue("clearable")));
-        component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
-        component.setReadonly(FormParserUtils.parseBooleanAttribute(element.attributeValue("readonly")));
 
         component.setSpan(FormParserUtils.parseIntAttribute(element.attributeValue("span")));
         component.setLabelWidth(FormParserUtils.parseStringAttribute(element.attributeValue("labelWidth")));

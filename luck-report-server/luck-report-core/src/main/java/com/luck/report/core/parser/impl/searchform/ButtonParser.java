@@ -12,8 +12,6 @@ public class ButtonParser implements FormParser<ButtonComponent> {
         button.setSize(FormParserUtils.parseStringAttribute(element.attributeValue("size")));
         button.setIcon(FormParserUtils.parseStringAttribute(element.attributeValue("icon")));
         button.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
-        
-        button.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         button.setChangeTag(FormParserUtils.parseBooleanAttribute(element.attributeValue("changeTag")));
 
         button.setSpan(FormParserUtils.parseIntAttribute(element.attributeValue("span")));

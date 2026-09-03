@@ -858,6 +858,7 @@ export function objToXml(obj, indent = 0, defaultTag = null) {
     }
 
     const specialArrays = ['children', 'fields', 'options'];
+    const specialKeys = ['datasetOption'];
     const indentStr = '    '.repeat(indent);
 
     let tagName = obj.tag;
@@ -877,14 +878,14 @@ export function objToXml(obj, indent = 0, defaultTag = null) {
 
     let attributes = '';
     for (const key in obj) {
-        if (specialArrays.includes(key)) continue;
+        if (specialArrays.includes(key) || specialKeys.includes(key)) continue;
 
         const value = obj[key];
         if (Array.isArray(value) || typeof value === 'object') {
             const jsonStr = JSON.stringify(value);
-            attributes += ` ${key}="${jsonStr.replace(/"/g, '&quot;')}" `;
+            attributes += ` ${key}="${encode(jsonStr)}" `;
         } else {
-            attributes += ` ${key}="${value}" `;
+            attributes += ` ${key}="${encode(String(value))}" `;
         }
     }
 
@@ -898,9 +899,43 @@ export function objToXml(obj, indent = 0, defaultTag = null) {
         }
     }
 
+    if (obj.datasetOption) {
+        childrenContent += buildDatasetOptionXml(obj.datasetOption, indent + 1);
+    }
+
     if (childrenContent) {
         return `${indentStr}<${tagName}${attributes}>\n${childrenContent}${indentStr}</${tagName}>\n`;
     } else {
         return `${indentStr}<${tagName}${attributes}></${tagName}>\n`;
     }
+}
+
+/**
+ * 将 datasetOption 对象序列化为 <datasetOption> 子标签
+ * @param {Object} ds 数据集选项配置
+ * @param {Number} indent 缩进层级
+ * @return {String} XML 字符串
+ */
+function buildDatasetOptionXml(ds, indent) {
+    const indentStr = '    '.repeat(indent);
+    let attrs = '';
+    if (ds.datasourceName != null) attrs += ` datasourceName="${encode(String(ds.datasourceName))}"`;
+    if (ds.datasetName != null) attrs += ` datasetName="${encode(String(ds.datasetName))}"`;
+    if (ds.labelField != null) attrs += ` labelField="${encode(String(ds.labelField))}"`;
+    if (ds.valueField != null) attrs += ` valueField="${encode(String(ds.valueField))}"`;
+
+    const bindings = ds.datasetParams || [];
+    if (bindings.length === 0) {
+        return `${indentStr}<datasetOption${attrs}></datasetOption>\n`;
+    }
+
+    let inner = '';
+    const innerIndent = '    '.repeat(indent + 1);
+    for (const b of bindings) {
+        let bAttrs = '';
+        if (b.paramKey != null) bAttrs += ` paramKey="${encode(String(b.paramKey))}"`;
+        if (b.parentField != null) bAttrs += ` parentField="${encode(String(b.parentField))}"`;
+        inner += `${innerIndent}<datasetParam${bAttrs}></datasetParam>\n`;
+    }
+    return `${indentStr}<datasetOption${attrs}>\n${inner}${indentStr}</datasetOption>\n`;
 }

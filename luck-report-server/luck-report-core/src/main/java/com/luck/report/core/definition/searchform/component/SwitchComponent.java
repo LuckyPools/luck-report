@@ -6,10 +6,9 @@ public class SwitchComponent extends BaseInputComponent {
     private static final long serialVersionUID = 1L;
     private String activeColor;
     private String inactiveColor;
-    private boolean disabled;
     private boolean activeValue;
     private boolean inactiveValue;
-    private Object defaultValue;
+    private String defaultValue;
 
     /**
      * 默认无参构造器
@@ -37,14 +36,6 @@ public class SwitchComponent extends BaseInputComponent {
         this.inactiveColor = inactiveColor;
     }
 
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
     public boolean isActiveValue() {
         return activeValue;
     }
@@ -61,11 +52,11 @@ public class SwitchComponent extends BaseInputComponent {
         this.inactiveValue = inactiveValue;
     }
 
-    public Object getDefaultValue() {
+    public String getDefaultValue() {
         return defaultValue;
     }
 
-    public void setDefaultValue(Object defaultValue) {
+    public void setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
     }
 }

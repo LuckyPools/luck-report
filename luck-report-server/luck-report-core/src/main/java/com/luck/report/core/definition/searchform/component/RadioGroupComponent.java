@@ -1,5 +1,6 @@
 package com.luck.report.core.definition.searchform.component;
 
+import com.luck.report.core.definition.searchform.DatasetOption;
 import com.luck.report.core.definition.searchform.Option;
 import com.luck.report.core.definition.searchform.RenderContext;
 
@@ -8,11 +9,12 @@ import java.util.List;
 public class RadioGroupComponent extends BaseInputComponent {
     private static final long serialVersionUID = 1L;
     private List<Option> options;
-    private boolean disabled;
     private String optionType;
     private boolean border;
     private String size;
     private String defaultValue;
+    private String optionSource;
+    private DatasetOption datasetOption;
 
     /**
      * 默认无参构造器
@@ -22,14 +24,6 @@ public class RadioGroupComponent extends BaseInputComponent {
     @Override
     public String initJs(RenderContext context) {
         return "";
-    }
-
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
     }
 
     public String getOptionType() {
@@ -70,5 +64,21 @@ public class RadioGroupComponent extends BaseInputComponent {
 
     public void setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
+    }
+
+    public String getOptionSource() {
+        return optionSource;
+    }
+
+    public void setOptionSource(String optionSource) {
+        this.optionSource = optionSource;
+    }
+
+    public DatasetOption getDatasetOption() {
+        return datasetOption;
+    }
+
+    public void setDatasetOption(DatasetOption datasetOption) {
+        this.datasetOption = datasetOption;
     }
 }

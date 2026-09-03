@@ -5,9 +5,23 @@ spring:
     url: jdbc:mysql://localhost:3306/luck_product?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  redis:
+    host: 127.0.0.1        # Redis 地址
+    port: 6379             # Redis 端口
+    password: root             # 有密码就填，无密码删除此行
+    database: 0            # 使用的库编号
+    timeout: 3000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
 luck-report:
   # 请求前缀
   servletPrefix: report
+  # 采用 Redis 缓存，禁用本地缓存（分布式/集群环境必须配置）
+  # disableLocalReportCache: true
   # 报表存储路径
   fileStoreDir: E:/luckStudio/IO/report
   # 调试日志

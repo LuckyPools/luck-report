@@ -10,8 +10,6 @@ public class DatePickerComponent extends BaseInputComponent {
     private String type;
     private String placeholder;
     private boolean clearable;
-    private boolean disabled;
-    private boolean readonly;
     private String valueFormat;
     private String defaultValue;
 
@@ -56,22 +54,6 @@ public class DatePickerComponent extends BaseInputComponent {
 
     public void setClearable(boolean clearable) {
         this.clearable = clearable;
-    }
-
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
-    public boolean isReadonly() {
-        return readonly;
-    }
-
-    public void setReadonly(boolean readonly) {
-        this.readonly = readonly;
     }
 
     public String getValueFormat() {

@@ -30,8 +30,6 @@ export const inputComponents = [
     'suffixIcon': '',
     maxlength: null,
     'showWordLimit': false,
-    readonly: false,
-    disabled: false,
     required: true,
     regList: [],
     changeTag: true,
@@ -51,7 +49,6 @@ export const inputComponents = [
     'stepStrictly': false,
     precision: undefined,
     'controlsPosition': '',
-    disabled: false,
     required: true,
     regList: [],
     changeTag: true,
@@ -70,7 +67,6 @@ export const selectComponents = [
     labelWidth: null,
     style: { width: '100%' },
     clearable: true,
-    disabled: false,
     required: true,
     filterable: false,
     multiple: false,
@@ -81,6 +77,7 @@ export const selectComponents = [
       label: $t('searchForm.optionTwo'),
       value: 2
     }],
+    optionSource: 'static',
     regList: [],
     changeTag: true,
     document: '/component/select'
@@ -89,14 +86,13 @@ export const selectComponents = [
     label: $t('searchForm.radioGroup'),
     tag: 'u-radio-group',
     tagIcon: 'radio',
-    defaultValue: undefined,
+    defaultValue: null,
     span: 24,
     labelWidth: null,
     style: {},
     optionType: 'default',
     border: false,
     size: 'medium',
-    disabled: false,
     required: true,
     options: [{
       label: $t('searchForm.optionOne'),
@@ -105,6 +101,7 @@ export const selectComponents = [
       label: $t('searchForm.optionTwo'),
       value: 2
     }],
+    optionSource: 'static',
     regList: [],
     changeTag: true,
     document: '/component/radio'
@@ -113,14 +110,14 @@ export const selectComponents = [
     label: $t('searchForm.checkboxGroup'),
     tag: 'u-checkbox-group',
     tagIcon: 'checkbox',
-    defaultValue: [],
+    // 默认值统一字符串存储，多选为逗号拼接格式，空为 null
+    defaultValue: null,
     span: 24,
     labelWidth: null,
     style: {},
     optionType: 'default',
     border: false,
     size: 'medium',
-    disabled: false,
     required: true,
     options: [{
       label: $t('searchForm.optionOne'),
@@ -129,6 +126,7 @@ export const selectComponents = [
       label: $t('searchForm.optionTwo'),
       value: 2
     }],
+    optionSource: 'static',
     regList: [],
     changeTag: true,
     document: '/component/checkbox'
@@ -137,11 +135,10 @@ export const selectComponents = [
     label: $t('searchForm.switch'),
     tag: 'u-switch',
     tagIcon: 'switch',
-    defaultValue: false,
+    defaultValue: 'false',
     span: 24,
     labelWidth: null,
     style: {},
-    disabled: false,
     required: true,
     // 'activeText': '',
     // 'inactiveText': '',
@@ -164,12 +161,10 @@ export const selectComponents = [
     span: 24,
     labelWidth: null,
     style: { width: '100%' },
-    disabled: false,
     clearable: true,
     required: true,
     format: 'YYYY-MM-DD',
     'valueFormat': 'format',
-    readonly: false,
     regList: [],
     changeTag: true,
     document: '/component/date-picker'
@@ -201,7 +196,6 @@ export const layoutComponents = [
     type: 'primary',
     icon: 'icon-search',
     size: 'medium',
-    disabled: false,
     document: '/component/button'
   }
 ]

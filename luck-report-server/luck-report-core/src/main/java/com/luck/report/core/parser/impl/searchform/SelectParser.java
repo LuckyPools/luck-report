@@ -17,7 +17,6 @@ public class SelectParser implements FormParser<SelectComponent> {
         select.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
         select.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
-        select.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         select.setMultiple(FormParserUtils.parseBooleanAttribute(element.attributeValue("multiple")));
         select.setClearable(FormParserUtils.parseBooleanAttribute(element.attributeValue("clearable")));
         select.setFilterable(FormParserUtils.parseBooleanAttribute(element.attributeValue("filterable")));
@@ -33,8 +32,10 @@ public class SelectParser implements FormParser<SelectComponent> {
         select.setFormId(FormParserUtils.parseStringAttribute(element.attributeValue("formId")));
         select.setRenderKey(FormParserUtils.parseStringAttribute(element.attributeValue("renderKey")));
         select.setVModel(FormParserUtils.parseStringAttribute(element.attributeValue("vModel")));
-        select.setDefaultValue(FormParserUtils.parseStringAttribute(element.attributeValue("defaultValue")));
+        select.setDefaultValue(FormParserUtils.parseMultiValueAttribute(element.attributeValue("defaultValue")));
         select.setLayout(FormParserUtils.parseStringAttribute(element.attributeValue("layout")));
+        select.setOptionSource(FormParserUtils.parseStringAttribute(element.attributeValue("optionSource")));
+        select.setDatasetOption(FormParserUtils.parseDatasetOption(element));
 
         List<Option> options = new ArrayList<Option>();
         for (Object obj : element.elements()) {

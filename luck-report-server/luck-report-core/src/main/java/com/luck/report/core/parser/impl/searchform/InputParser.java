@@ -13,8 +13,6 @@ public class InputParser implements FormParser<InputComponent> {
         component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
         component.setClearable(FormParserUtils.parseBooleanAttribute(element.attributeValue("clearable")));
-        component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
-        component.setReadonly(FormParserUtils.parseBooleanAttribute(element.attributeValue("readonly")));
         component.setMaxlength(FormParserUtils.parseStringAttribute(element.attributeValue("maxlength")));
         component.setShowWordLimit(FormParserUtils.parseBooleanAttribute(element.attributeValue("showWordLimit")));
 

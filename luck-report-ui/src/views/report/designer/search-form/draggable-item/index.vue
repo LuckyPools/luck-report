@@ -33,7 +33,8 @@ const layouts = {
         <u-form-item label-width={element.labelWidth ? Number(element.labelWidth) : null}
           label={element.label} required={element.required}>
           <render key={element.renderKey} conf={element} onInput={ event => {
-            this.$set(element, 'defaultValue', event)
+            const value = Array.isArray(event) ? event.join(',') : event
+            this.$set(element, 'defaultValue', value)
           }} />
         </u-form-item>
         {components.itemBtns.apply(this, arguments)}

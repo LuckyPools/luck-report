@@ -27,6 +27,8 @@
       <div class="preview-right-content">
         <SearchBox
           :searchFormConfig="searchFormConfig"
+          :report-path="reportPath"
+          :mode="mode"
           @submit="handleFormSubmit"
         />
       </div>
@@ -260,7 +262,7 @@ export default {
     mergeSearchFormParams(target) {
       if (!this.searchFormParameters) return;
       Object.keys(this.searchFormParameters).forEach(key => {
-        if (this.searchFormParameters[key]) {
+        if (this.searchFormParameters[key] != null) {
           target[key] = this.searchFormParameters[key];
         }
       });

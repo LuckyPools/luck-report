@@ -1,5 +1,6 @@
 package com.luck.report.core.definition.searchform.component;
 
+import com.luck.report.core.definition.searchform.DatasetOption;
 import com.luck.report.core.definition.searchform.Option;
 import com.luck.report.core.definition.searchform.RenderContext;
 
@@ -11,9 +12,10 @@ public class SelectComponent extends BaseInputComponent {
     private boolean clearable;
     private boolean filterable;
     private String placeholder;
-    private boolean disabled;
     private List<Option> options;
     private String defaultValue;
+    private String optionSource;
+    private DatasetOption datasetOption;
 
     /**
      * 默认无参构造器
@@ -57,14 +59,6 @@ public class SelectComponent extends BaseInputComponent {
         this.placeholder = placeholder;
     }
 
-    public boolean getDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
     public List<Option> getOptions() {
         return options;
     }
@@ -79,5 +73,21 @@ public class SelectComponent extends BaseInputComponent {
 
     public void setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
+    }
+
+    public String getOptionSource() {
+        return optionSource;
+    }
+
+    public void setOptionSource(String optionSource) {
+        this.optionSource = optionSource;
+    }
+
+    public DatasetOption getDatasetOption() {
+        return datasetOption;
+    }
+
+    public void setDatasetOption(DatasetOption datasetOption) {
+        this.datasetOption = datasetOption;
     }
 }

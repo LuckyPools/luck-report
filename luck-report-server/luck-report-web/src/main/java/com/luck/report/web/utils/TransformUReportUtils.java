@@ -291,7 +291,6 @@ public class TransformUReportUtils {
         newComponent.addAttribute("suffixIcon", "");
         newComponent.addAttribute("maxlength", "null");
         newComponent.addAttribute("showWordLimit", "false");
-        newComponent.addAttribute("readonly", "false");
         newComponent.addAttribute("defaultValue", "null");
         newComponent.addAttribute("document", "/component/input");
 
@@ -316,7 +315,6 @@ public class TransformUReportUtils {
         newComponent.addAttribute("type", "date");
         newComponent.addAttribute("style", "{\"width\":\"100%\"}");
         newComponent.addAttribute("clearable", "true");
-        newComponent.addAttribute("readonly", "false");
         newComponent.addAttribute("format", "YYYY-MM-DD");
         newComponent.addAttribute("valueFormat", "format");
         newComponent.addAttribute("document", "/component/date-picker");

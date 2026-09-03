@@ -17,6 +17,8 @@ package com.luck.report.core.parser.impl.searchform;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.luck.report.core.definition.searchform.DatasetOption;
+import com.luck.report.core.definition.searchform.DatasetParam;
 import com.luck.report.core.definition.searchform.component.Component;
 import org.dom4j.Element;
 import org.springframework.beans.BeansException;
@@ -90,6 +92,26 @@ public class FormParserUtils implements ApplicationContextAware {
         return value;
     }
 
+    /**
+     * 方法说明：解析多值属性为逗号拼接字符串，多选组件默认值统一字符串存储；兼容历史 JSON 数组格式（["a","b"] 转为 a,b），普通字符串原样返回
+     * @param value XML 属性值，String 类型，可为空
+     * @return 逗号拼接字符串，空值返回 null
+     */
+    public static String parseMultiValueAttribute(String value) {
+        String str = parseStringAttribute(value);
+        if (str == null) {
+            return null;
+        }
+        String trimmed = str.trim();
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            List<String> list = parseStringList(trimmed);
+            if (list != null) {
+                return String.join(",", list);
+            }
+        }
+        return str;
+    }
+
     public static Boolean parseBooleanAttribute(String value) {
         if (value == null || value.trim().isEmpty()) {
             return null;
@@ -112,6 +134,55 @@ public class FormParserUtils implements ApplicationContextAware {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * 将 XML 属性中的 JSON 字符串反序列化为指定类型对象
+     *
+     * @param value XML 属性值（JSON 字符串），可为空，为空时返回 null
+     * @param clazz 目标类型，不可为空
+     * @return 反序列化后的对象；解析失败时返回 null
+     */
+    public static <T> T parseObjectAttribute(String value, Class<T> clazz) {
+        if (value == null || value.trim().isEmpty() || "null".equals(value)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(value, clazz);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 方法说明：从 XML 子元素解析 datasetOption 配置，解析 <datasetOption> 子标签及其内部 <datasetParam> 子标签
+     * @param element 父元素（select/radio-group/checkbox-group），Element 类型，不可为空
+     * @return DatasetOption 对象，无 datasetOption 子标签时返回 null
+     */
+    public static DatasetOption parseDatasetOption(Element element) {
+        Element dsElement = element.element("datasetOption");
+        if (dsElement == null) {
+            return null;
+        }
+        DatasetOption ds = new DatasetOption();
+        ds.setDatasourceName(parseStringAttribute(dsElement.attributeValue("datasourceName")));
+        ds.setDatasetName(parseStringAttribute(dsElement.attributeValue("datasetName")));
+        ds.setLabelField(parseStringAttribute(dsElement.attributeValue("labelField")));
+        ds.setValueField(parseStringAttribute(dsElement.attributeValue("valueField")));
+
+        List<DatasetParam> params = new ArrayList<>();
+        for (Object obj : dsElement.elements("datasetParam")) {
+            if (obj == null || !(obj instanceof Element)) {
+                continue;
+            }
+            Element paramEle = (Element) obj;
+            DatasetParam param = new DatasetParam();
+            param.setParamKey(parseStringAttribute(paramEle.attributeValue("paramKey")));
+            param.setParentField(parseStringAttribute(paramEle.attributeValue("parentField")));
+            params.add(param);
+        }
+        ds.setDatasetParams(params);
+        return ds;
     }
 
     @Override

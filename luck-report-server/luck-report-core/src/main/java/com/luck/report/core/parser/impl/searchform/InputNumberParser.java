@@ -13,7 +13,6 @@ public class InputNumberParser implements FormParser<InputNumberComponent> {
         component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
 
         component.setStepStrictly(FormParserUtils.parseBooleanAttribute(element.attributeValue("stepStrictly")));
-        component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
 
         component.setSpan(FormParserUtils.parseIntAttribute(element.attributeValue("span")));
         component.setLabelWidth(FormParserUtils.parseStringAttribute(element.attributeValue("labelWidth")));

@@ -197,38 +197,135 @@
           </u-form-item>
           <template v-if="['u-checkbox-group', 'u-radio-group', 'u-select'].indexOf(activeData.tag) > -1">
             <u-divider>{{ $t('searchForm.options') }}</u-divider>
-            <draggable
-              :list="activeData.options"
-              :animation="340"
-              group="selectItem"
-              handle=".option-drag"
-            >
-              <div v-for="(item, index) in activeData.options" :key="index" class="select-item">
-                <div class="select-line-icon option-drag">
-                  <i class="iconfont icon-success" />
-                </div>
-                <u-input v-model="item.label" :placeholder="$t('searchForm.optionName')" size="small" />
-                <u-input
-                  :placeholder="$t('searchForm.optionValue')"
-                  size="small"
-                  :value="item.value"
-                  @input="setOptionValue(item, $event)"
-                />
-                <div class="close-btn select-line-icon" @click="activeData.options.splice(index, 1)">
-                  <i class="iconfont icon-delete" />
-                </div>
-              </div>
-            </draggable>
-            <div style="margin-left: 20px;">
-              <u-button
-                style="padding-bottom: 0"
-                icon="u-icon-circle-plus-outline"
-                type="text"
-                @click.prevent="addSelectItem"
+            <u-form-item :label="$t('searchForm.optionSource')">
+              <u-radio-group
+                :value="activeData.optionSource || 'static'"
+                button
+                @change="onOptionSourceChange"
               >
-                {{ $t('searchForm.addOption') }}
-              </u-button>
-            </div>
+                <u-radio label="static" size="small">
+                  {{ $t('searchForm.optionSourceStatic') }}
+                </u-radio>
+                <u-radio label="dataset" size="small">
+                  {{ $t('searchForm.optionSourceDataset') }}
+                </u-radio>
+              </u-radio-group>
+            </u-form-item>
+            <!-- 静态选项：手工录入（现状保留） -->
+            <template v-if="(activeData.optionSource || 'static') !== 'dataset'">
+              <draggable
+                :list="activeData.options"
+                :animation="340"
+                group="selectItem"
+                handle=".option-drag"
+              >
+                <div v-for="(item, index) in activeData.options" :key="index" class="select-item">
+                  <div class="select-line-icon option-drag">
+                    <i class="iconfont icon-success" />
+                  </div>
+                  <u-input v-model="item.label" :placeholder="$t('searchForm.optionName')" size="small" />
+                  <u-input
+                    :placeholder="$t('searchForm.optionValue')"
+                    size="small"
+                    :value="item.value"
+                    @input="setOptionValue(item, $event)"
+                  />
+                  <div class="close-btn select-line-icon" @click="activeData.options.splice(index, 1)">
+                    <i class="iconfont icon-delete" />
+                  </div>
+                </div>
+              </draggable>
+              <div style="margin-left: 20px;">
+                <u-button
+                  style="padding-bottom: 0"
+                  icon="u-icon-circle-plus-outline"
+                  type="text"
+                  @click.prevent="addSelectItem"
+                >
+                  {{ $t('searchForm.addOption') }}
+                </u-button>
+              </div>
+            </template>
+            <!-- 数据集选项：绑定数据集 + 标签/值字段 -->
+            <template v-else>
+              <u-form-item :label="$t('searchForm.optionSourceDataset')">
+                <u-select
+                  :value="datasetKey"
+                  :placeholder="$t('searchForm.selectDataset')"
+                  :style="{width: '100%'}"
+                  @change="onDatasetChange"
+                >
+                  <u-option
+                    v-for="item in datasetOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </u-select>
+              </u-form-item>
+              <u-form-item v-if="activeData.datasetOption" :label="$t('searchForm.datasetLabelField')">
+                <u-select
+                  v-model="activeData.datasetOption.labelField"
+                  :placeholder="$t('searchForm.selectDatasetLabelField')"
+                  :style="{width: '100%'}"
+                >
+                  <u-option v-for="f in datasetFieldNames" :key="f" :label="f" :value="f" />
+                </u-select>
+              </u-form-item>
+              <u-form-item v-if="activeData.datasetOption" :label="$t('searchForm.datasetValueField')">
+                <u-select
+                  v-model="activeData.datasetOption.valueField"
+                  :placeholder="$t('searchForm.selectDatasetValueField')"
+                  :style="{width: '100%'}"
+                >
+                  <u-option v-for="f in datasetFieldNames" :key="f" :label="f" :value="f" />
+                </u-select>
+              </u-form-item>
+              <!-- 级联参数绑定：把其它查询字段的当前值作为数据集查询参数（仅有参数定义的数据集支持） -->
+              <template v-if="activeData.datasetOption && datasetParamNames.length">
+                <u-divider>{{ $t('searchForm.paramBinding') }}</u-divider>
+                <div
+                  v-for="(binding, bIndex) in activeData.datasetOption.datasetParams"
+                  :key="bIndex"
+                  class="param-binding-row"
+                >
+                  <u-select
+                    v-model="binding.paramKey"
+                    :placeholder="$t('searchForm.selectDatasetParam')"
+                    class="binding-select"
+                  >
+                    <u-option v-for="p in datasetParamNames" :key="p" :label="p" :value="p" />
+                  </u-select>
+                  <u-select
+                    v-model="binding.parentField"
+                    :placeholder="$t('searchForm.selectParentField')"
+                    class="binding-select"
+                  >
+                    <u-option
+                      v-for="f in otherFieldOptions"
+                      :key="f.value"
+                      :label="f.label"
+                      :value="f.value"
+                      :disabled="isCycleParent(f.value)"
+                    />
+                  </u-select>
+                  <div
+                    class="close-btn select-line-icon"
+                    @click="activeData.datasetOption.datasetParams.splice(bIndex, 1)"
+                  >
+                    <i class="iconfont icon-delete" />
+                  </div>
+                </div>
+                <u-button
+                  style="padding-bottom: 0; margin-left: 20px;"
+                  icon="u-icon-circle-plus-outline"
+                  type="text"
+                  @click.prevent="addParamBinding"
+                >
+                  {{ $t('searchForm.addParamBinding') }}
+                </u-button>
+              </template>
+            </template>
             <u-divider />
           </template>
 
@@ -283,17 +380,11 @@
             <u-switch v-model="activeData.showTip" />
           </u-form-item>
 
-          <u-form-item v-if="activeData.readonly !== undefined" :label="$t('searchForm.readonly')">
-            <u-switch v-model="activeData.readonly" />
-          </u-form-item>
-          <u-form-item v-if="activeData.disabled !== undefined" :label="$t('searchForm.disabled')">
-            <u-switch v-model="activeData.disabled" />
-          </u-form-item>
           <!-- <u-form-item v-if="activeData.tag === 'u-select'" label="是否可搜索">
             <u-switch v-model="activeData.filterable" />
           </u-form-item> -->
           <u-form-item v-if="activeData.tag === 'u-select'" :label="$t('searchForm.multiple')">
-            <u-switch v-model="activeData.multiple" @change="multipleChange" />
+            <u-switch v-model="activeData.multiple" @input="multipleChange" />
           </u-form-item>
           <u-form-item v-if="activeData.required !== undefined" :label="$t('searchForm.required')">
             <u-switch v-model="activeData.required" />
@@ -400,7 +491,7 @@
 /* eslint-disable */
 
 import draggable from 'vuedraggable'
-import {isNumberStr,} from '../utils'
+import {toSafeNumber,} from '../utils'
 import {inputComponents, selectComponents,} from '../utils/config'
 import UTabs from '@/components/tabs/index.vue'
 import UTabPane from '@/components/tabs/pane.vue'
@@ -444,7 +535,7 @@ export default {
     UButton,
     UTree
   },
-  props: ['showField', 'activeData', 'formConf'],
+  props: ['showField', 'activeData', 'formConf', 'drawingList'],
   data() {
     return {
       currentTab: 'field',
@@ -529,6 +620,77 @@ export default {
     layoutTree(){
       // 创建 activeData 的深拷贝
       return deepCopy([this.activeData]);
+    },
+    // 报表内全部数据源（供数据集绑定下拉取数）
+    reportDatasources() {
+      const context = this.$store.getters['report/getContext'];
+      return (context && context.reportDef && context.reportDef.datasources) || [];
+    },
+    // 数据集下拉选项：label 只展示数据集名，value 用 "数据源名/数据集名" 保证跨数据源唯一
+    datasetOptions() {
+      const list = [];
+      for (const ds of this.reportDatasources) {
+        for (const dt of (ds.datasets || [])) {
+          list.push({ label: dt.name, value: `${ds.name}/${dt.name}` });
+        }
+      }
+      return list;
+    },
+    // 当前绑定数据集 key："数据源名/数据集名"，未配置返回 undefined
+    datasetKey() {
+      const opt = this.activeData.datasetOption;
+      if (!opt || !opt.datasourceName || !opt.datasetName) return undefined;
+      return `${opt.datasourceName}/${opt.datasetName}`;
+    },
+    // 当前选中的数据集对象
+    currentDataset() {
+      const opt = this.activeData.datasetOption;
+      if (!opt) return null;
+      const ds = this.reportDatasources.find(d => d.name === opt.datasourceName);
+      const dt = (ds && ds.datasets || []).find(d => d.name === opt.datasetName);
+      return dt || null;
+    },
+    // 数据集字段名列表：优先取 fields；JSON 静态数据集无 fields 时解析 content 首行 key
+    datasetFieldNames() {
+      const dt = this.currentDataset;
+      if (!dt) return [];
+      const fields = dt.fields || [];
+      if (fields.length) return fields.map(f => f.name);
+      // JSON 静态数据集：前端直接解析 content 提取首行 key 作为字段列表
+      if (typeof dt.content === 'string' && dt.content.trim()) {
+        try {
+          const parsed = JSON.parse(dt.content);
+          if (Array.isArray(parsed) && parsed.length && typeof parsed[0] === 'object' && parsed[0]) {
+            return Object.keys(parsed[0]);
+          }
+        } catch (e) {
+          return [];
+        }
+      }
+      return [];
+    },
+    // 数据集查询参数名列表（SQL 数据集的 parameter 定义；JSON 数据集为空则不展示级联配置）
+    datasetParamNames() {
+      const dt = this.currentDataset;
+      if (!dt || !Array.isArray(dt.parameters)) return [];
+      return dt.parameters.map(p => p.name);
+    },
+    // 级联父字段候选：画布中其它有 vModel 的字段（含 row children，排除自身）
+    otherFieldOptions() {
+      const result = [];
+      const walk = (list) => {
+        for (const item of (list || [])) {
+          if (item.children && Array.isArray(item.children)) {
+            walk(item.children);
+            continue;
+          }
+          if (item.vModel && item.vModel !== this.activeData.vModel) {
+            result.push({ label: `${item.label || ''}(${item.vModel})`, value: item.vModel });
+          }
+        }
+      };
+      walk(this.drawingList);
+      return result;
     }
   },
   methods: {
@@ -544,41 +706,108 @@ export default {
         value: ''
       })
     },
+    /**
+     * 选项来源切换：切到 dataset 时补全 datasetOption 默认结构；切回 static 保留配置不删除
+     * @param {String} val 选项来源（static / dataset）
+     */
+    onOptionSourceChange(val) {
+      this.$set(this.activeData, 'optionSource', val)
+      if (val === 'dataset' && !this.activeData.datasetOption) {
+        this.$set(this.activeData, 'datasetOption', {
+          datasourceName: '',
+          datasetName: '',
+          labelField: '',
+          valueField: '',
+          datasetParams: []
+        })
+      }
+    },
+    /**
+     * 数据集选择变更：写入绑定信息并清空字段绑定与级联配置
+     * @param {String} val "数据源名/数据集名"
+     */
+    onDatasetChange(val) {
+      const [datasourceName, datasetName] = String(val || '').split('/')
+      this.$set(this.activeData, 'datasetOption', {
+        datasourceName,
+        datasetName,
+        labelField: '',
+        valueField: '',
+        datasetParams: []
+      })
+    },
+    /**
+     * 添加一行级联参数绑定
+     */
+    addParamBinding() {
+      const opt = this.activeData.datasetOption
+      if (!opt) return
+      if (!opt.datasetParams) this.$set(opt, 'datasetParams', [])
+      opt.datasetParams.push({ paramKey: '', parentField: '' })
+    },
+    /**
+     * 判断将当前字段的级联父字段设为 candidate 后是否会形成循环依赖
+     * 依赖方向：字段 -> 其选项依赖的父字段；candidate 沿依赖链能回到当前字段（或自引用）即成环
+     * @param {String} candidate 候选父字段 vModel
+     * @return {Boolean} 成环返回 true
+     */
+    isCycleParent(candidate) {
+      const selfVModel = String(this.activeData.vModel || '')
+      if (!selfVModel || !candidate) return false
+      if (candidate === selfVModel) return true
+      // 收集画布中所有数据集来源字段的依赖边：字段 vModel -> 父字段 vModel 列表
+      const edges = new Map()
+      const walk = (list) => {
+        for (const item of (list || [])) {
+          if (item.children && Array.isArray(item.children)) {
+            walk(item.children)
+            continue
+          }
+          if (item.optionSource !== 'dataset' || !item.datasetOption || !item.vModel) continue
+          const parents = (item.datasetOption.datasetParams || [])
+            .map(b => b.parentField)
+            .filter(p => !!p)
+          if (parents.length) edges.set(String(item.vModel), parents)
+        }
+      }
+      walk(this.drawingList)
+      // 从 candidate 沿依赖边搜索，若能到达当前字段则 self->candidate 会闭合出环
+      const visited = new Set()
+      const stack = [candidate]
+      while (stack.length) {
+        const cur = stack.pop()
+        if (cur === selfVModel) return true
+        if (visited.has(cur)) continue
+        visited.add(cur)
+        for (const p of (edges.get(cur) || [])) stack.push(p)
+      }
+      return false
+    },
     addNode(data) {
       this.currentNode.push(data)
     },
     setOptionValue(item, val) {
-      item.value = isNumberStr(val) ? +val : val
+      item.value = toSafeNumber(val)
     },
     setDefaultValue(val) {
-      if (Array.isArray(val)) {
-        return val.join(',')
-      }
-      if (['string', 'number'].indexOf(val) > -1) {
-        return val
-      }
       if (typeof val === 'boolean') {
         return `${val}`
       }
       return val
     },
     onDefaultValueInput(str) {
-      if (Array.isArray(this.activeData.defaultValue)) {
-        // 数组
-        this.$set(
-          this.activeData,
-          'defaultValue',
-          str.split(',').map(val => (isNumberStr(val) ? +val : val))
-        )
+      if (this.activeData.tag === 'u-switch') {
+        // switch 默认值统一字符串存储
+        this.$set(this.activeData, 'defaultValue', str)
       } else if (['true', 'false'].indexOf(str) > -1) {
         // 布尔
         this.$set(this.activeData, 'defaultValue', JSON.parse(str))
       } else {
-        // 字符串和数字
+        // 字符串和数字：超长整数 ID 保持字符串，避免 Number 精度丢失
         this.$set(
           this.activeData,
           'defaultValue',
-          isNumberStr(str) ? +str : str
+          toSafeNumber(str)
         )
       }
     },
@@ -586,7 +815,7 @@ export default {
       if (['true', 'false'].indexOf(val) > -1) {
         this.$set(this.activeData, name, JSON.parse(val))
       } else {
-        this.$set(this.activeData, name, isNumberStr(val) ? +val : val)
+        this.$set(this.activeData, name, toSafeNumber(val))
       }
     },
     setTimeValue(val, type) {
@@ -599,7 +828,7 @@ export default {
       this.formConf.span = val
     },
     multipleChange(val) {
-      this.$set(this.activeData, 'defaultValue', val ? [] : '')
+      this.$set(this.activeData, 'defaultValue', null)
     },
     dateTypeChange(val) {
       this.setTimeValue(dateTimeFormat[val], val)
@@ -662,6 +891,21 @@ export default {
 }
 .option-drag {
   cursor: move;
+}
+.param-binding-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.param-binding-row .binding-select {
+  flex: 1;
+}
+.param-binding-row .binding-select + .binding-select {
+  margin-left: 4px;
+}
+.param-binding-row .close-btn {
+  cursor: pointer;
+  color: #f56c6c;
 }
 .node-label {
   font-size: 14px;

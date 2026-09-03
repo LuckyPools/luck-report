@@ -162,3 +162,14 @@ export async function storeChartData(formData) {
         }
     });
 }
+
+/**
+ * 批量加载查询表单选项：按报表文件 + 数据集引用执行数据集，返回 label/value 选项
+ * @param reportPath 报表文件路径，不可为空
+ * @param mode 运行模式，可为空（preview 时从设计器预览缓存加载报表定义）
+ * @param datasets 数据集引用列表，每项含 datasourceName/datasetName/labelField/valueField/parameters
+ * @returns {Promise<Object>} options（key 为 "数据源名/数据集名"）+ errors（仅失败项存在）
+ */
+export async function loadSearchFormOptions(reportPath, mode, datasets) {
+    return request.post('/html/loadSearchFormOptions', { reportPath, mode, datasets });
+}

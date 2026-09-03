@@ -7,8 +7,6 @@ public class InputComponent extends BaseInputComponent {
     private static final long serialVersionUID = 1L;
     private String placeholder;
     private boolean clearable;
-    private boolean disabled;
-    private boolean readonly;
     private String maxlength;
     private boolean showWordLimit;
     private String prepend;
@@ -41,22 +39,6 @@ public class InputComponent extends BaseInputComponent {
 
     public void setClearable(boolean clearable) {
         this.clearable = clearable;
-    }
-
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
-    public boolean isReadonly() {
-        return readonly;
-    }
-
-    public void setReadonly(boolean readonly) {
-        this.readonly = readonly;
     }
 
     public String getMaxlength() {

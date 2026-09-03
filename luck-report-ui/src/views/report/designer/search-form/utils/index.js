@@ -433,3 +433,35 @@ export function isNumberStr(str) {
   return /^[+-]?(0|([1-9]\d*))(\.\d+)?$/g.test(str)
 }
 
+/**
+ * 数字字符串安全转数字：超出 JS 安全整数范围（如 19 位雪花 ID）时保持字符串，避免精度丢失
+ * @param {String} str 输入字符串，可为空
+ * @return {Number|String} 可安全表示的数字返回 Number，超长整数或非数字返回原字符串
+ */
+export function toSafeNumber(str) {
+  if (!isNumberStr(str)) return str
+  const num = Number(str)
+  if (Number.isInteger(num) && !Number.isSafeInteger(num)) return str
+  return num
+}
+
+/**
+ * 方法说明：判断是否多选选项组件（checkbox-group 或开启 multiple 的 select）
+ * @param {Object} conf 组件配置对象，不可为空
+ * @return {Boolean} 是多选组件返回 true
+ */
+export function isMultiSelectComponent(conf) {
+  return conf.tag === 'u-checkbox-group' || (conf.tag === 'u-select' && !!conf.multiple)
+}
+
+/**
+ * 方法说明：逗号拼接的默认值字符串分割为安全类型数组（元素过 toSafeNumber，与选项 value 类型对齐），供多选组件运行时赋值
+ * @param {String|Array} value 默认值，字符串（逗号拼接）或数组，可为空
+ * @return {Array} 分割并类型对齐后的数组，空值返回 []
+ */
+export function splitToSafeArray(value) {
+  if (value === undefined || value === null || value === '') return []
+  if (Array.isArray(value)) return value.map(v => toSafeNumber(v))
+  return String(value).split(',').filter(v => v !== '').map(v => toSafeNumber(v))
+}
+

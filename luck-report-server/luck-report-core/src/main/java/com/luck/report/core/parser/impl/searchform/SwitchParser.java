@@ -13,7 +13,6 @@ public class SwitchParser implements FormParser<SwitchComponent> {
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
         component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
         
-        component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         component.setActiveValue(FormParserUtils.parseBooleanAttribute(element.attributeValue("activeValue")));
         component.setInactiveValue(FormParserUtils.parseBooleanAttribute(element.attributeValue("inactiveValue")));
 
@@ -30,16 +29,7 @@ public class SwitchParser implements FormParser<SwitchComponent> {
         component.setRenderKey(FormParserUtils.parseStringAttribute(element.attributeValue("renderKey")));
         component.setVModel(FormParserUtils.parseStringAttribute(element.attributeValue("vModel")));
         
-        String defaultValueStr = element.attributeValue("defaultValue");
-        if (defaultValueStr != null) {
-            if ("true".equalsIgnoreCase(defaultValueStr)) {
-                component.setDefaultValue(true);
-            } else if ("false".equalsIgnoreCase(defaultValueStr)) {
-                component.setDefaultValue(false);
-            } else {
-                component.setDefaultValue(defaultValueStr);
-            }
-        }
+        component.setDefaultValue(FormParserUtils.parseStringAttribute(element.attributeValue("defaultValue")));
         
         component.setLayout(FormParserUtils.parseStringAttribute(element.attributeValue("layout")));
         

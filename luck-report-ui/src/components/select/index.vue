@@ -62,11 +62,11 @@
           'u-select-inner-icon-focus': visible,
           [`u-select-inner-icon-size-${size}`]: true
         }"
-          v-show="!(clearable && this.currentValue && onHover)"
+          v-show="!(clearable && this.currentValue != null && this.currentValue !== '' && onHover)"
       />
       <span
           class="u-select-inner-icon"
-          v-show="clearable && this.currentValue && onHover"
+          v-show="clearable && this.currentValue != null && this.currentValue !== '' && onHover"
           @click="handleClear"
       >
         <i class="iconfont icon-close" />

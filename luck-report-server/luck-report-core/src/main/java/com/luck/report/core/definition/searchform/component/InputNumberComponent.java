@@ -6,7 +6,6 @@ public class InputNumberComponent extends BaseInputComponent {
     private static final long serialVersionUID = 1L;
     private boolean stepStrictly;
     private String controlsPosition;
-    private boolean disabled;
     private String defaultValue;
 
     /**
@@ -33,14 +32,6 @@ public class InputNumberComponent extends BaseInputComponent {
 
     public void setControlsPosition(String controlsPosition) {
         this.controlsPosition = controlsPosition;
-    }
-
-    public boolean getDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(Boolean disabled) {
-        this.disabled = disabled;
     }
 
     public String getDefaultValue() {

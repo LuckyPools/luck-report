@@ -16,7 +16,7 @@ export function buildLocationSearchParameters(searchFormParameters) {
   if (searchFormParameters) {
     for (let key in searchFormParameters) {
       const value = searchFormParameters[key];
-      if (value) {
+      if (value != null) {
         parameters[key] = value;
       }
     }

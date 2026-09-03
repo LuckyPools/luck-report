@@ -19,7 +19,7 @@ export default {
   },
   props: {
     value: {
-      type: [Boolean, String, Number],
+      type: [String, Boolean, Number],
       default: false,
     },
     disabled: {

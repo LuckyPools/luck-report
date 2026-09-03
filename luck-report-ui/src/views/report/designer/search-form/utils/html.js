@@ -118,7 +118,7 @@ const layouts = {
 const tags = {
   'u-button': el => {
     const {
-      tag, disabled
+      tag
     } = attrBuilder(el)
     const type = el.type ? `type="${el.type}"` : ''
     const icon = el.icon ? `icon="${el.icon}"` : ''
@@ -126,25 +126,24 @@ const tags = {
     let child = buildElButtonChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${el.tag} ${type} ${icon} ${size} ${disabled}>${child}</${el.tag}>`
+    return `<${el.tag} ${type} ${icon} ${size}>${child}</${el.tag}>`
   },
   'u-input': el => {
     const {
-      disabled, vModel, clearable, placeholder, width
+      vModel, clearable, placeholder, width
     } = attrBuilder(el)
     const maxlength = el.maxlength ? `:maxlength="${el.maxlength}"` : ''
     const showWordLimit = el['showWordLimit'] ? 'showWordLimit' : ''
-    const readonly = el.readonly ? 'readonly' : ''
     const prefixIcon = el['prefixIcon'] ? `prefixIcon='${el['prefixIcon']}'` : ''
     const suffixIcon = el['suffixIcon'] ? `suffixIcon='${el['suffixIcon']}'` : ''
     const type = el.type ? `type="${el.type}"` : ''
     let child = buildElInputChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${el.tag} ${vModel} ${type} ${placeholder} ${maxlength} ${showWordLimit} ${readonly} ${disabled} ${clearable} ${prefixIcon} ${suffixIcon} ${width}>${child}</${el.tag}>`
+    return `<${el.tag} ${vModel} ${type} ${placeholder} ${maxlength} ${showWordLimit} ${clearable} ${prefixIcon} ${suffixIcon} ${width}>${child}</${el.tag}>`
   },
   'u-input-number': el => {
-    const { disabled, vModel, placeholder } = attrBuilder(el)
+    const { vModel, placeholder } = attrBuilder(el)
     const controlsPosition = el['controlsPosition'] ? `controlsPosition=${el['controlsPosition']}` : ''
     const min = el.min ? `:min='${el.min}'` : ''
     const max = el.max ? `:max='${el.max}'` : ''
@@ -152,39 +151,41 @@ const tags = {
     const stepStrictly = el['stepStrictly'] ? 'stepStrictly' : ''
     const precision = el.precision ? `:precision='${el.precision}'` : ''
 
-    return `<${el.tag} ${vModel} ${placeholder} ${step} ${stepStrictly} ${precision} ${controlsPosition} ${min} ${max} ${disabled}></${el.tag}>`
+    return `<${el.tag} ${vModel} ${placeholder} ${step} ${stepStrictly} ${precision} ${controlsPosition} ${min} ${max}></${el.tag}>`
   },
   'u-select': el => {
     const {
-      disabled, vModel, clearable, placeholder, width
+      vModel, clearable, placeholder, width
     } = attrBuilder(el)
     const filterable = el.filterable ? 'filterable' : ''
     const multiple = el.multiple ? 'multiple' : ''
+    // 数据集来源：级联刷新期间展示 loading
+    const loading = el.optionSource === 'dataset' ? `:loading="!!dsLoading['${el.vModel}']"` : ''
     let child = buildElSelectChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${el.tag} ${vModel} ${placeholder} ${disabled} ${multiple} ${filterable} ${clearable} ${width}>${child}</${el.tag}>`
+    return `<${el.tag} ${vModel} ${placeholder} ${multiple} ${filterable} ${clearable} ${width} ${loading}>${child}</${el.tag}>`
   },
   'u-radio-group': el => {
-    const { disabled, vModel } = attrBuilder(el)
+    const { vModel } = attrBuilder(el)
     const size = `size="${el.size}"`
     let child = buildElRadioGroupChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${el.tag} ${vModel} ${size} ${disabled}>${child}</${el.tag}>`
+    return `<${el.tag} ${vModel} ${size}>${child}</${el.tag}>`
   },
   'u-checkbox-group': el => {
-    const { disabled, vModel } = attrBuilder(el)
+    const { vModel } = attrBuilder(el)
     const size = `size="${el.size}"`
     const min = el.min ? `:min="${el.min}"` : ''
     const max = el.max ? `:max="${el.max}"` : ''
     let child = buildElCheckboxGroupChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${el.tag} ${vModel} ${min} ${max} ${size} ${disabled}>${child}</${el.tag}>`
+    return `<${el.tag} ${vModel} ${min} ${max} ${size}>${child}</${el.tag}>`
   },
   'u-switch': el => {
-    const { disabled, vModel } = attrBuilder(el)
+    const { vModel } = attrBuilder(el)
     const activeText = el['activeText'] ? `activeText="${el['activeText']}"` : ''
     const inactiveText = el['inactiveText'] ? `inactiveText="${el['inactiveText']}"` : ''
     const activeColor = el['activeColor'] ? `activeColor="${el['activeColor']}"` : ''
@@ -192,11 +193,11 @@ const tags = {
     const activeValue = el['activeValue'] !== true ? `:activeValue='${JSON.stringify(el['activeValue'])}'` : ''
     const inactiveValue = el['inactiveValue'] !== false ? `:inactiveValue='${JSON.stringify(el['inactiveValue'])}'` : ''
 
-    return `<${el.tag} ${vModel} ${activeText} ${inactiveText} ${activeColor} ${inactiveColor} ${activeValue} ${inactiveValue} ${disabled}></${el.tag}>`
+    return `<${el.tag} ${vModel} ${activeText} ${inactiveText} ${activeColor} ${inactiveColor} ${activeValue} ${inactiveValue}></${el.tag}>`
   },
   'u-cascader': el => {
     const {
-      disabled, vModel, clearable, placeholder, width
+      vModel, clearable, placeholder, width
     } = attrBuilder(el)
     const options = el.options ? `:options="${el.vModel}Options"` : ''
     const props = el.props ? `:props="${el.vModel}Props"` : ''
@@ -204,12 +205,12 @@ const tags = {
     const filterable = el.filterable ? 'filterable' : ''
     const separator = el.separator === '/' ? '' : `separator="${el.separator}"`
 
-    return `<${el.tag} ${vModel} ${options} ${props} ${width} ${showAllLevels} ${placeholder} ${separator} ${filterable} ${clearable} ${disabled}></${el.tag}>`
+    return `<${el.tag} ${vModel} ${options} ${props} ${width} ${showAllLevels} ${placeholder} ${separator} ${filterable} ${clearable}></${el.tag}>`
   },
 
   'u-date-picker': el => {
     const {
-      disabled, vModel, clearable, placeholder, width
+      vModel, clearable, placeholder, width
     } = attrBuilder(el)
     const startPlaceholder = el['start-placeholder'] ? `start-placeholder="${el['start-placeholder']}"` : ''
     const endPlaceholder = el['end-placeholder'] ? `end-placeholder="${el['end-placeholder']}"` : ''
@@ -217,9 +218,8 @@ const tags = {
     const format = el.format ? `format="${el.format}"` : ''
     const valueFormat = el['valueFormat'] ? `valueFormat="${el['valueFormat']}"` : ''
     const type = el.type === 'date' ? '' : `type="${el.type}"`
-    const readonly = el.readonly ? 'readonly' : ''
 
-    return `<${el.tag} ${type} ${vModel} ${format} ${valueFormat} ${width} ${placeholder} ${startPlaceholder} ${endPlaceholder} ${rangeSeparator} ${clearable} ${readonly} ${disabled}></${el.tag}>`
+    return `<${el.tag} ${type} ${vModel} ${format} ${valueFormat} ${width} ${placeholder} ${startPlaceholder} ${endPlaceholder} ${rangeSeparator} ${clearable}></${el.tag}>`
   },
 
 
@@ -230,8 +230,7 @@ function attrBuilder(el) {
     vModel: `v-model="${confGlobal.formModel}.${el.vModel}"`,
     clearable: el.clearable ? 'clearable' : '',
     placeholder: el.placeholder ? `placeholder="${el.placeholder}"` : '',
-    width: el.style && el.style.width ? ':style="{width: \'100%\'}"' : '',
-    disabled: el.disabled ? ':disabled=\'true\'' : ''
+    width: el.style && el.style.width ? ':style="{width: \'100%\'}"' : ''
   }
 }
 
@@ -258,7 +257,8 @@ function buildElInputChild(conf) {
 
 function buildElSelectChild(conf) {
   const children = []
-  if (conf.options && conf.options.length) {
+  // 数据集来源：初始 options 为空也生成渲染入口，供运行时注入选项
+  if ((conf.options && conf.options.length) || conf.optionSource === 'dataset') {
     children.push(`<u-option v-for="(item, index) in ${conf.vModel}Options" :key="index" :label="item.label" :value="item.value" :disabled="item.disabled"></u-option>`)
   }
   return children.join('\n')
@@ -266,7 +266,8 @@ function buildElSelectChild(conf) {
 
 function buildElRadioGroupChild(conf) {
   const children = []
-  if (conf.options && conf.options.length) {
+  // 数据集来源：初始 options 为空也生成渲染入口，供运行时注入选项
+  if ((conf.options && conf.options.length) || conf.optionSource === 'dataset') {
     const tag = conf.optionType === 'button' ? 'u-radio-button' : 'u-radio'
     const border = conf.border ? 'border' : ''
     children.push(`<${tag} v-for="(item, index) in ${conf.vModel}Options" :key="index" :label="item.value" :disabled="item.disabled" ${border}>{{item.label}}</${tag}>`)
@@ -276,7 +277,8 @@ function buildElRadioGroupChild(conf) {
 
 function buildElCheckboxGroupChild(conf) {
   const children = []
-  if (conf.options && conf.options.length) {
+  // 数据集来源：初始 options 为空也生成渲染入口，供运行时注入选项
+  if ((conf.options && conf.options.length) || conf.optionSource === 'dataset') {
     const tag = conf.optionType === 'button' ? 'u-checkbox-button' : 'u-checkbox'
     const border = conf.border ? 'border' : ''
     children.push(`<${tag} v-for="(item, index) in ${conf.vModel}Options" :key="index" :label="item.value" :disabled="item.disabled" ${border}>{{item.label}}</${tag}>`)

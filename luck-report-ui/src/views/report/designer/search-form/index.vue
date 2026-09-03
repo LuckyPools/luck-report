@@ -119,6 +119,7 @@
       :active-data="activeData"
       :form-conf="formConf"
       :show-field="!!drawingList.length"
+      :drawing-list="drawingList"
       @tag-change="tagChange"
     />
 
@@ -184,6 +185,8 @@ export default {
     return {
       logo,
       idGlobal: 100,
+      // 字段名计数器：与 formId 解耦
+      fieldIdGlobal: 100,
       formConf,
       inputComponents,
       selectComponents,
@@ -224,6 +227,7 @@ export default {
           const { fields, ...rest } = val;
           this.formConf = deepCopy(rest);
           this.drawingList = deepCopy(fields)
+          this.syncComponentCounters()
         }
       },
       immediate: true
@@ -255,6 +259,32 @@ export default {
         this.activeId = this.idGlobal
       }
     },
+    /**
+     * 方法说明：同步组件计数器，扫描画布（含行容器子组件）取现有最大 formId 与 fieldN 字段编号，保证后续新增不与已有组件冲突
+     */
+    syncComponentCounters() {
+      let maxFormId = 0
+      let maxFieldId = 0
+      const walk = (list) => {
+        for (const item of (list || [])) {
+          if (item.formId !== undefined) {
+            // formId 从后端 XML 载入时为字符串，统一转数字比较
+            maxFormId = Math.max(maxFormId, Number(item.formId) || 0)
+          }
+          const match = /^field(\d+)$/.exec(String(item.vModel || ''))
+          if (match) {
+            maxFieldId = Math.max(maxFieldId, parseInt(match[1], 10))
+          }
+          if (Array.isArray(item.children)) {
+            walk(item.children)
+          }
+        }
+      }
+      walk(this.drawingList)
+      // 仅增不减：会话内已发号的不回收，避免删除组件后编号回退引发引用混乱
+      this.idGlobal = Math.max(this.idGlobal, maxFormId)
+      this.fieldIdGlobal = Math.max(this.fieldIdGlobal, maxFieldId)
+    },
     addComponent(item) {
       const clone = this.cloneComponent(item)
       this.drawingList.push(clone)
@@ -267,7 +297,7 @@ export default {
       clone.renderKey = +new Date() // 改变renderKey后可以实现强制更新组件
       if (!clone.layout) clone.layout = 'colFormItem'
       if (clone.layout === 'colFormItem') {
-        clone.vModel = `field${this.idGlobal}`
+        clone.vModel = `field${++this.fieldIdGlobal}`
         clone.placeholder !== undefined && (clone.placeholder += clone.label)
         tempActiveData = clone
       } else if (clone.layout === 'rowFormItem') {
@@ -326,7 +356,7 @@ export default {
       item.formId = ++this.idGlobal
       item.renderKey = +new Date()
       if (item.layout === 'colFormItem') {
-        item.vModel = `field${this.idGlobal}`
+        item.vModel = `field${++this.fieldIdGlobal}`
       } else if (item.layout === 'rowFormItem') {
         item.componentName = `row${this.idGlobal}`
       }

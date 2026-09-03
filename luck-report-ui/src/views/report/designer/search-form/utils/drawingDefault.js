@@ -21,8 +21,6 @@ export function initDrawingDefaultValue() {
       'suffixIcon': '',
       maxlength: 11,
       'showWordLimit': true,
-      readonly: false,
-      disabled: false,
       required: true,
       changeTag: true,
       regList: [{

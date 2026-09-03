@@ -17,7 +17,6 @@ public class RadioGroupParser implements FormParser<RadioGroupComponent> {
         component.setTag(FormParserUtils.parseStringAttribute(element.attributeValue("tag")));
         component.setTagIcon(FormParserUtils.parseStringAttribute(element.attributeValue("tagIcon")));
         
-        component.setDisabled(FormParserUtils.parseBooleanAttribute(element.attributeValue("disabled")));
         component.setBorder(FormParserUtils.parseBooleanAttribute(element.attributeValue("border")));
 
         component.setSpan(FormParserUtils.parseIntAttribute(element.attributeValue("span")));
@@ -34,6 +33,8 @@ public class RadioGroupParser implements FormParser<RadioGroupComponent> {
         component.setVModel(FormParserUtils.parseStringAttribute(element.attributeValue("vModel")));
         component.setDefaultValue(FormParserUtils.parseStringAttribute(element.attributeValue("defaultValue")));
         component.setLayout(FormParserUtils.parseStringAttribute(element.attributeValue("layout")));
+        component.setOptionSource(FormParserUtils.parseStringAttribute(element.attributeValue("optionSource")));
+        component.setDatasetOption(FormParserUtils.parseDatasetOption(element));
         
         List<Option> options = new ArrayList<Option>();
         for (Object obj : element.elements()) {
