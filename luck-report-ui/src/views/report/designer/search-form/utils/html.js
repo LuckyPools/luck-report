@@ -39,7 +39,7 @@ function buildFormTemplate(conf, child, type) {
     labelPosition = `labelPosition="${conf.labelPosition}"`
   }
   const disabled = conf.disabled ? `:disabled="${conf.disabled}"` : ''
-  let str = `<u-form ref="${conf.formRef}" :model="${conf.formModel}" :rules="${conf.formRules}" size="${conf.size}" ${disabled} :label-width="${conf.labelWidth}" ${labelPosition}>
+  let str = `<u-form ref="${conf.formRef}" :model="${conf.formModel}" :rules="${conf.formRules}" size="${conf.size}" ${disabled} :label-width="${conf.labelWidth}" ${labelPosition} @submit.native.prevent>
       ${child}
       ${buildFromBtns(conf, type)}
     </u-form>`
