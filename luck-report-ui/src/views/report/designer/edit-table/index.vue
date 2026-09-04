@@ -217,6 +217,22 @@ export default {
     handleDragOver(event) {
       event.preventDefault();
       event.dataTransfer.dropEffect = 'copy';
+
+      const targetCell = this.getCellFromPoint(event.clientX, event.clientY);
+      if (!targetCell) {
+        return;
+      }
+
+      const { row, col } = targetCell;
+      const selections = this.hot.getSelected();
+      const currentSelection = selections && selections[selections.length - 1];
+      const isTargetSelected = currentSelection &&
+        currentSelection[0] === row && currentSelection[1] === col &&
+        currentSelection[2] === row && currentSelection[3] === col;
+
+      if (!isTargetSelected) {
+        this.hot.selectCell(row, col);
+      }
     },
 
     /**
