@@ -159,10 +159,7 @@ public class DatasourceService {
             DatabaseMetaData metaData = conn.getMetaData();
             String url = metaData.getURL();
             String dataBaseName = conn.getCatalog();
-            String schema = null;
-            if (url.toLowerCase().contains("oracle")) {
-                schema = metaData.getUserName();
-            }
+            String schema = resolveTableSchema(url, conn, metaData);
             List<Map<String, String>> tables = new ArrayList<>();
             rs = metaData.getTables(dataBaseName, schema, "%", new String[]{"TABLE", "VIEW"});
             while (rs.next()) {
@@ -451,6 +448,28 @@ public class DatasourceService {
             }
         }
         return map;
+    }
+
+    /**
+     * 解析列出表/视图时使用的 schema，过滤系统表
+     */
+    private String resolveTableSchema(String url, Connection conn, DatabaseMetaData metaData) throws SQLException {
+        if (url == null) {
+            return null;
+        }
+        DbType dbType = com.luck.report.web.utils.JdbcUtils.getDbType(url);
+        switch (dbType) {
+            case ORACLE:
+            case ORACLE_12C:
+                String userName = metaData.getUserName();
+                return userName == null ? null : userName.toUpperCase();
+            case SQL_SERVER:
+            case SQL_SERVER2005:
+            case POSTGRE_SQL:
+                return conn.getSchema();
+            default:
+                return null;
+        }
     }
 
     /**
