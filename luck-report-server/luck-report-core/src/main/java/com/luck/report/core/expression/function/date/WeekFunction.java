@@ -33,27 +33,20 @@ public class WeekFunction extends CalendarFunction {
     public Object execute(List<ExpressionData<?>> dataList, Context context, Cell currentCell) {
         Calendar c = buildCalendar(dataList);
         int weekDay = c.get(Calendar.DAY_OF_WEEK);
-        boolean isFirstSunday = (c.getFirstDayOfWeek() == Calendar.SUNDAY);
-        if (isFirstSunday) {
-            weekDay = weekDay - 1;
-            if (weekDay == 0) {
-                weekDay = 7;
-            }
-        }
         switch (weekDay) {
-            case 1:
+            case Calendar.MONDAY:
                 return "星期一";
-            case 2:
+            case Calendar.TUESDAY:
                 return "星期二";
-            case 3:
+            case Calendar.WEDNESDAY:
                 return "星期三";
-            case 4:
+            case Calendar.THURSDAY:
                 return "星期四";
-            case 5:
+            case Calendar.FRIDAY:
                 return "星期五";
-            case 6:
+            case Calendar.SATURDAY:
                 return "星期六";
-            case 7:
+            case Calendar.SUNDAY:
                 return "星期日";
         }
         throw new ReportComputeException("Unknow week day :" + weekDay);
