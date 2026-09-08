@@ -179,7 +179,11 @@ public class ElCompute {
             if (op == '*') {
                 return b1.multiply(b2);
             } else if (op == '/') {
-                return b1.divide(b2, 10, RoundingMode.HALF_UP).stripTrailingZeros();
+                BigDecimal result = b1.divide(b2, 10, RoundingMode.HALF_UP).stripTrailingZeros();
+                if (result.scale() < 0) {
+                    result = result.setScale(0);
+                }
+                return result;
             } else if (op == '%') {
                 return b1.divideAndRemainder(b2)[1];
             } else if (op == '-') {
