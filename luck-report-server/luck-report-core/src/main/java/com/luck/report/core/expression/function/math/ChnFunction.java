@@ -28,7 +28,8 @@ import java.util.List;
  */
 public class ChnFunction extends MathFunction {
     private static final String[] CN_UPPER_NUMBER = {"零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"};
-    private static final String[] CN_UPPER_UNIT = {"", "", "点", "拾", "佰", "仟", "万", "拾", "佰", "仟", "亿", "拾", "佰", "仟", "兆", "拾", "佰", "仟"};
+    private static final String CN_POINT = "点";
+    private static final String[] CN_UPPER_UNIT = {"", "", CN_POINT, "拾", "佰", "仟", "万", "拾", "佰", "仟", "亿", "拾", "佰", "仟", "兆", "拾", "佰", "仟"};
     private static final String CN_NEGATIVE = "负";
     private static final int NUMBER_PRECISION = 2;
     private static final String CN_ZEOR = "零";
@@ -82,7 +83,7 @@ public class ChnFunction extends MathFunction {
                 ++zeroSize;
                 if (!(getZero)) {
                     String unit = CN_UPPER_UNIT[numIndex];
-                    if (!unit.equals("点")) {
+                    if (!unit.equals(CN_POINT)) {
                         sb.insert(0, CN_UPPER_NUMBER[numUnit]);
                     }
                 }
@@ -99,6 +100,14 @@ public class ChnFunction extends MathFunction {
             number = number / 10;
             ++numIndex;
         }
+        if (numberData.abs().compareTo(BigDecimal.ONE) < 0) {
+            while (numIndex < 2) {
+                sb.insert(0, CN_ZEOR);
+                ++numIndex;
+            }
+            sb.insert(0, CN_POINT);
+            sb.insert(0, CN_ZEOR);
+        }
         if (signum == -1) {
             sb.insert(0, CN_NEGATIVE);
         }
@@ -107,7 +116,7 @@ public class ChnFunction extends MathFunction {
 
     private static String buildPoint(int numIndex, StringBuilder sb) {
         String unit = CN_UPPER_UNIT[numIndex];
-        if (unit.equals("点")) {
+        if (unit.equals(CN_POINT)) {
             if (sb.length() > 0) {
                 return unit;
             }
