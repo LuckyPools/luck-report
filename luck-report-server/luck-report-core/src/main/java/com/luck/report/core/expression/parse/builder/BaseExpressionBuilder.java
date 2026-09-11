@@ -113,24 +113,6 @@ public abstract class BaseExpressionBuilder implements ExpressionBuilder {
     }
 
     private Op parseOp(TerminalNode opNode) {
-        if (opNode.getText().equals(">")) {
-            return Op.GreatThen;
-        }
-        if (opNode.getText().equals("<")) {
-            return Op.LessThen;
-        }
-        if (opNode.getText().equals(">=")) {
-            return Op.EqualsGreatThen;
-        }
-        if (opNode.getText().equals("<=")) {
-            return Op.EqualsLessThen;
-        }
-        if (opNode.getText().equals("==")) {
-            return Op.Equals;
-        }
-        if (opNode.getText().equals("!=")) {
-            return Op.NotEquals;
-        }
-        throw new ReportParseException("Unknow operator :" + opNode);
+        return Op.parse(opNode.getText());
     }
 }

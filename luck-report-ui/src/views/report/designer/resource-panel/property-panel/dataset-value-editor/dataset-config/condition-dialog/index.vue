@@ -179,6 +179,7 @@ export default {
         { value: '==', label: this.$t('dialog.condition.equals') },
         { value: '!=', label: this.$t('dialog.condition.notEquals') },
         { value: 'in', label: this.$t('dialog.condition.in') },
+        { value: 'not in', label: this.$t('dialog.condition.notIn') },
         { value: 'like', label: this.$t('dialog.condition.like') }
       ];
     }

@@ -263,6 +263,7 @@ export default {
         { value: '==', label: this.$t('dialog.editPropCondition.equals') },
         { value: '!=', label: this.$t('dialog.editPropCondition.notEquals') },
         { value: 'in', label: this.$t('dialog.editPropCondition.in') },
+        { value: 'not in', label: this.$t('dialog.editPropCondition.notIn') },
         { value: 'like', label: this.$t('dialog.editPropCondition.like') }
       ];
     }
