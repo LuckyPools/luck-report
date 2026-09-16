@@ -46,7 +46,7 @@
               :key="index"
               :value="index"
           >
-            {{ formatConditionText(condition) }}
+            {{ formatConditionText(condition, index) }}
           </option>
         </select>
       </div>
@@ -173,9 +173,9 @@ export default {
     /**
      * 格式化条件文本
      */
-    formatConditionText(condition) {
+    formatConditionText(condition, index) {
       let text = `${condition.left} ${condition.operation} ${condition.right}`;
-      if (condition.join) {
+      if (condition.join && index > 0) {
         text = `${condition.join} ${text}`;
       }
       return text;

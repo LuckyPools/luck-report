@@ -134,7 +134,7 @@ public class DatasetExpression extends BaseExpression {
                     BaseCondition prevBase = (BaseCondition) prevCondition;
                     BaseCondition currentBase = (BaseCondition) current;
                     prevBase.setNextCondition(current);
-                    prevBase.setJoin(currentBase.getJoin());
+                    prevBase.setNextJoin(currentBase.getJoin());
                 }
                 prevCondition = current;
             }

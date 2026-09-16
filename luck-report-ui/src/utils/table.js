@@ -636,7 +636,9 @@ function buildConditions(conditions){
     let cellXml='';
     if(conditions){
         const size=conditions.length;
-        for(let condition of conditions){
+        for(let index=0;index<size;index++){
+            const condition=conditions[index];
+            const join=index>0 ? condition.join : null;
             if(!condition.type || condition.type==='property'){
                 if(condition.left){
                     cellXml+=`<condition property="${condition.left}" op="${encode(condition.operation)}" id="${condition.id}"`;
@@ -644,16 +646,16 @@ function buildConditions(conditions){
                     cellXml+=`<condition op="${encode(condition.operation)}" id="${condition.id}"`;
                 }
                 cellXml+=` type="${condition.type}"`;
-                if(condition.join && size>1){
-                    cellXml+=` join="${condition.join}">`;
+                if(join){
+                    cellXml+=` join="${join}">`;
                 }else{
                     cellXml+=`>`;
                 }
                 cellXml+=`<value><![CDATA[${condition.right}]]></value>`;
             }else{
                 cellXml+=`<condition type="${condition.type}" op="${encode(condition.operation)}" `;
-                if(condition.join && size>1){
-                    cellXml+=` join="${condition.join}">`;
+                if(join){
+                    cellXml+=` join="${join}">`;
                 }else{
                     cellXml+=`>`;
                 }

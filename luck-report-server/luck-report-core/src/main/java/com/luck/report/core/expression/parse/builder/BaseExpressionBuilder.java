@@ -61,7 +61,7 @@ public abstract class BaseExpressionBuilder implements ExpressionBuilder {
             } else {
                 BaseCondition nextCondition = parseCondition(conditionCtx);
                 condition.setNextCondition(nextCondition);
-                condition.setJoin(Join.parse(joins.get(opIndex).getText()));
+                condition.setNextJoin(Join.parse(joins.get(opIndex).getText()));
                 opIndex++;
                 condition = nextCondition;
             }

@@ -80,6 +80,7 @@ public class GroupItem implements Serializable {
                     prevCondition = baseCond;
                 } else {
                     prevCondition.setNextCondition(baseCond);
+                    prevCondition.setNextJoin(baseCond.getJoin());
                     prevCondition = baseCond;
                 }
             }

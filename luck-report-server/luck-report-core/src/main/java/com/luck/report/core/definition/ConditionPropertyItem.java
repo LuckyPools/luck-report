@@ -104,6 +104,7 @@ public class ConditionPropertyItem implements Serializable {
                     prevCondition = baseCond;
                 } else {
                     prevCondition.setNextCondition(baseCond);
+                    prevCondition.setNextJoin(baseCond.getJoin());
                     prevCondition = baseCond;
                 }
             }

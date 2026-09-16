@@ -21,12 +21,10 @@ import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Condition;
 import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.model.data.*;
-import com.luck.report.core.expression.model.data.*;
 import com.luck.report.core.model.Cell;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * @author Jacky.gao
@@ -37,6 +35,10 @@ public abstract class BaseCondition implements Condition {
     protected Op op;
     private String operation;
     private Join join;
+    /**
+     *  与下一项的关联符
+     */
+    private Join nextJoin;
     private Condition nextCondition;
     private String left;
     private String right;
@@ -46,15 +48,15 @@ public abstract class BaseCondition implements Condition {
         Object left = computeLeft(cell, currentCell, obj, context);
         Object right = computeRight(cell, currentCell, obj, context);
         boolean result = ExpressionUtils.conditionEval(op, left, right);
-        if (join != null && nextCondition != null) {
+        if (nextJoin != null && nextCondition != null) {
             if (result) {
-                if (join.equals(Join.and)) {
+                if (nextJoin.equals(Join.and)) {
                     return nextCondition.filter(cell, currentCell, obj, context);
                 } else {
                     return result;
                 }
             } else {
-                if (join.equals(Join.and)) {
+                if (nextJoin.equals(Join.and)) {
                     return result;
                 } else {
                     return nextCondition.filter(cell, currentCell, obj, context);
@@ -127,6 +129,14 @@ public abstract class BaseCondition implements Condition {
 
     public void setJoin(Join join) {
         this.join = join;
+    }
+
+    public Join getNextJoin() {
+        return nextJoin;
+    }
+
+    public void setNextJoin(Join nextJoin) {
+        this.nextJoin = nextJoin;
     }
 
     public String getLeft() {
