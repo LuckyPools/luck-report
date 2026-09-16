@@ -22,6 +22,7 @@ import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
@@ -91,6 +92,7 @@ public class HeaderFooterDefinition implements Serializable {
 
     private Object buildExpression(Context context, Expression expr) {
         ExpressionData<?> data = expr.execute(context.getRootCell(), context.getRootCell(), context);
+        data = ExpressionReturns.unwrap(data);
         Object obj = null;
         if (data instanceof ObjectExpressionData) {
             obj = ((ObjectExpressionData) data).getData();

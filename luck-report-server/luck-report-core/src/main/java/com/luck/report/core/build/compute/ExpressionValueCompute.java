@@ -26,10 +26,12 @@ import com.luck.report.core.expression.function.page.PageFunction;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.expression.model.expr.ExpressionBlock;
 import com.luck.report.core.expression.model.expr.FunctionExpression;
 import com.luck.report.core.expression.model.expr.JoinExpression;
+import com.luck.report.core.expression.model.expr.ReturnExpression;
 import com.luck.report.core.expression.model.expr.ifelse.*;
 import com.luck.report.core.model.Cell;
 
@@ -55,6 +57,7 @@ public class ExpressionValueCompute implements ValueCompute {
             }
         }
         ExpressionData<?> data = expr.execute(cell, cell, context);
+        data = ExpressionReturns.unwrap(data);
         if (data instanceof BindDataListExpressionData) {
             BindDataListExpressionData exprData = (BindDataListExpressionData) data;
             return exprData.getData();
@@ -151,6 +154,8 @@ public class ExpressionValueCompute implements ValueCompute {
                     return has;
                 }
             }
+        } else if (expr instanceof ReturnExpression) {
+            return hasPageFunction(((ReturnExpression) expr).getExpression());
         } else if (expr instanceof ExpressionBlock) {
             ExpressionBlock blockExpr = (ExpressionBlock) expr;
             List<Expression> expressions = blockExpr.getExpressionList();
@@ -161,6 +166,9 @@ public class ExpressionValueCompute implements ValueCompute {
                         return has;
                     }
                 }
+            }
+            if (hasPageFunction(blockExpr.getReturnExpression())) {
+                return true;
             }
         }
         return false;

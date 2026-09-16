@@ -16,6 +16,7 @@
 package com.luck.report.core.expression.parse;
 
 import com.luck.report.core.dsl.ReportParserBaseVisitor;
+import com.luck.report.core.dsl.ReportParserParser;
 import com.luck.report.core.dsl.ReportParserParser.*;
 import com.luck.report.core.exception.ReportParseException;
 import com.luck.report.core.expression.model.Expression;
@@ -78,7 +79,14 @@ public class ExpressionVisitor extends ReportParserBaseVisitor<Expression> {
             expr.setExpression(parseItemContext(assignCtx.item()));
             return expr;
         } else if (returnCtx != null) {
-            return parseExpr(returnCtx.expr());
+            Expression parsed = parseExpr(returnCtx.expr());
+            if (hasReturnKeyword(returnCtx)) {
+                ReturnExpression ret = new ReturnExpression();
+                ret.setExpression(parsed);
+                ret.setExpr(returnCtx.getText());
+                return ret;
+            }
+            return parsed;
         } else {
             throw new ReportParseException("Expression [" + ctx.getText() + "] is invalid.");
         }
@@ -203,9 +211,21 @@ public class ExpressionVisitor extends ReportParserBaseVisitor<Expression> {
         }
         if (returnCtx != null) {
             if (block == null) block = new ExpressionBlock();
-            block.setReturnExpression(parseExpr(returnCtx.expr()));
+            Expression parsed = parseExpr(returnCtx.expr());
+            if (hasReturnKeyword(returnCtx)) {
+                ReturnExpression ret = new ReturnExpression();
+                ret.setExpression(parsed);
+                ret.setExpr(returnCtx.getText());
+                block.setReturnExpression(ret);
+            } else {
+                block.setReturnExpression(parsed);
+            }
         }
         return block;
+    }
+
+    private boolean hasReturnKeyword(ReturnExprContext ctx) {
+        return ctx.getToken(ReportParserParser.T__6, 0) != null;
     }
 
     private IfExpression parseCaseExprContext(CaseExprContext caseExprContext) {

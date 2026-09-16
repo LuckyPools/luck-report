@@ -23,6 +23,7 @@ import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.utils.ProcedureUtils;
 import com.luck.report.core.utils.SqlParamUtils;
 import com.luck.report.core.utils.SqlSecurityUtils;
@@ -92,6 +93,7 @@ public class SqlDatasetDefinition implements DatasetDefinition {
     private String executeSqlExpr(Expression sqlExpr, Context context) {
         String sqlForUse = null;
         ExpressionData<?> exprData = sqlExpr.execute(null, null, context);
+        exprData = ExpressionReturns.unwrap(exprData);
         if (exprData instanceof ObjectExpressionData) {
             ObjectExpressionData data = (ObjectExpressionData) exprData;
             Object obj = data.getData();

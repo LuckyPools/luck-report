@@ -27,7 +27,7 @@ import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
-import com.luck.report.core.model.*;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.model.*;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -152,6 +152,7 @@ public class HtmlProducer {
                     Expression urlExpression = cell.getLinkUrlExpression();
                     if (urlExpression != null) {
                         ExpressionData<?> exprData = urlExpression.execute(cell, cell, context);
+                        exprData = ExpressionReturns.unwrap(exprData);
                         if (exprData instanceof BindDataListExpressionData) {
                             BindDataListExpressionData listExprData = (BindDataListExpressionData) exprData;
                             List<BindData> bindDataList = listExprData.getData();

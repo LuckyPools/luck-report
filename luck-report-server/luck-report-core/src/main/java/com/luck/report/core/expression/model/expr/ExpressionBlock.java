@@ -18,6 +18,7 @@ package com.luck.report.core.expression.model.expr;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
+import com.luck.report.core.expression.model.data.ReturnedExpressionData;
 import com.luck.report.core.model.Cell;
 
 import java.util.ArrayList;
@@ -40,6 +41,9 @@ public class ExpressionBlock extends BaseExpression {
         if (expressionList != null) {
             for (Expression expr : expressionList) {
                 data = expr.execute(cell, currentCell, context);
+                if (data instanceof ReturnedExpressionData) {
+                    return data;
+                }
             }
         }
         if (returnExpression != null) {

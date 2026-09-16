@@ -26,6 +26,7 @@ import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.model.Cell;
 import com.luck.report.core.model.Image;
 import com.google.zxing.BarcodeFormat;
@@ -72,6 +73,7 @@ public class ZxingValueCompute implements ValueCompute {
         } else {
             Expression expression = value.getExpression();
             ExpressionData<?> data = expression.execute(cell, cell, context);
+            data = ExpressionReturns.unwrap(data);
             if (data instanceof BindDataListExpressionData) {
                 BindDataListExpressionData listData = (BindDataListExpressionData) data;
                 List<BindData> bindDataList = listData.getData();

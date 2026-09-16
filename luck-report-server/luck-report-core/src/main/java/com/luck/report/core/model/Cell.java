@@ -29,6 +29,7 @@ import com.luck.report.core.expression.model.data.BindDataListExpressionData;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.utils.UnitUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -981,6 +982,7 @@ public class Cell implements ReportCell {
 
     private String buildExpression(Context context, String name, Expression expr) {
         ExpressionData<?> exprData = expr.execute(this, this, context);
+        exprData = ExpressionReturns.unwrap(exprData);
         if (exprData instanceof ObjectListExpressionData) {
             ObjectListExpressionData listData = (ObjectListExpressionData) exprData;
             List<?> list = listData.getData();

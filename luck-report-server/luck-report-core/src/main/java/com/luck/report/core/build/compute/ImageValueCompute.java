@@ -22,6 +22,7 @@ import com.luck.report.core.definition.value.Source;
 import com.luck.report.core.definition.value.ValueType;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.data.ExpressionData;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.image.ImageType;
 import com.luck.report.core.model.Cell;
 import com.luck.report.core.model.Image;
@@ -51,6 +52,7 @@ public class ImageValueCompute implements ValueCompute {
         } else {
             Expression expression = value.getExpression();
             ExpressionData<?> data = expression.execute(cell, cell, context);
+            data = ExpressionReturns.unwrap(data);
             Object obj = data.getData();
             if (obj instanceof List) {
                 List<?> listData = (List<?>) obj;
