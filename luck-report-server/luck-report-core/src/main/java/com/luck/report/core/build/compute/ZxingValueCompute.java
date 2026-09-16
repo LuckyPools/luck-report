@@ -36,12 +36,11 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.Base64Utils;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -138,7 +137,7 @@ public class ZxingValueCompute implements ValueCompute {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ImageIO.write(image, "png", outputStream);
             byte[] bytes = outputStream.toByteArray();
-            String base64Data = Base64Utils.encodeToString(bytes);
+            String base64Data = Base64.getEncoder().encodeToString(bytes);
             IOUtils.closeQuietly(outputStream);
             return new Image(base64Data, w, h);
         } catch (Exception ex) {

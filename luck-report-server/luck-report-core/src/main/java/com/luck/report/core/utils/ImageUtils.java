@@ -21,7 +21,6 @@ import com.luck.report.core.image.ImageProcessor;
 import com.luck.report.core.image.ImageType;
 import com.luck.report.core.image.StaticImageProcessor;
 import org.apache.commons.io.IOUtils;
-import org.springframework.util.Base64Utils;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -29,6 +28,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,7 +50,7 @@ public class ImageUtils {
     }
 
     public static InputStream base64DataToInputStream(String base64Data) {
-        byte[] bytes = Base64Utils.decodeFromString(base64Data);
+        byte[] bytes = Base64.getDecoder().decode(base64Data);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
         return inputStream;
     }
@@ -82,7 +82,7 @@ public class ImageUtils {
             g.dispose();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(scaledImage, "png", baos);
-            return Base64Utils.encodeToString(baos.toByteArray());
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
         } catch (Exception ex) {
             throw new ReportComputeException(ex);
         }
@@ -109,7 +109,7 @@ public class ImageUtils {
                 inputStream = new ByteArrayInputStream(outputStream.toByteArray());
             }
             byte[] bytes = IOUtils.toByteArray(inputStream);
-            return Base64Utils.encodeToString(bytes);
+            return Base64.getEncoder().encodeToString(bytes);
         } catch (Exception ex) {
             throw new ReportComputeException(ex);
         } finally {

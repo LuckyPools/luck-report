@@ -21,8 +21,6 @@ import com.luck.report.core.definition.value.Slash;
 import com.luck.report.core.definition.value.SlashValue;
 import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.utils.UnitUtils;
-import org.springframework.util.Base64Utils;
-
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.*;
@@ -30,6 +28,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -184,7 +183,7 @@ public class SlashBuilder {
         try {
             ImageIO.write(image, "png", memoryImage);
             imageBytes = byteOutput.toByteArray();
-            String base64Data = Base64Utils.encodeToString(imageBytes);
+            String base64Data = Base64.getEncoder().encodeToString(imageBytes);
             content.setBase64Data(base64Data);
         } catch (Exception ex) {
             throw new ReportComputeException(ex);
