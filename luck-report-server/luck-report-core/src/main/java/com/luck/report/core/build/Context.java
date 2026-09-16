@@ -55,6 +55,10 @@ public class Context {
     private Map<Row, Map<Column, Cell>> blankCellsMap = new HashMap<Row, Map<Column, Cell>>();
     private Map<Row, Integer> fillBlankRowsMap = new HashMap<Row, Integer>();
     private Map<String, ChartData> chartDataMap = new HashMap<String, ChartData>();
+    private Map<String, Map<Cell, Integer>> dataSeqIndexCache = new HashMap<String, Map<Cell, Integer>>();
+    private Map<String, Integer> dataSeqSiblingCountCache = new HashMap<String, Integer>();
+    private Map<String, Map<Cell, Integer>> dataRowIndexCache = new HashMap<String, Map<Cell, Integer>>();
+    private Map<String, Integer> dataRowSiblingCountCache = new HashMap<String, Integer>();
 
     public Context(ReportBuilder reportBuilder, Report report, Map<String, Dataset> datasetMap, ApplicationContext applicationContext, Map<String, Object> parameters, HideRowColumnBuilder hideRowColumnBuilder) {
         this.reportBuilder = reportBuilder;
@@ -328,5 +332,37 @@ public class Context {
 
     public Object getVariable(String key) {
         return variableMap.get(key);
+    }
+
+    /**
+     * 获取 dataSeq 序号缓存；同名实例数量变化时返回 null，由调用方重建。
+     */
+    public Map<Cell, Integer> getDataSeqIndexCache(String cellName, int siblingCount) {
+        Integer cachedCount = dataSeqSiblingCountCache.get(cellName);
+        if (cachedCount == null || cachedCount.intValue() != siblingCount) {
+            return null;
+        }
+        return dataSeqIndexCache.get(cellName);
+    }
+
+    public void putDataSeqIndexCache(String cellName, int siblingCount, Map<Cell, Integer> indexMap) {
+        dataSeqSiblingCountCache.put(cellName, Integer.valueOf(siblingCount));
+        dataSeqIndexCache.put(cellName, indexMap);
+    }
+
+    /**
+     * 获取 dataRow 组内序号缓存；同名实例数量变化时返回 null，由调用方重建。
+     */
+    public Map<Cell, Integer> getDataRowIndexCache(String cellName, int siblingCount) {
+        Integer cachedCount = dataRowSiblingCountCache.get(cellName);
+        if (cachedCount == null || cachedCount.intValue() != siblingCount) {
+            return null;
+        }
+        return dataRowIndexCache.get(cellName);
+    }
+
+    public void putDataRowIndexCache(String cellName, int siblingCount, Map<Cell, Integer> indexMap) {
+        dataRowSiblingCountCache.put(cellName, Integer.valueOf(siblingCount));
+        dataRowIndexCache.put(cellName, indexMap);
     }
 }

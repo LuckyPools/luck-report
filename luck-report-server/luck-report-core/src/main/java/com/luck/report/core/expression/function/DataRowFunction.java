@@ -4,103 +4,83 @@ package com.luck.report.core.expression.function;
 import com.luck.report.core.build.Context;
 import com.luck.report.core.expression.model.data.ExpressionData;
 import com.luck.report.core.model.Cell;
-import com.luck.report.core.model.Row;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 数据行号计算函数
- * <p>
- * 用于在报表模板中动态计算数据行的序号。
- * 自动计算从左侧父单元格到当前行的有效数据行序号。
- * </p>
- * <p>
- * 算法说明：
- * <ul>
- *   <li>通过左侧父单元格确定数据区域的起始行</li>
- *   <li>当前行号 - 起始行号 + 1 = 数据行序号</li>
- * </ul>
- * </p>
+ * dataRow：左父格在同一上层父格分组内的展开序号（从 1 开始）。
  *
  * @author LuckyPools
  * @date 2026-05-27
  */
 public class DataRowFunction implements Function {
 
-    /**
-     * 执行数据行号计算
-     *
-     * @param dataList    表达式参数列表（本函数不使用参数）
-     * @param context     报表构建上下文，用于获取行列信息
-     * @param currentCell 当前单元格，用于获取行、父单元格等信息
-     * @return 计算后的行号（从1开始），如果无法计算则返回null
-     */
     @Override
     public Object execute(List<ExpressionData<?>> dataList, Context context, Cell currentCell) {
-        Row currentRow = currentCell.getRow();
-        if (currentRow == null) {
+        if (currentCell == null || currentCell.getRow() == null) {
             return null;
         }
-
-        return calculateDataRowNumber(currentCell, currentRow);
+        return calculateParentExpandIndex(context, currentCell);
     }
 
-    /**
-     * 计算数据行序号
-     * <p>
-     * 核心算法：当前行号 - 起始行号 + 1
-     * </p>
-     *
-     * @param currentCell 当前单元格
-     * @param currentRow  当前行
-     * @return 数据行序号（从1开始）
-     */
-    private Integer calculateDataRowNumber(Cell currentCell, Row currentRow) {
+    private Integer calculateParentExpandIndex(Context context, Cell currentCell) {
         Cell leftParentCell = currentCell.getLeftParentCell();
         if (leftParentCell == null) {
             return 1;
         }
 
-        int currentRowNumber = currentRow.getRowNumber();
-        int startRowNumber = extractStartRowNumber(leftParentCell);
-
-        if (startRowNumber >= currentRowNumber) {
+        String parentName = leftParentCell.getName();
+        if (StringUtils.isBlank(parentName) || context == null || context.getReport() == null) {
             return 1;
         }
 
-        return currentRowNumber - startRowNumber + 1;
+        Map<String, List<Cell>> cellsMap = context.getReport().getCellsMap();
+        if (cellsMap == null) {
+            return 1;
+        }
+
+        List<Cell> siblings = cellsMap.get(parentName);
+        if (siblings == null || siblings.isEmpty()) {
+            return 1;
+        }
+
+        Map<Cell, Integer> indexMap = context.getDataRowIndexCache(parentName, siblings.size());
+        if (indexMap == null) {
+            indexMap = buildIndexMap(siblings);
+            context.putDataRowIndexCache(parentName, siblings.size(), indexMap);
+        }
+
+        Integer seq = indexMap.get(leftParentCell);
+        return seq != null ? seq : 1;
     }
 
     /**
-     * 从左侧父单元格名称中提取起始行号
-     *
-     * @param leftParentCell 左侧父单元格
-     * @return 起始行号，如果无法提取则返回1
+     * 按 cellsMap 顺序，在同一上层左父格内从 1 编号；整次构建每个名字只建一次。
      */
-    private int extractStartRowNumber(Cell leftParentCell) {
-        String cellName = leftParentCell.getName();
-        if (StringUtils.isBlank(cellName)) {
-            return 1;
-        }
+    private Map<Cell, Integer> buildIndexMap(List<Cell> siblings) {
+        Map<Cell, Integer> indexMap = new IdentityHashMap<Cell, Integer>();
+        Map<Cell, Integer> groupCounter = new IdentityHashMap<Cell, Integer>();
+        int nullGroupIndex = 0;
 
-        String numberPart = cellName.replaceAll("[a-zA-Z]", "");
-        if (StringUtils.isBlank(numberPart)) {
-            return 1;
+        for (Cell sibling : siblings) {
+            Cell groupParent = sibling.getLeftParentCell();
+            int seq;
+            if (groupParent == null) {
+                nullGroupIndex++;
+                seq = nullGroupIndex;
+            } else {
+                Integer current = groupCounter.get(groupParent);
+                seq = (current == null ? 0 : current.intValue()) + 1;
+                groupCounter.put(groupParent, Integer.valueOf(seq));
+            }
+            indexMap.put(sibling, Integer.valueOf(seq));
         }
-
-        try {
-            return Integer.parseInt(numberPart);
-        } catch (NumberFormatException e) {
-            return 1;
-        }
+        return indexMap;
     }
 
-    /**
-     * 获取函数名称
-     *
-     * @return 函数名称 "dataRow"
-     */
     @Override
     public String name() {
         return "dataRow";

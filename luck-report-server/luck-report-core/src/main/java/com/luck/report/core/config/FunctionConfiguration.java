@@ -296,4 +296,9 @@ public class FunctionConfiguration {
     public DataRowFunction dataRowFunction() {
         return new DataRowFunction();
     }
+
+    @Bean
+    public DataSeqFunction dataSeqFunction() {
+        return new DataSeqFunction();
+    }
 }
