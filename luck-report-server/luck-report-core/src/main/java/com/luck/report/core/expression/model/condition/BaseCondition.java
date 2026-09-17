@@ -21,6 +21,8 @@ import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Condition;
 import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.model.data.*;
+import com.luck.report.core.expression.utils.ExpressionReturns;
+import com.luck.report.core.expression.utils.ConditionJoinUtils;
 import com.luck.report.core.model.Cell;
 
 import java.util.ArrayList;
@@ -45,25 +47,21 @@ public abstract class BaseCondition implements Condition {
 
     @Override
     public final boolean filter(Cell cell, Cell currentCell, Object obj, Context context) {
-        Object left = computeLeft(cell, currentCell, obj, context);
-        Object right = computeRight(cell, currentCell, obj, context);
-        boolean result = ExpressionUtils.conditionEval(op, left, right);
-        if (nextJoin != null && nextCondition != null) {
-            if (result) {
-                if (nextJoin.equals(Join.and)) {
-                    return nextCondition.filter(cell, currentCell, obj, context);
-                } else {
-                    return result;
-                }
+        List<Boolean> values = new ArrayList<>();
+        List<Join> joins = new ArrayList<>();
+        BaseCondition node = this;
+        while (true) {
+            Object leftVal = node.computeLeft(cell, currentCell, obj, context);
+            Object rightVal = node.computeRight(cell, currentCell, obj, context);
+            values.add(ExpressionUtils.conditionEval(node.op, leftVal, rightVal));
+            if (node.nextJoin != null && node.nextCondition instanceof BaseCondition) {
+                joins.add(node.nextJoin);
+                node = (BaseCondition) node.nextCondition;
             } else {
-                if (nextJoin.equals(Join.and)) {
-                    return result;
-                } else {
-                    return nextCondition.filter(cell, currentCell, obj, context);
-                }
+                break;
             }
         }
-        return result;
+        return ConditionJoinUtils.computeJoinResult(values, joins);
     }
 
     abstract Object computeLeft(Cell cell, Cell currentCell, Object obj, Context context);
@@ -73,6 +71,7 @@ public abstract class BaseCondition implements Condition {
     public abstract ConditionType getType();
 
     protected Object extractExpressionData(ExpressionData<?> data) {
+        data = ExpressionReturns.unwrap(data);
         if (data instanceof ObjectExpressionData) {
             return data.getData();
         } else if (data instanceof ObjectListExpressionData) {

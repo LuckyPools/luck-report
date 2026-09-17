@@ -22,7 +22,7 @@ import com.luck.report.core.expression.ExpressionUtils;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.Op;
 import com.luck.report.core.expression.model.data.*;
-import com.luck.report.core.expression.model.data.*;
+import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.model.Cell;
 
 import java.io.Serializable;
@@ -56,6 +56,7 @@ public class ExpressionCondition implements Serializable {
     }
 
     private Object getData(ExpressionData<?> data) {
+        data = ExpressionReturns.unwrap(data);
         if (data instanceof ObjectExpressionData) {
             ObjectExpressionData objData = (ObjectExpressionData) data;
             return objData.getData();

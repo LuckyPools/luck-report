@@ -17,6 +17,7 @@ package com.luck.report.core.expression.model.expr.ifelse;
 
 import com.luck.report.core.build.Context;
 import com.luck.report.core.expression.model.condition.Join;
+import com.luck.report.core.expression.utils.ConditionJoinUtils;
 import com.luck.report.core.model.Cell;
 
 import java.io.Serializable;
@@ -40,28 +41,17 @@ public class ExpressionConditionList implements Serializable {
     }
 
     public boolean eval(Context context, Cell cell, Cell currentCell) {
+        if (conditions == null || conditions.isEmpty()) {
+            return true;
+        }
         if (conditions.size() == 1) {
             return conditions.get(0).eval(context, cell, currentCell);
         }
-        for (int i = 0; i < conditions.size(); i++) {
-            ExpressionCondition condition = conditions.get(i);
-            boolean result = condition.eval(context, cell, currentCell);
-            Join join = null;
-            if (i < joins.size()) {
-                join = joins.get(i);
-            }
-            if (join == null) {
-                return result;
-            } else {
-                if (join.equals(Join.and) && !result) {
-                    return false;
-                }
-                if (join.equals(Join.or) && result) {
-                    return true;
-                }
-            }
+        List<Boolean> values = new ArrayList<>(conditions.size());
+        for (ExpressionCondition condition : conditions) {
+            values.add(condition.eval(context, cell, currentCell));
         }
-        return true;
+        return ConditionJoinUtils.computeJoinResult(values, joins);
     }
 
     public List<ExpressionCondition> getConditions() {
