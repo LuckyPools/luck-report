@@ -122,10 +122,10 @@ export function tableToXml(context){
             }
 
             if(cellDef.linkUrl && cellDef.linkUrl!==''){
-                cellXml+=` link-url="${cellDef.linkUrl}"`;
+                cellXml+=` link-url="${encode(cellDef.linkUrl)}"`;
             }
             if(cellDef.linkTargetWindow && cellDef.linkTargetWindow!==''){
-                cellXml+=` link-target-window="${cellDef.linkTargetWindow}"`;
+                cellXml+=` link-target-window="${encode(cellDef.linkTargetWindow)}"`;
             }
 
             cellXml+='>';
@@ -436,12 +436,12 @@ export function tableToXml(context){
                     cellXml+=` render-flag="${pc.renderFlag}"`;
                 }
                 if(pc.linkUrl && pc.linkUrl!==''){
-                    cellXml+=` link-url="${pc.linkUrl}"`;
+                    cellXml+=` link-url="${encode(pc.linkUrl)}"`;
                     let targetWindow=pc.linkTargetWindow;
                     if(!targetWindow || targetWindow===''){
                         targetWindow="_self";
                     }
-                    cellXml+=` link-target-window="${pc.linkTargetWindow}"`;
+                    cellXml+=` link-target-window="${encode(targetWindow)}"`;
                 }
                 cellXml+=`>`;
                 const paging=pc.paging;
