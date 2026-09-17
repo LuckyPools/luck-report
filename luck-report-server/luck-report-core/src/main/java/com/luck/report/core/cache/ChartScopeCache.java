@@ -19,10 +19,9 @@ import com.luck.report.core.chart.ChartData;
 import com.luck.report.infra.modules.cache.utils.CacheUtils;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
- * 图表缓存：一图一 key（report:chart:{scope}:{chartId}）。
+ * 图表缓存
  *
  * @author luckyPools
  * @since 2026年05月15日
@@ -50,18 +49,11 @@ public class ChartScopeCache {
     }
 
     /**
-     * 清理本作用域旧 key 后，逐条写入。
+     * 逐条写入
      */
     public static void putChartDataMap(Map<String, ChartData> map) {
         if (map == null || map.isEmpty()) {
             return;
-        }
-        String prefix = getScopePrefix();
-        Set<String> oldKeys = CacheUtils.keys(prefix);
-        if (oldKeys != null) {
-            for (String oldKey : oldKeys) {
-                CacheUtils.remove(oldKey);
-            }
         }
         for (Map.Entry<String, ChartData> entry : map.entrySet()) {
             putChartData(entry.getKey(), entry.getValue());
