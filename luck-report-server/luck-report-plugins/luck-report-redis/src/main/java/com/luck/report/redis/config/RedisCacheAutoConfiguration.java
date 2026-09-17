@@ -6,8 +6,10 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.luck.report.infra.modules.cache.service.ReportCache;
 import com.luck.report.redis.cache.RedisCache;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -17,7 +19,6 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import com.luck.report.infra.modules.cache.service.ReportCache;
 
 /**
  * Redis 缓存自动配置类。
@@ -75,12 +76,17 @@ public class RedisCacheAutoConfiguration {
      * 配置 RedisCache Bean，实现 ReportCache 接口。
      * 由 CacheUtils 在运行时选取首个非 disabled 的 ReportCache 实例。
      *
-     * @param redisTemplate Redis 操作模板，通过 @Qualifier 指定使用 remoteRedisTemplate，不能为空
+     * @param redisTemplate       Redis 操作模板，通过 @Qualifier 指定使用 remoteRedisTemplate，不能为空
+     * @param cacheExpireSeconds  默认过期时间（秒），对应 luck-report.cacheExpireSeconds
      * @return RedisCache 实例
      */
     @Bean("bean.redisCache")
     @ConditionalOnMissingBean(name = "bean.redisCache")
-    public ReportCache redisCache(@Qualifier("remoteRedisTemplate") RedisTemplate<String, Object> redisTemplate) {
-        return new RedisCache(redisTemplate);
+    public ReportCache redisCache(
+            @Qualifier("remoteRedisTemplate") RedisTemplate<String, Object> redisTemplate,
+            @Value("${luck-report.cacheExpireSeconds:900}") long cacheExpireSeconds) {
+        RedisCache cache = new RedisCache(redisTemplate);
+        cache.setDefaultExpireSeconds(cacheExpireSeconds);
+        return cache;
     }
 }

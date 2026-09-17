@@ -121,7 +121,7 @@ public class CacheUtils {
     }
 
     /**
-     * 存入缓存，使用默认过期时间（5 分钟）。
+     * 存入缓存，使用默认过期时间（由 luck-report.cacheExpireSeconds 配置，默认 15 分钟）。
      *
      * @param key   缓存键，不能为空
      * @param value 缓存值，不能为空

@@ -24,9 +24,11 @@ public class LuckReportConsoleConfig {
      */
     @Bean("bean.localCacheService")
     public ReportCache localCacheService(
-            @Value("${luck-report.disableLocalReportCache:false}") boolean disableLocalReportCache) {
+            @Value("${luck-report.disableLocalReportCache:false}") boolean disableLocalReportCache,
+            @Value("${luck-report.cacheExpireSeconds:900}") long cacheExpireSeconds) {
         LocalCacheService cache = new LocalCacheService();
         cache.setDisabled(disableLocalReportCache);
+        cache.setDefaultExpireSeconds(cacheExpireSeconds);
         return cache;
     }
 

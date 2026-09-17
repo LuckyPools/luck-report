@@ -4,7 +4,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.luck.report.infra.modules.cache.service.ReportCache;
-import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,6 +21,11 @@ public class LocalCacheService implements ReportCache {
      * 是否禁用
      */
     private boolean disabled;
+
+    /**
+     * 默认过期时间，单位：秒
+     */
+    private long defaultExpireSeconds = DEFAULT_EXPIRE_SECONDS;
 
     /**
      * 缓存数据存储，使用 Caffeine Cache 实现
@@ -119,6 +123,15 @@ public class LocalCacheService implements ReportCache {
     }
 
     /**
+     * 设置默认过期时间。
+     *
+     * @param defaultExpireSeconds 过期时间，单位：秒；小于等于 0 时回退为 {@link #DEFAULT_EXPIRE_SECONDS}
+     */
+    public void setDefaultExpireSeconds(long defaultExpireSeconds) {
+        this.defaultExpireSeconds = defaultExpireSeconds > 0 ? defaultExpireSeconds : DEFAULT_EXPIRE_SECONDS;
+    }
+
+    /**
      * 根据键获取缓存值。
      *
      * @param key 缓存键，不能为空
@@ -154,7 +167,7 @@ public class LocalCacheService implements ReportCache {
     }
 
     /**
-     * 存入缓存，数据将永久存储，不会过期。
+     * 存入缓存，使用默认过期时间。
      *
      * @param key   缓存键，不能为空
      * @param value 缓存值，不能为空
@@ -162,7 +175,7 @@ public class LocalCacheService implements ReportCache {
      */
     @Override
     public <T> void put(String key, T value) {
-        put(key, value, Integer.MAX_VALUE);
+        put(key, value, defaultExpireSeconds);
     }
 
     /**

@@ -23,12 +23,26 @@ public class RedisCache implements ReportCache {
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
+     * 默认过期时间，单位：秒
+     */
+    private long defaultExpireSeconds = DEFAULT_EXPIRE_SECONDS;
+
+    /**
      * 构造 RedisCache 实例。
      *
      * @param redisTemplate Redis 操作模板，不能为空
      */
     public RedisCache(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
+    }
+
+    /**
+     * 设置默认过期时间。
+     *
+     * @param defaultExpireSeconds 过期时间，单位：秒；小于等于 0 时回退为 {@link #DEFAULT_EXPIRE_SECONDS}
+     */
+    public void setDefaultExpireSeconds(long defaultExpireSeconds) {
+        this.defaultExpireSeconds = defaultExpireSeconds > 0 ? defaultExpireSeconds : DEFAULT_EXPIRE_SECONDS;
     }
 
     /**
@@ -108,7 +122,7 @@ public class RedisCache implements ReportCache {
     }
 
     /**
-     * 存入缓存，不设置过期时间。
+     * 存入缓存，使用默认过期时间。
      *
      * @param key   缓存键，不能为空
      * @param value 缓存值，不能为空
@@ -116,14 +130,7 @@ public class RedisCache implements ReportCache {
      */
     @Override
     public <T> void put(String key, T value) {
-        if (key == null || value == null) {
-            return;
-        }
-        try {
-            redisTemplate.opsForValue().set(key, value);
-        } catch (Exception e) {
-            log.error("存入缓存失败，key: {}", key, e);
-        }
+        put(key, value, defaultExpireSeconds);
     }
 
     /**

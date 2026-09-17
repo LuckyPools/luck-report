@@ -20,6 +20,8 @@ spring:
 luck-report:
   # 请求前缀
   servletPrefix: report
+  # 缓存默认过期时间（秒），默认 15 分钟
+  cacheExpireSeconds: 900
   # 采用 Redis 缓存，禁用本地缓存（分布式/集群环境必须配置）
   # disableLocalReportCache: true
   # 报表存储路径

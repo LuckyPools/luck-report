@@ -8,6 +8,8 @@ spring:
 luck-report:
   # 请求前缀
   servletPrefix: report
+  # 缓存默认过期时间（秒），默认 15 分钟
+  cacheExpireSeconds: 900
   # 报表存储路径
   fileStoreDir: E:/luckStudio/IO/report
   # 调试日志

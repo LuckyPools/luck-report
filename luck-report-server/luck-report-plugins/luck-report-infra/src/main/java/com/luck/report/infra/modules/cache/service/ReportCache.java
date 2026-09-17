@@ -25,6 +25,11 @@ import java.util.Set;
 public interface ReportCache {
 
     /**
+     * 缓存默认过期时间（秒），对应配置 luck-report.cacheExpireSeconds，默认 15 分钟。
+     */
+    long DEFAULT_EXPIRE_SECONDS = 15 * 60L;
+
+    /**
      * 是否可用
      * @return
      */
@@ -51,7 +56,7 @@ public interface ReportCache {
 
 
     /**
-     * 存入缓存，使用默认过期时间。
+     * 存入缓存，使用默认过期时间（见 {@link #DEFAULT_EXPIRE_SECONDS}）。
      *
      * @param key   缓存键，不能为空
      * @param value 缓存值，不能为空
