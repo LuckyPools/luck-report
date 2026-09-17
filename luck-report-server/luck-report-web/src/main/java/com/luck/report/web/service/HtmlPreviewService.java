@@ -158,7 +158,7 @@ public class HtmlPreviewService {
             ReportDefinition reportDefinition = reportDefinitionService.getReportDefinition(reportPath);
             Report report = reportBuilder.buildReport(reportDefinition, parameters);
             Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
-            if (!CollectionUtils.isEmpty(chartMap)) ChartScopeCache.storeChartDataMap(chartMap);
+            if (!CollectionUtils.isEmpty(chartMap)) ChartScopeCache.putChartDataMap(chartMap);
             htmlReport = new HtmlReport();
             String html;
             if (StringUtils.isNotBlank(pageIndex) && !pageIndex.equals("0")) {

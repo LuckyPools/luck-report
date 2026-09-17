@@ -50,7 +50,7 @@ public class ExportManagerImpl implements ExportManager {
         Report report = reportRender.render(reportDefinition, parameters);
         Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
         if (chartMap.size() > 0) {
-            ChartScopeCache.storeChartDataMap(chartMap);
+            ChartScopeCache.putChartDataMap(chartMap);
         }
         HtmlReport htmlReport = new HtmlReport();
         String content = htmlProducer.produce(report);
@@ -73,7 +73,7 @@ public class ExportManagerImpl implements ExportManager {
         Report report = reportRender.render(reportDefinition, parameters);
         Map<String, ChartData> chartMap = report.getContext().getChartDataMap();
         if (!CollectionUtils.isEmpty(chartMap)) {
-            ChartScopeCache.storeChartDataMap(chartMap);
+            ChartScopeCache.putChartDataMap(chartMap);
         }
         SinglePageData pageData = PageBuilder.buildSinglePageData(pageIndex, report);
         List<Page> pages = pageData.getPages();
