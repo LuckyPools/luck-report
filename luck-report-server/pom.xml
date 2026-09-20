@@ -40,7 +40,6 @@
         <itextpdf.version>5.5.13.3</itextpdf.version>
         <poi-ooxml.version>5.2.5</poi-ooxml.version>
         <poi-scratchpad.version>5.2.5</poi-scratchpad.version>
-        <ooxml-schemas.version>1.4</ooxml-schemas.version>
         <zxing-core.version>3.5.4</zxing-core.version>
         <jsqlparser.version>4.9</jsqlparser.version>
         <postgresql.version>42.7.10</postgresql.version>
@@ -134,11 +133,6 @@
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-scratchpad</artifactId>
                 <version>${poi-scratchpad.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>ooxml-schemas</artifactId>
-                <version>${ooxml-schemas.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.zxing</groupId>
