@@ -20,10 +20,14 @@ import com.luck.report.core.definition.value.AggregateType;
 import com.luck.report.core.dsl.ReportParserParser.ConditionsContext;
 import com.luck.report.core.dsl.ReportParserParser.DatasetContext;
 import com.luck.report.core.dsl.ReportParserParser.UnitContext;
+import com.luck.report.core.expression.model.Condition;
 import com.luck.report.core.expression.model.condition.BaseCondition;
 import com.luck.report.core.expression.model.expr.BaseExpression;
 import com.luck.report.core.expression.model.expr.dataset.DatasetExpression;
 import org.antlr.v4.runtime.tree.TerminalNode;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Jacky.gao
@@ -42,14 +46,31 @@ public class DatasetExpressionBuilder extends BaseExpressionBuilder {
         }
         ConditionsContext conditionsContext = context.conditions();
         if (conditionsContext != null) {
-            BaseCondition condition = buildConditions(conditionsContext);
-            expr.setCondition(condition);
+            expr.setConditions(toConditionList(buildConditions(conditionsContext)));
         }
         TerminalNode orderNode = context.ORDER();
         if (orderNode != null) {
             expr.setOrder(Order.valueOf(orderNode.getText()));
         }
         return expr;
+    }
+
+    private List<Condition> toConditionList(BaseCondition head) {
+        List<Condition> list = new ArrayList<Condition>();
+        BaseCondition cursor = head;
+        while (cursor != null) {
+            list.add(cursor);
+            if (!(cursor.getNextCondition() instanceof BaseCondition)) {
+                break;
+            }
+            BaseCondition next = (BaseCondition) cursor.getNextCondition();
+            // buildConditions 把连接符写在上一条 nextJoin；setConditions 读下一条 join
+            if (next.getJoin() == null) {
+                next.setJoin(cursor.getNextJoin());
+            }
+            cursor = next;
+        }
+        return list;
     }
 
     @Override

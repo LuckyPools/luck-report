@@ -67,6 +67,11 @@ public class ExpressionValue implements Value, Serializable {
 
     public void setText(String text) {
         this.text = text;
+        if (text != null && !text.isEmpty()) {
+            this.expression = ExpressionUtils.parseExpression(text);
+        } else {
+            this.expression = null;
+        }
     }
 
     public String getText() {
