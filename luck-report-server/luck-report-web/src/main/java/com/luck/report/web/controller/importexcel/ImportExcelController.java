@@ -111,7 +111,7 @@ public class ImportExcelController extends BaseController {
      * 获取Excel文件的Sheet列表
      */
     @PostMapping("/getExcelSheet")
-    public void getExcelSheet(MultipartFile file) {
+    public void getExcelSheet(@RequestParam("file") MultipartFile file) {
         try {
             List<Map<String, Object>> sheetSummaryList = ExcelToJsonUtil.getSheetSummaryList(file.getInputStream());
             resp.writeObjectToJson(sheetSummaryList);
