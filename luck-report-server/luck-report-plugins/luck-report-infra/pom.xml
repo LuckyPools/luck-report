@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>luck-report-infra</artifactId>
+    <name>Luck Report Infra</name>
 
     <dependencies>
         <dependency>

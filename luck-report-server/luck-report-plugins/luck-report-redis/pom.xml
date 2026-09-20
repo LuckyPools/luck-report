@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>luck-report-redis</artifactId>
+    <name>Luck Report Redis</name>
 
 
     <dependencies>

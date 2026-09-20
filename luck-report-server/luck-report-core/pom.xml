@@ -2,6 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>luck-report-core</artifactId>
+    <name>Luck Report Core</name>
     <version>${revision}</version>
     <parent>
         <groupId>com.luck.cloud</groupId>
@@ -100,29 +101,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <licenses>
-        <license>
-            <name>The Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        </license>
-    </licenses>
-    <developers>
-        <developer>
-            <name>Gaojie</name>
-            <email>jacky.gao@bstek.com</email>
-            <organization>Bstek</organization>
-            <organizationUrl>http://www.bstek.com</organizationUrl>
-        </developer>
-    </developers>
-    <scm>
-        <connection>scm:git:https://github.com/youseries/ureport.git</connection>
-        <developerConnection>scm:git:git@github.com:youseries/ureport.git</developerConnection>
-        <url>https://github.com/youseries/ureport</url>
-        <tag>ureport2-core-2.2.4</tag>
-    </scm>
-    <organization>
-        <name>Bstek</name>
-        <url>http://www.bstek.com</url>
-    </organization>
-    <url>https://github.com/youseries/ureport/tree/master/ureport2-core</url>
 </project>

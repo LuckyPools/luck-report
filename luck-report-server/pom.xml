@@ -9,6 +9,40 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
 
+    <name>Luck-Report</name>
+    <description>基于 Spring 的高性能 Java 报表引擎（UReport2 重构）</description>
+    <url>https://gitee.com/LuckyPools/luck-report</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>luckypools</id>
+            <name>LuckyPools</name>
+            <organization>LuckyPools</organization>
+            <organizationUrl>https://gitee.com/LuckyPools</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://gitee.com/LuckyPools/luck-report.git</connection>
+        <developerConnection>scm:git:https://gitee.com/LuckyPools/luck-report.git</developerConnection>
+        <url>https://gitee.com/LuckyPools/luck-report</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <organization>
+        <name>LuckyPools</name>
+        <url>https://gitee.com/LuckyPools</url>
+    </organization>
+
     <modules>
         <module>luck-report-web</module>
         <module>luck-report-core</module>
@@ -43,6 +77,10 @@
         <zxing-core.version>3.5.4</zxing-core.version>
         <jsqlparser.version>4.9</jsqlparser.version>
         <postgresql.version>42.7.10</postgresql.version>
+        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
     </properties>
 
 
@@ -155,8 +193,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.10.1</version>
                 <configuration>
-                    <source>8</source>
-                    <target>8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
 
@@ -185,11 +223,102 @@
                 <configuration>
                     <!-- 避免IDE将 .flattened-pom.xml 自动识别为功能模块 -->
                     <updatePomFile>true</updatePomFile>
+                    <!-- 日常构建只解析 ${revision}；oss 模式放到 release profile -->
                     <flattenMode>resolveCiFriendliesOnly</flattenMode>
                 </configuration>
             </plugin>
 
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>flatten-maven-plugin</artifactId>
+                        <configuration>
+                            <!-- 发布时写入完整元数据，满足 Central 对 name 等字段的校验 -->
+                            <flattenMode>oss</flattenMode>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <failOnError>false</failOnError>
+                                    <doclint>none</doclint>
+                                    <quiet>true</quiet>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- 优先用 -Dgpg.passphrase=... 或环境变量传口令，避免终端读不到密码 -->
+                            <passphrase>${gpg.passphrase}</passphrase>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <!-- 首次建议手动在 Portal 点 Publish；确认无误后可改为 true -->
+                            <autoPublish>false</autoPublish>
+                            <excludeArtifacts>
+                                <!-- 可运行应用，不作为依赖发布 -->
+                                <excludeArtifact>luck-report-pub</excludeArtifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
