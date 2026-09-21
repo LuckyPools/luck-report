@@ -13,6 +13,8 @@ const state = {
   isPrintLineRefresh: false,
   // 单元格是否需要更新
   isCellUpdate: false,
+  // 编辑框草稿，仅供属性面板实时显示
+  cellEditDraft: null,
 };
 
 const mutations = {
@@ -75,12 +77,12 @@ const mutations = {
     }
   },
 
-  // 调整插入行头
-  CONTEXT_ADJUST_INSERT_ROW_HEADERS(state, { row }) {
-    if (state.context && state.context.rowHeaders) {
+  // 调整插入行头（count 为插入行数，撤销时传负数）
+  CONTEXT_ADJUST_INSERT_ROW_HEADERS(state, { row, count = 1 }) {
+    if (state.context && state.context.rowHeaders && count !== 0) {
       for (let header of state.context.rowHeaders) {
         if (header.rowNumber >= row) {
-          header.rowNumber += 1;
+          header.rowNumber += count;
         }
       }
     }
@@ -161,6 +163,10 @@ const mutations = {
    */
   SET_CELL_UPDATE(state, isCellUpdate) {
     state.isCellUpdate = isCellUpdate;
+  },
+
+  SET_CELL_EDIT_DRAFT(state, draft) {
+    state.cellEditDraft = draft;
   }
 };
 
@@ -200,8 +206,8 @@ const actions = {
   },
 
   // 调整插入行头
-  contextAdjustInsertRowHeaders({ commit }, { row }) {
-    commit('CONTEXT_ADJUST_INSERT_ROW_HEADERS', { row });
+  contextAdjustInsertRowHeaders({ commit }, { row, count = 1 }) {
+    commit('CONTEXT_ADJUST_INSERT_ROW_HEADERS', { row, count });
   },
 
   // 调整删除行头
@@ -277,6 +283,14 @@ const actions = {
    */
   triggerCellUpdate({ commit }) {
     commit('SET_CELL_UPDATE', true);
+  },
+
+  setCellEditDraft({ commit }, draft) {
+    commit('SET_CELL_EDIT_DRAFT', draft);
+  },
+
+  clearCellEditDraft({ commit }) {
+    commit('SET_CELL_EDIT_DRAFT', null);
   }
 };
 
@@ -303,7 +317,9 @@ const getters = {
   getShowPrintLine: state => state.showPrintLine,
 
   // 获取单元格更新状态
-  getIsCellUpdate: state => state.isCellUpdate
+  getIsCellUpdate: state => state.isCellUpdate,
+
+  getCellEditDraft: state => state.cellEditDraft
 };
 
 export default {

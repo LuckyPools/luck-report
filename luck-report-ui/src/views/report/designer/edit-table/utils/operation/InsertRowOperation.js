@@ -9,12 +9,15 @@ import {
     addCell,
     adjustDelRowHeaders,
     adjustInsertRowHeaders,
-    getCell,
     getContext,
     removeCell
 } from "@/utils/contextActions";
 import {deepCopy} from '@/components/utils';
 import {shiftFreezeRows} from '../FreezeState.js';
+import {
+    adjustMergeCellsOnInsertRow,
+    cloneMergeCells
+} from '../MergeCellsUtils.js';
 
 export function doInsertRow(above, number = 1) {
     const selected = this.getSelected();
@@ -38,103 +41,75 @@ export function doInsertRow(above, number = 1) {
             position = endRow + 1;
         }
     }
+
+    const context = getContext();
+    const cellsMap = context.cellsMap;
+    // 插入前快照：撤销时整段还原，避免按行号反推与合并区错位
+    const savedCells = snapshotCellsFromRow(cellsMap, position);
     let rowHeights = this.getSettings().rowHeights;
+    const oldRowHeights = rowHeights.concat([]);
+    let mergeCells = this.getSettings().mergeCells || [];
+    let oldMergeCells = cloneMergeCells(mergeCells);
+    let newMergeCells = adjustMergeCellsOnInsertRow(mergeCells, position, number);
     let newRowHeights = rowHeights.concat([]);
     for (let i = 0; i < number; i++) {
         newRowHeights.splice(position, 0, 25);
     }
+
+    this.updateSettings({mergeCells: []});
     this.alter("insert_row", position, number);
-    adjustInsertRowHeaders(position);
+    adjustInsertRowHeaders(position, number);
     renderRowHeader(this);
 
     buildNewRowCells(this, position, number);
     this.updateSettings({
         rowHeights: newRowHeights,
-        manualRowResize: newRowHeights
+        manualRowResize: newRowHeights,
+        mergeCells: newMergeCells
     });
     shiftFreezeRows(this, position, number, true);
     resetTableData(this);
     setDirty();
 
     const _this = this;
-    const context = getContext();
-    const cellsMap = context.cellsMap
-    const removeCells = [];
-    let removeRowHeight = 25;
     undoManager.add({
         redo: function () {
             rowHeights = _this.getSettings().rowHeights;
+            mergeCells = _this.getSettings().mergeCells || [];
+            oldMergeCells = cloneMergeCells(mergeCells);
+            newMergeCells = adjustMergeCellsOnInsertRow(mergeCells, position, number);
             newRowHeights = rowHeights.concat([]);
             for (let i = 0; i < number; i++) {
-                newRowHeights.splice(position, 0, removeRowHeight);
+                newRowHeights.splice(position, 0, 25);
             }
+            _this.updateSettings({mergeCells: []});
             _this.alter("insert_row", position, number);
-            adjustInsertRowHeaders(position);
+            adjustInsertRowHeaders(position, number);
             renderRowHeader(_this);
-            let changeCells = [];
-            for (let cell of cellsMap.values()) {
-                let rowIndex = cell.rowNumber - 1;
-                if (rowIndex >= position) {
-                    changeCells.push(cell);
-                }
-            }
-            for (let cell of changeCells) {
-                removeCell(cell);
-            }
-            for (let cell of changeCells) {
-                cell.rowNumber = cell.rowNumber + number;
-                addCell(cell);
-            }
-            for (let cell of removeCells) {
-                addCell(cell);
-            }
+            buildNewRowCells(_this, position, number);
             _this.updateSettings({
                 rowHeights: newRowHeights,
-                manualRowResize: newRowHeights
+                manualRowResize: newRowHeights,
+                mergeCells: newMergeCells
             });
             shiftFreezeRows(_this, position, number, true);
             resetTableData(_this);
             setDirty();
         },
         undo: function () {
-            removeCells.splice(0, removeCells.length);
-            rowHeights = _this.getSettings().rowHeights;
-            newRowHeights = rowHeights.concat([]);
-            for (let i = 0; i < number; i++) {
-                removeRowHeight = newRowHeights[position];
-                newRowHeights.splice(position, 1);
-            }
+            _this.updateSettings({mergeCells: []});
             _this.alter('remove_row', position, number);
-            adjustDelRowHeaders(position);
-            renderRowHeader(_this);
-            _this.updateSettings({
-                rowHeights: newRowHeights,
-                manualRowResize: newRowHeights
-            });
-            let countCols = _this.countCols();
             for (let i = 0; i < number; i++) {
-                for (let j = 0; j < countCols; j++) {
-                    let cell = getCell(position, j);
-                    if (cell) {
-                        removeCells.push(cell);
-                        removeCell(cell);
-                    }
-                }
+                adjustDelRowHeaders(position + i);
             }
-            let changeCells = [];
-            for (let cell of cellsMap.values()) {
-                let rowIndex = cell.rowNumber - 1;
-                if (rowIndex > position) {
-                    changeCells.push(cell);
-                }
-            }
-            for (let cell of changeCells) {
-                removeCell(cell);
-            }
-            for (let cell of changeCells) {
-                cell.rowNumber = cell.rowNumber - number;
-                addCell(cell);
-            }
+            adjustInsertRowHeaders(position, -number);
+            renderRowHeader(_this);
+            restoreCellsFromRow(cellsMap, position, savedCells);
+            _this.updateSettings({
+                rowHeights: oldRowHeights,
+                manualRowResize: oldRowHeights,
+                mergeCells: oldMergeCells
+            });
             shiftFreezeRows(_this, position, number, false);
             resetTableData(_this);
             setDirty();
@@ -142,10 +117,39 @@ export function doInsertRow(above, number = 1) {
     });
 };
 
+/**
+ * 保存从指定行起的单元格深拷贝，供撤销还原。
+ */
+function snapshotCellsFromRow(cellsMap, position) {
+    const saved = [];
+    for (let cell of cellsMap.values()) {
+        if (cell.rowNumber - 1 >= position) {
+            saved.push(deepCopy(cell));
+        }
+    }
+    return saved;
+}
+
+/**
+ * 删除 position 及以下的现有单元格，再写回插入前快照。
+ */
+function restoreCellsFromRow(cellsMap, position, savedCells) {
+    const toRemove = [];
+    for (let cell of cellsMap.values()) {
+        if (cell.rowNumber - 1 >= position) {
+            toRemove.push(cell);
+        }
+    }
+    for (let cell of toRemove) {
+        removeCell(cell);
+    }
+    for (let cell of savedCells) {
+        addCell(deepCopy(cell));
+    }
+}
 
 function buildNewRowCells(hot, position, number) {
     const countCols = hot.countCols();
-    const countRows = hot.countRows();
     const context = getContext();
     const cellsMap = context.cellsMap;
     const changeCells = [];

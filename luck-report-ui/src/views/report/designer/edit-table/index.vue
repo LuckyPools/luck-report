@@ -16,6 +16,14 @@ import buildMenuConfigure from './utils/ContextMenu.js';
 import { afterRenderer } from './utils/CellRenderer.js';
 import { parseFreezeRowFromCellName, parseFreezeColFromCellName } from './utils/FreezeState.js';
 import { applyTableBackground } from './utils/BackgroundUtils.js';
+import {
+  captureClipboardStyles,
+  applyClipboardStylesOnPaste,
+  rememberPasteSelection,
+  isEditorOpened,
+  isForeignTextInput,
+  forceTableCopy
+} from './utils/ClipboardStyleUtils.js';
 import { renderRowHeader } from './utils/HeaderUtils.js';
 import { loadReport } from '@/api/designer';
 import { showAlert } from '@/utils/comnon.js';
@@ -67,7 +75,17 @@ export default {
     if (tableElement) {
       tableElement.removeEventListener('dragover', this.handleDragOver);
       tableElement.removeEventListener('drop', this.handleDrop);
+      if (this._clipboardKeyHandler) {
+        window.removeEventListener('keydown', this._clipboardKeyHandler, true);
+        this._clipboardKeyHandler = null;
+      }
     }
+    if (this._cellEditTextarea && this._cellEditInputHandler) {
+      this._cellEditTextarea.removeEventListener('input', this._cellEditInputHandler);
+      this._cellEditTextarea = null;
+      this._cellEditInputHandler = null;
+    }
+    this.$store.dispatch('report/clearCellEditDraft');
     if (this.hot) {
       this.hot.destroy();
     }
@@ -125,6 +143,59 @@ export default {
       this.bindColumnResizeEvent();
       this.bindSelectionEvent();
       this.bindDropEvent();
+      this.bindClipboardStyleEvent();
+      this.bindCellEditDraftSync();
+    },
+
+    /**
+     * 设计器内 Ctrl+C/X 缓存样式，Ctrl+V 时一并粘贴。
+     */
+    bindClipboardStyleEvent() {
+      if (!this._clipboardKeyHandler) {
+        this._clipboardKeyHandler = (event) => {
+          const key = event.key;
+          const keyCode = event.keyCode;
+          const withMeta = event.ctrlKey || event.metaKey;
+          const isCopy = withMeta && (key === 'c' || key === 'C' || keyCode === 67);
+          const isCut = withMeta && (key === 'x' || key === 'X' || keyCode === 88);
+          const isPaste = withMeta && (key === 'v' || key === 'V' || keyCode === 86);
+          if (!isCopy && !isCut && !isPaste) {
+            return;
+          }
+          const action = isCopy ? 'copy' : (isCut ? 'cut' : 'paste');
+          // 单元格已进入编辑（有光标）时，交给编辑框自己粘贴/复制，不要先关掉编辑器
+          if (isEditorOpened(this.hot)) {
+            return;
+          }
+          if (isPaste) {
+            return;
+          }
+          if (isForeignTextInput(this.hot, event.target)) {
+            return;
+          }
+          if (forceTableCopy(this.hot, action)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        };
+        window.addEventListener('keydown', this._clipboardKeyHandler, true);
+      }
+      this.hot.addHook('afterCopy', (data, ranges) => {
+        captureClipboardStyles(ranges, data);
+      });
+      this.hot.addHook('afterCut', (data, ranges) => {
+        captureClipboardStyles(ranges, data);
+      });
+      this.hot.addHook('beforePaste', () => {
+        rememberPasteSelection(this.hot);
+      });
+      this.hot.addHook('afterPaste', (data) => {
+        if (applyClipboardStylesOnPaste(this.hot, data)) {
+          this.hot.render();
+          utils.setDirty();
+          this.$store.dispatch('report/triggerCellUpdate');
+        }
+      });
     },
 
     bindRowResizeEvent() {
@@ -507,22 +578,94 @@ export default {
       this.bindAfterChangeEvent();
     },
 
+    // 编辑中同步属性面板显示，提交仍走 afterChange
+    bindCellEditDraftSync() {
+      if (this._cellEditDraftBound) {
+        return;
+      }
+      this._cellEditDraftBound = true;
+
+      const detachEditorInput = () => {
+        if (this._cellEditTextarea && this._cellEditInputHandler) {
+          this._cellEditTextarea.removeEventListener('input', this._cellEditInputHandler);
+        }
+        this._cellEditTextarea = null;
+        this._cellEditInputHandler = null;
+        this._cellEditRow = null;
+        this._cellEditCol = null;
+      };
+
+      const publishDraft = (row, col, value) => {
+        this.$store.dispatch('report/setCellEditDraft', {
+          row,
+          col,
+          value: value == null ? '' : String(value)
+        });
+      };
+
+      this.hot.addHook('afterBeginEditing', (row, col) => {
+        detachEditorInput();
+        const editor = this.hot.getActiveEditor && this.hot.getActiveEditor();
+        const textarea = editor && editor.TEXTAREA;
+        if (!textarea) {
+          return;
+        }
+        this._cellEditRow = row;
+        this._cellEditCol = col;
+        this._cellEditTextarea = textarea;
+        this._cellEditInputHandler = () => {
+          publishDraft(row, col, textarea.value);
+        };
+        textarea.addEventListener('input', this._cellEditInputHandler);
+        this.$nextTick(() => {
+          if (this._cellEditTextarea === textarea) {
+            publishDraft(row, col, textarea.value);
+          }
+        });
+      });
+
+      // Esc 取消时清草稿
+      this.hot.addHook('beforeKeyDown', (event) => {
+        if (event.keyCode !== 27) {
+          return;
+        }
+        const editor = this.hot.getActiveEditor && this.hot.getActiveEditor();
+        if (!editor || !editor.isOpened || !editor.isOpened()) {
+          return;
+        }
+        detachEditorInput();
+        this.$store.dispatch('report/clearCellEditDraft');
+      });
+    },
+
     /**
-     * 绑定单元格编辑完成事件
-     * 当 simple 类型单元格编辑完成后，更新单元格定义并标记脏数据
+     * 绑定单元格内容变更事件（只绑定一次，避免重复加载报表时叠加）
+     * 双击编辑、粘贴、填充柄都会改 Handsontable 显示值，需同步回 cellsMap，并刷新属性面板
      */
     bindAfterChangeEvent() {
+      if (this._afterChangeBound) {
+        return;
+      }
+      this._afterChangeBound = true;
+      const syncSources = ['edit', 'CopyPaste.paste', 'Autofill.fill'];
       this.hot.addHook('afterChange', (changes, source) => {
-        if (source === 'edit' && changes) {
-          changes.forEach(([row, col, oldValue, newValue]) => {
-            const cellDef = getCell(row, col);
-            if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
-              const newCellDef = deepCopy(cellDef);
-              newCellDef.value.value = newValue;
-              setCell(row, col, newCellDef);
-              utils.setDirty();
-            }
-          });
+        if (!changes || syncSources.indexOf(source) === -1) {
+          return;
+        }
+        let synced = false;
+        changes.forEach(([row, col, oldValue, newValue]) => {
+          const cellDef = getCell(row, col);
+          if (cellDef && cellDef.value && cellDef.value.type === 'simple') {
+            const newCellDef = deepCopy(cellDef);
+            newCellDef.value.value = newValue == null ? '' : String(newValue);
+            setCell(row, col, newCellDef);
+            synced = true;
+          }
+        });
+        if (synced) {
+          this.$store.dispatch('report/clearCellEditDraft');
+          utils.setDirty();
+          this.$store.dispatch('report/triggerCellUpdate');
         }
       });
     },

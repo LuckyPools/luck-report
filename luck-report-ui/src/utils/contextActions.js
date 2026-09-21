@@ -97,9 +97,10 @@ export function addRowHeader(row, band) {
 /**
  * 调整插入行头
  * @param {number} row - 行号
+ * @param {number} [count=1] - 插入行数；撤销插入时传负数
  */
-export function adjustInsertRowHeaders(row) {
-  store.dispatch('report/contextAdjustInsertRowHeaders', { row });
+export function adjustInsertRowHeaders(row, count = 1) {
+  store.dispatch('report/contextAdjustInsertRowHeaders', { row, count });
 }
 
 /**
