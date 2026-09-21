@@ -97,12 +97,15 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('report', ['getContext', 'getIsCellUpdate']),
+    ...mapGetters('report', ['getContext', 'getIsCellUpdate', 'getCellEditDraft']),
     context() {
       return this.getContext;
     },
     isCellUpdate() {
       return this.getIsCellUpdate;
+    },
+    cellEditDraft() {
+      return this.getCellEditDraft;
     },
     cellPosition() {
       return `${this.rowIndex},${this.colIndex}`;
@@ -120,6 +123,17 @@ export default {
         if (newVal) {
           this.loadCellData();
           this.setCellUpdate(false);
+        }
+      }
+    },
+    cellEditDraft: {
+      handler(draft, oldDraft) {
+        if (draft && draft.row === this.rowIndex && draft.col === this.colIndex) {
+          this.content = draft.value;
+          return;
+        }
+        if (!draft && oldDraft && oldDraft.row === this.rowIndex && oldDraft.col === this.colIndex) {
+          this.loadCellData();
         }
       }
     }
@@ -162,7 +176,7 @@ export default {
 
       const hot = TableManager.get();
       if (hot && this.rowIndex !== null && this.colIndex !== null) {
-        hot.setDataAtCell(this.rowIndex, this.colIndex, this.content);
+        hot.setDataAtCell(this.rowIndex, this.colIndex, this.content, 'PropertyPanel.change');
       }
 
       setDirty();
