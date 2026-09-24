@@ -29,6 +29,7 @@ import com.luck.report.core.expression.model.data.ObjectExpressionData;
 import com.luck.report.core.expression.model.data.ObjectListExpressionData;
 import com.luck.report.core.expression.utils.ExpressionReturns;
 import com.luck.report.core.model.*;
+import com.luck.report.core.utils.NumberUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -232,7 +233,7 @@ public class HtmlProducer {
                     sb.append("></canvas>");
                     sb.append("</div>");
                 } else {
-                    String text = obj.toString();
+                    String text = NumberUtils.toPlainString(obj);
                     text = StringEscapeUtils.escapeHtml4(text);
                     text = text.replaceAll("\r\n", "<br>");
                     text = text.replaceAll("\n", "<br>");

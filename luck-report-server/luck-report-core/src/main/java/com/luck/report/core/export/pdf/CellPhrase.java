@@ -18,6 +18,7 @@ package com.luck.report.core.export.pdf;
 import com.luck.report.core.definition.CellStyle;
 import com.luck.report.core.export.pdf.font.FontBuilder;
 import com.luck.report.core.model.Cell;
+import com.luck.report.core.utils.NumberUtils;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Phrase;
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +33,7 @@ public class CellPhrase extends Phrase {
     public CellPhrase(Cell cell, Object cellData) {
         String text = "";
         if (cellData != null) {
-            text = cellData.toString();
+            text = NumberUtils.toPlainString(cellData);
         }
         Font font = buildPdfFont(cell);
         setFont(font);

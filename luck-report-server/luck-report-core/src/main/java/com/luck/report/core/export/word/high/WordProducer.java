@@ -24,6 +24,7 @@ import com.luck.report.core.export.word.DxaUtils;
 import com.luck.report.core.model.*;
 import com.luck.report.core.model.*;
 import com.luck.report.core.utils.ImageUtils;
+import com.luck.report.core.utils.NumberUtils;
 import com.luck.report.core.utils.UnitUtils;
 import com.luck.report.core.definition.*;
 import org.apache.commons.io.IOUtils;
@@ -274,7 +275,7 @@ public class WordProducer implements Producer {
                 run.setText(text);
             }
         } else if (value instanceof Number) {
-            run.setText(String.valueOf(value));
+            run.setText(NumberUtils.toPlainString(value));
         } else if (value instanceof Boolean) {
             run.setText(value.toString());
         } else if ((value instanceof Image) || (value instanceof ChartData)) {
