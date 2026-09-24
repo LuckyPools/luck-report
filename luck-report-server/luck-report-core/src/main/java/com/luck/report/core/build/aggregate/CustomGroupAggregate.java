@@ -25,6 +25,7 @@ import com.luck.report.core.model.Cell;
 import com.luck.report.core.utils.DataUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,18 +47,18 @@ public class CustomGroupAggregate extends Aggregate {
         List<BindData> list = new ArrayList<BindData>();
         List<GroupItem> groupItems = expr.getGroupItems();
         if (objList.size() == 0) {
-            list.add(new BindData(""));
+            list.add(new BindData("", Collections.emptyList()));
             return list;
         } else if (objList.size() == 1) {
             Object o = objList.get(0);
             boolean conditionResult = doCondition(expr.getCondition(), cell, o, context);
             if (!conditionResult) {
-                list.add(new BindData(""));
+                list.add(new BindData("", Collections.emptyList()));
                 return list;
             }
             String itemName = groupData(groupItems, cell, context, o);
             if (itemName == null) {
-                list.add(new BindData(""));
+                list.add(new BindData("", Collections.emptyList()));
                 return list;
             }
             List<Object> rowList = new ArrayList<Object>();
@@ -86,9 +87,7 @@ public class CustomGroupAggregate extends Aggregate {
             rowList.add(o);
         }
         if (list.size() == 0) {
-            List<Object> rowList = new ArrayList<Object>();
-            rowList.add(new HashMap<String, Object>());
-            list.add(new BindData("", rowList));
+            list.add(new BindData("", Collections.emptyList()));
         }
         if (list.size() > 1) {
             Order order = expr.getOrder();

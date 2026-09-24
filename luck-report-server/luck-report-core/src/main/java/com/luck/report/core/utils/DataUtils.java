@@ -22,12 +22,13 @@ import com.luck.report.core.definition.value.ExpressionValue;
 import com.luck.report.core.definition.value.Value;
 import com.luck.report.core.expression.model.Expression;
 import com.luck.report.core.expression.model.expr.BaseExpression;
+import com.luck.report.core.expression.model.expr.ExpressionBlock;
 import com.luck.report.core.expression.model.expr.JoinExpression;
-import com.luck.report.core.expression.model.expr.ParenExpression;
 import com.luck.report.core.expression.model.expr.dataset.DatasetExpression;
 import com.luck.report.core.model.Cell;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,9 +44,15 @@ public class DataUtils {
         List<Object> leftList = null, topList = null;
         if (leftCell != null) {
             leftList = leftCell.getBindData();
+            if (leftList == null) {
+                leftList = Collections.emptyList();
+            }
         }
         if (topCell != null) {
             topList = topCell.getBindData();
+            if (topList == null) {
+                topList = Collections.emptyList();
+            }
         }
         if (leftList != null && topList != null) {
             List<Object> data = new ArrayList<Object>();
@@ -116,31 +123,63 @@ public class DataUtils {
 
     public static DatasetExpression fetchDatasetExpression(Value value) {
         if (value instanceof ExpressionValue) {
-            ExpressionValue exprValue = (ExpressionValue) value;
-            Expression expr = exprValue.getExpression();
-            if (expr instanceof DatasetExpression) {
-                return (DatasetExpression) expr;
-            } else if (expr instanceof ParenExpression) {
-                ParenExpression parenExpr = (ParenExpression) expr;
-                DatasetExpression targetExpr = buildDatasetExpression(parenExpr);
-                return targetExpr;
-            } else {
-                return null;
-            }
+            return findDatasetExpression(((ExpressionValue) value).getExpression());
         } else if (value instanceof DatasetValue) {
             return (DatasetValue) value;
         }
         return null;
     }
 
+    /**
+     * 表达式常包在 ExpressionBlock / ParenExpression 里，需解包才能识别同数据集父格
+     *
+     * @param expr 单元格表达式树
+     * @return 内嵌的数据集表达式，找不到时返回 null
+     */
+    private static DatasetExpression findDatasetExpression(Expression expr) {
+        if (expr == null) {
+            return null;
+        }
+        if (expr instanceof DatasetExpression) {
+            return (DatasetExpression) expr;
+        }
+        if (expr instanceof ExpressionBlock) {
+            ExpressionBlock block = (ExpressionBlock) expr;
+            List<Expression> expressions = block.getExpressionList();
+            if (expressions != null) {
+                for (Expression child : expressions) {
+                    DatasetExpression found = findDatasetExpression(child);
+                    if (found != null) {
+                        return found;
+                    }
+                }
+            }
+            return findDatasetExpression(block.getReturnExpression());
+        }
+        if (expr instanceof JoinExpression) {
+            return buildDatasetExpression((JoinExpression) expr);
+        }
+        return null;
+    }
+
     private static DatasetExpression buildDatasetExpression(JoinExpression joinExpr) {
         List<BaseExpression> expressions = joinExpr.getExpressions();
+        if (expressions == null) {
+            return null;
+        }
         for (BaseExpression baseExpr : expressions) {
             if (baseExpr instanceof DatasetExpression) {
                 return (DatasetExpression) baseExpr;
             } else if (baseExpr instanceof JoinExpression) {
-                JoinExpression childExpr = (JoinExpression) baseExpr;
-                return buildDatasetExpression(childExpr);
+                DatasetExpression found = buildDatasetExpression((JoinExpression) baseExpr);
+                if (found != null) {
+                    return found;
+                }
+            } else if (baseExpr instanceof ExpressionBlock) {
+                DatasetExpression found = findDatasetExpression(baseExpr);
+                if (found != null) {
+                    return found;
+                }
             }
         }
         return null;

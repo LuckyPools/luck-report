@@ -34,6 +34,23 @@ import java.util.*;
 public abstract class Aggregate {
     public abstract List<BindData> aggregate(DatasetExpression expr, Cell cell, Context context);
 
+    /**
+     * 取同数据集父格上的绑定行；父格已定位但未带行时按空约束，不能当成无父格回退全表
+     *
+     * @param parent 同数据集左/上父格，可为 null
+     * @return 父格 bindData；无父格返回 null，父格未带行返回空列表
+     */
+    protected List<Object> parentBindData(Cell parent) {
+        if (parent == null) {
+            return null;
+        }
+        List<Object> data = parent.getBindData();
+        if (data == null) {
+            return Collections.emptyList();
+        }
+        return data;
+    }
+
     protected Condition getCondition(Cell cell) {
         Value value = cell.getValue();
         Condition condition = null;

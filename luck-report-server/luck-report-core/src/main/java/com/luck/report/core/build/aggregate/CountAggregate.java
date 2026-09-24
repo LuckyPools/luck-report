@@ -38,21 +38,17 @@ public class CountAggregate extends Aggregate {
         String datasetName = expr.getDatasetName();
         Cell leftCell = DataUtils.fetchLeftCell(cell, context, datasetName);
         Cell topCell = DataUtils.fetchTopCell(cell, context, datasetName);
-        List<Object> leftList = null, topList = null;
-        if (leftCell != null) {
-            leftList = leftCell.getBindData();
-        }
-        if (topCell != null) {
-            topList = topCell.getBindData();
-        }
+        List<Object> leftList = parentBindData(leftCell);
+        List<Object> topList = parentBindData(topCell);
+        List<Object> rows = new ArrayList<Object>();
         int count = 0;
         if (leftList == null && topList == null) {
             List<?> data = context.getDatasetData(datasetName);
-            count = doCondition(data, cell, expr, context);
+            count = doCondition(data, cell, expr, context, rows);
         } else if (leftList == null) {
-            count = doCondition(topList, cell, expr, context);
+            count = doCondition(topList, cell, expr, context, rows);
         } else if (topList == null) {
-            count = doCondition(leftList, cell, expr, context);
+            count = doCondition(leftList, cell, expr, context, rows);
         } else {
             List<Object> list = null;
             Object data = null;
@@ -86,29 +82,37 @@ public class CountAggregate extends Aggregate {
                 }
                 Object o = Utils.getProperty(obj, prop);
                 if (o != null && data != null && (o == data || o.equals(data))) {
+                    rows.add(obj);
                     count++;
                 } else if (o == null && data == null) {
+                    rows.add(obj);
                     count++;
                 }
             }
         }
         List<BindData> list = new ArrayList<BindData>();
-        list.add(new BindData(count, null));
+        list.add(new BindData(count, rows));
         return list;
     }
 
-    private int doCondition(List<?> dataList, Cell cell, DatasetExpression expr, Context context) {
+    private int doCondition(List<?> dataList, Cell cell, DatasetExpression expr, Context context, List<Object> rows) {
         Condition condition = getCondition(cell);
         if (condition == null) {
             condition = expr.getCondition();
         }
         if (condition == null) {
+            for (Object obj : dataList) {
+                rows.add(obj);
+            }
             return dataList.size();
         }
         int size = 0;
         for (Object obj : dataList) {
             boolean result = condition.filter(cell, cell, obj, context);
-            if (result) size++;
+            if (result) {
+                rows.add(obj);
+                size++;
+            }
         }
         return size;
     }

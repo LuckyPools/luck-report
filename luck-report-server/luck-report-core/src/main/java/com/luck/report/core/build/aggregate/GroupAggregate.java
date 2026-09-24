@@ -24,6 +24,7 @@ import com.luck.report.core.model.Cell;
 import com.luck.report.core.utils.DataUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,13 +46,13 @@ public class GroupAggregate extends Aggregate {
         Map<String, String> mappingMap = context.getMapping(expr);
         List<BindData> list = new ArrayList<BindData>();
         if (objList.size() == 0) {
-            list.add(new BindData(""));
+            list.add(new BindData("", Collections.emptyList()));
             return list;
         } else if (objList.size() == 1) {
             Object o = objList.get(0);
             boolean conditionResult = doCondition(expr.getCondition(), cell, o, context);
             if (!conditionResult) {
-                list.add(new BindData(""));
+                list.add(new BindData("", Collections.emptyList()));
                 return list;
             }
             Object data = Utils.getProperty(o, property);
@@ -88,9 +89,7 @@ public class GroupAggregate extends Aggregate {
             rowList.add(o);
         }
         if (list.size() == 0) {
-            List<Object> rowList = new ArrayList<Object>();
-            rowList.add(new HashMap<String, Object>());
-            list.add(new BindData("", rowList));
+            list.add(new BindData("", Collections.emptyList()));
         }
         if (list.size() > 1) {
             Order order = expr.getOrder();

@@ -40,21 +40,17 @@ public class MinAggregate extends Aggregate {
         String property = expr.getProperty();
         Cell leftCell = DataUtils.fetchLeftCell(cell, context, datasetName);
         Cell topCell = DataUtils.fetchTopCell(cell, context, datasetName);
-        List<Object> leftList = null, topList = null;
-        if (leftCell != null) {
-            leftList = leftCell.getBindData();
-        }
-        if (topCell != null) {
-            topList = topCell.getBindData();
-        }
+        List<Object> leftList = parentBindData(leftCell);
+        List<Object> topList = parentBindData(topCell);
+        List<Object> rows = new ArrayList<Object>();
         BigDecimal result = null;
         if (leftList == null && topList == null) {
             List<?> data = context.getDatasetData(datasetName);
-            result = buildMin(data, property, cell, expr, context);
+            result = buildMin(data, property, cell, expr, context, rows);
         } else if (leftList == null) {
-            result = buildMin(topList, property, cell, expr, context);
+            result = buildMin(topList, property, cell, expr, context, rows);
         } else if (topList == null) {
-            result = buildMin(leftList, property, cell, expr, context);
+            result = buildMin(leftList, property, cell, expr, context, rows);
         } else {
             List<Object> list = null;
             Object data = null;
@@ -88,6 +84,7 @@ public class MinAggregate extends Aggregate {
                 }
                 Object o = Utils.getProperty(obj, prop);
                 if ((o != null && data != null && (o == data || o.equals(data))) || (o == null && data == null)) {
+                    rows.add(obj);
                     Object value = Utils.getProperty(obj, property);
                     if (value == null || value.toString().equals("")) {
                         continue;
@@ -106,14 +103,14 @@ public class MinAggregate extends Aggregate {
         }
         List<BindData> list = new ArrayList<BindData>();
         if (result != null) {
-            list.add(new BindData(result.doubleValue(), null));
+            list.add(new BindData(result.doubleValue(), rows));
         } else {
-            list.add(new BindData(0, null));
+            list.add(new BindData(0, rows));
         }
         return list;
     }
 
-    private BigDecimal buildMin(List<?> list, String property, Cell cell, DatasetExpression expr, Context context) {
+    private BigDecimal buildMin(List<?> list, String property, Cell cell, DatasetExpression expr, Context context, List<Object> rows) {
         BigDecimal result = null;
         Condition condition = getCondition(cell);
         if (condition == null) {
@@ -123,6 +120,7 @@ public class MinAggregate extends Aggregate {
             if (condition != null && !condition.filter(cell, cell, obj, context)) {
                 continue;
             }
+            rows.add(obj);
             Object value = Utils.getProperty(obj, property);
             if (value == null || value.toString().equals("")) {
                 continue;

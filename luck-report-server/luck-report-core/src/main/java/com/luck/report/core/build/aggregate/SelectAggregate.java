@@ -24,7 +24,7 @@ import com.luck.report.core.model.Cell;
 import com.luck.report.core.utils.DataUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -59,9 +59,7 @@ public class SelectAggregate extends Aggregate {
             }
         }
         if (list.size() == 0) {
-            List<Object> rowList = new ArrayList<Object>();
-            rowList.add(new HashMap<String, Object>());
-            list.add(new BindData("", rowList));
+            list.add(new BindData("", Collections.emptyList()));
         }
         if (list.size() > 1) {
             Order order = expr.getOrder();
