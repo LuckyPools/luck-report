@@ -36,9 +36,12 @@ public class NumberExpression extends BaseExpression {
         this.value = value;
     }
 
+    /**
+     * 返回字面量数值，保持解析得到的 BigDecimal，避免 float 精度丢失
+     */
     @Override
     public ExpressionData<?> compute(Cell cell, Cell currentCell, Context context) {
-        return new ObjectExpressionData(value.floatValue());
+        return new ObjectExpressionData(value);
     }
 
     /**
