@@ -21,6 +21,8 @@ import com.luck.report.core.model.Column;
 import com.luck.report.core.model.Report;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,14 +83,14 @@ public class RightDuplicate {
             return;
         }
         Report report = context.getReport();
-		/*
-		Collections.sort(newColList,new Comparator<Column>(){
-			@Override
-			public int compare(Column o1, Column o2) {
-				return o1.getTempColumnNumber()-o2.getTempColumnNumber();
-			}
-		});
-		*/
+        // duplicate 会先建子列再建父列，newColList 追加顺序与 tempColumnNumber 不一致；
+        // 插入前必须按 tempColumnNumber 排序，与 DownDuplicate 按 tempRowNumber 排序对称。
+        Collections.sort(newColList, new Comparator<Column>() {
+            @Override
+            public int compare(Column o1, Column o2) {
+                return o1.getTempColumnNumber() - o2.getTempColumnNumber();
+            }
+        });
         report.insertColumns(minColNumber, newColList);
     }
 
