@@ -1,5 +1,5 @@
 <p align="center">
-	<img alt="Luck-Report" src="https://www.quzhe.top/images/git/header-01.png" width="64">
+	<img alt="Luck-Report" src="https://i.ibb.co/ns87XbXW/header-01.png" width="64">
 </p>
 <h1 align="center" style="margin: 20px 0; font-weight: bold;">Luck-Report V1.0.2</h1>
 <h4 align="center">基于 Spring 的高性能 Java 报表引擎</h4>
@@ -7,6 +7,9 @@
 	<a href="https://gitee.com/LuckyPools/luck-report/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-green.svg"></a>
 	<a href="https://gitee.com/LuckyPools/luck-report/stargazers"><img src="https://gitee.com/LuckyPools/luck-report/badge/star.svg"></a>
 	<a href="https://gitee.com/LuckyPools/luck-report/members"><img src="https://img.shields.io/badge/Fork%20on%20Gitee-Click%20Here-blue"></a>
+</p>
+<p align="center">
+	[<a href="./README.md">中文</a>] | [<a href="./README_EN.md">English</a>]
 </p>
 
 ## 📖 项目简介
@@ -20,7 +23,24 @@ Luck-Report 基于 Apache-2.0 开源协议开源
 ## 🌐 在线体验
 
 *   体验地址：[https://www.quzhe.top/luck-report/report/designer](https://www.quzhe.top/luck-report/report/designer?reportPath=file%3A%25E8%25AE%25A2%25E5%258D%2595%25E6%258A%25A5%25E8%25A1%25A8-%25E9%2594%2580%25E9%2587%258F%25E7%25BB%259F%25E8%25AE%25A1%25E8%25A1%25A8.ureport.xml)
-*   文档地址：[https://www.quzhe.top/luck-report-blog/report](https://www.quzhe.top/luck-report-blog)
+*   文档地址：[https://www.quzhe.top:8099/se/docs](https://www.quzhe.top:8099/se/docs/2103675978025816154)
+
+## 🚀 升级版（含 AI）
+
+本仓库为 **Luck-Report V1**。若需要 **AI 智能助手**（自然语言制表 / 改表 / 答疑）、知识库增强与更完整的管理能力，请使用升级版：
+
+**仓库地址**：[https://gitee.com/LuckyPools/luck-report-server](https://gitee.com/LuckyPools/luck-report-server)
+
+V2 在保留中国式复杂报表能力的基础上，主要新增：
+
+| 能力     | 说明                        |
+|--------|---------------------------|
+| AI 智能助手 | 结合大模型与知识库，用自然语言完成制表、改表与答疑 |
+| 知识库    | 报表 / 业务知识向量化检索，辅助智能助手     |
+| 报表管理   | 管理页、角色权限与预览授权等            |
+| 数据源管理  | 管理数据源、数据集等                |
+
+> V1 继续可用；新功能与后续迭代以 V2 仓库为准。
 
 ## 💻 系统要求
 
@@ -61,24 +81,24 @@ Luck-Report 基于 Apache-2.0 开源协议开源
         <td width="50%" align="center"><b>数据集</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://www.quzhe.top/images/git/designer-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://www.quzhe.top/images/git/dataset-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://i.ibb.co/SDwj1WT5/designer-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://i.ibb.co/w2Jb7db/dataset-01.png" width="100%" /></td>
     </tr>
     <tr>
         <td width="50%" align="center"><b>表单设计</b></td>
         <td width="50%" align="center"><b>图表</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://www.quzhe.top/images/git/form-designer-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://www.quzhe.top/images/git/chart-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://i.ibb.co/YFXbfprz/luck-form-designer-reup.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://i.ibb.co/HcvcbsJ/chart-01.png" width="100%" /></td>
     </tr>
     <tr>
         <td width="50%" align="center"><b>预览</b></td>
         <td width="50%" align="center"><b>打印</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://www.quzhe.top/images/git/preview-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://www.quzhe.top/images/git/print-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://i.ibb.co/H9tT9vL/preview-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://i.ibb.co/DPFxYtXL/print-01.png" width="100%" /></td>
     </tr>
 </table>
 
@@ -87,5 +107,5 @@ Luck-Report 基于 Apache-2.0 开源协议开源
 如果觉得本项目对你有帮助，欢迎扫码赞助，你的支持是项目持续维护的动力～
 
 <p>
-  <img src="https://www.quzhe.top/images/git/support-pay.jpg" alt="赞助二维码" width="200" />
+  <img src="https://i.ibb.co/358Hb2jW/support-pay.png" alt="赞助二维码" width="200" />
 </p>
