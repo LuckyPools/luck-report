@@ -107,6 +107,9 @@ export default {
     togglePicker() {
       if (this.disabled) return
       if (!this.pickerVisible && typeof this.beforeToggle === 'function' && !this.beforeToggle()) return
+      if (!this.pickerVisible && this.value) {
+        this.setColorFromValue(this.value)
+      }
       this.pickerVisible = !this.pickerVisible
     },
     closePicker() {
@@ -157,23 +160,114 @@ export default {
         this.shouldCloseAfterUpdate = true
       }
     },
+    /**
+     * 从外部值完整构建颜色对象（hex / rgba / hsl / hsv）
+     * vue-color Sketch 优先用 hsl 初始化；只写 hex 时刷新后会显示 0,0,0
+     */
     setColorFromValue(value) {
       if (!value) return
 
-      // 简单的颜色解析，实际项目中可能需要更复杂的解析逻辑
+      let r = 0
+      let g = 0
+      let b = 0
+      let a = 1
+
       if (value.startsWith('#')) {
-        this.colors.hex = value
-      } else if (value.startsWith('rgb')) {
-        // 解析 rgb/rgba 值
-        const matches = value.match(/\d+/g)
-        if (matches && matches.length >= 3) {
-          this.colors.rgba = {
-            r: parseInt(matches[0]),
-            g: parseInt(matches[1]),
-            b: parseInt(matches[2]),
-            a: matches[3] ? parseFloat(matches[3]) : 1
-          }
+        let hex = value.replace('#', '').trim()
+        if (hex.length === 3) {
+          hex = hex.split('').map((c) => c + c).join('')
         }
+        if (hex.length !== 6) return
+        r = parseInt(hex.substring(0, 2), 16)
+        g = parseInt(hex.substring(2, 4), 16)
+        b = parseInt(hex.substring(4, 6), 16)
+      } else if (value.startsWith('rgb')) {
+        const matches = value.match(/[\d.]+/g)
+        if (!matches || matches.length < 3) return
+        r = parseInt(matches[0], 10)
+        g = parseInt(matches[1], 10)
+        b = parseInt(matches[2], 10)
+        a = matches[3] ? parseFloat(matches[3]) : 1
+      } else if (value.includes(',')) {
+        const parts = value.split(',')
+        if (parts.length < 3) return
+        r = parseInt(parts[0].trim(), 10)
+        g = parseInt(parts[1].trim(), 10)
+        b = parseInt(parts[2].trim(), 10)
+      } else {
+        return
+      }
+
+      if ([r, g, b].some((n) => Number.isNaN(n))) return
+      this.colors = this.buildColorFromRgb(r, g, b, Number.isNaN(a) ? 1 : a)
+    },
+    clampByte(n) {
+      return Math.min(255, Math.max(0, Math.round(n)))
+    },
+    rgbToHsv(r, g, b) {
+      const rn = r / 255
+      const gn = g / 255
+      const bn = b / 255
+      const max = Math.max(rn, gn, bn)
+      const min = Math.min(rn, gn, bn)
+      const d = max - min
+      let h = 0
+      const s = max === 0 ? 0 : d / max
+      const v = max
+      if (d !== 0) {
+        switch (max) {
+          case rn:
+            h = (gn - bn) / d + (gn < bn ? 6 : 0)
+            break
+          case gn:
+            h = (bn - rn) / d + 2
+            break
+          default:
+            h = (rn - gn) / d + 4
+            break
+        }
+        h *= 60
+      }
+      return { h, s, v, a: 1 }
+    },
+    rgbToHsl(r, g, b) {
+      const rn = r / 255
+      const gn = g / 255
+      const bn = b / 255
+      const max = Math.max(rn, gn, bn)
+      const min = Math.min(rn, gn, bn)
+      const l = (max + min) / 2
+      let h = 0
+      let s = 0
+      if (max !== min) {
+        const d = max - min
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+        switch (max) {
+          case rn:
+            h = (gn - bn) / d + (gn < bn ? 6 : 0)
+            break
+          case gn:
+            h = (bn - rn) / d + 2
+            break
+          default:
+            h = (rn - gn) / d + 4
+            break
+        }
+        h *= 60
+      }
+      return { h, s, l, a: 1 }
+    },
+    buildColorFromRgb(r, g, b, a = 1) {
+      const rr = this.clampByte(r)
+      const gg = this.clampByte(g)
+      const bb = this.clampByte(b)
+      const toHex = (n) => n.toString(16).padStart(2, '0')
+      return {
+        hex: `#${toHex(rr)}${toHex(gg)}${toHex(bb)}`,
+        rgba: { r: rr, g: gg, b: bb, a },
+        hsv: { ...this.rgbToHsv(rr, gg, bb), a },
+        hsl: { ...this.rgbToHsl(rr, gg, bb), a },
+        a
       }
     }
   }
