@@ -22,8 +22,8 @@ Luck-Report is open-sourced under the Apache-2.0 license.
 
 ## 🌐 Live Demo
 
-*   Demo: [https://www.quzhe.top/luck-report/report/designer](https://www.quzhe.top/luck-report/report/designer?reportPath=file%3A%25E8%25AE%25A2%25E5%258D%2595%25E6%258A%25A5%25E8%25A1%25A8-%25E9%2594%2580%25E9%2587%258F%25E7%25BB%259F%25E8%25AE%25A1%25E8%25A1%25A8.ureport.xml)
-*   Docs: [https://www.quzhe.top:8099/se/docs](https://www.quzhe.top:8099/se/docs/2103675978025816154)
+*   Demo: [https://www.tinyluck.cn:8070/luck-report/report/designer](https://www.tinyluck.cn:8070/luck-report/report/designer?reportPath=file%3A%25E8%25AE%25A2%25E5%258D%2595%25E6%258A%25A5%25E8%25A1%25A8-%25E9%2594%2580%25E9%2587%258F%25E7%25BB%259F%25E8%25AE%25A1%25E8%25A1%25A8.ureport.xml)
+*   Docs: [https://www.tinyluck.cn:8099/se/docs](https://www.tinyluck.cn:8099/se/docs/2103675978025816154)
 
 ## 🚀 Upgrade (with AI)
 

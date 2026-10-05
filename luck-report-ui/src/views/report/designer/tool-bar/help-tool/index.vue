@@ -60,7 +60,7 @@ export default {
     return {
       visible: false,
       /** 官网文档地址 */
-      docUrl: 'https://www.quzhe.top/luck-report-blog/report/Luck-Report%E4%BB%8B%E7%BB%8D.html',
+      docUrl: 'https://www.tinyluck.cn:8099/se/docs',
       /** 提问地址 */
       issueUrl: 'https://gitee.com/LuckyPools/luck-report/issues/new'
     };
