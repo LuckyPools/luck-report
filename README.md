@@ -1,5 +1,5 @@
 <p align="center">
-	<img alt="Luck-Report" src="https://i.ibb.co/ns87XbXW/header-01.png" width="64">
+	<img alt="Luck-Report" src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/header-01.png" width="64">
 </p>
 <h1 align="center" style="margin: 20px 0; font-weight: bold;">Luck-Report V1.0.2</h1>
 <h4 align="center">基于 Spring 的高性能 Java 报表引擎</h4>
@@ -81,24 +81,24 @@ V2 在保留中国式复杂报表能力的基础上，主要新增：
         <td width="50%" align="center"><b>数据集</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://i.ibb.co/SDwj1WT5/designer-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://i.ibb.co/w2Jb7db/dataset-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/designer-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/dataset-01.png" width="100%" /></td>
     </tr>
     <tr>
         <td width="50%" align="center"><b>表单设计</b></td>
         <td width="50%" align="center"><b>图表</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://i.ibb.co/YFXbfprz/luck-form-designer-reup.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://i.ibb.co/HcvcbsJ/chart-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/form-designer-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/chart-01.png" width="100%" /></td>
     </tr>
     <tr>
         <td width="50%" align="center"><b>预览</b></td>
         <td width="50%" align="center"><b>打印</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://i.ibb.co/H9tT9vL/preview-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://i.ibb.co/DPFxYtXL/print-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/preview-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/print-01.png" width="100%" /></td>
     </tr>
 </table>
 
@@ -107,5 +107,5 @@ V2 在保留中国式复杂报表能力的基础上，主要新增：
 如果觉得本项目对你有帮助，欢迎扫码赞助，你的支持是项目持续维护的动力～
 
 <p>
-  <img src="https://i.ibb.co/358Hb2jW/support-pay.png" alt="赞助二维码" width="200" />
+  <img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/support-pay.jpg" alt="赞助二维码" width="200" />
 </p>

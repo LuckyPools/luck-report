@@ -1,5 +1,5 @@
 <p align="center">
-	<img alt="Luck-Report" src="https://i.ibb.co/ns87XbXW/header-01.png" width="64">
+	<img alt="Luck-Report" src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/header-01.png" width="64">
 </p>
 <h1 align="center" style="margin: 20px 0; font-weight: bold;">Luck-Report V1.0.2</h1>
 <h4 align="center">High-performance Java reporting engine based on Spring</h4>
@@ -81,24 +81,24 @@ On top of Chinese-style complex reporting, V2 mainly adds:
         <td width="50%" align="center"><b>Dataset</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://i.ibb.co/SDwj1WT5/designer-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://i.ibb.co/w2Jb7db/dataset-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/designer-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/dataset-01.png" width="100%" /></td>
     </tr>
     <tr>
         <td width="50%" align="center"><b>Form designer</b></td>
         <td width="50%" align="center"><b>Charts</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://i.ibb.co/YFXbfprz/luck-form-designer-reup.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://i.ibb.co/HcvcbsJ/chart-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/form-designer-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/chart-01.png" width="100%" /></td>
     </tr>
     <tr>
         <td width="50%" align="center"><b>Preview</b></td>
         <td width="50%" align="center"><b>Print</b></td>
     </tr>
     <tr>
-        <td width="50%" align="center"><img src="https://i.ibb.co/H9tT9vL/preview-01.png" width="100%" /></td>
-        <td width="50%" align="center"><img src="https://i.ibb.co/DPFxYtXL/print-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/preview-01.png" width="100%" /></td>
+        <td width="50%" align="center"><img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/print-01.png" width="100%" /></td>
     </tr>
 </table>
 
@@ -107,5 +107,5 @@ On top of Chinese-style complex reporting, V2 mainly adds:
 If this project helps you, a sponsorship scan is welcome — your support keeps maintenance going.
 
 <p>
-  <img src="https://i.ibb.co/358Hb2jW/support-pay.png" alt="Sponsorship QR code" width="200" />
+  <img src="https://www.tinyluck.cn:8088/assets/image/luck-report-v1/git/support-pay.jpg" alt="Sponsorship QR code" width="200" />
 </p>
