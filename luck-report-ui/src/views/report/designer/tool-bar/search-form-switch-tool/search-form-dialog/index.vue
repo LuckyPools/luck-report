@@ -61,11 +61,13 @@ export default {
 
     buildData() {
       const searchFormDesigner = this.$refs.searchFormDesigner;
-      searchFormDesigner.AssembleFormData();
+      if (!searchFormDesigner) return false;
+      if (!searchFormDesigner.AssembleFormData()) return false;
       const formData = searchFormDesigner.formData;
       const newReportDef = deepClone(this.context.reportDef);
       newReportDef.searchForm = deepClone(formData);
       updateReportDef(newReportDef);
+      return true;
     },
 
     handleClose() {
@@ -73,7 +75,7 @@ export default {
     },
 
     handleOk() {
-      this.buildData();
+      if (!this.buildData()) return;
       this.$emit('update:visible', false);
     }
   }

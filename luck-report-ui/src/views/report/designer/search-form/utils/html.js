@@ -145,8 +145,10 @@ const tags = {
   'u-input-number': el => {
     const { vModel, placeholder } = attrBuilder(el)
     const controlsPosition = el['controlsPosition'] ? `controlsPosition=${el['controlsPosition']}` : ''
-    const min = el.min ? `:min='${el.min}'` : ''
-    const max = el.max ? `:max='${el.max}'` : ''
+    const minNum = toFiniteNumber(el.min)
+    const maxNum = toFiniteNumber(el.max)
+    const min = minNum !== null ? `:min="${minNum}"` : ''
+    const max = maxNum !== null ? `:max="${maxNum}"` : ''
     const step = el.step ? `:step='${el.step}'` : ''
     const stepStrictly = el['stepStrictly'] ? 'stepStrictly' : ''
     const precision = el.precision ? `:precision='${el.precision}'` : ''
@@ -232,6 +234,15 @@ function attrBuilder(el) {
     placeholder: el.placeholder ? `placeholder="${el.placeholder}"` : '',
     width: el.style && el.style.width ? ':style="{width: \'100%\'}"' : ''
   }
+}
+
+/**
+ * 将配置值转为有限数字；null/undefined/非法 → null（表示不限制）
+ */
+function toFiniteNumber(val) {
+  if (val === null || val === undefined || val === '') return null
+  const num = typeof val === 'number' ? val : Number(val)
+  return Number.isFinite(num) ? num : null
 }
 
 // u-buttin 子级

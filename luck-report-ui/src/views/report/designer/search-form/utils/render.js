@@ -165,6 +165,11 @@ export default {
       const val = confClone[key]
       if (key === 'vModel') {
         vModel(this, dataObject, confClone)
+      } else if (confClone.tag === 'u-input-number' && (key === 'min' || key === 'max')) {
+        const num = typeof val === 'number' ? val : Number(val)
+        if (val !== null && val !== undefined && val !== '' && Number.isFinite(num)) {
+          dataObject.props[key] = num
+        }
       } else if (dataObject[key]) {
         dataObject[key] = val
       } else if (!isAttr(key)) {

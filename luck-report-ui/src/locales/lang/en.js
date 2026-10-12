@@ -976,6 +976,7 @@ const en = {
         "maxSelect": "Maximum Selection",
         "minValue": "Minimum Value",
         "maxValue": "Maximum Value",
+        "minMaxInvalid": "Minimum cannot be greater than maximum",
         "step": "Step",
         "stepCount": "Step Count",
         "activeText": "Active Text",

@@ -119,11 +119,27 @@
         <u-form-item v-if="activeData.append!==undefined" label="后缀">
           <u-input v-model="activeData.append" placeholder="请输入后缀" />
         </u-form-item> -->
-          <u-form-item v-if="activeData.min !== undefined" :label="$t('searchForm.minValue')">
-            <u-input-number v-model="activeData.min" :placeholder="$t('searchForm.minValue')" />
+          <u-form-item v-if="activeData.tag === 'u-input-number'" :label="$t('searchForm.minValue')">
+            <u-input-number
+              :value="activeData.min"
+              :placeholder="$t('searchForm.minValue')"
+              @input="$set(activeData, 'min', $event === null || $event === undefined || $event === '' ? null : $event)"
+            />
           </u-form-item>
-          <u-form-item v-if="activeData.max !== undefined" :label="$t('searchForm.maxValue')">
-            <u-input-number v-model="activeData.max" :placeholder="$t('searchForm.maxValue')" />
+          <u-form-item v-if="activeData.tag === 'u-input-number'" :label="$t('searchForm.maxValue')">
+            <u-input-number
+              :value="activeData.max"
+              :placeholder="$t('searchForm.maxValue')"
+              @input="$set(activeData, 'max', $event === null || $event === undefined || $event === '' ? null : $event)"
+            />
+          </u-form-item>
+          <u-form-item
+            v-if="activeData.tag === 'u-input-number'
+              && typeof activeData.min === 'number' && Number.isFinite(activeData.min)
+              && typeof activeData.max === 'number' && Number.isFinite(activeData.max)
+              && activeData.min > activeData.max"
+          >
+            <span class="form-item-explain-error">{{ $t('searchForm.minMaxInvalid') }}</span>
           </u-form-item>
           <u-form-item v-if="activeData.step !== undefined" :label="$t('searchForm.step')">
             <u-input-number v-model="activeData.step" :placeholder="$t('searchForm.stepCount')" />
@@ -909,6 +925,11 @@ export default {
 }
 .node-label {
   font-size: 14px;
+}
+.form-item-explain-error {
+  color: #f56c6c;
+  font-size: 12px;
+  line-height: 1.5;
 }
 </style>
 

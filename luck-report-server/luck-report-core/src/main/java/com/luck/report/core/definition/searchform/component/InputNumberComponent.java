@@ -7,6 +7,8 @@ public class InputNumberComponent extends BaseInputComponent {
     private boolean stepStrictly;
     private String controlsPosition;
     private String defaultValue;
+    private Double min;
+    private Double max;
 
     /**
      * 默认无参构造器
@@ -40,5 +42,21 @@ public class InputNumberComponent extends BaseInputComponent {
 
     public void setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
+    }
+
+    public Double getMin() {
+        return min;
+    }
+
+    public void setMin(Double min) {
+        this.min = min;
+    }
+
+    public Double getMax() {
+        return max;
+    }
+
+    public void setMax(Double max) {
+        this.max = max;
     }
 }

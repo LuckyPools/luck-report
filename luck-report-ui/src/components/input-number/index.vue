@@ -97,20 +97,59 @@ export default {
       },
       immediate: true,
     },
+    min() {
+      this.syncValueAndButtons(false)
+    },
+    max() {
+      this.syncValueAndButtons(false)
+    },
+  },
+  computed: {
+    /** 有效最小值（兼容字符串数字；null/非数字 = 不限制） */
+    boundMin() {
+      return this.parseBound(this.min)
+    },
+    /** 有效最大值（兼容字符串数字；null/非数字 = 不限制） */
+    boundMax() {
+      return this.parseBound(this.max)
+    },
   },
   methods: {
+    /**
+     * 解析上下限：仅有限数字生效；字符串数字会 Number()；null/undefined/非法 → null（不限制）
+     * 注意：不能用 `!= null` 后直接比较，null 在 <= 比较里会变成 0
+     */
+    parseBound(v) {
+      if (v === null || v === undefined || v === '') return null
+      if (typeof v === 'number') return Number.isFinite(v) ? v : null
+      const num = Number(v)
+      return Number.isFinite(num) ? num : null
+    },
+    hasBound(v) {
+      return typeof v === 'number' && Number.isFinite(v)
+    },
+    /**
+     * 将当前展示值安全转为数字；空值按 0 参与加减
+     */
+    toSafeNumber(val) {
+      if (val === null || val === undefined || val === '') return 0
+      if (typeof val === 'number') return Number.isFinite(val) ? val : 0
+      const num = Number(String(val).replace(/[^\d.-]/g, ''))
+      return Number.isFinite(num) ? num : 0
+    },
     /**
      * @description 数值增加
      */
     handleIncrease() {
       if (this.disabled || this.increaseForbid) return
 
-      this.currentValue = this.currentValue + this.step
-      // 增加后检查是否超过最大值
-      if (this.max !== undefined && this.currentValue >= this.max) {
-        this.currentValue = this.max
-        this.increaseForbid = true
+      const max = this.boundMax
+      let next = this.toSafeNumber(this.currentValue) + this.step
+      if (this.hasBound(max) && next >= max) {
+        next = max
       }
+      this.currentValue = next
+      this.updateButtonStatus()
       this.$emit('input', this.currentValue)
       this.$emit('change', this.currentValue)
     },
@@ -119,59 +158,64 @@ export default {
      */
     handleDecrease() {
       if (this.disabled || this.decreaseForbid) return
-      this.currentValue = this.currentValue - this.step
-      // 减少后检查是否低于最小值
-      if (this.min !== undefined && this.currentValue <= this.min) {
-        this.currentValue = this.min
-        this.decreaseForbid = true
+
+      const min = this.boundMin
+      let next = this.toSafeNumber(this.currentValue) - this.step
+      if (this.hasBound(min) && next <= min) {
+        next = min
       }
+      this.currentValue = next
+      this.updateButtonStatus()
       this.$emit('input', this.currentValue)
       this.$emit('change', this.currentValue)
     },
     /**
-     * @description 失去焦点时，做下值类型校验
+     * 按 min/max 夹紧当前值并刷新按钮状态
      */
-    handleBlur(emitEvent = true) {
-      if(!this.currentValue && this.currentValue !== 0) return;
-      if (typeof this.currentValue !== 'number') {
-        this.currentValue = Number(this.currentValue.replace(/[^\d.-]/g, ''))
+    syncValueAndButtons(emitEvent) {
+      if (this.currentValue === null || this.currentValue === undefined || this.currentValue === '') {
+        this.updateButtonStatus()
+        return
       }
-      // NaN校验
-      if (isNaN(this.currentValue)) {
-        this.currentValue = 0
-      }
-
-      // 严格步数校验
+      const min = this.boundMin
+      const max = this.boundMax
+      let num = this.toSafeNumber(this.currentValue)
       if (this.stepStrictly) {
-        this.currentValue = this._approCalc(this.currentValue, this.step)
+        num = this._approCalc(num, this.step)
       }
-
-      // 精度校验
       if (this.precision > 0) {
-        this.currentValue = this.currentValue.toFixed(
-            Math.floor(this.precision)
-        )
+        num = Number(num.toFixed(Math.floor(this.precision)))
       }
-
-      // 数值范围判断 - 修复 min=0 时条件失效的问题
-      if (this.min !== undefined && this.currentValue <= this.min) {
-        this.decreaseForbid = true
-        this.currentValue = this.min
-      } else {
-        this.decreaseForbid = false
+      if (this.hasBound(min) && num < min) {
+        num = min
       }
-      if (this.max !== undefined && this.currentValue >= this.max) {
-        this.increaseForbid = true
-        this.currentValue = this.max
-      } else {
-        this.increaseForbid = false
+      if (this.hasBound(max) && num > max) {
+        num = max
       }
-
+      this.currentValue = num
+      this.updateButtonStatus()
       if (emitEvent) {
         this.$emit('input', this.currentValue)
         this.$emit('change', this.currentValue)
         this.dispatch('UFormItem', 'form-blur', this.currentValue)
       }
+    },
+    /**
+     * @description 失去焦点时，做下值类型校验
+     */
+    handleBlur(emitEvent = true) {
+      // 清空时必须把 null 写回 v-model，否则父级仍保留旧数字，必填校验会误通过
+      if (this.currentValue === null || this.currentValue === undefined || this.currentValue === '') {
+        this.currentValue = null
+        this.updateButtonStatus()
+        if (emitEvent) {
+          this.$emit('input', null)
+          this.$emit('change', null)
+          this.dispatch('UFormItem', 'form-blur', null)
+        }
+        return
+      }
+      this.syncValueAndButtons(emitEvent)
     },
     /**
      * @description 输入值变更
@@ -181,28 +225,28 @@ export default {
       this.currentValue = value
       // 实时校验并更新按钮禁用状态
       this.updateButtonStatus()
-      this.dispatch('UFormItem', 'form-change', value)
+      // 清空时同步父级；输入中的半成品数字仍等 blur 再规范化，避免 type:number 误伤
+      if (value === '') {
+        this.$emit('input', null)
+        this.$emit('change', null)
+      }
+      this.dispatch('UFormItem', 'form-change', value === '' ? null : value)
     },
     /**
      * @description 更新增减按钮的禁用状态
      */
     updateButtonStatus() {
-      const numValue = Number(this.currentValue)
-      if (isNaN(numValue)) return
-      
-      // 检查是否达到最小值
-      if (this.min !== undefined && numValue <= this.min) {
-        this.decreaseForbid = true
-      } else {
-        this.decreaseForbid = false
-      }
-      
-      // 检查是否达到最大值
-      if (this.max !== undefined && numValue >= this.max) {
-        this.increaseForbid = true
-      } else {
-        this.increaseForbid = false
-      }
+      const min = this.boundMin
+      const max = this.boundMax
+      const numValue = this.toSafeNumber(this.currentValue)
+      // 空展示时按 0 判断是否还能继续减到负数 min
+      const empty = this.currentValue === null || this.currentValue === undefined || this.currentValue === ''
+      const valueForBound = empty ? 0 : (typeof this.currentValue === 'number' && Number.isFinite(this.currentValue)
+        ? this.currentValue
+        : numValue)
+
+      this.decreaseForbid = this.hasBound(min) && valueForBound <= min
+      this.increaseForbid = this.hasBound(max) && valueForBound >= max
     },
     /**
      * @description 将数值按照四舍五入的方式进行约算，比如5对3约算后是6

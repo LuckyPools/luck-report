@@ -990,6 +990,7 @@ const zh = {
         "maxSelect": "最多可选",
         "minValue": "最小值",
         "maxValue": "最大值",
+        "minMaxInvalid": "最小值不能大于最大值",
         "step": "步长",
         "stepCount": "步数",
         "activeText": "开启提示",

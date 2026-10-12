@@ -137,6 +137,30 @@ public class FormParserUtils implements ApplicationContextAware {
     }
 
     /**
+     * 解析 Double 类型 XML 属性；空 / "null" / 非法 / 非有限 → null
+     *
+     * @param value XML 属性值，可为空
+     * @return 解析后的 Double；无法解析或非有限时返回 null
+     */
+    public static Double parseDoubleAttribute(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        if ("null".equals(value)) {
+            return null;
+        }
+        try {
+            double d = Double.parseDouble(value.trim());
+            if (Double.isNaN(d) || Double.isInfinite(d)) {
+                return null;
+            }
+            return d;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 将 XML 属性中的 JSON 字符串反序列化为指定类型对象
      *
      * @param value XML 属性值（JSON 字符串），可为空，为空时返回 null

@@ -883,6 +883,7 @@ export function objToXml(obj, indent = 0, defaultTag = null) {
         if (specialArrays.includes(key) || specialKeys.includes(key)) continue;
 
         const value = obj[key];
+        if (value === null || value === undefined) continue;
         if (Array.isArray(value) || typeof value === 'object') {
             const jsonStr = JSON.stringify(value);
             attributes += ` ${key}="${encode(jsonStr)}" `;

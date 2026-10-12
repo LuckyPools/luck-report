@@ -227,6 +227,7 @@ export default {
           const { fields, ...rest } = val;
           this.formConf = deepCopy(rest);
           this.drawingList = deepCopy(fields)
+          this.hydrateInputNumberMinMax(this.drawingList)
           this.syncComponentCounters()
         }
       },
@@ -285,6 +286,49 @@ export default {
       this.idGlobal = Math.max(this.idGlobal, maxFormId)
       this.fieldIdGlobal = Math.max(this.fieldIdGlobal, maxFieldId)
     },
+    /**
+     * 老报表可能缺少 min/max；补 null 表示不限制，便于右侧面板回显
+     */
+    hydrateInputNumberMinMax(list) {
+      const walk = (items) => {
+        for (const el of (items || [])) {
+          if (el.tag === 'u-input-number') {
+            if (el.min === undefined) el.min = null
+            if (el.max === undefined) el.max = null
+          }
+          if (Array.isArray(el.children)) {
+            walk(el.children)
+          }
+        }
+      }
+      walk(list)
+    },
+    isFiniteNumber(v) {
+      return typeof v === 'number' && Number.isFinite(v)
+    },
+    /**
+     * 校验数字输入 min/max：两者均为有限数字时要求 min ≤ max
+     */
+    validateFormFields() {
+      const walk = (list) => {
+        for (const el of (list || [])) {
+          if (
+            el.tag === 'u-input-number'
+            && this.isFiniteNumber(el.min)
+            && this.isFiniteNumber(el.max)
+            && el.min > el.max
+          ) {
+            return this.$t('searchForm.minMaxInvalid')
+          }
+          if (Array.isArray(el.children)) {
+            const err = walk(el.children)
+            if (err) return err
+          }
+        }
+        return null
+      }
+      return walk(this.drawingList)
+    },
     addComponent(item) {
       const clone = this.cloneComponent(item)
       this.drawingList.push(clone)
@@ -309,10 +353,16 @@ export default {
       return tempActiveData
     },
     AssembleFormData() {
+      const err = this.validateFormFields()
+      if (err) {
+        showAlert(err)
+        return false
+      }
       this.formData = {
         fields: JSON.parse(JSON.stringify(this.drawingList)),
         ...this.formConf
       }
+      return true
     },
     generate(data) {
       const func = this[`exec${titleCase(this.operationType)}`]
