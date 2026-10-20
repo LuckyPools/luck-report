@@ -18,6 +18,7 @@ package com.luck.report.core.export.excel.high;
 import com.luck.report.core.definition.Alignment;
 import com.luck.report.core.definition.Border;
 import com.luck.report.core.definition.CellStyle;
+import com.luck.report.core.export.excel.ExcelBorderStyles;
 import com.luck.report.core.model.Cell;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.BorderStyle;
@@ -89,9 +90,11 @@ public class CellStyleContext {
         }
         if (topBorder != null) {
             BorderStyle borderStyle = getBorderStyle(topBorder);
-            XSSFColor borderColor = buildXSSFColor(topBorder.getColor());
-            style.setTopBorderColor(borderColor);
-            style.setBorderTop(borderStyle);
+            if (borderStyle != null) {
+                XSSFColor borderColor = buildXSSFColor(topBorder.getColor());
+                style.setTopBorderColor(borderColor);
+                style.setBorderTop(borderStyle);
+            }
         }
         Border bottomBorder = cellStyle.getBottomBorder();
         if (customStyle != null && customStyle.getBottomBorder() != null) {
@@ -99,9 +102,11 @@ public class CellStyleContext {
         }
         if (bottomBorder != null) {
             BorderStyle borderStyle = getBorderStyle(bottomBorder);
-            XSSFColor borderColor = buildXSSFColor(bottomBorder.getColor());
-            style.setBottomBorderColor(borderColor);
-            style.setBorderBottom(borderStyle);
+            if (borderStyle != null) {
+                XSSFColor borderColor = buildXSSFColor(bottomBorder.getColor());
+                style.setBottomBorderColor(borderColor);
+                style.setBorderBottom(borderStyle);
+            }
         }
         Border leftBorder = cellStyle.getLeftBorder();
         if (customStyle != null && customStyle.getLeftBorder() != null) {
@@ -109,9 +114,11 @@ public class CellStyleContext {
         }
         if (leftBorder != null) {
             BorderStyle borderStyle = getBorderStyle(leftBorder);
-            XSSFColor borderColor = buildXSSFColor(leftBorder.getColor());
-            style.setLeftBorderColor(borderColor);
-            style.setBorderLeft(borderStyle);
+            if (borderStyle != null) {
+                XSSFColor borderColor = buildXSSFColor(leftBorder.getColor());
+                style.setLeftBorderColor(borderColor);
+                style.setBorderLeft(borderStyle);
+            }
         }
         Border rightBorder = cellStyle.getRightBorder();
         if (customStyle != null && customStyle.getRightBorder() != null) {
@@ -119,9 +126,11 @@ public class CellStyleContext {
         }
         if (rightBorder != null) {
             BorderStyle borderStyle = getBorderStyle(rightBorder);
-            XSSFColor borderColor = buildXSSFColor(rightBorder.getColor());
-            style.setRightBorderColor(borderColor);
-            style.setBorderRight(borderStyle);
+            if (borderStyle != null) {
+                XSSFColor borderColor = buildXSSFColor(rightBorder.getColor());
+                style.setRightBorderColor(borderColor);
+                style.setBorderRight(borderStyle);
+            }
         }
         Alignment align = cellStyle.getAlign();
         if (customStyle != null && customStyle.getAlign() != null) {
@@ -243,15 +252,14 @@ public class CellStyleContext {
         return style;
     }
 
+    /**
+     * 报表边框 → POI 线型（按 width 分档为细/中/粗）
+     *
+     * @param border 报表边框
+     * @return POI 边框样式
+     */
     private BorderStyle getBorderStyle(Border border) {
-        if (border.getStyle().equals(com.luck.report.core.definition.BorderStyle.solid)) {
-            return BorderStyle.THIN;
-        } else if (border.getStyle().equals(com.luck.report.core.definition.BorderStyle.dashed)) {
-            return BorderStyle.DASHED;
-        } else if (border.getStyle().equals(com.luck.report.core.definition.BorderStyle.doublesolid)) {
-            return BorderStyle.DOUBLE;
-        }
-        return null;
+        return ExcelBorderStyles.toPoi(border);
     }
 
     private XSSFColor buildXSSFColor(String colorStr) {

@@ -18,6 +18,7 @@ package com.luck.report.core.export.excel.low;
 import com.luck.report.core.definition.Alignment;
 import com.luck.report.core.definition.Border;
 import com.luck.report.core.definition.CellStyle;
+import com.luck.report.core.export.excel.ExcelBorderStyles;
 import com.luck.report.core.model.Cell;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
@@ -92,9 +93,11 @@ public class CellStyleContext {
         }
         if (topBorder != null) {
             BorderStyle borderStyle = getBorderStyle(topBorder);
-            HSSFColor borderColor = buildHSSFColor(wb, topBorder.getColor());
-            style.setTopBorderColor(borderColor.getIndex());
-            style.setBorderTop(borderStyle);
+            if (borderStyle != null) {
+                HSSFColor borderColor = buildHSSFColor(wb, topBorder.getColor());
+                style.setTopBorderColor(borderColor.getIndex());
+                style.setBorderTop(borderStyle);
+            }
         }
         Border bottomBorder = cellStyle.getBottomBorder();
         if (customStyle != null && customStyle.getBottomBorder() != null) {
@@ -102,9 +105,11 @@ public class CellStyleContext {
         }
         if (bottomBorder != null) {
             BorderStyle borderStyle = getBorderStyle(bottomBorder);
-            HSSFColor borderColor = buildHSSFColor(wb, bottomBorder.getColor());
-            style.setBottomBorderColor(borderColor.getIndex());
-            style.setBorderBottom(borderStyle);
+            if (borderStyle != null) {
+                HSSFColor borderColor = buildHSSFColor(wb, bottomBorder.getColor());
+                style.setBottomBorderColor(borderColor.getIndex());
+                style.setBorderBottom(borderStyle);
+            }
         }
         Border leftBorder = cellStyle.getLeftBorder();
         if (customStyle != null && customStyle.getLeftBorder() != null) {
@@ -112,9 +117,11 @@ public class CellStyleContext {
         }
         if (leftBorder != null) {
             BorderStyle borderStyle = getBorderStyle(leftBorder);
-            HSSFColor borderColor = buildHSSFColor(wb, leftBorder.getColor());
-            style.setLeftBorderColor(borderColor.getIndex());
-            style.setBorderLeft(borderStyle);
+            if (borderStyle != null) {
+                HSSFColor borderColor = buildHSSFColor(wb, leftBorder.getColor());
+                style.setLeftBorderColor(borderColor.getIndex());
+                style.setBorderLeft(borderStyle);
+            }
         }
         Border rightBorder = cellStyle.getRightBorder();
         if (customStyle != null && customStyle.getRightBorder() != null) {
@@ -122,9 +129,11 @@ public class CellStyleContext {
         }
         if (rightBorder != null) {
             BorderStyle borderStyle = getBorderStyle(rightBorder);
-            HSSFColor borderColor = buildHSSFColor(wb, rightBorder.getColor());
-            style.setRightBorderColor(borderColor.getIndex());
-            style.setBorderRight(borderStyle);
+            if (borderStyle != null) {
+                HSSFColor borderColor = buildHSSFColor(wb, rightBorder.getColor());
+                style.setRightBorderColor(borderColor.getIndex());
+                style.setBorderRight(borderStyle);
+            }
         }
         Alignment align = cellStyle.getAlign();
         if (customStyle != null && customStyle.getAlign() != null) {
@@ -237,15 +246,14 @@ public class CellStyleContext {
         return style;
     }
 
+    /**
+     * 报表边框 → POI 线型（按 width 分档为细/中/粗）
+     *
+     * @param border 报表边框
+     * @return POI 边框样式
+     */
     private BorderStyle getBorderStyle(Border border) {
-        if (border.getStyle().equals(com.luck.report.core.definition.BorderStyle.solid)) {
-            return BorderStyle.THIN;
-        } else if (border.getStyle().equals(com.luck.report.core.definition.BorderStyle.dashed)) {
-            return BorderStyle.DASHED;
-        } else if (border.getStyle().equals(com.luck.report.core.definition.BorderStyle.doublesolid)) {
-            return BorderStyle.DOUBLE;
-        }
-        return null;
+        return ExcelBorderStyles.toPoi(border);
     }
 
     private HSSFColor buildHSSFColor(HSSFWorkbook wb, String colorStr) {
