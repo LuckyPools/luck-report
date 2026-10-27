@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.word;
 
+import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
@@ -24,18 +25,19 @@ public class ExportWordController extends BaseController {
     private ReportExportService reportExportService;
 
     /**
-     * 构建Word报表
+     * 构建Word报表。预览模式须在写下载头前取缓存，避免过期时返回空附件。
      */
     @RequestMapping("/build")
     public void build() throws IOException {
         String reportPath = req.getParameter("reportPath");
         String mode = req.getParameter("mode");
         String wordName = req.getParameter("_n");
+        String decodedPath = UrlParameterUtils.doubleDecode(reportPath);
+        ReportDefinition definition = reportExportService.getPreviewDefinition(mode, decodedPath);
         DownloadUtils.buildDownloadHeader(resp, reportPath, wordName, ".docx");
-        reportPath = UrlParameterUtils.doubleDecode(reportPath);
         OutputStream outputStream = resp.getOutputStream();
         try {
-            reportExportService.buildWord(reportPath, mode, req, outputStream);
+            reportExportService.buildWord(decodedPath, mode, req, outputStream, definition);
         } finally {
             outputStream.flush();
             outputStream.close();

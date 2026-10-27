@@ -455,7 +455,11 @@ export default {
       } catch (error) {
         loadingInstance.close();
         console.error('PDF直接打印失败:', error);
-        showAlert(this.$t('preview.error.loadPdfFail'));
+        if (error && error.msg) {
+          showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
+        } else {
+          showAlert(this.$t('preview.error.loadPdfFail'));
+        }
       }
     },
 
@@ -475,6 +479,17 @@ export default {
     },
 
     /**
+     * 导出失败提示：优先展示后端 msg（含 auxCode），否则固定「导出失败」
+     */
+    showExportError(error) {
+      if (error && error.msg) {
+        showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
+      } else {
+        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+      }
+    },
+
+    /**
      * 导出为PDF文件
      */
     async exportPdf() {
@@ -483,7 +498,7 @@ export default {
         await exportPdfBlob(paramObj);
       } catch (error) {
         console.error('导出PDF失败:', error);
-        showAlert(this.$t('preview.error.exportFail'));
+        this.showExportError(error);
       }
     },
 
@@ -496,7 +511,7 @@ export default {
         await exportWordBlob(paramObj);
       } catch (error) {
         console.error('导出Word失败:', error);
-        showAlert(this.$t('preview.error.exportFail'));
+        this.showExportError(error);
       }
     },
 
@@ -509,7 +524,7 @@ export default {
         await exportExcelSheetPagingBlob(paramObj);
       } catch (error) {
         console.error('导出Excel失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+        this.showExportError(error);
       }
     },
 
@@ -522,7 +537,7 @@ export default {
         await exportExcelPagingBlob(paramObj);
       } catch (error) {
         console.error('导出Excel失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+        this.showExportError(error);
       }
     },
 
@@ -535,7 +550,7 @@ export default {
         await exportExcelBlob(paramObj);
       } catch (error) {
         console.error('导出Excel失败:', error);
-        showAlert(this.$t('preview.error.exportFail') || '导出失败');
+        this.showExportError(error);
       }
     },
 

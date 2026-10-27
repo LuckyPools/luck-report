@@ -1,5 +1,6 @@
 package com.luck.report.web.controller.pdf;
 
+import com.luck.report.core.definition.ReportDefinition;
 import com.luck.report.web.controller.base.BaseController;
 import com.luck.report.web.service.ReportExportService;
 import com.luck.report.web.utils.DownloadUtils;
@@ -24,14 +25,18 @@ public class ExportPdfController extends BaseController {
     private ReportExportService reportExportService;
 
     /**
-     * 构建PDF报表（下载）
+     * 构建PDF报表（下载）。预览模式须在写下载头前取缓存，避免过期时返回空附件。
      */
     @RequestMapping("/build")
     public void build() throws IOException {
         String reportPath = req.getParameter("reportPath");
         String pdfName = req.getParameter("_n");
+        String mode = req.getParameter("mode");
+        String paperJson = req.getParameter("_paper");
+        String decodedPath = UrlParameterUtils.doubleDecode(reportPath);
+        ReportDefinition definition = reportExportService.getPreviewDefinition(mode, decodedPath);
         DownloadUtils.buildDownloadHeader(resp, reportPath, pdfName, ".pdf");
-        buildPdf();
+        writePdf(decodedPath, mode, paperJson, definition);
     }
 
     /**
@@ -39,22 +44,20 @@ public class ExportPdfController extends BaseController {
      */
     @RequestMapping("/show")
     public void show() throws IOException {
-        resp.setContentType("application/pdf");
-        buildPdf();
-    }
-
-    /**
-     * 构建PDF报表并写入响应流
-     */
-    private void buildPdf() throws IOException {
         String mode = req.getParameter("mode");
         String reportPath = req.getParameter("reportPath");
         String paperJson = req.getParameter("_paper");
-        reportPath = UrlParameterUtils.doubleDecode(reportPath);
+        String decodedPath = UrlParameterUtils.doubleDecode(reportPath);
+        ReportDefinition definition = reportExportService.getPreviewDefinition(mode, decodedPath);
+        resp.setContentType("application/pdf");
+        writePdf(decodedPath, mode, paperJson, definition);
+    }
+
+    private void writePdf(String reportPath, String mode, String paperJson, ReportDefinition definition) throws IOException {
         OutputStream outputStream = null;
         try {
             outputStream = resp.getOutputStream();
-            reportExportService.buildPdf(reportPath, mode, paperJson, req, outputStream);
+            reportExportService.buildPdf(reportPath, mode, paperJson, req, outputStream, definition);
         } finally {
             if (outputStream != null) {
                 outputStream.flush();

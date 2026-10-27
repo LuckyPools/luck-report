@@ -40,9 +40,18 @@ defaultRequest.interceptors.response.use(
         }
         return response
     },
-    error => {
+    async error => {
+        // 导出等 blob 请求失败时，响应体仍是 Blob，需按 Content-Type 解析 JSON 错误体
         if (error.response && error.response.data) {
-            const errorData = error.response.data
+            let errorData = error.response.data
+            const contentType = String(error.response.headers?.['content-type'] || '').toLowerCase()
+            if (errorData instanceof Blob && contentType.includes('json')) {
+                try {
+                    errorData = JSON.parse(await errorData.text())
+                } catch (e) {
+                    // 保持原 Blob，交给 dealError
+                }
+            }
             return dealError(errorData)
         }
         return dealError(error)
@@ -116,14 +125,24 @@ async function get(url, config = {}) {
 
 /**
  * 处理响应结果
- * 提取响应数据，文件下载类型直接返回整个response对象
+ * 提取响应数据，文件下载类型直接返回整个response对象；
+ * blob 若 Content-Type 为 JSON（导出接口异常时 Handler 返回），则按业务错误 reject
  *
  * @param res axios响应对象
  * @returns {Promise<unknown>} 返回处理后的响应数据
  */
-function dealAxiosResult(res) {
+async function dealAxiosResult(res) {
     let realRes = res.data ? res.data : res
     if (res.request?.responseType === 'blob') {
+        // 与 v2 一致：blob + Content-Type 含 json 时解析为对象，再走业务错误校验
+        const contentType = String(res.headers?.['content-type'] || '').toLowerCase()
+        if (realRes instanceof Blob && contentType.includes('json')) {
+            realRes = JSON.parse(await realRes.text())
+            if (realRes && typeof realRes === 'object' && 'code' in realRes && realRes.code !== 0) {
+                return dealError(realRes)
+            }
+            return Promise.resolve(realRes)
+        }
         return Promise.resolve(res)
     }
     return Promise.resolve(realRes)

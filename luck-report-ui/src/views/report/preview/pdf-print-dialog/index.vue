@@ -452,9 +452,12 @@ export default {
         this.$refs.pdfFrame.src = this.currentBlobUrl;
 
       } catch (error) {
-
         console.error('Error:', error);
-        showAlert(this.$t('preview.pdfPrint.fail'));
+        if (error && error.msg) {
+          showAlert(this.$t('preview.error.serverError') + this.$t('colon') + error.msg, { useHTMLString: true });
+        } else {
+          showAlert(this.$t('preview.pdfPrint.fail'));
+        }
       } finally{
         this.loading = false;
       }

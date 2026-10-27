@@ -34,7 +34,7 @@ public class ReportDefinitionService {
         if (obj instanceof ReportDefinitionWrapper) {
             wrapper = (ReportDefinitionWrapper) obj;
         } else {
-            throw new ReportDesignException("Report data has expired,can not do export excel.");
+            throw new ReportDesignException("Report data has expired, can not export file");
         }
         ReportDefinition reportDefinition = wrapper.getReportDefinition();
         if (wrapper.notBuilt()) {
