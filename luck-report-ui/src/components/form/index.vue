@@ -1,5 +1,5 @@
 <template>
-  <form :class="classes" :autocomplete="autocomplete">
+  <form :class="classes" :autocomplete="autocomplete" @submit.prevent>
     <slot></slot>
   </form>
 </template>
