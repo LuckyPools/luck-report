@@ -48,7 +48,7 @@ public class ImageValueCompute implements ValueCompute {
             list.add(new BindData(new Image(base64Data, "", width, height)));
         } else if (source.equals(Source.text)) {
             String base64Data = ImageUtils.getImageBase64Data(ImageType.image, value.getValue(), width, height);
-            list.add(new BindData(new Image(base64Data, value.getValue(), -1, -1)));
+            list.add(new BindData(new Image(base64Data, value.getValue(), width, height)));
         } else {
             Expression expression = value.getExpression();
             ExpressionData<?> data = expression.execute(cell, cell, context);
@@ -74,7 +74,7 @@ public class ImageValueCompute implements ValueCompute {
                         continue;
                     }
                     String base64Data = ImageUtils.getImageBase64Data(ImageType.image, path, width, height);
-                    list.add(new BindData(new Image(base64Data, path, -1, -1)));
+                    list.add(new BindData(new Image(base64Data, path, width, height)));
                 }
             } else if (obj instanceof BindData) {
                 BindData bindData = (BindData) obj;
@@ -85,7 +85,7 @@ public class ImageValueCompute implements ValueCompute {
                 }
                 if (StringUtils.isNotBlank(path)) {
                     String base64Data = ImageUtils.getImageBase64Data(ImageType.image, path, width, height);
-                    list.add(new BindData(new Image(base64Data, path, -1, -1)));
+                    list.add(new BindData(new Image(base64Data, path, width, height)));
                 }
             } else if (obj instanceof String) {
                 String text = obj.toString();
@@ -93,11 +93,11 @@ public class ImageValueCompute implements ValueCompute {
                     text = text.substring(1, text.length() - 1);
                 }
                 String base64Data = ImageUtils.getImageBase64Data(ImageType.image, text, width, height);
-                list.add(new BindData(new Image(base64Data, text, -1, -1)));
+                list.add(new BindData(new Image(base64Data, text, width, height)));
             } else {
                 if (obj != null && StringUtils.isNotBlank(obj.toString())) {
                     String base64Data = ImageUtils.getImageBase64Data(ImageType.image, obj.toString(), width, height);
-                    list.add(new BindData(new Image(base64Data, obj.toString(), -1, -1)));
+                    list.add(new BindData(new Image(base64Data, obj.toString(), width, height)));
                 }
             }
         }
