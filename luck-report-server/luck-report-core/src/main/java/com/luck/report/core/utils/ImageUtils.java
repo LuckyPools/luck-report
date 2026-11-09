@@ -20,10 +20,13 @@ import com.luck.report.core.image.ChartImageProcessor;
 import com.luck.report.core.image.ImageProcessor;
 import com.luck.report.core.image.ImageType;
 import com.luck.report.core.image.StaticImageProcessor;
+import com.luck.report.core.model.Image;
 import org.apache.commons.io.IOUtils;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,9 +34,6 @@ import java.io.InputStream;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-
-import java.awt.AlphaComposite;
-import java.awt.RenderingHints;
 
 /**
  * @author Jacky.gao
@@ -58,8 +58,8 @@ public class ImageUtils {
     /**
      * 将base64编码的图片按指定宽高缩放后返回新的base64数据
      * @param base64Data 纯base64数据（不含data:image/xxx;base64,前缀）
-     * @param width 目标宽度，0或负数表示不缩放
-     * @param height 目标高度，0或负数表示不缩放
+     * @param width 目标宽度，0或负数表示不缩放该边
+     * @param height 目标高度，0或负数表示不缩放该边
      * @return 缩放后的base64数据（统一输出PNG格式）
      */
     public static String scaleBase64Image(String base64Data, int width, int height) {
@@ -70,19 +70,7 @@ public class ImageUtils {
             InputStream input = base64DataToInputStream(base64Data);
             BufferedImage srcImage = ImageIO.read(input);
             IOUtils.closeQuietly(input);
-            int srcWidth = srcImage.getWidth();
-            int srcHeight = srcImage.getHeight();
-            int targetWidth = width > 0 ? width : srcWidth;
-            int targetHeight = height > 0 ? height : srcHeight;
-            BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g = scaledImage.createGraphics();
-            g.setComposite(AlphaComposite.SrcOver);
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(srcImage, 0, 0, targetWidth, targetHeight, null);
-            g.dispose();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(scaledImage, "png", baos);
-            return Base64.getEncoder().encodeToString(baos.toByteArray());
+            return Base64.getEncoder().encodeToString(scaleImageBytes(srcImage, width, height));
         } catch (Exception ex) {
             throw new ReportComputeException(ex);
         }
@@ -96,17 +84,9 @@ public class ImageUtils {
         }
         InputStream inputStream = targetProcessor.getImage(data);
         try {
-            if (width > 0 && height > 0) {
+            if (width > 0 || height > 0) {
                 BufferedImage inputImage = ImageIO.read(inputStream);
-                BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g = outputImage.createGraphics();
-                g.setComposite(AlphaComposite.SrcOver);
-                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g.drawImage(inputImage, 0, 0, width, height, null);
-                g.dispose();
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                ImageIO.write(outputImage, "png", outputStream);
-                inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                return Base64.getEncoder().encodeToString(scaleImageBytes(inputImage, width, height));
             }
             byte[] bytes = IOUtils.toByteArray(inputStream);
             return Base64.getEncoder().encodeToString(bytes);
@@ -115,5 +95,47 @@ public class ImageUtils {
         } finally {
             IOUtils.closeQuietly(inputStream);
         }
+    }
+
+    /**
+     * 导出绘制尺寸：优先使用 Image 声明宽高，未声明（&lt;=0）则用图片像素。
+     *
+     * @param img 报表图片对象，可为 null
+     * @param bufferedImage 已解码的位图
+     * @return [width, height]，单位像素
+     */
+    public static int[] resolveExportSize(Image img, BufferedImage bufferedImage) {
+        int naturalW = Math.max(1, bufferedImage.getWidth());
+        int naturalH = Math.max(1, bufferedImage.getHeight());
+        int w = img != null && img.getWidth() > 0 ? img.getWidth() : naturalW;
+        int h = img != null && img.getHeight() > 0 ? img.getHeight() : naturalH;
+        return new int[]{w, h};
+    }
+
+    /**
+     * 按请求宽高缩放；某一边 &lt;=0 时保留源图对应边。
+     */
+    private static byte[] scaleImageBytes(BufferedImage srcImage, int width, int height) throws Exception {
+        int srcWidth = srcImage.getWidth();
+        int srcHeight = srcImage.getHeight();
+        int targetWidth = width > 0 ? width : srcWidth;
+        int targetHeight = height > 0 ? height : srcHeight;
+        if (targetWidth == srcWidth && targetHeight == srcHeight) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(srcImage, "png", baos);
+            return baos.toByteArray();
+        }
+        BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = scaledImage.createGraphics();
+        try {
+            g.setComposite(AlphaComposite.SrcOver);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(srcImage, 0, 0, targetWidth, targetHeight, null);
+        } finally {
+            g.dispose();
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(scaledImage, "png", baos);
+        return baos.toByteArray();
     }
 }

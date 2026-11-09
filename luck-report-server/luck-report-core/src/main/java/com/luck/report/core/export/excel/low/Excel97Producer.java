@@ -162,8 +162,9 @@ public class Excel97Producer {
                                     Image img = (Image) obj;
                                     InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                     BufferedImage bufferedImage = ImageIO.read(inputStream);
-                                    int width = bufferedImage.getWidth();
-                                    int height = bufferedImage.getHeight();
+                                    int[] drawSize = ImageUtils.resolveExportSize(img, bufferedImage);
+                                    int width = drawSize[0];
+                                    int height = drawSize[1];
                                     IOUtils.closeQuietly(inputStream);
                                     inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                     try {
@@ -190,8 +191,9 @@ public class Excel97Producer {
                                         Image img = new Image(base64Data, chartData.getWidth(), chartData.getHeight());
                                         InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                         BufferedImage bufferedImage = ImageIO.read(inputStream);
-                                        int width = bufferedImage.getWidth();
-                                        int height = bufferedImage.getHeight();
+                                        int[] drawSize = ImageUtils.resolveExportSize(img, bufferedImage);
+                                        int width = drawSize[0];
+                                        int height = drawSize[1];
                                         IOUtils.closeQuietly(inputStream);
                                         inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                         try {
@@ -311,8 +313,9 @@ public class Excel97Producer {
                                 Image img = (Image) obj;
                                 InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                 BufferedImage bufferedImage = ImageIO.read(inputStream);
-                                int width = bufferedImage.getWidth();
-                                int height = bufferedImage.getHeight();
+                                int[] drawSize = ImageUtils.resolveExportSize(img, bufferedImage);
+                                int width = drawSize[0];
+                                int height = drawSize[1];
                                 IOUtils.closeQuietly(inputStream);
                                 inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                 try {
@@ -339,8 +342,9 @@ public class Excel97Producer {
                                     Image img = new Image(base64Data, chartData.getWidth(), chartData.getHeight());
                                     InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                     BufferedImage bufferedImage = ImageIO.read(inputStream);
-                                    int width = bufferedImage.getWidth();
-                                    int height = bufferedImage.getHeight();
+                                    int[] drawSize = ImageUtils.resolveExportSize(img, bufferedImage);
+                                    int width = drawSize[0];
+                                    int height = drawSize[1];
                                     IOUtils.closeQuietly(inputStream);
                                     inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
                                     try {

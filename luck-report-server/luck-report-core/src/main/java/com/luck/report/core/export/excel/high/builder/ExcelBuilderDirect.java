@@ -150,45 +150,15 @@ public class ExcelBuilderDirect extends ExcelBuilder {
                             cell.setCellValue((Boolean) obj);
                         } else if (obj instanceof Image) {
                             Image img = (Image) obj;
-                            InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
-                            BufferedImage bufferedImage = ImageIO.read(inputStream);
-                            int width = bufferedImage.getWidth();
-                            int height = bufferedImage.getHeight();
-                            IOUtils.closeQuietly(inputStream);
-                            inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
-
-                            int leftMargin = 0, topMargin = 0;
                             int wholeWidth = getWholeWidth(columns, i, cellInfo.getColSpan());
                             int wholeHeight = getWholeHeight(rows, rowNumber, cellInfo.getRowSpan());
-                            HorizontalAlignment align = style.getAlignment();
-                            if (align.equals(HorizontalAlignment.CENTER)) {
-                                leftMargin = (wholeWidth - width) / 2;
-                            } else if (align.equals(HorizontalAlignment.RIGHT)) {
-                                leftMargin = wholeWidth - width;
-                            }
-                            VerticalAlignment valign = style.getVerticalAlignment();
-                            if (valign.equals(VerticalAlignment.CENTER)) {
-                                topMargin = (wholeHeight - height) / 2;
-                            } else if (valign.equals(VerticalAlignment.BOTTOM)) {
-                                topMargin = wholeHeight - height;
-                            }
-
                             try {
-                                XSSFClientAnchor anchor = (XSSFClientAnchor) creationHelper.createClientAnchor();
-                                byte[] bytes = IOUtils.toByteArray(inputStream);
-                                int pictureFormat = buildImageFormat(img);
-                                int pictureIndex = wb.addPicture(bytes, pictureFormat);
-                                anchor.setCol1(i);
-                                anchor.setCol2(i + colSpan);
-                                anchor.setRow1(rowNumber);
-                                anchor.setRow2(rowNumber + rowSpan);
-                                anchor.setDx1(Units.pixelToEMU(leftMargin));
-                                anchor.setDx2(Units.pixelToEMU(width));
-                                anchor.setDy1(Units.pixelToEMU(topMargin));
-                                anchor.setDy2(Units.pixelToEMU(height));
-                                drawing.createPicture(anchor, pictureIndex);
-                            } finally {
-                                IOUtils.closeQuietly(inputStream);
+                                addCellImage(drawing, wb, img, i, rowNumber,
+                                        cellInfo.getColSpan(), cellInfo.getRowSpan(),
+                                        wholeWidth, wholeHeight,
+                                        style.getAlignment(), style.getVerticalAlignment());
+                            } catch (Exception e) {
+                                throw new ReportComputeException(e);
                             }
                         } else if (obj instanceof ChartData) {
                             ChartData chartData = (ChartData) obj;

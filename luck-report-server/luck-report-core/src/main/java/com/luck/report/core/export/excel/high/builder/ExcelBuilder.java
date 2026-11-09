@@ -21,15 +21,26 @@ import com.luck.report.core.definition.PaperType;
 import com.luck.report.core.model.Column;
 import com.luck.report.core.model.Image;
 import com.luck.report.core.model.Row;
+import com.luck.report.core.utils.ImageUtils;
 import com.luck.report.core.utils.UnitUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.PageMargin;
 import org.apache.poi.ss.usermodel.PaperSize;
 import org.apache.poi.ss.usermodel.PrintOrientation;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.util.Units;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFPrintSetup;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -98,6 +109,82 @@ public abstract class ExcelBuilder {
             type = Workbook.PICTURE_TYPE_JPEG;
         }
         return type;
+    }
+
+    /**
+     * 将单元格图片写入 Excel。锚点采用「起止单元格 + 四边边距」：
+     * dx2/dy2 为相对终止格的负边距，避免图片小于单元格时出现负 extent 导致不可见。
+     *
+     * @param drawing       绘图对象
+     * @param wb            工作簿
+     * @param img           图片
+     * @param excelCol      起始列（0 基）
+     * @param excelRow      起始行（0 基）
+     * @param colSpan       列合并数，0/1 表示单列
+     * @param rowSpan       行合并数，0/1 表示单行
+     * @param wholeWidthPx  合并区宽度（px）
+     * @param wholeHeightPx 合并区高度（px）
+     * @param align         水平对齐
+     * @param valign        垂直对齐
+     */
+    protected void addCellImage(Drawing<?> drawing, SXSSFWorkbook wb, Image img,
+                                int excelCol, int excelRow, int colSpan, int rowSpan,
+                                int wholeWidthPx, int wholeHeightPx,
+                                HorizontalAlignment align, VerticalAlignment valign) throws Exception {
+        InputStream inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
+        BufferedImage bufferedImage;
+        try {
+            bufferedImage = ImageIO.read(inputStream);
+        } finally {
+            IOUtils.closeQuietly(inputStream);
+        }
+        if (bufferedImage == null) {
+            return;
+        }
+        int[] drawSize = ImageUtils.resolveExportSize(img, bufferedImage);
+        int drawW = drawSize[0];
+        int drawH = drawSize[1];
+        if (wholeWidthPx > 0 && wholeHeightPx > 0) {
+            double scale = Math.min(1.0, Math.min((double) wholeWidthPx / (double) drawW,
+                    (double) wholeHeightPx / (double) drawH));
+            drawW = Math.max(1, (int) Math.round(drawW * scale));
+            drawH = Math.max(1, (int) Math.round(drawH * scale));
+        }
+        int leftMargin = 0;
+        int topMargin = 0;
+        if (align != null && align.equals(HorizontalAlignment.CENTER)) {
+            leftMargin = Math.max(0, (wholeWidthPx - drawW) / 2);
+        } else if (align != null && align.equals(HorizontalAlignment.RIGHT)) {
+            leftMargin = Math.max(0, wholeWidthPx - drawW);
+        }
+        if (valign != null && valign.equals(VerticalAlignment.CENTER)) {
+            topMargin = Math.max(0, (wholeHeightPx - drawH) / 2);
+        } else if (valign != null && valign.equals(VerticalAlignment.BOTTOM)) {
+            topMargin = Math.max(0, wholeHeightPx - drawH);
+        }
+        int rightMargin = Math.max(0, wholeWidthPx - leftMargin - drawW);
+        int bottomMargin = Math.max(0, wholeHeightPx - topMargin - drawH);
+        int spanCols = colSpan > 0 ? colSpan : 1;
+        int spanRows = rowSpan > 0 ? rowSpan : 1;
+
+        inputStream = ImageUtils.base64DataToInputStream(img.getBase64Data());
+        try {
+            byte[] bytes = IOUtils.toByteArray(inputStream);
+            int pictureIndex = wb.addPicture(bytes, buildImageFormat(img));
+            XSSFClientAnchor anchor = new XSSFClientAnchor();
+            anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_DONT_RESIZE);
+            anchor.setCol1(excelCol);
+            anchor.setRow1(excelRow);
+            anchor.setCol2(excelCol + spanCols);
+            anchor.setRow2(excelRow + spanRows);
+            anchor.setDx1(Units.pixelToEMU(leftMargin));
+            anchor.setDx2(-Units.pixelToEMU(rightMargin));
+            anchor.setDy1(Units.pixelToEMU(topMargin));
+            anchor.setDy2(-Units.pixelToEMU(bottomMargin));
+            drawing.createPicture(anchor, pictureIndex);
+        } finally {
+            IOUtils.closeQuietly(inputStream);
+        }
     }
 
     protected boolean setupPaper(PaperType paperType, XSSFPrintSetup printSetup) {
