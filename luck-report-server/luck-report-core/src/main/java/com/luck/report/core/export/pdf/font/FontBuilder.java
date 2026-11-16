@@ -17,10 +17,10 @@ package com.luck.report.core.export.pdf.font;
 
 import com.luck.report.core.exception.ReportComputeException;
 import com.luck.report.core.exception.ReportException;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.pdf.BaseFont;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.pdf.BaseFont;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeansException;

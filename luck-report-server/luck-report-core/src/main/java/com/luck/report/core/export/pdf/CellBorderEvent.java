@@ -18,13 +18,13 @@ package com.luck.report.core.export.pdf;
 import com.luck.report.core.definition.Border;
 import com.luck.report.core.definition.BorderStyle;
 import com.luck.report.core.definition.CellStyle;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.pdf.PdfContentByte;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPCellEvent;
-import com.itextpdf.text.pdf.PdfPTable;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.PdfContentByte;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPCellEvent;
+import com.lowagie.text.pdf.PdfPTable;
 
+import java.awt.Color;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -117,7 +117,7 @@ public class CellBorderEvent implements PdfPCellEvent {
             cb.setLineDash(new float[]{2f, 3f, 1f}, 2);
         }
         String borderColor[] = border.getColor().split(",");
-        cb.setColorStroke(new BaseColor(Integer.valueOf(borderColor[0]), Integer.valueOf(borderColor[1]), Integer.valueOf(borderColor[2])));
+        cb.setColorStroke(new Color(Integer.valueOf(borderColor[0]), Integer.valueOf(borderColor[1]), Integer.valueOf(borderColor[2])));
         return cb;
     }
 }

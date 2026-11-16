@@ -29,13 +29,17 @@ import com.luck.report.core.model.*;
 import com.luck.report.core.model.Image;
 import com.luck.report.core.utils.ImageUtils;
 import com.luck.report.core.utils.UnitUtils;
-import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.RectangleReadOnly;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.awt.Color;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -130,7 +134,7 @@ public class PdfProducer implements Producer {
                                 childTable.addCell(pdfcell);
                             }
                         }
-                        float childTableHeight = childTable.calculateHeights();
+                        float childTableHeight = childTable.calculateHeights(true);
                         if (tableHeight > childTableHeight) {
                             for (int j = 0; j < columns.size(); j++) {
                                 PdfPCell lastCell = new PdfPCell();
@@ -276,7 +280,7 @@ public class PdfProducer implements Producer {
         }
         if (StringUtils.isNotEmpty(bgcolor)) {
             String[] colors = bgcolor.split(",");
-            cell.setBackgroundColor(new BaseColor(Integer.valueOf(colors[0]), Integer.valueOf(colors[1]), Integer.valueOf(colors[2])));
+            cell.setBackgroundColor(new Color(Integer.valueOf(colors[0]), Integer.valueOf(colors[1]), Integer.valueOf(colors[2])));
         }
         return cell;
     }
@@ -327,12 +331,12 @@ public class PdfProducer implements Producer {
         return cell;
     }
 
-    private com.itextpdf.text.Image buildPdfImage(String base64Data, int width, int height) throws Exception {
-        com.itextpdf.text.Image pdfImg = null;
+    private com.lowagie.text.Image buildPdfImage(String base64Data, int width, int height) throws Exception {
+        com.lowagie.text.Image pdfImg = null;
         InputStream input = ImageUtils.base64DataToInputStream(base64Data);
         try {
             byte[] bytes = IOUtils.toByteArray(input);
-            pdfImg = com.itextpdf.text.Image.getInstance(bytes);
+            pdfImg = com.lowagie.text.Image.getInstance(bytes);
             float imgWidth = pdfImg.getWidth();
             float imgHeight = pdfImg.getHeight();
             if (width == 0) {

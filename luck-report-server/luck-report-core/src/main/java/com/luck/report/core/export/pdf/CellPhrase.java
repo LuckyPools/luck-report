@@ -19,8 +19,8 @@ import com.luck.report.core.definition.CellStyle;
 import com.luck.report.core.export.pdf.font.FontBuilder;
 import com.luck.report.core.model.Cell;
 import com.luck.report.core.utils.NumberUtils;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Phrase;
+import com.lowagie.text.Font;
+import com.lowagie.text.Phrase;
 import org.apache.commons.lang3.StringUtils;
 
 /**
