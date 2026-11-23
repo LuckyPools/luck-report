@@ -73,6 +73,7 @@ export default {
       pageIndex: null,
       extraParams: {},
       isShowSearchForm: true,
+      isSearchFormEnabled: true,
       currentFreezeRowCount: 0
     }
   },
@@ -81,6 +82,7 @@ export default {
       return this.pageIndex != null && parseInt(this.pageIndex) > 0;
     },
     isRenderSearchForm(){
+      if (!this.isSearchFormEnabled) return false
       return !!(this.searchFormConfig?.fields?.length)
     }
   },
@@ -221,8 +223,9 @@ export default {
       this.mode = searchParams.get('mode') || '';
       this.toolsInfo = searchParams.get('_t');
       this.pageIndex = searchParams.get('_i');
+      this.isSearchFormEnabled = searchParams.get('_s')?.trim() !== '0';
       this.extraParams = {};
-      const localKeys = ['_i', '_t', '_r', '_n', 'mode', 'reportPath', 'lang'];
+      const localKeys = ['_i', '_t', '_r', '_n', '_s', 'mode', 'reportPath', 'lang'];
       for (const [key, value] of searchParams) {
         if (!localKeys.includes(key)) {
           this.extraParams[key] = value;
